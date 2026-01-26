@@ -20,6 +20,9 @@
         .filter-btn:hover { background-color: #f5f5f5; }
         .filter-btn.active { background-color: #e6f0fa; color: #4a90e2; font-weight: bold; }
         .filter-btn.active .count { background-color: #bad6f5; color: #335e8a; }
+        .filter-btn.new-btn { color: #d35400; } /* What's NEW用の強調色 */
+        .filter-btn.new-btn.active { background-color: #fde8cd; color: #d35400; }
+        .filter-btn.new-btn.active .count { background-color: #fbd5aa; color: #8a3800; }
         .count { font-size: 0.75rem; background: #eee; padding: 2px 8px; border-radius: 12px; color: #777; }
         .content-area { flex: 1; padding: 30px; overflow-y: auto; background-color: #f4f7f6; }
         .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
@@ -167,9 +170,6 @@
 
         data.forEach(item => {
             // ★ここが画像切り替えのミソです
-            // 1. まず指定された画像(通常は.png)を読み込む
-            // 2. エラーなら、もし.pngだったら.jpgに書き換えて再トライ
-            // 3. それでもダメなら非表示にしてアイコンを出す
             const imgTag = `<img src="${item.image}" alt="${item.title}" 
                             onerror="if(this.src.endsWith('.png')){ this.src = this.src.replace('.png', '.jpg'); } else { this.style.display='none'; this.nextElementSibling.style.display='block'; }">`;
             
@@ -201,7 +201,11 @@
             subjectCounts[item.subject] = (subjectCounts[item.subject] || 0) + 1;
         });
 
-        let html = `<ul><li><button class="filter-btn active" onclick="filterBy('all', null, this)">すべて表示 <span class="count">${appData.length}</span></button></li></ul>`;
+        // 「すべて表示」と「What's NEW」ボタンを作成
+        let html = `<ul>
+            <li><button class="filter-btn active" onclick="filterBy('all', null, this)">すべて表示 <span class="count">${appData.length}</span></button></li>
+            <li><button class="filter-btn new-btn" onclick="filterBy('new', null, this)">✨ What's NEW <span class="count">10</span></button></li>
+        </ul>`;
         
         html += `<h3>学年</h3><ul>`;
         // 定義順（小1...特別支援）に表示
@@ -241,13 +245,20 @@
         let filtered = [];
         if (type === 'all') {
             filtered = [...appData]; 
+        } else if (type === 'new') {
+            // 末尾10件を取得し、逆順にする（最新を先頭へ）
+            filtered = [...appData].slice(-10).reverse();
         } else if (type === 'grade') {
             filtered = appData.filter(item => item.gradeList.includes(value));
         } else { 
             filtered = appData.filter(item => item[type] === value);
         }
 
-        if (type === 'subject' || type === 'all') {
+        // ソート処理
+        // What's NEWの場合はソートせず、新着順（逆順）のまま表示
+        if (type === 'new') {
+            // Do nothing (keep reverse order)
+        } else if (type === 'subject' || type === 'all') {
             filtered.sort((a, b) => {
                 const gradeDiff = getMinGradeValue(a) - getMinGradeValue(b);
                 if (gradeDiff !== 0) return gradeDiff;
