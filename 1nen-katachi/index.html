@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>かたちづくり</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #FFF9C4; /* やさしい黄色 */
+            background-image: radial-gradient(#FFF176 10%, transparent 10%);
+            background-size: 30px 30px;
+            font-family: "Hiragino Kaku Gothic ProN", "Rounded Mplus 1c", sans-serif;
+            text-align: center;
+            color: #444;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        h1 {
+            font-size: 40px;
+            margin-top: 40px;
+            margin-bottom: 30px;
+            color: #FF6F00;
+            text-shadow: 2px 2px 0 #fff;
+            animation: bounce 2s infinite;
+        }
+
+        /* タイトルのゆらゆらアニメーション */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* メニューの入れ物 */
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+            padding-bottom: 80px; /* 下の余白を少し増やす */
+        }
+
+        /* ボタンの共通デザイン */
+        .menu-card {
+            display: flex;
+            align-items: center;
+            width: 85%;
+            max-width: 400px;
+            height: 100px;
+            background: white;
+            border-radius: 20px;
+            text-decoration: none;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.1);
+            transition: transform 0.1s, box-shadow 0.1s;
+            position: relative;
+            overflow: hidden;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .menu-card:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+        }
+
+        /* アイコンエリア */
+        .icon-area {
+            width: 70px;
+            height: 70px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            margin-right: 20px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* テキストエリア */
+        .text-area {
+            flex: 1;
+            text-align: left;
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #888;
+            font-weight: bold;
+        }
+
+        /* --- 各ボタンごとの色とアイコン --- */
+
+        /* ① かたちづくり */
+        .card-1 { border: 4px solid #FF7043; }
+        .card-1 .title { color: #D84315; }
+        .card-1 .icon-area { background: #FFCCBC; }
+        .icon-shape-1 {
+            width: 0; height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 20px solid #D84315;
+        }
+
+        /* ② かたちを かえよう */
+        .card-2 { border: 4px solid #29B6F6; }
+        .card-2 .title { color: #0277BD; }
+        .card-2 .icon-area { background: #B3E5FC; }
+        .icon-shape-2 {
+            width: 30px; height: 30px;
+            background: linear-gradient(135deg, #FFD700 50%, #1565C0 50%);
+            border: 2px solid #fff;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            transform: rotate(15deg);
+        }
+
+        /* ③ いろんな かたちを つくろう */
+        .card-3 { border: 4px solid #66BB6A; }
+        .card-3 .title { color: #2E7D32; }
+        .card-3 .icon-area { background: #C8E6C9; }
+        .icon-shape-3-wrap { position: relative; width: 100%; height: 100%; }
+        .is3 { position: absolute; width: 0; height: 0; border-style: solid; }
+        .is3-1 { border-width: 0 10px 15px 10px; border-color: transparent transparent #ff5252 transparent; top: 20px; left: 15px; transform: rotate(-15deg); }
+        .is3-2 { border-width: 0 10px 15px 10px; border-color: transparent transparent #1565C0 transparent; top: 35px; left: 35px; transform: rotate(30deg); }
+        .is3-3 { border-width: 0 8px 12px 8px; border-color: transparent transparent #FFD700 transparent; top: 15px; left: 40px; transform: rotate(10deg); }
+
+        /* ④ ぼうを くみあわせて */
+        .card-4 { border: 4px solid #EC407A; }
+        .card-4 .title { color: #880E4F; }
+        .card-4 .icon-area { background: #F8BBD0; }
+        .icon-shape-4-wrap { position: relative; width: 100%; height: 100%; }
+        .is4 { position: absolute; width: 6px; height: 35px; border-radius: 3px; box-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        .is4-1 { background-color: #ff5252; top: 15px; left: 25px; transform: rotate(-30deg); }
+        .is4-2 { background-color: #66BB6A; top: 15px; left: 40px; transform: rotate(30deg); }
+        .is4-3 { background-color: #FFD700; height: 30px; top: 38px; left: 32px; transform: rotate(90deg); }
+
+        /* ⑤ てんを つないで（NEW!） */
+        .card-5 { border: 4px solid #7E57C2; }
+        .card-5 .title { color: #4527A0; }
+        .card-5 .icon-area { background: #D1C4E9; }
+        .icon-shape-5-wrap { position: relative; width: 100%; height: 100%; }
+        /* ドット */
+        .is5-dot {
+            position: absolute; width: 8px; height: 8px;
+            background-color: #4527A0; border-radius: 50%;
+        }
+        /* 線 */
+        .is5-line {
+            position: absolute; height: 4px; background-color: #4527A0;
+            border-radius: 2px; transform-origin: left center;
+        }
+        /* 形をつくる */
+        .is5-d1 { top: 20px; left: 15px; } /* 左上 */
+        .is5-d2 { top: 50px; left: 35px; } /* 下 */
+        .is5-d3 { top: 20px; left: 55px; } /* 右上 */
+        /* 左上から下へ */
+        .is5-l1 { top: 24px; left: 18px; width: 40px; transform: rotate(56deg); }
+        /* 下から右上へ */
+        .is5-l2 { top: 53px; left: 38px; width: 40px; transform: rotate(-56deg); }
+
+        footer {
+            margin-top: 20px;
+            color: #888;
+            font-size: 12px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>かたちづくり</h1>
+
+    <div class="menu-container">
+        
+        <a href="index1.html" class="menu-card card-1">
+            <div class="icon-area"><div class="icon-shape-1"></div></div>
+            <div class="text-area">
+                <span class="title">かたちづくり</span>
+                <span class="subtitle">きほんの もんだい</span>
+            </div>
+        </a>
+
+        <a href="index2.html" class="menu-card card-2">
+            <div class="icon-area"><div class="icon-shape-2"></div></div>
+            <div class="text-area">
+                <span class="title">かたちを かえよう</span>
+                <span class="subtitle">おもてと うら</span>
+            </div>
+        </a>
+
+        <a href="index3.html" class="menu-card card-3">
+            <div class="icon-area">
+                <div class="icon-shape-3-wrap">
+                    <div class="is3 is3-1"></div><div class="is3 is3-2"></div><div class="is3 is3-3"></div>
+                </div>
+            </div>
+            <div class="text-area">
+                <span class="title">いろんな かたち</span>
+                <span class="subtitle">いろいたで つくろう</span>
+            </div>
+        </a>
+
+        <a href="index4.html" class="menu-card card-4">
+            <div class="icon-area">
+                <div class="icon-shape-4-wrap">
+                    <div class="is4 is4-1"></div><div class="is4 is4-2"></div><div class="is4 is4-3"></div>
+                </div>
+            </div>
+            <div class="text-area">
+                <span class="title">ぼうを くみあわせて</span>
+                <span class="subtitle">ぼうで つくろう</span>
+            </div>
+        </a>
+
+        <a href="index5.html" class="menu-card card-5">
+            <div class="icon-area">
+                <div class="icon-shape-5-wrap">
+                    <div class="is5-dot is5-d1"></div>
+                    <div class="is5-dot is5-d2"></div>
+                    <div class="is5-dot is5-d3"></div>
+                    <div class="is5-line is5-l1"></div>
+                    <div class="is5-line is5-l2"></div>
+                </div>
+            </div>
+            <div class="text-area">
+                <span class="title">てんを つないで</span>
+                <span class="subtitle">せんで つくろう</span>
+            </div>
+        </a>
+
+    </div>
+
+    <footer>たのしく まなんでね！</footer>
+
+</body>
+</html>

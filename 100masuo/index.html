@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>１００マスオさん v12 - Perfect Logic</title>
+<style>
+  /* --- 基本設定 --- */
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #f0f4f8; margin: 0; padding: 0;
+    height: 100vh; height: 100svh;
+    overflow: hidden;
+    box-sizing: border-box;
+    display: flex; flex-direction: column;
+    touch-action: manipulation; 
+    -webkit-user-select: none; user-select: none;
+  }
+
+  /* --- メニュー画面 --- */
+  #menu-screen {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+    position: absolute; top: 0; left: 0; z-index: 200;
+    background: #f0f4f8;
+  }
+  
+  h1.app-title {
+    color: #2c3e50; font-size: 3.5rem; margin-bottom: 10px;
+    font-weight: 900; text-shadow: 3px 3px 0px #fff;
+    letter-spacing: -2px; text-align: center; line-height: 1.1;
+  }
+  p.app-subtitle {
+    font-size: 1.2rem; color: #7f8c8d; margin-bottom: 40px; font-weight: bold;
+  }
+
+  .menu-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    width: 90%; max-width: 500px;
+  }
+
+  .menu-btn {
+    border: none; border-radius: 25px;
+    padding: 30px 10px; font-size: 2.5rem; font-weight: bold;
+    color: white; cursor: pointer;
+    box-shadow: 0 8px 0 rgba(0,0,0,0.15);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .menu-btn span { font-size: 1.1rem; margin-top: 10px; font-weight: bold; opacity: 0.9; }
+  .menu-btn:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(0,0,0,0.15); }
+
+  .btn-add { background-color: #ff6b6b; }
+  .btn-sub { background-color: #4ecdc4; }
+  .btn-mul { background-color: #ffe66d; color: #555; }
+  .btn-div { background-color: #1a535c; }
+
+  /* --- ゲーム画面 --- */
+  #game-screen {
+    display: none;
+    flex-direction: column; 
+    width: 100%; height: 100%;
+    align-items: center; justify-content: flex-start;
+  }
+
+  .header-area {
+    width: 100%; padding: 10px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: #f0f4f8; z-index: 20; box-sizing: border-box;
+    flex-shrink: 0; min-height: 60px;
+  }
+  
+  .back-btn {
+    background: #bdc3c7; border: none; border-radius: 50%;
+    width: 40px; height: 40px; font-size: 1.2rem; color: white;
+    cursor: pointer; box-shadow: 0 4px 0 #95a5a6; display: flex; align-items: center; justify-content: center;
+  }
+  .back-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #95a5a6; }
+
+  .status-display { display: flex; align-items: center; gap: 15px; }
+  .timer { font-size: 1.8rem; color: #e74c3c; font-family: monospace; font-weight: bold; }
+  .mode-badge { background: #8e44ad; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; display: none; box-shadow: 0 4px 10px rgba(142, 68, 173, 0.3); }
+
+  .main-container {
+    display: flex; flex-direction: row; 
+    align-items: center; justify-content: center;
+    gap: 20px; width: 98%; flex-grow: 1; padding-bottom: 10px;
+  }
+
+  .grid-area { display: flex; justify-content: flex-end; align-items: center; height: 100%; }
+  
+  .grid-container {
+    display: grid;
+    grid-template-columns: 0.8fr repeat(5, 1fr);
+    grid-template-rows: 0.8fr repeat(5, 1fr);
+    gap: 6px; aspect-ratio: 1 / 1;
+    height: auto; max-height: 75vh; width: 75vh;
+  }
+  
+  /* マス目のスタイル */
+  .cell {
+    background: white; border-radius: 8px;
+    display: flex; flex-direction: column; 
+    align-items: center; justify-content: center;
+    font-size: 2.8rem; font-weight: 800;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    color: #2c3e50; position: relative; overflow: hidden;
+    transition: background 0.2s, transform 0.1s;
+  }
+  
+  /* ヘッダ */
+  .header-cell { 
+    background: #34495e; color: #ecf0f1; box-shadow: none; 
+    font-size: 2rem; transition: background 0.5s ease, color 0.5s ease;
+  }
+  
+  /* 割り算モード：フラッシュ演出 */
+  @keyframes flashHeader {
+    0% { background: #e67e22; transform: scale(1.1); }
+    100% { background: #34495e; transform: scale(1.0); }
+  }
+  .header-flash { animation: flashHeader 0.8s ease-out forwards; }
+
+  .input-cell { cursor: pointer; border: 4px solid transparent; }
+  
+  .ghost-bar {
+    position: absolute; top: 0; left: 0; width: 0%; height: 100%;
+    background: rgba(127, 140, 141, 0.4); z-index: 1; pointer-events: none;
+  }
+  .cell-content { z-index: 2; position: relative; line-height: 1; }
+  .feedback-msg {
+    position: absolute; bottom: 2px;
+    font-size: 0.6rem; font-weight: bold; color: #e67e22;
+    white-space: nowrap; z-index: 2; transition: opacity 0.3s;
+  }
+
+  .active { 
+    border-color: #3498db; background: #eaf6ff; transform: scale(1.05); z-index: 10;
+    box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+  }
+  .correct { background: #2ecc71; color: white; }
+  .correct .ghost-bar { display: none; }
+  .ghost-owned { background: #95a5a6; color: transparent; } 
+  .ghost-owned .cell-content { opacity: 0; }
+  .ghost-owned::after {
+    content: "🔒"; font-size: 1.5rem; color: #ecf0f1;
+    position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  }
+  .shake { animation: shake 0.3s; border-color: #e74c3c; background: #fce4e4; }
+
+  .numpad-area { height: 75vh; width: 200px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; }
+  .numpad { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); gap: 8px; height: 100%; max-height: 400px; }
+  .key {
+    background: white; border: none; border-radius: 12px;
+    font-size: 2rem; font-weight: bold; color: #333;
+    box-shadow: 0 4px 0 #bdc3c7; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: manipulation;
+  }
+  .key:active { transform: translateY(4px); box-shadow: none; background: #ecf0f1; }
+  .key-clear { background: #e74c3c; color: white; box-shadow: 0 4px 0 #c0392b; }
+  .key-zero { grid-column: span 2; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-6px); } 50% { transform: translateX(6px); }
+  }
+  
+  .overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255,0.95); display: none;
+    flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+  }
+  .btn {
+    padding: 20px 50px; font-size: 1.8rem; font-weight: bold;
+    background: #3498db; color: white; border: none;
+    border-radius: 60px; cursor: pointer; margin: 15px;
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4); touch-action: manipulation;
+  }
+  .btn:active { transform: scale(0.95); }
+  .btn-ghost { background: #e74c3c; box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4); display: none; }
+  .btn-menu { background: #95a5a6; font-size: 1.2rem; padding: 15px 30px; margin-top: 30px; box-shadow: 0 6px 15px rgba(149, 165, 166, 0.4); }
+  
+  .result-main { font-size: 4rem; color:#e74c3c; font-weight:bold; margin: 0; }
+  .result-msg { font-size: 1.5rem; color: #2c3e50; margin: 20px 0 40px 0; font-weight: bold; text-align: center; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div id="menu-screen">
+  <h1 class="app-title">１００マスオさん</h1>
+  <p class="app-subtitle">きょうの キミは なにに チャレンジする？</p>
+  <div class="menu-grid">
+    <button class="menu-btn btn-add" onclick="selectMode('add')">＋<br><span>たしざん</span></button>
+    <button class="menu-btn btn-sub" onclick="selectMode('sub')">－<br><span>ひきざん</span></button>
+    <button class="menu-btn btn-mul" onclick="selectMode('mul')">×<br><span>かけざん</span></button>
+    <button class="menu-btn btn-div" onclick="selectMode('div')">÷<br><span>わりざん</span></button>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div class="header-area">
+    <button class="back-btn" onclick="backToMenu()">↩</button>
+    <div class="status-display">
+        <span>Time: </span><span id="timerDisplay" class="timer">0.00</span>
+        <span id="modeBadge" class="mode-badge">🔥 VS 最強の自分</span>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="grid-area">
+      <div class="grid-container" id="grid"></div>
+    </div>
+    <div class="numpad-area">
+      <div class="numpad">
+        <button class="key" onclick="inputNum(7)">7</button>
+        <button class="key" onclick="inputNum(8)">8</button>
+        <button class="key" onclick="inputNum(9)">9</button>
+        <button class="key" onclick="inputNum(4)">4</button>
+        <button class="key" onclick="inputNum(5)">5</button>
+        <button class="key" onclick="inputNum(6)">6</button>
+        <button class="key" onclick="inputNum(1)">1</button>
+        <button class="key" onclick="inputNum(2)">2</button>
+        <button class="key" onclick="inputNum(3)">3</button>
+        <button class="key key-clear" onclick="clearInput()">C</button>
+        <button class="key key-zero" onclick="inputNum(0)">0</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="overlay" class="overlay">
+    <h1 style="color:#2c3e50; font-size: 3rem; margin-bottom: 10px; font-weight:900;">Result</h1>
+    <div id="resultArea" style="text-align:center;"></div>
+    
+    <button class="btn" onclick="startGame('new')">もう１回<br><span style="font-size:0.8rem; font-weight:normal;">(新しい問題)</span></button>
+    <button id="ghostBtn" class="btn btn-ghost" onclick="startGame('ghost')">🔥 VS 最強の自分</button>
+    <button class="btn btn-menu" onclick="backToMenu()">メニューへ戻る</button>
+  </div>
+</div>
+
+<script>
+  const GRID_SIZE = 5;
+  let rowNums = []; let colNums = []; let divAnswers = []; 
+  let currentIdx = 0;
+  let startTime = 0; let timerInterval = null; let isPlaying = false; let currentInput = "";
+  let isGhostMode = false; let currentRunLog = []; 
+  let lastRowIndex = -1; 
+
+  let currentMode = 'add';
+  let modeOperator = '+';
+
+  let bestRecords = { add: null, sub: null, mul: null, div: null };
+  let ghostTimeouts = [];
+  
+  const praiseWords = ["すごい！", "いいね！", "速い！", "Nice!", "Good!", "天才✨️", "よっしゃ！", "Cool!", "神速！"];
+  const winMessages = [
+    "過去の自分を超えた！<br>君が最強だ！",
+    "新記録達成！<br>限界を突破した！",
+    "圧倒的成長！<br>歴史が変わったぞ！"
+  ];
+  const loseMessages = [
+    "惜しい！あと少しだ！<br>次は絶対に超えられる！",
+    "負けるな！<br>最強の自分は強敵だ！",
+    "壁は乗り越えるためにある！<br>もう一度挑戦だ！"
+  ];
+
+  const menuScreen = document.getElementById('menu-screen');
+  const gameScreen = document.getElementById('game-screen');
+  const gridEl = document.getElementById('grid');
+  const timerEl = document.getElementById('timerDisplay');
+  const resultArea = document.getElementById('resultArea');
+  const overlay = document.getElementById('overlay');
+  const ghostBtn = document.getElementById('ghostBtn');
+  const modeBadge = document.getElementById('modeBadge');
+
+  function selectMode(mode) {
+      currentMode = mode;
+      if(mode === 'add') modeOperator = '+';
+      if(mode === 'sub') modeOperator = '-';
+      if(mode === 'mul') modeOperator = '×';
+      if(mode === 'div') modeOperator = '÷';
+      
+      menuScreen.style.display = 'none';
+      gameScreen.style.display = 'flex';
+      startGame('new');
+  }
+
+  function backToMenu() {
+      isPlaying = false;
+      clearInterval(timerInterval);
+      overlay.style.display = 'none';
+      gameScreen.style.display = 'none';
+      menuScreen.style.display = 'flex';
+  }
+
+  function getUniqueNums(count, min, max) {
+    let candidates = [];
+    for(let i=min; i<=max; i++) candidates.push(i);
+    for(let i = candidates.length - 1; i > 0; i--){
+      const r = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[r]] = [candidates[r], candidates[i]];
+    }
+    return candidates.slice(0, count);
+  }
+
+  function initGrid(useSavedNums) {
+    gridEl.innerHTML = "";
+    lastRowIndex = -1;
+    divAnswers = []; 
+    
+    let record = bestRecords[currentMode];
+
+    if(useSavedNums && record) {
+      rowNums = [...record.rowNums];
+      colNums = [...record.colNums];
+      if(currentMode === 'div' && record.divAnswers) {
+        divAnswers = JSON.parse(JSON.stringify(record.divAnswers)); 
+      }
+    } else {
+      // --- 新規問題生成 ---
+      if(currentMode === 'sub') {
+        colNums = getUniqueNums(GRID_SIZE, 10, 19);
+        rowNums = getUniqueNums(GRID_SIZE, 1, 9);
+      } else if(currentMode === 'mul') {
+        // 掛け算：1の段を排除 (2~9)
+        rowNums = getUniqueNums(GRID_SIZE, 2, 9);
+        colNums = getUniqueNums(GRID_SIZE, 2, 9);
+      } else if(currentMode === 'div') {
+        // 割り算：わる数は2~9 (÷1排除)
+        rowNums = getUniqueNums(GRID_SIZE, 2, 9);
+        colNums = []; 
+        
+        // 割り算の答え：各行ごとに「1~9」からユニークな数を選ぶ
+        // これにより、1つの行の中で同じ答え(同じ問題)が出るのを防ぐ
+        for(let r=0; r<GRID_SIZE; r++) {
+            let rowAnswers = getUniqueNums(GRID_SIZE, 1, 9);
+            divAnswers.push(rowAnswers);
+        }
+      } else {
+        // 足し算
+        rowNums = getUniqueNums(GRID_SIZE, 1, 9);
+        colNums = getUniqueNums(GRID_SIZE, 1, 9);
+      }
+    }
+
+    // 左上（演算子）
+    let empty = document.createElement('div'); 
+    empty.className = 'cell header-cell'; 
+    empty.textContent = modeOperator;
+    gridEl.appendChild(empty);
+
+    // 列ヘッダ（上）
+    for(let c=0; c<GRID_SIZE; c++) {
+      let cell = document.createElement('div'); 
+      cell.className = 'cell header-cell'; 
+      cell.id = `col-header-${c}`;
+      
+      // 初期表示
+      if(currentMode === 'div') {
+          // 割り算の初期ヘッダは、1行目の答えに合わせて計算
+          let ans = divAnswers[0][c];
+          let divisor = rowNums[0];
+          cell.textContent = ans * divisor; 
+      } else {
+          cell.textContent = colNums[c];
+      }
+      gridEl.appendChild(cell); 
+    }
+
+    // グリッド生成
+    for(let r=0; r<GRID_SIZE; r++) {
+      // 行ヘッダ（左）
+      let rowHead = document.createElement('div'); 
+      rowHead.className = 'cell header-cell'; 
+      rowHead.textContent = rowNums[r]; 
+      gridEl.appendChild(rowHead);
+
+      for(let c=0; c<GRID_SIZE; c++) {
+        let cell = document.createElement('div'); 
+        cell.className = 'cell input-cell'; 
+        cell.dataset.idx = r * GRID_SIZE + c; 
+        
+        let ans = 0;
+        let rVal = rowNums[r];
+
+        if(currentMode === 'add') ans = rVal + colNums[c];
+        if(currentMode === 'sub') ans = colNums[c] - rVal; 
+        if(currentMode === 'mul') ans = rVal * colNums[c];
+        
+        // 割り算は保存したユニーク解答を使用
+        if(currentMode === 'div') {
+           ans = divAnswers[r][c];
+        }
+
+        cell.dataset.ans = ans;
+        cell.id = `cell-${r * GRID_SIZE + c}`;
+        
+        cell.innerHTML = `
+          <div class="ghost-bar" id="ghost-bar-${r * GRID_SIZE + c}"></div>
+          <span class="cell-content" id="content-${r * GRID_SIZE + c}"></span>
+          <span class="feedback-msg" id="msg-${r * GRID_SIZE + c}"></span>
+        `;
+        gridEl.appendChild(cell);
+      }
+    }
+  }
+
+  function startGame(mode) {
+    isGhostMode = (mode === 'ghost');
+    let useSavedNums = isGhostMode;
+
+    modeBadge.style.display = isGhostMode ? 'inline-block' : 'none';
+    overlay.style.display = 'none'; 
+    ghostTimeouts.forEach(t => clearTimeout(t)); ghostTimeouts = [];
+
+    initGrid(useSavedNums);
+    
+    currentIdx = 0; currentInput = ""; currentRunLog = []; isPlaying = true; startTime = Date.now();
+    updateActiveCell();
+    
+    if(timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => { timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(2); }, 50);
+    
+    if(isGhostMode && bestRecords[currentMode]) startGhostAnimations();
+  }
+
+  function startGhostAnimations() {
+    const logData = bestRecords[currentMode].log;
+    logData.forEach((log, i) => {
+      let prevTime = (i === 0) ? 0 : logData[i-1].time;
+      let duration = log.time - prevTime;
+      
+      let tId = setTimeout(() => {
+        if(!isPlaying) return;
+        let cell = document.getElementById(`cell-${log.idx}`);
+        let bar = document.getElementById(`ghost-bar-${log.idx}`);
+        
+        if(cell && !cell.classList.contains('correct')) {
+           bar.style.transition = `width ${duration}ms linear`;
+           bar.style.width = "100%";
+           
+           let finishTId = setTimeout(() => {
+             if(isPlaying && !cell.classList.contains('correct')) {
+               cell.classList.add('ghost-owned');
+               showFeedback(log.idx, "とられた😫");
+             }
+           }, duration);
+           ghostTimeouts.push(finishTId);
+        }
+      }, prevTime);
+      ghostTimeouts.push(tId);
+    });
+  }
+
+  function updateActiveCell() {
+    document.querySelectorAll('.active').forEach(e => e.classList.remove('active'));
+    
+    if(currentIdx < GRID_SIZE * GRID_SIZE) {
+      let cell = document.getElementById(`cell-${currentIdx}`);
+      cell.classList.add('active');
+      showFeedback(currentIdx, "");
+
+      // --- 割り算モードの特殊ヘッダ更新 ---
+      if(currentMode === 'div') {
+        const r = Math.floor(currentIdx / GRID_SIZE);
+        
+        // 行が変わったタイミングで一斉更新
+        if (r !== lastRowIndex) {
+          const divisor = rowNums[r]; // わる数
+          
+          // 上ヘッダをすべて書き換え
+          for (let c = 0; c < GRID_SIZE; c++) {
+            // その行、その列に割り当てられた答えを取得
+            const answer = divAnswers[r][c];
+            const dividend = answer * divisor;
+            
+            const colHeader = document.getElementById(`col-header-${c}`);
+            if(colHeader) {
+                colHeader.classList.remove('header-flash');
+                void colHeader.offsetWidth; 
+                colHeader.textContent = dividend;
+                colHeader.classList.add('header-flash');
+            }
+          }
+          lastRowIndex = r;
+        }
+      }
+    }
+  }
+
+  function showFeedback(idx, msg) {
+    let msgEl = document.getElementById(`msg-${idx}`);
+    if(msgEl) {
+      msgEl.textContent = msg;
+      msgEl.style.opacity = 1;
+    }
+  }
+
+  function hideFeedback(idx) {
+    let msgEl = document.getElementById(`msg-${idx}`);
+    if(msgEl) msgEl.style.opacity = 0;
+  }
+
+  window.inputNum = function(num) {
+    if(!isPlaying) return;
+    currentInput += num;
+    let cell = document.getElementById(`cell-${currentIdx}`);
+    let contentEl = document.getElementById(`content-${currentIdx}`);
+    let correctAns = parseInt(cell.dataset.ans);
+    
+    contentEl.textContent = currentInput;
+
+    if(parseInt(currentInput) === correctAns) {
+      cell.classList.remove('active', 'ghost-owned', 'shake'); 
+      cell.classList.add('correct');
+      
+      let praise = praiseWords[Math.floor(Math.random() * praiseWords.length)];
+      showFeedback(currentIdx, praise);
+      let targetIdx = currentIdx;
+      setTimeout(() => { hideFeedback(targetIdx); }, 1000);
+
+      let bar = document.getElementById(`ghost-bar-${currentIdx}`);
+      bar.style.transition = 'none'; bar.style.width = '0%';
+
+      currentRunLog.push({ idx: currentIdx, time: Date.now() - startTime });
+      currentIdx++; currentInput = "";
+      
+      if(currentIdx >= GRID_SIZE * GRID_SIZE) gameFinish(); else updateActiveCell();
+      
+    } else if (currentInput.length >= correctAns.toString().length) {
+      cell.classList.add('shake');
+      showFeedback(currentIdx, "ちがうよ💦");
+      setTimeout(() => { 
+        cell.classList.remove('shake'); 
+        currentInput = ""; 
+        contentEl.textContent = ""; 
+        hideFeedback(currentIdx);
+      }, 500);
+    }
+  };
+
+  window.clearInput = function() { 
+    currentInput = ""; 
+    document.getElementById(`content-${currentIdx}`).textContent = ""; 
+  };
+
+  function gameFinish() {
+    isPlaying = false; clearInterval(timerInterval);
+    ghostTimeouts.forEach(t => clearTimeout(t)); 
+    
+    let time = (Date.now() - startTime) / 1000;
+    let msg = "";
+    
+    let currentRecord = {
+      time: time,
+      log: [...currentRunLog],
+      rowNums: [...rowNums],
+      colNums: [...colNums],
+      divAnswers: (currentMode === 'div' ? [...divAnswers] : null) 
+    };
+
+    let best = bestRecords[currentMode];
+
+    if(best) {
+      if(time < best.time) {
+        msg = winMessages[Math.floor(Math.random() * winMessages.length)];
+        bestRecords[currentMode] = currentRecord;
+      } else {
+        msg = isGhostMode ? loseMessages[Math.floor(Math.random() * loseMessages.length)] : "Good Challenge!<br>次はもっといける！";
+      }
+    } else {
+      msg = "ナイスファイト！<br>次は「VS 最強の自分」だ！";
+      bestRecords[currentMode] = currentRecord;
+    }
+
+    resultArea.innerHTML = `
+      <p class="result-main">${time.toFixed(2)}</p>
+      <p class="result-msg">${msg}</p>
+    `;
+    
+    ghostBtn.style.display = "inline-block"; 
+    let bestTimeDisplay = bestRecords[currentMode].time.toFixed(2);
+    ghostBtn.innerHTML = `🔥 VS 最強の自分<br><span style="font-size:0.8rem; font-weight:normal;">(${bestTimeDisplay}秒 | 同じ問題)</span>`;
+    
+    setTimeout(() => { overlay.style.display = 'flex'; }, 1000);
+  }
+</script>
+</body>
+</html>

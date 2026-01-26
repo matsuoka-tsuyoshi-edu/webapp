@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>サイコロをひらいてみよう</title> 
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        .control-button {
+            position: absolute; top: 20px; font-size: 32px;
+            padding: 10px; background-color: rgba(255, 255, 255, 0.8);
+            border: 2px solid #333; border-radius: 10px; cursor: pointer;
+            user-select: none; transition: transform 0.2s; z-index: 10;
+        }
+        .control-button:hover { transform: scale(1.1); }
+        #dice-toggle-button { right: 20px; display: none; } 
+        #undo-button { right: 95px; }
+        #reset-button { right: 170px; }
+        #log-button { right: 245px; }
+        #log-container {
+            position: absolute; top: 95px; right: 20px;
+            width: 300px; 
+            /* ▼ 修正: 高さを増やす */
+            max-height: 80%; 
+            /* ▲ 修正 */
+            background-color: rgba(0, 0, 0, 0.7); color: white;
+            font-family: monospace; font-size: 16px; /* フォントサイズ調整 */
+            border-radius: 10px; padding: 10px;
+            overflow-y: auto; 
+            display: none; /* 最初は非表示 */
+            z-index: 10;
+            line-height: 1.2; /* 行間調整 */
+            word-break: break-all; /* 長いメッセージで折り返す */
+        }
+    </style>
+</head>
+<body>
+    <div id="reset-button" class="control-button">🔄</div>
+    <div id="log-button" class="control-button">📋</div>
+    <div id="undo-button" class="control-button">↩️</div>
+    <div id="dice-toggle-button" class="control-button">🎲</div>
+
+    <div id="log-container"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "@tweenjs/tween.js": "https://unpkg.com/@tweenjs/tween.js@21.0.0/dist/tween.esm.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import TWEEN from '@tweenjs/tween.js';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+        // --- 1. 基本設定 ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(5.4, 7.2, 9);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enablePan = false;
+        controls.minDistance = 5;
+        controls.maxDistance = 50; 
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+        scene.add(ambientLight);
+
+        // --- 2. 定数と変数 ---
+        const FACE_SIZE = 3.6;
+        const HALF_SIZE = FACE_SIZE / 2;
+        const COLORS = {
+            DEFAULT_FACE: 0xcccccc, DICE_FACE: 0xffffff, SELECTED_FACE: 0xdc3545,
+            EDGE: 0x000000, BLACK_DOT: 0x333333, RED_DOT: 0xdc3545, ARROW: 0x28a745,
+            TEXT: 0x111111
+        };
+        let selectedFace = null;
+        let isAnimating = false;
+        let isDiceMode = true; // 最初からサイコロモード
+        let historyStack = [];
+        let logStack = [];
+        let font = null;
+        let firstUnfoldedFace = null; // 最初に展開した面
+
+        const adjacencyMap = {
+            'front':  { top: 'top', bottom: 'bottom', left: 'left', right: 'right' },
+            'back':   { top: 'top', bottom: 'bottom', left: 'right', right: 'left' },
+            'top':    { top: 'back', bottom: 'front', left: 'left', right: 'right' },
+            'bottom': { top: 'front', bottom: 'back', left: 'left', right: 'right' },
+            'left':   { top: 'top', bottom: 'bottom', left: 'back', right: 'front' },
+            'right':  { top: 'top', bottom: 'bottom', left: 'front', right: 'back' }
+        };
+        const oppositeEdgeMap = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
+
+        const diceDots = {
+            'top':    [{ x: 0, y: 0, z: 0.036 }],
+            'left':   [{ x: -1.08, y: 1.08, z: 0.036 }, { x: 1.08, y: -1.08, z: 0.036 }],
+            'front':  [{ x: -1.08, y: -1.08, z: 0.036 }, { x: 0, y: 0, z: 0.036 }, { x: 1.08, y: 1.08, z: 0.036 }],
+            'back':   [{ x: -1.08, y: -1.08, z: 0.036 }, { x: 1.08, y: 1.08, z: 0.036 }, { x: -1.08, y: 1.08, z: 0.036 }, { x: 1.08, y: -1.08, z: 0.036 }],
+            'right':  [{ x: -1.08, y: -1.08, z: 0.036 }, { x: 1.08, y: 1.08, z: 0.036 }, { x: -1.08, y: 1.08, z: 0.036 }, { x: 1.08, y: -1.08, z: 0.036 }, { x: 0, y: 0, z: 0.036 }],
+            'bottom': [{ x: -1.08, y: -1.08, z: 0.036 }, { x: -1.08, y: 0, z: 0.036 }, { x: -1.08, y: 1.08, z: 0.036 }, { x: 1.08, y: -1.08, z: 0.036 }, { x: 1.08, y: 0, z: 0.036 }, { x: 1.08, y: 1.08, z: 0.036 }]
+        };
+
+        const initialFaceInfos = [
+            { name: 'front', position: [0, 0, HALF_SIZE], rotation: [0, 0, 0] },
+            { name: 'back', position: [0, 0, -HALF_SIZE], rotation: [0, Math.PI, 0] },
+            { name: 'top', position: [0, HALF_SIZE, 0], rotation: [-Math.PI / 2, 0, 0] },
+            { name: 'bottom', position: [0, -HALF_SIZE, 0], rotation: [Math.PI / 2, 0, 0] },
+            { name: 'left', position: [-HALF_SIZE, 0, 0], rotation: [0, -Math.PI / 2, 0] },
+            { name: 'right', position: [HALF_SIZE, 0, 0], rotation: [0, Math.PI / 2, 0] }
+        ];
+
+        // --- フォント読み込み ---
+        const fontLoader = new FontLoader();
+        fontLoader.load(
+            'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_regular.typeface.json',
+            (loadedFont) => { font = loadedFont; },
+            undefined,
+            (error) => { addDebugLog(`Font loading failed: ${error}`, true); } // Log error to screen
+        );
+
+        // --- 3. 立方体と矢印の作成 ---
+        const faceGroups = {};
+        const cubeGroup = new THREE.Group();
+        scene.add(cubeGroup);
+        const arrowsGroup = new THREE.Group();
+        scene.add(arrowsGroup);
+
+        const dotGeometry = new THREE.CircleGeometry(FACE_SIZE * 0.1, 32);
+        const blackDotMaterial = new THREE.MeshBasicMaterial({ color: COLORS.BLACK_DOT, side: THREE.DoubleSide });
+        const redDotMaterial = new THREE.MeshBasicMaterial({ color: COLORS.RED_DOT, side: THREE.DoubleSide });
+        const arrowGeometry = new THREE.ConeGeometry(0.3, 0.6, 16);
+        arrowGeometry.translate(0, 0.3, 0);
+        const arrowMaterial = new THREE.MeshBasicMaterial({ color: COLORS.ARROW });
+        const textMaterial = new THREE.MeshBasicMaterial({ color: COLORS.TEXT });
+
+        function createCube() {
+            initialFaceInfos.forEach(info => {
+                const faceGroup = new THREE.Group();
+                const initialColor = isDiceMode ? COLORS.DICE_FACE : COLORS.DEFAULT_FACE;
+                const planeMat = new THREE.MeshLambertMaterial({ color: initialColor, side: THREE.DoubleSide });
+                const planeGeo = new THREE.PlaneGeometry(FACE_SIZE, FACE_SIZE);
+                const plane = new THREE.Mesh(planeGeo, planeMat);
+                faceGroup.add(plane);
+                const edgesGeo = new THREE.EdgesGeometry(planeGeo);
+                const lineMat = new THREE.LineBasicMaterial({ color: COLORS.EDGE });
+                const line = new THREE.LineSegments(edgesGeo, lineMat);
+                faceGroup.add(line);
+                faceGroup.position.set(...info.position);
+                faceGroup.rotation.set(...info.rotation);
+                faceGroup.name = info.name;
+                faceGroup.userData = {
+                    isFaceGroup: true,
+                    faceMesh: plane,
+                    dots: [],
+                    connectedToParentEdge: null,
+                    isFlap: false 
+                };
+                const currentDotMaterial = (info.name === 'top') ? redDotMaterial : blackDotMaterial;
+                diceDots[info.name].forEach(dotPos => {
+                    const dot = new THREE.Mesh(dotGeometry, currentDotMaterial);
+                    dot.position.set(dotPos.x, dotPos.y, dotPos.z);
+                    dot.visible = isDiceMode;
+                    faceGroup.add(dot);
+                    faceGroup.userData.dots.push(dot);
+                });
+                cubeGroup.add(faceGroup);
+                faceGroups[info.name] = faceGroup;
+            });
+            cubeGroup.updateMatrixWorld(true);
+        }
+        createCube();
+
+        // --- 4. 操作ロジック ---
+        // ... (ボタンリスナーは変更なし) ...
+        const diceButton = document.getElementById('dice-toggle-button');
+        /* ... */
+        const undoButton = document.getElementById('undo-button');
+        undoButton.addEventListener('click', undoLastMove);
+        const resetButton = document.getElementById('reset-button');
+        resetButton.addEventListener('click', resetCube);
+        const logButton = document.getElementById('log-button');
+        logButton.addEventListener('click', toggleLogDisplay); // Keep toggle functionality
+
+
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+
+        function onPointerDown(event) {
+            // ★ 完了後も操作可能
+            if (event.target.classList.contains('control-button') || isAnimating || !font ) return; 
+            pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+            pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(pointer, camera);
+
+            // Arrow or Text click takes priority
+            const arrowIntersects = raycaster.intersectObjects(arrowsGroup.children, true);
+            if (arrowIntersects.length > 0) {
+                let clickedData = null;
+                let clickedObject = arrowIntersects[0].object;
+                while(clickedObject && !clickedObject.userData.actionData) {
+                     if (clickedObject.parent === arrowsGroup || !clickedObject.parent) break;
+                     clickedObject = clickedObject.parent;
+                }
+                if (clickedObject && clickedObject.userData.actionData) {
+                    clickedData = clickedObject.userData.actionData;
+                    // ★ 完了チェックを追加
+                    if (checkIfUnfoldedFlat()) { 
+                        deselectFace(); 
+                        return; 
+                    }
+                    unfoldFace(clickedData.face, clickedData.edge, clickedData.hinge);
+                    return;
+                }
+            }
+
+            // Face click check
+            const faceIntersects = raycaster.intersectObjects(Object.values(faceGroups), true);
+            if (faceIntersects.length > 0) {
+                let clickedObject = faceIntersects[0].object;
+                while (clickedObject && !clickedObject.userData.isFaceGroup) clickedObject = clickedObject.parent;
+                if (clickedObject) {
+                    selectFace(clickedObject);
+                }
+            } else {
+                deselectFace();
+            }
+        }
+
+        // --- (selectFace v19.11 + Debug Log) ---
+        function selectFace(faceToSelect) {
+            // --- ▼ Debug Log ---
+            addDebugLog(`Attempting select: ${faceToSelect.name}`); // ★ 面選択ログ
+            // --- ▲ Debug Log ---
+
+            // 1. 完了チェック
+            if (checkIfUnfoldedFlat()) {
+                addDebugLog(` -> Blocked: Unfolding complete.`); // Debug Log
+                deselectFace();
+                return;
+            }
+            // 2. 最初の展開面チェック (Flap面は除外)
+            if (faceToSelect === firstUnfoldedFace && !faceToSelect.userData.isFlap) {
+                addDebugLog(` -> Blocked: Cannot select first unfolded face (${faceToSelect.name}).`); // Debug Log
+                deselectFace();
+                return;
+            }
+            // 3. 選択ルールの再修正: cubeGroupの子か、isFlap=true の場合のみ選択許可
+            if (faceToSelect.parent !== cubeGroup && !faceToSelect.userData.isFlap) {
+                 addDebugLog(` -> Blocked: Not a cubeGroup child and not a flap (${faceToSelect.name}). Parent: ${faceToSelect.parent ? faceToSelect.parent.name : 'null'}`); // Debug Log
+                 deselectFace(); // 通常の展開済み面(カギ親含む)は選択不可
+                 return;
+            }
+            // --- ▼ Debug Log ---
+            if (faceToSelect.userData.isFlap) {
+                addDebugLog(` -> Flap face selected: ${faceToSelect.name}`); // ★ カギ子選択ログ
+            } else {
+                addDebugLog(` -> Base face selected: ${faceToSelect.name}`); // ★ 面選択ログ
+            }
+            // --- ▲ Debug Log ---
+
+            // 4. 上記以外(土台の面 or カギ子)は選択を試みる
+            deselectFace();
+            selectedFace = faceToSelect;
+            selectedFace.userData.faceMesh.material.color.set(COLORS.SELECTED_FACE);
+            showPossibleUnfoldArrows(selectedFace);
+
+            // 5. ガイドが表示されなければ選択解除
+            if (arrowsGroup.children.length === 0) {
+                 addDebugLog(` -> No arrows shown for ${faceToSelect.name}, deselecting.`); // Debug Log
+                deselectFace();
+            }
+        }
+
+
+        function deselectFace() {
+            if (selectedFace) {
+                const originalColor = isDiceMode ? COLORS.DICE_FACE : COLORS.DEFAULT_FACE;
+                selectedFace.userData.faceMesh.material.color.set(originalColor);
+            }
+            selectedFace = null;
+            arrowsGroup.clear();
+        }
+
+        // --- ▼ 修正 (showPossibleUnfoldArrows v19.15 + Debug Log) ---
+        function showPossibleUnfoldArrows(face) {
+             arrowsGroup.clear();
+             if (!font) return;
+        
+             const edges = [
+                 { name: 'top',    pos: new THREE.Vector3(0, HALF_SIZE, 0),  axis: new THREE.Vector3(1, 0, 0), label: 'U' },
+                 { name: 'bottom', pos: new THREE.Vector3(0, -HALF_SIZE, 0), axis: new THREE.Vector3(1, 0, 0), label: 'D' },
+                 { name: 'left',   pos: new THREE.Vector3(-HALF_SIZE, 0, 0), axis: new THREE.Vector3(0, 1, 0), label: 'L' },
+                 { name: 'right',  pos: new THREE.Vector3(HALF_SIZE, 0, 0),  axis: new THREE.Vector3(0, 1, 0), label: 'R' }
+             ];
+        
+             face.updateMatrixWorld(true);
+        
+             // --- ▼ ルール⑦: カギ子(Flap)の場合の特別処理 ---
+             if (face.userData.isFlap) {
+                 // --- ▼ Debug Log ---
+                 addDebugLog(`ShowArrows: Processing Flap (カギ子): ${face.name}`);
+                 const parentEdgeName = face.userData.connectedToParentEdge; 
+                 addDebugLog(` Flap connected via edge: ${parentEdgeName}`);
+                 const hingeFace = face.parent; // カギ親がヒンジ
+                 addDebugLog(` Flap parent (カギ親 - hinge): ${hingeFace ? hingeFace.name : 'null'}`);
+                 // --- ▲ Debug Log ---
+
+                 if (!parentEdgeName || !hingeFace) return; 
+        
+                 // ★ カギ親に接続している辺'のみ'を取得
+                 const edge = edges.find(e => e.name === parentEdgeName); 
+                 if (!edge) {
+                     addDebugLog(` ERROR: Edge definition not found for parentEdgeName: ${parentEdgeName}`, true);
+                     return;
+                 }
+                 addDebugLog(` Flap Rule ⑦: Checking ONLY edge towards parent: ${edge.name} (${edge.label})`); // ★ 判断ログ
+                 
+                 // --- この辺（親方向）に対してのみガイド表示を試みる (チェック不要！) ---
+                 
+                 // ★ ルール⑪⑫に基づき、角度・重なりチェックをせず無条件で表示
+                 const actionData = { face: face, edge: edge, hinge: hingeFace }; 
+                 const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                 const hingePoint_world = face.localToWorld(edge.pos.clone()); // 親との接続辺の位置
+                 arrow.position.copy(hingePoint_world);
+                 const worldQuaternion = face.getWorldQuaternion(new THREE.Quaternion()); 
+                 const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(worldQuaternion);
+                 arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+                 arrow.userData.actionData = actionData;
+                 arrowsGroup.add(arrow);
+        
+                 const textGeo = new TextGeometry(edge.label, { font: font, size: 0.5, height: 0.05 }); // 親方向のラベル
+                 textGeo.computeBoundingBox();
+                 const textWidth = textGeo.boundingBox.max.x - textGeo.boundingBox.min.x;
+                 const textHeight = textGeo.boundingBox.max.y - textGeo.boundingBox.min.y;
+                 textGeo.translate(-textWidth / 2, -textHeight / 2, 0);
+                 const textMesh = new THREE.Mesh(textGeo, textMaterial);
+                 const offsetDistance = 0.8;
+                 const textPosition = hingePoint_world.clone().add(direction.clone().multiplyScalar(offsetDistance));
+                 textMesh.position.copy(textPosition);
+                 textMesh.quaternion.copy(worldQuaternion);
+                 textMesh.userData.actionData = actionData;
+                 arrowsGroup.add(textMesh);
+                 
+                 addDebugLog(` Flap Rule ⑦: Added guide for edge: ${edge.name}`); // ★ 決定ログ
+                 return; // カギ子はこの処理だけで終了
+             }
+             // --- ▲ ルール⑦: カギ子の処理終了 ---
+        
+             // --- 通常の面 (cubeGroupの子) の場合の処理 ---
+             // --- ▼ Debug Log ---
+             addDebugLog(`ShowArrows: Processing Base face: ${face.name}`); // ★ 面選択ログ
+             // --- ▲ Debug Log ---
+             /* 接続数チェック削除 v19.13
+              let connectionsToCubeGroup = 0;
+              // ... check logic ...
+              if (connectionsToCubeGroup <= 1 ...) { ... return; }
+             */
+        
+             edges.forEach(edge => {
+                 const hingeFaceName = adjacencyMap[face.name][edge.name];
+                 const hingeFace = faceGroups[hingeFaceName];
+                 // --- ▼ Debug Log ---
+                 addDebugLog(`  Checking edge: ${edge.name}. Hinge: ${hingeFace ? hingeFace.name : 'None'}. Hinge parent: ${hingeFace ? (hingeFace.parent === cubeGroup ? 'cubeGroup' : (hingeFace.parent ? hingeFace.parent.name : 'null')) : 'N/A'}`); // ★ 辺チェックログ
+                 // --- ▲ Debug Log ---
+        
+                 // ルール⑤: 接する面がない / 土台にない場合は表示しない
+                 if (!hingeFace || hingeFace.parent !== cubeGroup) {
+                     addDebugLog(`   -> SKIPPING (No valid hinge face on cubeGroup)`); // ★ 判断ログ
+                     return; 
+                 }
+                 // 親方向には展開しない (Should not happen for cubeGroup children)
+                 if (face.userData.connectedToParentEdge === edge.name) {
+                      addDebugLog(`   -> SKIPPING (Cannot unfold towards parent edge ${edge.name})`); // ★ 判断ログ
+                      return;
+                 }
+        
+                 const rotationAxis_local = edge.axis.clone();
+                 const worldQuaternion = face.getWorldQuaternion(new THREE.Quaternion());
+                 const rotationAxis_world = rotationAxis_local.applyQuaternion(worldQuaternion);
+        
+                 hingeFace.updateMatrixWorld(true);
+                 const outwardAngleSign = getUnfoldAngle(face, hingeFace, rotationAxis_world);
+                 if (outwardAngleSign === 0) {
+                     addDebugLog(`   -> SKIPPING (Angle calculation failed for ${edge.name})`); // ★ 判断ログ
+                     return;
+                 }
+        
+                 const targetMatrix = calculateTargetMatrix(face, edge, outwardAngleSign);
+                 if (!targetMatrix) {
+                     addDebugLog(`   -> SKIPPING (Target matrix calculation failed for ${edge.name})`); // ★ 判断ログ
+                     return;
+                 }
+        
+                 // 重なりチェック (v17.2の厳密なロジック)
+                 let isOccupied = false;
+                  const targetPos = new THREE.Vector3().setFromMatrixPosition(targetMatrix);
+                  const targetNormal = new THREE.Vector3(0, 0, 1);
+                  const tempQuaternion = new THREE.Quaternion();
+                  targetMatrix.decompose(new THREE.Vector3(), tempQuaternion, new THREE.Vector3());
+                  targetNormal.applyQuaternion(tempQuaternion).normalize();
+                  for (const otherFace of Object.values(faceGroups)) {
+                      if (otherFace === face || otherFace === hingeFace) continue;
+                      otherFace.updateMatrixWorld(true);
+                      const otherPos = otherFace.getWorldPosition(new THREE.Vector3());
+                      if (targetPos.distanceTo(otherPos) < 0.1) { 
+                          const otherNormal = new THREE.Vector3(0, 0, 1);
+                          otherNormal.applyQuaternion(otherFace.getWorldQuaternion(new THREE.Quaternion())).normalize();
+                          if (targetNormal.dot(otherNormal) > 0.99) { 
+                              addDebugLog(`   -> SKIPPING (Occupied by ${otherFace.name} at edge ${edge.name})`); // ★ 判断ログ
+                              isOccupied = true;
+                              break;
+                          }
+                      }
+                  }
+        
+                 if (!isOccupied) {
+                     // 通常通りガイドを表示
+                     addDebugLog(`   -> ADDING guide for edge: ${edge.name}`); // ★ 決定ログ
+                     const actionData = { face: face, edge: edge, hinge: hingeFace };
+                     const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                     const hingePoint_world = face.localToWorld(edge.pos.clone());
+                     arrow.position.copy(hingePoint_world);
+                     const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(worldQuaternion);
+                     arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+                     arrow.userData.actionData = actionData;
+                     arrowsGroup.add(arrow);
+        
+                     const textGeo = new TextGeometry(edge.label, { font: font, size: 0.5, height: 0.05 });
+                     textGeo.computeBoundingBox();
+                     const textWidth = textGeo.boundingBox.max.x - textGeo.boundingBox.min.x;
+                     const textHeight = textGeo.boundingBox.max.y - textGeo.boundingBox.min.y;
+                     textGeo.translate(-textWidth / 2, -textHeight / 2, 0);
+                     const textMesh = new THREE.Mesh(textGeo, textMaterial);
+                     const offsetDistance = 0.8;
+                     const textPosition = hingePoint_world.clone().add(direction.clone().multiplyScalar(offsetDistance));
+                     textMesh.position.copy(textPosition);
+                     textMesh.quaternion.copy(worldQuaternion);
+                     textMesh.userData.actionData = actionData;
+                     arrowsGroup.add(textMesh);
+                 }
+             });
+        }
+        // --- ▲ 修正 ---
+
+
+        function findFlapFace(faceToUnfold, edge) {
+            // ... (変更なし) ...
+            const oppositeEdgeName = oppositeEdgeMap[edge.name];
+            if (!oppositeEdgeName) return null;
+            const flapFaceName = adjacencyMap[faceToUnfold.name][oppositeEdgeName];
+            const potentialFlapFace = faceGroups[flapFaceName];
+            if (potentialFlapFace && potentialFlapFace.parent === cubeGroup) {
+                let connectionsInCube = 0;
+                let connectedToFaceToUnfold = false;
+                for (const edgeName of ['top', 'bottom', 'left', 'right']) {
+                    const neighborName = adjacencyMap[potentialFlapFace.name][edgeName];
+                    const neighborFace = faceGroups[neighborName];
+                    if (neighborFace && neighborFace.parent === cubeGroup) {
+                        connectionsInCube++;
+                        if (neighborFace === faceToUnfold) connectedToFaceToUnfold = true;
+                    }
+                }
+                if (connectionsInCube === 1 && connectedToFaceToUnfold) return potentialFlapFace;
+            }
+            return null;
+        }
+
+        // --- (getUnfoldAngle v8 - 外側回転) ---
+        function getUnfoldAngle(faceToMove, hingeFace, rotationAxis_world) {
+            // ... (変更なし) ...
+            const normalFace = new THREE.Vector3(0, 0, 1);
+            normalFace.applyQuaternion(faceToMove.getWorldQuaternion(new THREE.Quaternion()));
+            const normalHinge = new THREE.Vector3(0, 0, 1);
+            normalHinge.applyQuaternion(hingeFace.getWorldQuaternion(new THREE.Quaternion()));
+            const crossNormals = new THREE.Vector3().crossVectors(normalFace, normalHinge);
+            const dotProduct = crossNormals.dot(rotationAxis_world);
+            return Math.sign(dotProduct) || 1;
+        }
+
+        // --- (calculateTargetMatrix v12 - Simulation) ---
+        function calculateTargetMatrix(faceToMove, edge, angleSign) {
+            // ... (変更なし) ...
+            faceToMove.updateMatrixWorld(true);
+            const hingePoint_world = faceToMove.localToWorld(edge.pos.clone());
+            const rotationAxis_local = edge.axis.clone();
+            const worldQuaternion = faceToMove.getWorldQuaternion(new THREE.Quaternion());
+            const rotationAxis_world = rotationAxis_local.applyQuaternion(worldQuaternion);
+            const angle = (Math.PI / 2) * angleSign;
+            if (angleSign === 0) return null;
+            const pivot = new THREE.Group();
+            pivot.position.copy(hingePoint_world);
+            scene.add(pivot);
+            pivot.updateMatrixWorld(true);
+            const pivotWorldInverse = new THREE.Matrix4().copy(pivot.matrixWorld).invert();
+            const localMatrixInPivot = faceToMove.matrixWorld.clone().premultiply(pivotWorldInverse);
+            pivot.setRotationFromAxisAngle(rotationAxis_world, angle);
+            pivot.updateMatrixWorld(true);
+            const finalWorldMatrix = localMatrixInPivot.premultiply(pivot.matrixWorld);
+            scene.remove(pivot);
+            return finalWorldMatrix;
+        }
+
+        // --- (unfoldFace v19.14 - Correct Flap connection edge setting + Debug Log) ---
+        function unfoldFace(faceToUnfold, edge, hingeFace) {
+             // --- ▼ Debug Log ---
+             addDebugLog(`Unfolding: ${faceToUnfold.name} via ${edge.name} onto ${hingeFace.name}`);
+             // --- ▲ Debug Log ---
+
+             if (!firstUnfoldedFace && faceToUnfold.parent === cubeGroup) { 
+                 firstUnfoldedFace = faceToUnfold;
+             }
+             deselectFace();
+             isAnimating = true;
+             controls.enabled = false;
+             const flapFace = findFlapFace(faceToUnfold, edge);
+             let originalFlapParentInfo = null;
+             if (flapFace) {
+                 // --- ▼ Debug Log ---
+                 addDebugLog(` -> Flap Detected (カギ子): ${flapFace.name}. Parent (カギ親): ${faceToUnfold.name}`); // ★ カギ親・カギ子 回転ログ
+                 // --- ▲ Debug Log ---
+                 faceToUnfold.updateMatrixWorld(true);
+                 faceToUnfold.attach(flapFace); 
+                 let edgeConnectingToUnfoldingFace = null;
+                 for (const potentialEdgeName of ['top', 'bottom', 'left', 'right']) {
+                     if (adjacencyMap[flapFace.name][potentialEdgeName] === faceToUnfold.name) {
+                         edgeConnectingToUnfoldingFace = potentialEdgeName;
+                         break;
+                     }
+                 }
+                 if (edgeConnectingToUnfoldingFace) {
+                      flapFace.userData.connectedToParentEdge = edgeConnectingToUnfoldingFace;
+                      addDebugLog(` -> Flap ${flapFace.name} connected via ${edgeConnectingToUnfoldingFace}`);
+                 } else {
+                      addDebugLog(` ERROR: Could not find connecting edge for flap ${flapFace.name} to ${faceToUnfold.name}`, true); // Log as error
+                      flapFace.userData.connectedToParentEdge = oppositeEdgeMap[edge.name]; 
+                 }
+                 flapFace.userData.isFlap = true; 
+                 originalFlapParentInfo = { 
+                     face: flapFace, 
+                     originalParent: cubeGroup,
+                     originalConnectionEdge: null 
+                 };
+                 addLog(flapFace, ' (flap)'); // Use normal addLog for UI
+             }
+             const pivot = new THREE.Group();
+             const originalParent = faceToUnfold.parent;
+             const originalConnectionEdge = faceToUnfold.userData.connectedToParentEdge;
+             const originalIsFlap = faceToUnfold.userData.isFlap; 
+             faceToUnfold.updateMatrixWorld(true);
+             hingeFace.updateMatrixWorld(true);
+             const hingePoint_world = faceToUnfold.localToWorld(edge.pos.clone());
+             pivot.position.copy(hingePoint_world);
+             scene.add(pivot);
+             pivot.updateMatrixWorld(true);
+             const rotationAxis_local = edge.axis.clone();
+             const worldQuaternion = faceToUnfold.getWorldQuaternion(new THREE.Quaternion());
+             const rotationAxis_world = rotationAxis_local.applyQuaternion(worldQuaternion);
+             const angleSign = getUnfoldAngle(faceToUnfold, hingeFace, rotationAxis_world);
+             const finalAngle = (Math.PI / 2) * angleSign;
+             pivot.attach(faceToUnfold);
+              if(originalIsFlap) { 
+                  faceToUnfold.userData.isFlap = false; 
+                  addDebugLog(` -> Flap face ${faceToUnfold.name} unfolded, setting isFlap=false`);
+              }
+             new TWEEN.Tween({ angle: 0 })
+                 .to({ angle: finalAngle }, 800)
+                 .easing(TWEEN.Easing.Quadratic.Out)
+                 .onUpdate(({ angle }) => pivot.setRotationFromAxisAngle(rotationAxis_world, angle))
+                 .onComplete(() => {
+                     addDebugLog(` -> Animation complete. Attaching ${faceToUnfold.name} to ${hingeFace.name}.`);
+                     hingeFace.updateMatrixWorld(true); 
+                     hingeFace.attach(faceToUnfold); 
+                     faceToUnfold.userData.connectedToParentEdge = edge.name; 
+                     if (flapFace && originalFlapParentInfo) {
+                          let edgeConnectingFlapToNewParent = null;
+                          for (const potentialEdgeName of ['top', 'bottom', 'left', 'right']) {
+                               if (adjacencyMap[flapFace.name][potentialEdgeName] === faceToUnfold.name) {
+                                   edgeConnectingFlapToNewParent = potentialEdgeName;
+                                   break;
+                               }
+                          }
+                          if(edgeConnectingFlapToNewParent){
+                             flapFace.userData.connectedToParentEdge = edgeConnectingFlapToNewParent;
+                             originalFlapParentInfo.originalConnectionEdge = edgeConnectingFlapToNewParent; 
+                             addDebugLog(` -> Updated flap ${flapFace.name} connection to parent ${faceToUnfold.name} via ${edgeConnectingFlapToNewParent}`);
+                          } else {
+                             addDebugLog(` ERROR: Could not find connecting edge for flap ${flapFace.name} to NEW parent ${faceToUnfold.name}`, true);
+                          }
+                     }
+                     scene.remove(pivot);
+                     isAnimating = false;
+                     controls.enabled = true; 
+                     historyStack.push({
+                         face: faceToUnfold,
+                         angle: finalAngle,
+                         axis: rotationAxis_world,
+                         pivot: hingePoint_world.clone(),
+                         originalParent: originalParent,
+                         originalConnectionEdge: originalConnectionEdge,
+                         originalIsFlap: originalIsFlap, 
+                         flapInfo: originalFlapParentInfo 
+                     });
+                     addLog(faceToUnfold, edge.name); // Use normal addLog for UI
+                     if (checkIfUnfoldedFlat()) {
+                         addDebugLog(" -> Unfolding complete!"); // Debug Log
+                         deselectFace(); 
+                     } 
+                 })
+                 .start();
+        }
+
+        // --- (undoLastMove v19.14 - 修正版 iPadでの二重回転を修正) ---
+        function undoLastMove() {
+             // ... (変更なし v19.14, Debug logs remain in console) ...
+             if (isAnimating || historyStack.length === 0) return;
+             deselectFace();
+             isAnimating = true;
+             controls.enabled = false; 
+             const lastMove = historyStack.pop();
+             const { face: faceToReturn, angle: startAngle, axis: rotationAxis_world, pivot: pivotPosition, originalParent, originalConnectionEdge, originalIsFlap, flapInfo } = lastMove; 
+             if (historyStack.length === 0) {
+                 firstUnfoldedFace = null;
+             }
+             if (flapInfo) logStack.pop(); // Remove flap log from UI log
+             logStack.pop(); // Remove main face log from UI log
+             
+             const pivot = new THREE.Group();
+             pivot.position.copy(pivotPosition);
+             
+             // ★ 修正: ピボットの初期回転を先に設定
+             pivot.setRotationFromAxisAngle(rotationAxis_world, startAngle);
+             
+             scene.add(pivot);
+             pivot.updateMatrixWorld(true);
+
+             // ★ 修正: 回転が設定されたピボットにアタッチ
+             pivot.attach(faceToReturn);
+             
+             // ★ 修正: アタッチ後に回転させていた元のコード(setRotationFromAxisAngle)は削除
+
+             new TWEEN.Tween({ angle: startAngle })
+                 .to({ angle: 0 }, 800)
+                 .easing(TWEEN.Easing.Quadratic.Out)
+                 .onUpdate(({ angle }) => pivot.setRotationFromAxisAngle(rotationAxis_world, angle))
+                 .onComplete(() => {
+                     if (flapInfo) {
+                         const { face: flapFace, originalParent: flapOriginalParent } = flapInfo; 
+                         flapOriginalParent.updateMatrixWorld(true);
+                         flapOriginalParent.attach(flapFace); 
+                         flapFace.userData.connectedToParentEdge = null; // Flap back on base has no parent connection
+                         flapFace.userData.isFlap = false; // Not a flap when on base
+                         // console.log(`[DEBUG-undo] Flap face ${flapFace.name} returned to cubeGroup`);
+                     }
+                     originalParent.updateMatrixWorld(true);
+                     originalParent.attach(faceToReturn);
+                     faceToReturn.userData.connectedToParentEdge = originalConnectionEdge;
+                     faceToReturn.userData.isFlap = originalIsFlap; 
+                     // console.log(`[DEBUG-undo] Face ${faceToReturn.name} returned. isFlap: ${originalIsFlap}, connectedToParentEdge: ${originalConnectionEdge}`);
+                     scene.remove(pivot);
+                     isAnimating = false;
+                     controls.enabled = true; 
+                     updateLogDisplay(); // Update UI log
+                 })
+                 .start();
+        }
+
+        // --- (resetCube v19 - Reset flags, controls) ---
+        function resetCube() {
+            // ... (変更なし v19.4) ...
+             if(isAnimating) return;
+             deselectFace();
+             historyStack.length = 0;
+             logStack.length = 0; // Clear UI log
+             updateLogDisplay();
+             firstUnfoldedFace = null; 
+             controls.enabled = true; 
+             cubeGroup.updateMatrixWorld(true);
+             Object.values(faceGroups).forEach(face => {
+                 if (face.parent !== cubeGroup) {
+                      cubeGroup.attach(face);
+                 }
+             });
+             Object.values(faceGroups).forEach(face => {
+                 const initialInfo = initialFaceInfos.find(info => info.name === face.name);
+                 face.position.set(...initialInfo.position);
+                 face.rotation.set(...initialInfo.rotation);
+                 face.scale.set(1, 1, 1);
+                 face.userData.connectedToParentEdge = null;
+                 face.userData.isFlap = false; 
+                 face.updateMatrix();
+             });
+             cubeGroup.updateMatrixWorld(true);
+             Object.values(faceGroups).forEach(face => { 
+                 const newColor = isDiceMode ? COLORS.DICE_FACE : COLORS.DEFAULT_FACE;
+                 face.userData.faceMesh.material.color.set(newColor);
+                 face.userData.dots.forEach(dot => dot.visible = isDiceMode);
+             });
+        }
+
+        // --- ▼ 修正: addLog と addDebugLog ---
+        /** Add message to the UI log */
+        function addLog(face, edgeName) {
+            let message;
+            if (edgeName === ' (flap)') {
+                 const faceNumber = diceDots[face.name].length;
+                 message = `  ... w/ ${faceNumber} (flap)`;
+            } else {
+                 const faceNumber = diceDots[face.name].length;
+                 const directionMap = { 'top': 'U', 'bottom': 'D', 'right': 'R', 'left': 'L' };
+                 const direction = directionMap[edgeName];
+                 // Count only numbered logs for the log number
+                 const logNumber = logStack.filter(line => /^\d+\s*:/.test(line.trim())).length + 1; 
+                 message = `${logNumber} : ${faceNumber} - ${direction}`;
+            }
+            logStack.push(message);
+            updateLogDisplay();
+        }
+
+        /** Add debug message to the UI log */
+        function addDebugLog(message, isError = false) {
+             const prefix = isError ? "[ERR]" : "[DBG]"; // Shorter prefix
+             logStack.push(`${prefix} ${message}`);
+             updateLogDisplay();
+             // Also log errors to console for more details
+             if (isError) {
+                 console.error(message);
+             }
+        }
+        // --- ▲ 修正 ---
+
+
+        function toggleLogDisplay() {
+            // ... (変更なし) ...
+            const logContainer = document.getElementById('log-container'); // Get container
+            if (logContainer.style.display === 'none') {
+                logContainer.style.display = 'block';
+                updateLogDisplay();
+            } else {
+                logContainer.style.display = 'none';
+            }
+        }
+
+        function updateLogDisplay() {
+            // ... (変更なし) ...
+            const logContainer = document.getElementById('log-container'); 
+            if (logContainer.style.display === 'block') {
+                // Keep only the last N log entries to prevent overflow
+                const maxLogEntries = 50; 
+                if(logStack.length > maxLogEntries) {
+                    logStack = logStack.slice(logStack.length - maxLogEntries);
+                }
+                logContainer.innerHTML = logStack.join('<br>');
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }
+
+        // --- (checkIfUnfoldedFlat v18.1 - Compare normals + history check) ---
+        function checkIfUnfoldedFlat() {
+            // ... (変更なし v19.4) ...
+             let actualUnfolds = 0;
+             const unfoldedSet = new Set();
+             historyStack.forEach(move => {
+                 if (!unfoldedSet.has(move.face.name)) {
+                     unfoldedSet.add(move.face.name);
+                 }
+                  if (move.flapInfo && !unfoldedSet.has(move.flapInfo.face.name)) {
+                      unfoldedSet.add(move.flapInfo.face.name);
+                  }
+             });
+             if (unfoldedSet.size < 5) return false;
+            const faces = Object.values(faceGroups);
+            if (faces.length !== 6) return false;
+            const referenceNormal = new THREE.Vector3(0, 0, 1);
+            faces[0].updateWorldMatrix(true, false);
+            referenceNormal.applyQuaternion(faces[0].getWorldQuaternion(new THREE.Quaternion())).normalize();
+            for (let i = 1; i < faces.length; i++) {
+                const face = faces[i];
+                const normal = new THREE.Vector3(0, 0, 1);
+                face.updateWorldMatrix(true, false);
+                normal.applyQuaternion(face.getWorldQuaternion(new THREE.Quaternion())).normalize();
+                const dotProduct = normal.dot(referenceNormal);
+                if (Math.abs(dotProduct) < 0.99) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // --- (animateCameraToTopView v19.3 - Function Removed) ---
+
+
+        // --- 5. イベントリスナーとアニメーションループ ---
+        window.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        function animate() {
+            requestAnimationFrame(animate);
+            // --- カメラ制御削除に伴い、条件削除 ---
+            controls.update(); 
+            TWEEN.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- ▼ 修正: Update log display initially ---
+        updateLogDisplay(); 
+        // --- ▲ 修正 ---
+    </script>
+</body>
+</html>

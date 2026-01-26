@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>ぼうで つくろう！</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #fdfdfd;
+            font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100px;
+            height: 100%;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .palette-item, .tool-btn {
+            pointer-events: auto;
+            position: relative;
+            z-index: 51;
+        }
+
+        .palette-item {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .palette-item:active {
+            transform: scale(0.9);
+        }
+        
+        .stick-icon {
+            width: 6px;
+            height: 50px;
+            background-color: #ccc;
+            border-radius: 3px;
+            position: absolute;
+            top: 10px;
+            left: 32px;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            transform: rotate(45deg);
+        }
+        
+        .tool-btn {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid #ccc;
+            background: white;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+        .tool-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+        }
+
+        #snapBtn.active {
+            background-color: #dcedc8;
+            border-color: #8bc34a;
+            color: #33691e;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #snapBtn { margin-top: auto; }
+        #undoBtn { color: #1976D2; border-color: #1976D2; }
+        #clearBtn { color: #d32f2f; border-color: #d32f2f; margin-bottom: 30px; }
+
+        #instruction {
+            position: absolute;
+            bottom: 20px;
+            left: 120px;
+            right: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #444;
+            pointer-events: none;
+            text-shadow: 2px 2px 0 #fff;
+            z-index: 40;
+        }
+
+        canvas { 
+            display: block; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="palette-item" onmousedown="spawnStick('red', event)" ontouchstart="spawnStick('red', event)">
+        <div class="stick-icon" style="background-color: #ff5252;"></div>
+        <div style="position:absolute; bottom:-5px; width:100%; text-align:center; font-size:12px; font-weight:bold; color:#555;">あか</div>
+    </div>
+    <div class="palette-item" onmousedown="spawnStick('green', event)" ontouchstart="spawnStick('green', event)">
+        <div class="stick-icon" style="background-color: #66BB6A;"></div>
+        <div style="position:absolute; bottom:-5px; width:100%; text-align:center; font-size:12px; font-weight:bold; color:#555;">みどり</div>
+    </div>
+    <div class="palette-item" onmousedown="spawnStick('yellow', event)" ontouchstart="spawnStick('yellow', event)">
+        <div class="stick-icon" style="background-color: #FFD700;"></div>
+        <div style="position:absolute; bottom:-5px; width:100%; text-align:center; font-size:12px; font-weight:bold; color:#555;">きいろ</div>
+    </div>
+
+    <div class="tool-btn active" id="snapBtn" onclick="toggleSnap()" title="マス目にあわせる">🧲</div>
+    <div class="tool-btn" id="undoBtn" onclick="undo()" title="ひとつもどす">↩︎</div>
+    <div class="tool-btn" id="clearBtn" onclick="confirmClear()" title="ぜんぶけす">🗑️</div>
+</div>
+
+<div id="instruction">まんなかで「いどう」、はしっこで「かいてん」</div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // --- 設定 ---
+    const SIDEBAR_WIDTH = 100;
+    const STICK_LENGTH = 145; 
+    const STICK_WIDTH = 12;   
+    const GRID_SIZE = 35;     
+    const HIT_PADDING = 30;   
+
+    const COLORS = {
+        'red':    '#ff5252',
+        'green':  '#66BB6A',
+        'yellow': '#FFD700'
+    };
+
+    let sticks = [];
+    let historyStack = []; 
+
+    let activeStick = null;
+    let dragMode = null; 
+    
+    let cameraX = 0;
+    let cameraY = 0;
+
+    let startX, startY;
+    let startStickX, startStickY; 
+    let startAngle = 0;
+    let initialStickAngle = 0;
+    
+    // 回転軸（ピボット）
+    let pivotX = 0;
+    let pivotY = 0;
+    let rotateDir = 1; 
+
+    let startCameraX, startCameraY;
+    
+    let isDeleteHover = false; 
+    let isGridSnapEnabled = true; 
+
+    function init() {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        saveHistory(); 
+        requestAnimationFrame(gameLoop);
+    }
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    function saveHistory() {
+        const state = JSON.stringify(sticks);
+        if (historyStack.length > 0 && historyStack[historyStack.length - 1] === state) return;
+        historyStack.push(state);
+    }
+
+    window.undo = function() {
+        if (historyStack.length > 1) {
+            historyStack.pop(); 
+            const prevState = historyStack[historyStack.length - 1];
+            sticks = JSON.parse(prevState);
+        } else {
+             if (sticks.length > 0) {
+                 sticks = [];
+                 saveHistory();
+             }
+        }
+    }
+
+    window.confirmClear = function() {
+        if(sticks.length === 0) return;
+        if(confirm("ほんとうに、すべてけしますか？")) {
+            sticks = [];
+            cameraX = 0; cameraY = 0; 
+            saveHistory();
+        }
+    }
+
+    window.toggleSnap = function() {
+        isGridSnapEnabled = !isGridSnapEnabled;
+        const btn = document.getElementById('snapBtn');
+        if (isGridSnapEnabled) btn.classList.add('active'); else btn.classList.remove('active');
+        draw();
+    }
+
+    window.spawnStick = function(colorType, e) {
+        e.preventDefault(); 
+        saveHistory();
+
+        let clientY;
+        if(e.touches && e.touches.length > 0) {
+            clientY = e.touches[0].clientY;
+        } else {
+            clientY = e.clientY;
+        }
+
+        const x = (SIDEBAR_WIDTH + 100) - cameraX; 
+        const y = (clientY + 50) - cameraY; 
+
+        const newStick = {
+            x: x,
+            y: y,
+            angle: 0, 
+            colorType: colorType
+        };
+
+        snapPosition(newStick); 
+        sticks.push(newStick);
+        
+        activeStick = null; 
+    }
+
+    function gameLoop() {
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function drawSidebarBackground() {
+        if (isDeleteHover) {
+            ctx.fillStyle = "rgba(255, 235, 238, 0.9)";
+            ctx.fillRect(0, 0, SIDEBAR_WIDTH, canvas.height);
+            
+            ctx.save();
+            ctx.fillStyle = "#d32f2f";
+            ctx.font = "50px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("🗑️", SIDEBAR_WIDTH / 2, canvas.height / 2 - 20);
+            
+            ctx.font = "bold 14px sans-serif";
+            ctx.fillText("ここにすてる", SIDEBAR_WIDTH / 2, canvas.height / 2 + 30);
+            ctx.restore();
+            
+            ctx.strokeStyle = "rgba(255, 0, 0, 0.2)";
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(SIDEBAR_WIDTH, 0); ctx.lineTo(SIDEBAR_WIDTH, canvas.height); ctx.stroke();
+        } else {
+            ctx.fillStyle = "rgba(240, 240, 240, 0.9)";
+            ctx.fillRect(0, 0, SIDEBAR_WIDTH, canvas.height);
+            ctx.strokeStyle = "#ccc"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(SIDEBAR_WIDTH, 0); ctx.lineTo(SIDEBAR_WIDTH, canvas.height); ctx.stroke();
+        }
+    }
+
+    function drawGrid() {
+        ctx.save();
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.08)"; 
+        ctx.lineWidth = 1;
+        
+        const minX = -cameraX + SIDEBAR_WIDTH;
+        const maxX = -cameraX + canvas.width;
+        const minY = -cameraY;
+        const maxY = -cameraY + canvas.height;
+
+        const firstGridX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+        const firstGridY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+
+        ctx.beginPath();
+        for (let x = firstGridX; x <= maxX; x += GRID_SIZE) {
+            const screenX = x + cameraX;
+            if (screenX < SIDEBAR_WIDTH) continue; 
+            ctx.moveTo(screenX, 0);
+            ctx.lineTo(screenX, canvas.height);
+        }
+        for (let y = firstGridY; y <= maxY; y += GRID_SIZE) {
+            const screenY = y + cameraY;
+            ctx.moveTo(SIDEBAR_WIDTH, screenY);
+            ctx.lineTo(canvas.width, screenY);
+        }
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function traceStickPath() {
+        const w = STICK_LENGTH;
+        const h = STICK_WIDTH;
+        const r = h / 2; 
+        
+        ctx.beginPath();
+        ctx.arc(-w/2 + r, 0, r, Math.PI/2, Math.PI * 1.5);
+        ctx.arc(w/2 - r, 0, r, -Math.PI/2, Math.PI/2);
+        ctx.closePath();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGrid(); 
+
+        ctx.save();
+        ctx.translate(cameraX, cameraY);
+
+        sticks.forEach(s => {
+            ctx.save();
+            ctx.translate(s.x, s.y);
+            ctx.rotate(s.angle * Math.PI / 180);
+            
+            traceStickPath();
+
+            if (activeStick === s && isDeleteHover) {
+                ctx.globalAlpha = 0.5;
+            }
+
+            ctx.fillStyle = COLORS[s.colorType];
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.stroke();
+
+            if (activeStick === s) {
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#fff';
+                ctx.stroke();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = '#333';
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                [-1, 0, 1].forEach(pos => {
+                    ctx.beginPath();
+                    let px = (STICK_LENGTH/2 - STICK_WIDTH/2) * pos;
+                    if (pos === 0) px = 0;
+                    ctx.arc(px, 0, 5, 0, Math.PI*2); 
+                    ctx.fill();
+                    ctx.stroke();
+                });
+                
+                if (dragMode === 'rotate') {
+                    ctx.beginPath();
+                    let pivotPos = (STICK_LENGTH/2 - STICK_WIDTH/2) * (rotateDir * -1);
+                    ctx.fillStyle = '#ff5252'; 
+                    ctx.arc(pivotPos, 0, 6, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+        });
+        
+        ctx.restore(); 
+        drawSidebarBackground();
+    }
+
+    // --- スナップ処理（位置のみ・直角時のみ） ---
+    function snapPosition(s) {
+        if (!isGridSnapEnabled) return;
+
+        const normAngle = (s.angle % 360 + 360) % 360;
+        // 90度刻みでない（15度や30度など）のときは位置スナップしない
+        if (normAngle % 90 !== 0) return; 
+
+        const relX = s.x - SIDEBAR_WIDTH; 
+        s.x = SIDEBAR_WIDTH + Math.round(relX / GRID_SIZE) * GRID_SIZE;
+        s.y = Math.round(s.y / GRID_SIZE) * GRID_SIZE;
+    }
+
+    function checkTouch(tx, ty, s) {
+        const worldTx = tx - cameraX;
+        const worldTy = ty - cameraY;
+
+        const dx = worldTx - s.x;
+        const dy = worldTy - s.y;
+        const rad = -s.angle * Math.PI / 180;
+        
+        const localX = dx * Math.cos(rad) - dy * Math.sin(rad);
+        const localY = dx * Math.sin(rad) + dy * Math.cos(rad);
+
+        const hitW = STICK_LENGTH / 2 + HIT_PADDING; 
+        const hitH = STICK_WIDTH / 2 + HIT_PADDING;
+
+        if (Math.abs(localX) <= hitW && Math.abs(localY) <= hitH) {
+            if (Math.abs(localX) > STICK_LENGTH * 0.25) {
+                return { mode: 'rotate', dir: (localX > 0 ? 1 : -1) };
+            } else {
+                return { mode: 'move', dir: 0 };
+            }
+        }
+        return null;
+    }
+
+    function handleStart(e) {
+        const t = e.touches ? e.touches[0] : e;
+        const tx = t.clientX;
+        const ty = t.clientY;
+
+        if (tx < SIDEBAR_WIDTH) return;
+        if (e.cancelable) e.preventDefault();
+
+        for (let i = sticks.length - 1; i >= 0; i--) {
+            const s = sticks[i];
+            const res = checkTouch(tx, ty, s);
+            
+            if (res) {
+                activeStick = s;
+                dragMode = res.mode;
+                rotateDir = res.dir; 
+                
+                sticks.splice(i, 1);
+                sticks.push(s);
+
+                saveHistory();
+
+                if (dragMode === 'move') {
+                    startX = tx;
+                    startY = ty;
+                    startStickX = s.x;
+                    startStickY = s.y;
+                } else {
+                    // 回転初期化（ピボット計算）
+                    const pivotLocalX = (STICK_LENGTH / 2) * (rotateDir * -1);
+                    const rad = s.angle * Math.PI / 180;
+                    pivotX = s.x + pivotLocalX * Math.cos(rad);
+                    pivotY = s.y + pivotLocalX * Math.sin(rad);
+
+                    const worldTx = tx - cameraX;
+                    const worldTy = ty - cameraY;
+                    
+                    startAngle = Math.atan2(worldTy - pivotY, worldTx - pivotX);
+                    initialStickAngle = s.angle;
+                }
+                draw();
+                return;
+            }
+        }
+        
+        activeStick = null;
+        dragMode = 'pan';
+        startX = tx;
+        startY = ty;
+        startCameraX = cameraX;
+        startCameraY = cameraY;
+        draw();
+    }
+
+    function handleMove(e) {
+        if (e.cancelable) e.preventDefault();
+        const t = e.touches ? e.touches[0] : e;
+        const tx = t.clientX;
+        const ty = t.clientY;
+
+        if (activeStick) {
+            if (dragMode === 'move') {
+                const dx = tx - startX;
+                const dy = ty - startY;
+                activeStick.x = startStickX + dx;
+                activeStick.y = startStickY + dy;
+
+                const screenX = activeStick.x + cameraX;
+                if (screenX < SIDEBAR_WIDTH) {
+                    if (!isDeleteHover) { isDeleteHover = true; draw(); }
+                } else {
+                    if (isDeleteHover) { isDeleteHover = false; draw(); }
+                }
+
+            } else if (dragMode === 'rotate') {
+                const worldTx = tx - cameraX;
+                const worldTy = ty - cameraY;
+                
+                let newAngleRad = Math.atan2(worldTy - pivotY, worldTx - pivotX);
+                let newAngleDeg = newAngleRad * 180 / Math.PI;
+
+                if (rotateDir === -1) {
+                    newAngleDeg += 180;
+                }
+
+                // ★修正：マグネットONなら15度刻み
+                if (isGridSnapEnabled) {
+                    newAngleDeg = Math.round(newAngleDeg / 15) * 15;
+                }
+
+                activeStick.angle = newAngleDeg;
+
+                // ピボット中心の再計算
+                const finalRad = newAngleDeg * Math.PI / 180;
+                const distToCenter = (STICK_LENGTH / 2) * (rotateDir); 
+                
+                activeStick.x = pivotX + distToCenter * Math.cos(finalRad);
+                activeStick.y = pivotY + distToCenter * Math.sin(finalRad);
+            }
+        } else if (dragMode === 'pan') {
+            const dx = tx - startX;
+            const dy = ty - startY;
+            cameraX = startCameraX + dx;
+            cameraY = startCameraY + dy;
+            draw();
+        }
+    }
+
+    function handleEnd(e) {
+        if (activeStick) {
+            const screenX = activeStick.x + cameraX;
+            
+            if (screenX < SIDEBAR_WIDTH) {
+                sticks.pop();
+                activeStick = null;
+                saveHistory();
+            } else {
+                if (dragMode === 'move') {
+                    snapPosition(activeStick);
+                }
+                saveHistory();
+            }
+            
+            if (isDeleteHover) isDeleteHover = false;
+            draw();
+        }
+        activeStick = null; dragMode = null;
+    }
+
+    init();
+    
+    canvas.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', e => { 
+        if(activeStick || dragMode === 'pan') handleMove(e); 
+    });
+    window.addEventListener('mouseup', handleEnd);
+
+    canvas.addEventListener('touchstart', handleStart, {passive: false});
+    canvas.addEventListener('touchmove', handleMove, {passive: false});
+    canvas.addEventListener('touchend', handleEnd);
+
+</script>
+</body>
+</html>

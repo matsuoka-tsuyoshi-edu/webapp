@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Stick Motion: Ultimate</title>
+    <style>
+        /* 基本スタイル */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f4f8;
+            font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #app-container {
+            display: flex;
+            flex-direction: row;
+            height: 100vh;
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden; /* 全体のはみ出しを防止 */
+        }
+
+        /* 左側ツールバー */
+        #toolbar {
+            width: 90px;
+            background-color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 0;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+            z-index: 20;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .toolbar-top {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            align-items: center;
+        }
+
+        .toolbar-bottom {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            align-items: center;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 20px); 
+        }
+
+        #main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            /* 【重要】ここが修正ポイント */
+            min-width: 0; /* フレックスアイテムが内容物につられて伸びるのを防ぐ魔法 */
+            overflow: hidden; /* 画面外への突き抜けを防止 */
+        }
+
+        /* 編集モード時の青枠エフェクト */
+        #main-content.editing-mode {
+            border: 4px solid #2196F3;
+            box-sizing: border-box;
+        }
+
+        /* フィルムストリップ */
+        #film-strip {
+            height: 110px;
+            background-color: #222;
+            display: flex;
+            align-items: center;
+            overflow-x: auto; /* 横スクロールを許可 */
+            padding: 0 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+            width: 100%; /* 親の幅に合わせる */
+            box-sizing: border-box; /* パディングを含める */
+        }
+
+        .frame-wrapper {
+            position: relative;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .frame-thumbnail {
+            width: 80px;
+            height: 60px;
+            background-color: white;
+            border: 2px solid #555;
+            border-radius: 4px;
+            object-fit: contain;
+            transition: all 0.2s;
+        }
+
+        .frame-wrapper.active .frame-thumbnail {
+            border-color: #2196F3;
+            border-width: 4px;
+            transform: scale(1.1);
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 24px;
+            height: 24px;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 20;
+        }
+
+        .frame-wrapper.show-delete .delete-btn {
+            display: block;
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+            background-color: #fff;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ボタンUI */
+        .btn {
+            color: white;
+            border: none;
+            width: 65px;
+            height: 65px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+            transition: all 0.1s;
+            flex-shrink: 0;
+            position: relative;
+        }
+        
+        .btn:active { transform: scale(0.95); }
+        .btn span { font-size: 20px; margin-bottom: 2px; }
+
+        .btn:disabled, .btn.disabled {
+            opacity: 0.3;
+            filter: grayscale(100%);
+            pointer-events: none;
+        }
+
+        .btn-play { background-color: #2196F3; height: 60px; }
+        .btn-add { background-color: #009688; height: 50px; }
+        
+        .group-scale {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background: rgba(255,255,255,0.1);
+            padding: 5px;
+            border-radius: 8px;
+        }
+        .btn-scale { background-color: #673AB7; height: 45px; }
+
+        .group-file {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background: rgba(255,255,255,0.1);
+            padding: 5px;
+            border-radius: 8px;
+        }
+        .btn-save-project { background-color: #FF9800; height: 45px; }
+        .btn-load-project { background-color: #FFC107; height: 45px; color: #333; }
+
+        .btn-export { background-color: #9C27B0; height: 50px; }
+        .btn-clear { background-color: #607D8B; height: 50px; }
+
+        .btn-capture { 
+            background-color: #FF5722; 
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            font-size: 12px;
+            border: 3px solid white;
+        }
+        
+        .btn-capture.updating {
+            background-color: #2196F3;
+            border-color: #82B1FF;
+        }
+
+        #playing-overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,0,0,0.8);
+            color: white;
+            padding: 8px 20px;
+            font-size: 1.2em;
+            border-radius: 20px;
+            display: none;
+            pointer-events: none;
+        }
+        
+        #fileInput { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="toolbar">
+        <div class="toolbar-top">
+            <button class="btn btn-play" id="playBtn"><span>▶️</span>再生</button>
+            <button class="btn btn-add" id="addBtn"><span>➕</span>追加</button>
+            
+            <div class="group-scale">
+                <button class="btn btn-scale" id="scaleUpBtn"><span>🔍＋</span>拡大</button>
+                <button class="btn btn-scale" id="scaleDownBtn"><span>🔍－</span>縮小</button>
+            </div>
+        </div>
+
+        <div class="toolbar-bottom">
+            <div class="group-file">
+                <button class="btn btn-save-project" id="saveProjBtn"><span>💾</span>保存</button>
+                <button class="btn btn-load-project" id="loadProjBtn"><span>📂</span>読込</button>
+            </div>
+
+            <button class="btn btn-export" id="exportBtn"><span>🎬</span>動画</button>
+            <button class="btn btn-clear" id="resetBtn"><span>🗑️</span>クリア</button>
+            
+            <button class="btn btn-capture" id="captureBtn"><span>📸</span>撮影</button>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="film-strip"></div>
+        <div id="canvas-container">
+            <canvas id="mainCanvas"></canvas>
+            <div id="playing-overlay">PLAYING ▶️</div>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json">
+
+<script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const filmStrip = document.getElementById('film-strip');
+    const mainContent = document.getElementById('main-content');
+    
+    // Buttons
+    const playBtn = document.getElementById('playBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const addBtn = document.getElementById('addBtn');
+    const scaleUpBtn = document.getElementById('scaleUpBtn');
+    const scaleDownBtn = document.getElementById('scaleDownBtn');
+    const saveProjBtn = document.getElementById('saveProjBtn');
+    const loadProjBtn = document.getElementById('loadProjBtn');
+    const fileInput = document.getElementById('fileInput');
+
+    let width, height;
+
+    function resize() {
+        const container = document.getElementById('canvas-container');
+        width = container.clientWidth;
+        height = container.clientHeight;
+        canvas.width = width;
+        canvas.height = height;
+        draw();
+    }
+    window.addEventListener('resize', () => setTimeout(resize, 100));
+
+    const BASE_SCALE = 1.2;
+    const ARM_LENGTH_RATIO = 1.6;
+
+    // --- データ構造 ---
+    function createStickman(startX, startY) {
+        const rootRadius = 8 * BASE_SCALE;
+        const createNode = (x, y, parent, r, props = {}) => ({ x, y, parent, r, ...props });
+
+        const nodes = {
+            stomach: createNode(startX, startY, null, rootRadius, { color: '#2196F3', isRoot: true, label: '●', currentScale: 1.0 }),
+            shoulder: createNode(startX, startY - 50 * BASE_SCALE, 'stomach', rootRadius),
+            headBottom: createNode(startX, startY - 90 * BASE_SCALE, 'shoulder', rootRadius),
+            headTop: createNode(startX, startY - 140 * BASE_SCALE, 'headBottom', rootRadius),
+            elbowL: createNode(startX - 40 * BASE_SCALE * ARM_LENGTH_RATIO, startY - 30 * BASE_SCALE, 'shoulder', rootRadius),
+            handL: createNode(startX - 70 * BASE_SCALE * ARM_LENGTH_RATIO, startY, 'elbowL', rootRadius),
+            elbowR: createNode(startX + 40 * BASE_SCALE * ARM_LENGTH_RATIO, startY - 30 * BASE_SCALE, 'shoulder', rootRadius),
+            handR: createNode(startX + 70 * BASE_SCALE * ARM_LENGTH_RATIO, startY, 'elbowR', rootRadius),
+            hip: createNode(startX, startY + 50 * BASE_SCALE, 'stomach', rootRadius),
+            kneeL: createNode(startX - 30 * BASE_SCALE, startY + 120 * BASE_SCALE, 'hip', rootRadius),
+            footL: createNode(startX - 30 * BASE_SCALE, startY + 180 * BASE_SCALE, 'kneeL', rootRadius),
+            kneeR: createNode(startX + 30 * BASE_SCALE, startY + 120 * BASE_SCALE, 'hip', rootRadius),
+            footR: createNode(startX + 30 * BASE_SCALE, startY + 180 * BASE_SCALE, 'kneeR', rootRadius)
+        };
+
+        Object.keys(nodes).forEach(key => {
+            const node = nodes[key];
+            if (node.parent) {
+                const parent = nodes[node.parent];
+                const dist = Math.hypot(node.x - parent.x, node.y - parent.y);
+                node.length = dist;
+                node.baseLength = dist; 
+                node.baseR = node.r;
+            } else if (node.isRoot) {
+                node.baseR = node.r;
+            }
+        });
+        return nodes;
+    }
+
+    let characters = []; 
+    let frames = [];
+    let isPlaying = false;
+    let draggingInfo = null; 
+    let activeCharIdx = 0; 
+    let editingFrameIndex = null;
+
+    function initPose() {
+        resize();
+        if (width === 0 || height === 0) { setTimeout(initPose, 500); return; }
+
+        const cx = width / 2;
+        const cy = height / 2;
+        characters = [ createStickman(cx, cy) ];
+        activeCharIdx = 0;
+        
+        editingFrameIndex = null;
+        updateEditModeUI();
+        draw();
+        updateButtonsState();
+    }
+
+    // --- 描画関数 ---
+    function drawStickman(nodes, alpha = 1.0, isSilhouette = false, isSelected = false) {
+        if (!nodes) return;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha;
+
+        const currentScale = nodes.stomach.currentScale || 1.0;
+        const lineWidth = (8 * BASE_SCALE / 1.2) * currentScale;
+
+        ctx.beginPath();
+        ctx.strokeStyle = isSilhouette ? '#aaa' : '#000';
+        ctx.lineWidth = lineWidth;
+
+        const ht = nodes.headTop;
+        const hb = nodes.headBottom;
+        if (!ht || isNaN(ht.x)) return;
+
+        const headCx = (ht.x + hb.x) / 2;
+        const headCy = (ht.y + hb.y) / 2;
+        const headRadius = Math.hypot(ht.x - hb.x, ht.y - hb.y) / 2;
+        
+        ctx.moveTo(headCx + headRadius, headCy);
+        ctx.arc(headCx, headCy, headRadius, 0, Math.PI * 2);
+        
+        const connections = [
+            ['stomach', 'shoulder'], ['stomach', 'hip'],
+            ['shoulder', 'headBottom'],
+            ['shoulder', 'elbowL'], ['elbowL', 'handL'],
+            ['shoulder', 'elbowR'], ['elbowR', 'handR'],
+            ['hip', 'kneeL'], ['kneeL', 'footL'],
+            ['hip', 'kneeR'], ['kneeR', 'footR']
+        ];
+
+        connections.forEach(([p1, p2]) => {
+            if (nodes[p1] && nodes[p2]) {
+                ctx.moveTo(nodes[p1].x, nodes[p1].y);
+                ctx.lineTo(nodes[p2].x, nodes[p2].y);
+            }
+        });
+        ctx.stroke();
+
+        if (!isSilhouette) {
+            Object.keys(nodes).forEach(key => {
+                const n = nodes[key];
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+                
+                if (n.isRoot) {
+                    ctx.fillStyle = isSelected ? '#FF5722' : '#2196F3'; 
+                } else if (key.includes('hand') || key.includes('foot')) {
+                    ctx.fillStyle = '#8BC34A';
+                } else {
+                    ctx.fillStyle = '#FF9800';
+                }
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+        ctx.globalAlpha = 1.0;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        
+        ctx.strokeStyle = '#f5f5f5';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for(let i=0; i<width; i+=50) { ctx.moveTo(i,0); ctx.lineTo(i,height); }
+        for(let i=0; i<height; i+=50) { ctx.moveTo(0,i); ctx.lineTo(width,i); }
+        ctx.stroke();
+
+        if (!isPlaying) {
+            let onionIndex = -1;
+            if (editingFrameIndex !== null) {
+                if (editingFrameIndex > 0) onionIndex = editingFrameIndex - 1;
+            } else {
+                if (frames.length > 0) onionIndex = frames.length - 1;
+            }
+
+            if (onionIndex >= 0 && frames[onionIndex]) {
+                // オニオンスキン描画
+                frames[onionIndex].data.forEach(charNodes => {
+                    drawStickman(charNodes, 0.2, true);
+                });
+            }
+        }
+
+        if (!isPlaying) {
+            characters.forEach((charNodes, idx) => {
+                drawStickman(charNodes, 1.0, false, idx === activeCharIdx);
+            });
+        }
+    }
+
+    // --- ロジック ---
+    function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+    function angle(x1, y1, x2, y2) { return Math.atan2(y2 - y1, x2 - x1); }
+
+    function updateChildren(charIdx, parentKey, dx, dy, dAngle, originX, originY) {
+        const nodes = characters[charIdx];
+        Object.keys(nodes).forEach(key => {
+            const node = nodes[key];
+            if (node.parent === parentKey) {
+                if (dx !== 0 || dy !== 0) {
+                    node.x += dx;
+                    node.y += dy;
+                    updateChildren(charIdx, key, dx, dy, 0, 0, 0);
+                } else if (dAngle !== 0) {
+                    const currentDist = dist(originX, originY, node.x, node.y);
+                    const currentAng = angle(originX, originY, node.x, node.y);
+                    const newAng = currentAng + dAngle;
+                    
+                    node.x = originX + Math.cos(newAng) * currentDist;
+                    node.y = originY + Math.sin(newAng) * currentDist;
+                    
+                    updateChildren(charIdx, key, 0, 0, dAngle, originX, originY);
+                }
+            }
+        });
+    }
+
+    function scaleCharacter(charIdx, factor) {
+        const nodes = characters[charIdx];
+        const root = nodes.stomach;
+        const oldScale = root.currentScale || 1.0;
+        let newScale = oldScale * factor;
+        if (newScale < 0.3) newScale = 0.3;
+        if (newScale > 3.0) newScale = 3.0;
+
+        Object.keys(nodes).forEach(key => {
+            const node = nodes[key];
+            if (node.parent) {
+                const parent = nodes[node.parent];
+                node._tempAngle = Math.atan2(node.y - parent.y, node.x - parent.x);
+            }
+        });
+
+        root.currentScale = newScale;
+
+        function recursivePosUpdate(parentKey) {
+            Object.keys(nodes).forEach(key => {
+                const node = nodes[key];
+                if (node.parent === parentKey) {
+                    const parent = nodes[node.parent];
+                    
+                    if (node.baseR) node.r = node.baseR * newScale;
+                    if (node.baseLength) node.length = node.baseLength * newScale;
+
+                    node.x = parent.x + Math.cos(node._tempAngle) * node.length;
+                    node.y = parent.y + Math.sin(node._tempAngle) * node.length;
+
+                    recursivePosUpdate(key);
+                }
+            });
+        }
+        
+        if (root.baseR) root.r = root.baseR * newScale;
+        recursivePosUpdate('stomach');
+        draw();
+    }
+
+    function onDown(x, y) {
+        if (isPlaying) return;
+        let bestHit = null;
+        let minD = 50; 
+        characters.forEach((nodes, charIdx) => {
+            const scale = nodes.stomach.currentScale || 1.0;
+            const hitRadius = (40 * BASE_SCALE) * scale; 
+            Object.keys(nodes).forEach(key => {
+                const d = dist(x, y, nodes[key].x, nodes[key].y);
+                if (d < hitRadius && d < minD) {
+                    minD = d;
+                    bestHit = { charIdx, key };
+                }
+            });
+        });
+        if (bestHit) {
+            draggingInfo = bestHit;
+            activeCharIdx = bestHit.charIdx; 
+            draw();
+        }
+    }
+
+    function onMove(x, y) {
+        if (!draggingInfo) return;
+        const { charIdx, key } = draggingInfo;
+        const nodes = characters[charIdx];
+        const node = nodes[key];
+        if (x < -200 || x > width + 200 || y < -200 || y > height + 200) return;
+        if (node.isRoot) {
+            const dx = x - node.x;
+            const dy = y - node.y;
+            node.x = x;
+            node.y = y;
+            updateChildren(charIdx, key, dx, dy, 0, 0, 0);
+        } else {
+            const parent = nodes[node.parent];
+            const newAngle = angle(parent.x, parent.y, x, y);
+            const currentAngle = angle(parent.x, parent.y, node.x, node.y);
+            const dAngle = newAngle - currentAngle;
+            const len = node.length; 
+            node.x = parent.x + Math.cos(newAngle) * len;
+            node.y = parent.y + Math.sin(newAngle) * len;
+            updateChildren(charIdx, key, 0, 0, dAngle, parent.x, parent.y);
+        }
+        draw();
+    }
+
+    function onUp() { draggingInfo = null; }
+
+    canvas.addEventListener('mousedown', e => onDown(e.offsetX, e.offsetY));
+    canvas.addEventListener('mousemove', e => onMove(e.offsetX, e.offsetY));
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); const t=e.touches[0]; const r=canvas.getBoundingClientRect(); onDown(t.clientX-r.left, t.clientY-r.top); }, {passive:false});
+    canvas.addEventListener('touchmove', e => { e.preventDefault(); const t=e.touches[0]; const r=canvas.getBoundingClientRect(); onMove(t.clientX-r.left, t.clientY-r.top); }, {passive:false});
+    canvas.addEventListener('touchend', onUp);
+
+    function renderFilmStrip() {
+        filmStrip.innerHTML = '';
+        frames.forEach((frame, index) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'frame-wrapper';
+            if (index === editingFrameIndex) wrapper.classList.add('active');
+
+            const img = document.createElement('img');
+            img.className = 'frame-thumbnail';
+            if (frame.thumbnail) img.src = frame.thumbnail;
+            else img.style.backgroundColor = '#ddd';
+
+            img.addEventListener('click', () => startEditing(index));
+
+            let pressTimer;
+            const startPress = () => { pressTimer = setTimeout(() => wrapper.classList.add('show-delete'), 600); };
+            const cancelPress = () => clearTimeout(pressTimer);
+            
+            img.addEventListener('touchstart', startPress);
+            img.addEventListener('touchend', cancelPress);
+            img.addEventListener('mousedown', startPress);
+            img.addEventListener('mouseup', cancelPress);
+
+            const delBtn = document.createElement('div');
+            delBtn.className = 'delete-btn';
+            delBtn.textContent = '✕';
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if(confirm('このコマを消しますか？')) deleteFrame(index);
+            });
+
+            wrapper.appendChild(img);
+            wrapper.appendChild(delBtn);
+            filmStrip.appendChild(wrapper);
+        });
+    }
+
+    function startEditing(index) {
+        editingFrameIndex = index;
+        characters = JSON.parse(JSON.stringify(frames[index].data));
+        updateEditModeUI();
+        renderFilmStrip();
+        draw();
+    }
+
+    function updateEditModeUI() {
+        if (editingFrameIndex !== null) {
+            mainContent.classList.add('editing-mode');
+            captureBtn.classList.add('updating');
+            captureBtn.innerHTML = '<span>📸</span>更新';
+        } else {
+            mainContent.classList.remove('editing-mode');
+            captureBtn.classList.remove('updating');
+            captureBtn.innerHTML = '<span>📸</span>撮影';
+        }
+    }
+
+    function deleteFrame(index) {
+        frames.splice(index, 1);
+        if (editingFrameIndex === index) editingFrameIndex = null;
+        else if (editingFrameIndex > index) editingFrameIndex--;
+        renderFilmStrip();
+        updateEditModeUI();
+        updateButtonsState();
+        draw();
+    }
+
+    function createThumbnailURL() {
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width = 160; thumbCanvas.height = 120;
+        const tCtx = thumbCanvas.getContext('2d');
+        const scale = Math.min(160/width, 120/height);
+        tCtx.fillStyle = '#fff'; tCtx.fillRect(0,0, 160, 120);
+        tCtx.translate((160 - width*scale)/2, (120 - height*scale)/2);
+        tCtx.scale(scale, scale);
+        tCtx.drawImage(canvas, 0, 0);
+        return thumbCanvas.toDataURL();
+    }
+
+    function updateButtonsState() {
+        const hasFrames = frames.length > 0;
+        [captureBtn, resetBtn, exportBtn, addBtn, scaleUpBtn, scaleDownBtn, saveProjBtn, loadProjBtn].forEach(b => {
+            b.disabled = isPlaying;
+            if (isPlaying) b.classList.add('disabled'); else b.classList.remove('disabled');
+        });
+        if (!isPlaying) {
+            [playBtn, exportBtn, saveProjBtn].forEach(b => {
+                b.disabled = !hasFrames;
+                if (!hasFrames) b.classList.add('disabled'); else b.classList.remove('disabled');
+            });
+        }
+    }
+
+    captureBtn.addEventListener('click', () => {
+        if (isPlaying) return;
+        const frameData = {
+            data: JSON.parse(JSON.stringify(characters)),
+            thumbnail: createThumbnailURL()
+        };
+        if (editingFrameIndex !== null) {
+            frames[editingFrameIndex] = frameData;
+            editingFrameIndex = null;
+        } else {
+            frames.push(frameData);
+            setTimeout(() => filmStrip.scrollLeft = filmStrip.scrollWidth, 50);
+        }
+        renderFilmStrip();
+        updateEditModeUI();
+        updateButtonsState();
+        canvas.style.opacity = 0.5;
+        setTimeout(() => canvas.style.opacity = 1, 100);
+        draw();
+    });
+
+    saveProjBtn.addEventListener('click', () => {
+        if (frames.length === 0) return;
+        const data = JSON.stringify(frames);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const now = new Date();
+        const dateStr = now.getFullYear() + ('0' + (now.getMonth()+1)).slice(-2) + ('0' + now.getDate()).slice(-2) + '-' + ('0' + now.getHours()).slice(-2) + ('0' + now.getMinutes()).slice(-2);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `StickMotion-${dateStr}.json`;
+        a.click();
+    });
+
+    loadProjBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                let loaded = JSON.parse(ev.target.result);
+                if (Array.isArray(loaded)) {
+                    frames = loaded.map(f => {
+                        let charData = f.data ? f.data : f; 
+                        let thumb = f.thumbnail || null;
+                        
+                        // データ修復処理
+                        if(Array.isArray(charData)) {
+                            charData.forEach(chars => {
+                                Object.keys(chars).forEach(k => {
+                                    const node = chars[k];
+                                    if (node.parent && (!node.baseLength || !node.baseR)) {
+                                        const parent = chars[node.parent];
+                                        const d = Math.hypot(node.x - parent.x, node.y - parent.y);
+                                        node.length = d;
+                                        node.baseLength = d;
+                                        node.baseR = node.r;
+                                    }
+                                    if(node.isRoot && !node.baseR) node.baseR = node.r;
+                                });
+                            });
+                        }
+                        return { data: charData, thumbnail: thumb };
+                    });
+
+                    renderFilmStrip();
+                    if (frames.length > 0) {
+                        characters = JSON.parse(JSON.stringify(frames[frames.length-1].data));
+                    }
+                    editingFrameIndex = null;
+                    updateEditModeUI();
+                    updateButtonsState();
+                    draw();
+                    alert('読み込み成功！データ修復も完了しました。');
+                } else {
+                    alert('ファイルの形式が違います');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('読み込みに失敗しました');
+            }
+        };
+        reader.readAsText(file);
+        fileInput.value = ''; 
+    });
+
+    addBtn.addEventListener('click', () => {
+        if (characters.length >= 5) { alert('定員オーバーです！（最大5人まで）'); return; }
+        const offset = (characters.length) * 30;
+        characters.push(createStickman(width/2 + offset, height/2 + offset));
+        activeCharIdx = characters.length - 1; 
+        draw();
+    });
+
+    scaleUpBtn.addEventListener('click', () => scaleCharacter(activeCharIdx, 1.1));
+    scaleDownBtn.addEventListener('click', () => scaleCharacter(activeCharIdx, 0.9));
+
+    let animationId;
+    playBtn.addEventListener('click', () => {
+        if (frames.length === 0) return;
+        const icon = playBtn.querySelector('span');
+        if (isPlaying) {
+            isPlaying = false;
+            cancelAnimationFrame(animationId);
+            icon.textContent = '▶️';
+            playBtn.innerHTML = '<span>▶️</span>再生';
+            document.getElementById('playing-overlay').style.display = 'none';
+            updateButtonsState();
+            draw();
+        } else {
+            isPlaying = true;
+            icon.textContent = '⏹️';
+            playBtn.innerHTML = '<span>⏹️</span>停止';
+            document.getElementById('playing-overlay').style.display = 'block';
+            updateButtonsState();
+            let frameIdx = 0;
+            let lastTime = 0;
+            function loop(timestamp) {
+                if (!isPlaying) return;
+                if (timestamp - lastTime > 125) { // 8fps
+                    ctx.clearRect(0, 0, width, height);
+                    if(frames[frameIdx] && frames[frameIdx].data) {
+                        frames[frameIdx].data.forEach(charNodes => drawStickman(charNodes));
+                    }
+                    frameIdx = (frameIdx + 1) % frames.length;
+                    lastTime = timestamp;
+                }
+                animationId = requestAnimationFrame(loop);
+            }
+            requestAnimationFrame(loop);
+        }
+    });
+
+    resetBtn.addEventListener('click', () => {
+        if(confirm('全てのコマを削除しますか？')) {
+            frames = [];
+            editingFrameIndex = null;
+            renderFilmStrip();
+            updateEditModeUI();
+            updateButtonsState();
+            initPose();
+        }
+    });
+
+    // 【修正：MP4/WebM 自動判定対応のエクスポート処理】
+    exportBtn.addEventListener('click', async () => {
+        if (isPlaying || frames.length === 0) return;
+        
+        try {
+            // UIロック
+            isPlaying = true; 
+            updateButtonsState();
+            
+            // iPad/Safari向けのMIMEタイプ自動判定
+            let mimeType = 'video/webm'; // デフォルト
+            if (MediaRecorder.isTypeSupported('video/mp4')) {
+                mimeType = 'video/mp4';
+            } else if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) {
+                mimeType = 'video/mp4;codecs=avc1';
+            }
+
+            const stream = canvas.captureStream(30);
+            const recorder = new MediaRecorder(stream, { mimeType: mimeType });
+            const chunks = [];
+            
+            recorder.ondataavailable = e => {
+                if (e.data.size > 0) chunks.push(e.data);
+            };
+            
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // 拡張子をMIMEタイプに合わせて決定
+                const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                a.download = `StickMotion-Movie.${ext}`;
+                
+                a.click();
+                
+                // 復帰処理
+                isPlaying = false;
+                updateButtonsState();
+                draw();
+            };
+
+            // 録画開始
+            recorder.start();
+            
+            // 全フレーム再生
+            for (let i = 0; i < frames.length; i++) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0,0,width,height);
+                if (frames[i] && frames[i].data) {
+                    frames[i].data.forEach(c => drawStickman(c));
+                }
+                await new Promise(r => setTimeout(r, 125)); // 8fps
+            }
+            
+            recorder.stop();
+
+        } catch (e) {
+            console.error(e);
+            alert('動画の作成に失敗しました。\n' + e.message);
+            isPlaying = false;
+            updateButtonsState();
+            draw();
+        }
+    });
+
+    if (document.readyState === 'complete') initPose();
+    else window.addEventListener('load', initPose);
+</script>
+</body>
+</html>

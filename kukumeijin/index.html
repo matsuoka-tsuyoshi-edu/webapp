@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<title>くくめいじん</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="wrap">
+    <div class="hud hidden" id="hud">
+      <div class="score">きょうのうりあげ：<b id="score">0</b> さら</div>
+      <button class="resume-btn" id="btnResume">さいしょに もどる</button>
+      <div class="timer">⏱ <span id="time">60</span> びょう</div>
+    </div>
+
+    <div class="game" id="game">
+      <div class="start-overlay" id="startOverlay">
+        <img src="./title.png" alt="タイトル" class="title-img">
+        
+        <div class="start-msg">ちゅうもんの しかたを えらんでね</div>
+
+        <div class="mode-select-area">
+          
+          <label class="mode-option full-width">
+            <input type="radio" name="gameMode" value="normal" checked>
+            <span class="mode-btn">
+              ① こたえを ちゅうもん<br>
+              <small>（きゃく「24」→ あなた「3 と 8」）</small>
+            </span>
+          </label>
+
+          <div class="mode-option-group">
+            <label class="mode-option flex-grow">
+              <input type="radio" name="gameMode" value="inverse">
+              <span class="mode-btn">
+                ② 九九を ちゅうもん<br>
+                <small>（きゃく「3×8」→ あなた「2 と 4」）</small>
+              </span>
+            </label>
+            <button id="btnMode2Detail" class="btn-detail" type="button">くわしく<br>設定</button>
+          </div>
+
+        </div>
+
+        <button class="btn-start" id="btnStartCenter">いらっしゃい！</button>
+      </div>
+
+      <div id="settingOverlay" class="setting-overlay hidden">
+        <div class="setting-box">
+          <h3>どの段を ちゅうもん する？</h3>
+          <p class="setting-desc">（チェックした段が 出てくるよ）</p>
+          <div class="dan-grid" id="danCheckboxes">
+            <label><input type="checkbox" value="2" checked> 2の段</label>
+            <label><input type="checkbox" value="3" checked> 3の段</label>
+            <label><input type="checkbox" value="4" checked> 4の段</label>
+            <label><input type="checkbox" value="5" checked> 5の段</label>
+            <label><input type="checkbox" value="6" checked> 6の段</label>
+            <label><input type="checkbox" value="7" checked> 7の段</label>
+            <label><input type="checkbox" value="8" checked> 8の段</label>
+            <label><input type="checkbox" value="9" checked> 9の段</label>
+          </div>
+          <button id="btnSettingClose" class="btn-setting-ok">これで OK！</button>
+        </div>
+      </div>
+
+      <div class="counter"></div>
+      <div class="customers hidden" id="customers"></div>
+      <div class="belt" id="belt"></div>
+
+      <div class="prep" id="prep">
+        <div class="prep-title" id="prepTitle">おすしをにぎるよ</div>
+        <div class="prep-dish" id="prepDish">
+          <div class="pair" id="prepPair">
+            <div class="mini-sushi empty" id="prepLeft">?</div>
+            <div class="gari" id="prepOperator"><span class="mul">×</span></div>
+            <div class="mini-sushi empty" id="prepRight">?</div>
+          </div>
+        </div>
+        <div class="prep-hint" id="prepHint">おすしを２つえらぼう（できたら、タップしてね）</div>
+      </div>
+
+      <div id="debugWindow">Debug Log:<br></div>
+      
+      <div id="endMessageOverlay" class="hidden">
+        <div id="endMessageText">きょうは<br>これで みせじまい</div>
+        <div id="endScoreText">きょうのうりあげ： <b id="finalScore">0</b> まい</div>
+        <div id="endFeedbackMessage"></div>
+        <div id="finalPlateStacks"></div>
+      </div>
+      
+      <div id="trainingOverlay" class="hidden">
+          <img id="oyakataImage" src="./char/oyakata.png" alt="親方">
+          <div id="trainingMessage">まちがえすぎじゃ！<br>とっくんじゃ！</div>
+          <div id="trainingProblem"></div>
+          <div id="trainingFeedback"></div>
+      </div>
+
+      <div class="record" id="record">
+        ベスト：<b id="best">0</b>さら<br>
+        ただいま：<b id="last">0</b>さら
+      </div>
+
+      <div class="sushi-bar" id="sushiBar"></div>
+
+    </div>
+  </div>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>佐伯市タイピング - V5</title>
+    <style>
+        /* --- 基本設定 --- */
+        body {
+            margin: 0; padding: 0;
+            font-family: "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", sans-serif;
+            background-color: #e0f7fa;
+            color: #333;
+            overflow: hidden;
+            touch-action: manipulation;
+            width: 100vw; height: 100dvh;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* --- 画面全体のコンテナ --- */
+        #game-container {
+            display: none; /* 横向き検知用 */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%; width: 100%;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* --- オーバーレイ（スタート・結果画面） --- */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95);
+            z-index: 10;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center;
+        }
+        .hidden { display: none !important; }
+        
+        h1 { margin: 0 0 20px 0; color: #00897b; font-size: 3rem; }
+        .score-box { font-size: 1.5rem; margin: 10px 0; color: #555; }
+        .score-val { font-weight: bold; color: #d81b60; font-size: 2rem; }
+
+        button.start-btn {
+            background: #00897b; color: white;
+            border: none; padding: 15px 40px;
+            font-size: 1.8rem; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 4px 0 #00695c;
+            font-family: inherit; margin-top: 20px;
+        }
+        button.start-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        /* --- 1. 上部情報エリア --- */
+        .info-area {
+            text-align: center; margin-top: 10px;
+            flex: 0 0 auto;
+        }
+        #region-badge {
+            display: inline-block; background-color: #00897b; color: white;
+            padding: 4px 15px; border-radius: 15px; font-size: 1rem; margin-bottom: 5px;
+        }
+        #japanese-text { font-size: 2.2rem; font-weight: bold; margin: 0; line-height: 1.1; }
+        #kana-text { font-size: 1.1rem; color: #555; margin: 0; }
+
+        /* --- 2. ローマ字入力エリア --- */
+        #romaji-area-wrapper {
+            position: relative; margin: 10px 0;
+            flex: 0 1 auto;
+        }
+        #romaji-area {
+            font-size: 3rem; font-family: "Courier New", monospace;
+            background: white; padding: 5px 30px; border-radius: 10px;
+            border: 3px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+        /* エラー時の赤枠 */
+        .error-border { border-color: #ff5252 !important; }
+        #error-msg {
+            position: absolute; top: -35px; left: 50%; transform: translateX(-50%);
+            background: #ff5252; color: white; padding: 5px 15px; border-radius: 20px;
+            font-size: 1rem; font-weight: bold; opacity: 0; transition: opacity 0.2s;
+            pointer-events: none; white-space: nowrap;
+        }
+        .show-error { opacity: 1 !important; }
+        
+        .typed { color: #ccc; }
+        .current { color: #d81b60; border-bottom: 3px solid #d81b60; }
+        .untyped { color: #333; }
+
+        /* --- 3. キーボードと指 --- */
+        .bottom-area {
+            display: flex; flex-direction: column; align-items: center;
+            width: 100%; margin-bottom: 10px;
+            flex: 0 0 auto;
+        }
+
+        #keyboard {
+            background: #cfd8dc; padding: 8px; border-radius: 12px;
+            display: flex; flex-direction: column; gap: 6px;
+            margin-bottom: 10px;
+        }
+        .kb-row { display: flex; justify-content: center; gap: 6px; }
+        
+        .key {
+            width: 55px; height: 50px; /* キーを大きく！ */
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1.4rem;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+            color: #555; transition: transform 0.1s;
+        }
+
+        /* 指ごとのカラー定義 (薄い色:通常 / 濃い色:Active) */
+        /* 小指: Pink */
+        .f-pinky { background-color: #f8bbd0; }
+        .f-pinky.active { background-color: #e91e63; color: white; box-shadow: none; transform: translateY(3px); }
+        /* 薬指: Orange */
+        .f-ring { background-color: #ffe0b2; }
+        .f-ring.active { background-color: #ff9800; color: white; box-shadow: none; transform: translateY(3px); }
+        /* 中指: Green */
+        .f-middle { background-color: #c8e6c9; }
+        .f-middle.active { background-color: #4caf50; color: white; box-shadow: none; transform: translateY(3px); }
+        /* 人差し指: Blue */
+        .f-index { background-color: #b3e5fc; }
+        .f-index.active { background-color: #2196f3; color: white; box-shadow: none; transform: translateY(3px); }
+
+        /* --- 指のビジュアル (Hands) --- */
+        #hands {
+            display: flex; gap: 30px; /* 左手と右手の間隔 */
+            margin-top: 5px;
+        }
+        .hand { display: flex; gap: 8px; align-items: flex-end; height: 40px; }
+        
+        .finger {
+            width: 25px; height: 30px; /* 通常時の高さ */
+            border-radius: 10px 10px 0 0;
+            background-color: #cfd8dc; /* 非アクティブ時 */
+            transition: all 0.1s;
+            position: relative;
+        }
+        /* 指が動いた時のアニメーション */
+        .finger.active {
+            height: 50px; /* 伸びる */
+            transform: translateY(-5px);
+        }
+        /* 指の色（Active時のみ適用するためのクラス） */
+        .bg-pinky { background-color: #e91e63 !important; }
+        .bg-ring { background-color: #ff9800 !important; }
+        .bg-middle { background-color: #4caf50 !important; }
+        .bg-index { background-color: #2196f3 !important; }
+
+        /* ラベル（指の名前を消す代わりに、視覚的にわかりやすく） */
+        .finger::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.5); }
+
+
+        /* --- 縦向き警告 --- */
+        #rotate-message {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100vh; background-color: #333; color: white;
+            font-size: 1.5rem; padding: 20px; text-align: center;
+        }
+        @media screen and (orientation: landscape) {
+            #game-container { display: flex; }
+            #rotate-message { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="rotate-message">
+        <p>📱<br>iPadを横向きにしてね！</p>
+    </div>
+
+    <div id="start-screen" class="overlay">
+        <h1>佐伯市タイピング</h1>
+        <p>全10問のタイムアタック！</p>
+        <button class="start-btn" onclick="startGame()">スタート！</button>
+    </div>
+
+    <div id="result-screen" class="overlay hidden">
+        <h1>結果はっぴょう！</h1>
+        <div class="score-box">かかった時間： <span id="res-time" class="score-val">0</span> 秒</div>
+        <div class="score-box">1分あたりの文字数： <span id="res-wpm" class="score-val">0</span> 文字</div>
+        <div class="score-box">まちがえた回数： <span id="res-miss" class="score-val">0</span> 回</div>
+        <button class="start-btn" onclick="startGame()">もう一回やる</button>
+    </div>
+
+    <div id="game-container">
+        <div class="info-area">
+            <div id="region-badge">エリア</div>
+            <div id="japanese-text"></div>
+            <div id="kana-text"></div>
+        </div>
+
+        <div id="romaji-area-wrapper">
+            <div id="error-msg">おっと！</div>
+            <div id="romaji-area">
+                <span id="romaji-display"></span>
+            </div>
+        </div>
+
+        <div class="bottom-area">
+            <div id="keyboard"></div>
+            
+            <div id="hands">
+                <div class="hand">
+                    <div class="finger" id="f-L1"></div> <div class="finger" id="f-L2"></div> <div class="finger" id="f-L3"></div> <div class="finger" id="f-L4"></div> </div>
+                <div class="hand">
+                    <div class="finger" id="f-R4"></div> <div class="finger" id="f-R3"></div> <div class="finger" id="f-R2"></div> <div class="finger" id="f-R1"></div> </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 辞書データ ---
+        const romanMap = {
+            'し': ['si', 'shi'], 'ち': ['ti', 'chi'], 'つ': ['tu', 'tsu'],
+            'ふ': ['hu', 'fu'], 'じ': ['zi', 'ji'],
+            'しゃ': ['sya', 'sha'], 'しゅ': ['syu', 'shu'], 'しょ': ['syo', 'sho'],
+            'じゃ': ['ja', 'zya', 'jya'], 'じゅ': ['ju', 'zyu', 'jyu'], 'じょ': ['jo', 'zyo', 'jyo'],
+            'ちゃ': ['tya', 'cha'], 'ちゅ': ['tyu', 'chu'], 'ちょ': ['tyo', 'cho'],
+            'か':['ka'], 'き':['ki'], 'く':['ku'], 'け':['ke'], 'こ':['ko'],
+            'さ':['sa'], 'す':['su'], 'せ':['se'], 'そ':['so'],
+            'た':['ta'], 'て':['te'], 'と':['to'],
+            'な':['na'], 'に':['ni'], 'ぬ':['nu'], 'ね':['ne'], 'の':['no'],
+            'は':['ha'], 'ひ':['hi'], 'へ':['he'], 'ほ':['ho'],
+            'ま':['ma'], 'み':['mi'], 'む':['mu'], 'め':['me'], 'も':['mo'],
+            'や':['ya'], 'ゆ':['yu'], 'よ':['yo'],
+            'ら':['ra'], 'り':['ri'], 'る':['ru'], 'れ':['re'], 'ろ':['ro'],
+            'わ':['wa'], 'を':['wo'], 'ん':['n', 'nn'],
+            'が':['ga'], 'ぎ':['gi'], 'ぐ':['gu'], 'げ':['ge'], 'ご':['go'],
+            'ざ':['za'], 'ず':['zu'], 'ぜ':['ze'], 'ぞ':['zo'],
+            'だ':['da'], 'ぢ':['zi', 'di', 'ji'], 'づ':['zu', 'du'], 'で':['de'], 'ど':['do'],
+            'ば':['ba'], 'び':['bi'], 'ぶ':['bu'], 'べ':['be'], 'ぼ':['bo'],
+            'ぱ':['pa'], 'ぴ':['pi'], 'ぷ':['pu'], 'ぺ':['pe'], 'ぽ':['po'],
+            'あ':['a'], 'い':['i'], 'う':['u'], 'え':['e'], 'お':['o']
+        };
+
+        // サンプル問題（少し増やしました）
+        const questionPool = [
+            { region: '佐伯', ja: '佐伯', kana: 'さいき', split: ['さ','い','き'] },
+            { region: '佐伯', ja: 'ごまだし', kana: 'ごまだし', split: ['ご','ま','だ','し'] },
+            { region: '宇目', ja: 'ととろ', kana: 'ととろ', split: ['と','と','ろ'] },
+            { region: '蒲江', ja: 'じゃんぐる', kana: 'じゃんぐる', split: ['じゃ','ん','ぐ','る'] },
+            { region: '直川', ja: 'かぶとむし', kana: 'かぶとむし', split: ['か','ぶ','と','む','し'] },
+            { region: '弥生', ja: '弥生の湯', kana: 'やよいのゆ', split: ['や','よ','い','の','ゆ'] },
+            { region: '本匠', ja: '大水車', kana: 'だいすいしゃ', split: ['だ','い','す','い','しゃ'] },
+            { region: '鶴見', ja: 'マリンレモン', kana: 'まりんれもん', split: ['ま','り','ん','れ','も','ん'] },
+            { region: '米水津', ja: '空の公園', kana: 'そらのこうえん', split: ['そ','ら','の','こ','う','え','ん'] },
+            { region: '佐伯', ja: '城山', kana: 'しろやま', split: ['し','ろ','や','ま'] }
+        ];
+
+        // キーボード設定
+        const keyLayout = [
+            ['q','w','e','r','t','y','u','i','o','p'],
+            ['a','s','d','f','g','h','j','k','l'],
+            ['z','x','c','v','b','n','m']
+        ];
+        
+        // 指マップ (Finger IDと色クラス)
+        const fingerMap = {
+            'q':{id:'L1', cls:'f-pinky', bg:'bg-pinky'}, 'a':{id:'L1', cls:'f-pinky', bg:'bg-pinky'}, 'z':{id:'L1', cls:'f-pinky', bg:'bg-pinky'},
+            'w':{id:'L2', cls:'f-ring', bg:'bg-ring'}, 's':{id:'L2', cls:'f-ring', bg:'bg-ring'}, 'x':{id:'L2', cls:'f-ring', bg:'bg-ring'},
+            'e':{id:'L3', cls:'f-middle', bg:'bg-middle'}, 'd':{id:'L3', cls:'f-middle', bg:'bg-middle'}, 'c':{id:'L3', cls:'f-middle', bg:'bg-middle'},
+            'r':{id:'L4', cls:'f-index', bg:'bg-index'}, 'f':{id:'L4', cls:'f-index', bg:'bg-index'}, 'v':{id:'L4', cls:'f-index', bg:'bg-index'}, 
+            't':{id:'L4', cls:'f-index', bg:'bg-index'}, 'g':{id:'L4', cls:'f-index', bg:'bg-index'}, 'b':{id:'L4', cls:'f-index', bg:'bg-index'},
+            'y':{id:'R4', cls:'f-index', bg:'bg-index'}, 'h':{id:'R4', cls:'f-index', bg:'bg-index'}, 'n':{id:'R4', cls:'f-index', bg:'bg-index'}, 
+            'u':{id:'R4', cls:'f-index', bg:'bg-index'}, 'j':{id:'R4', cls:'f-index', bg:'bg-index'}, 'm':{id:'R4', cls:'f-index', bg:'bg-index'},
+            'i':{id:'R3', cls:'f-middle', bg:'bg-middle'}, 'k':{id:'R3', cls:'f-middle', bg:'bg-middle'},
+            'o':{id:'R2', cls:'f-ring', bg:'bg-ring'}, 'l':{id:'R2', cls:'f-ring', bg:'bg-ring'}, 
+            'p':{id:'R1', cls:'f-pinky', bg:'bg-pinky'}
+        };
+
+        // --- 状態管理 ---
+        let gameQuestions = [];
+        let currentQIndex = 0;
+        let currentSplit = [];
+        let currentKanaIndex = 0;
+        let currentRomajiInput = "";
+        
+        // スコア用
+        let startTime = 0;
+        let missCount = 0;
+        let typedCharCount = 0; // 正しく打った文字数
+
+        // DOM
+        const elDisplay = document.getElementById('romaji-display');
+        const elError = document.getElementById('error-msg');
+        const elKeyboard = document.getElementById('keyboard');
+        const elRomajiAreaDiv = document.getElementById('romaji-area');
+        const elStartScreen = document.getElementById('start-screen');
+        const elResultScreen = document.getElementById('result-screen');
+
+        // --- 初期化関数 ---
+        function initKeyboard() {
+            let html = '';
+            keyLayout.forEach(row => {
+                html += '<div class="kb-row">';
+                row.forEach(char => {
+                    const fData = fingerMap[char] || {cls:'f-pinky'};
+                    html += `<div class="key ${fData.cls}" id="key-${char}">${char.toUpperCase()}</div>`;
+                });
+                html += '</div>';
+            });
+            elKeyboard.innerHTML = html;
+        }
+
+        // --- ゲームフロー ---
+        function startGame() {
+            // リセット
+            currentQIndex = 0;
+            missCount = 0;
+            typedCharCount = 0;
+            
+            // 問題をシャッフルして10問選ぶ（今回はプールが10問なのでそのまま）
+            gameQuestions = [...questionPool].sort(() => Math.random() - 0.5);
+            
+            // 画面切り替え
+            elStartScreen.classList.add('hidden');
+            elResultScreen.classList.add('hidden');
+            
+            startTime = Date.now();
+            setQuestion();
+        }
+
+        function finishGame() {
+            const endTime = Date.now();
+            const timeSec = (endTime - startTime) / 1000;
+            const wpm = Math.round((typedCharCount / timeSec) * 60);
+            
+            document.getElementById('res-time').textContent = timeSec.toFixed(1);
+            document.getElementById('res-wpm').textContent = wpm;
+            document.getElementById('res-miss').textContent = missCount;
+            
+            elResultScreen.classList.remove('hidden');
+        }
+
+        function setQuestion() {
+            if (currentQIndex >= 10 || currentQIndex >= gameQuestions.length) {
+                finishGame();
+                return;
+            }
+            const q = gameQuestions[currentQIndex];
+            document.getElementById('japanese-text').textContent = q.ja;
+            document.getElementById('kana-text').textContent = q.kana;
+            document.getElementById('region-badge').textContent = q.region + "エリア";
+            
+            currentSplit = q.split;
+            currentKanaIndex = 0;
+            currentRomajiInput = "";
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            let html = "";
+            let nextChar = "";
+            
+            // 完了済み
+            for(let i=0; i<currentKanaIndex; i++) {
+                let k = currentSplit[i];
+                let r = romanMap[k] ? romanMap[k][0] : '?';
+                html += `<span class="typed">${r}</span>`;
+            }
+            // 現在
+            if (currentKanaIndex < currentSplit.length) {
+                let targetKana = currentSplit[currentKanaIndex];
+                let validPatterns = romanMap[targetKana] || [targetKana];
+                let matchingPatterns = validPatterns.filter(p => p.startsWith(currentRomajiInput));
+                if (matchingPatterns.length > 0) {
+                    let targetPattern = matchingPatterns[0];
+                    nextChar = targetPattern[currentRomajiInput.length];
+                    html += `<span class="current">${currentRomajiInput}</span>`;
+                    html += `<span class="untyped">${targetPattern.substring(currentRomajiInput.length)}</span>`;
+                }
+            }
+            // 未来
+            for(let i=currentKanaIndex + 1; i<currentSplit.length; i++) {
+                let k = currentSplit[i];
+                let r = romanMap[k] ? romanMap[k][0] : '?';
+                html += `<span class="untyped">${r}</span>`;
+            }
+
+            elDisplay.innerHTML = html;
+            highlightKeyAndFinger(nextChar);
+        }
+
+        function highlightKeyAndFinger(char) {
+            // キーのリセット
+            document.querySelectorAll('.key').forEach(k => k.classList.remove('active'));
+            // 指のリセット
+            document.querySelectorAll('.finger').forEach(f => {
+                f.className = 'finger'; // クラス全削除して再設定
+            });
+
+            if (!char) return;
+
+            // キーのハイライト
+            const keyEl = document.getElementById(`key-${char}`);
+            if (keyEl) keyEl.classList.add('active');
+
+            // 指のハイライト
+            const fData = fingerMap[char];
+            if (fData) {
+                const fingerEl = document.getElementById(`f-${fData.id}`);
+                if (fingerEl) {
+                    fingerEl.classList.add('active');
+                    fingerEl.classList.add(fData.bg); // 色クラスを追加
+                }
+            }
+        }
+
+        function showError() {
+            missCount++;
+            elRomajiAreaDiv.classList.add('error-border');
+            elError.classList.add('show-error');
+            setTimeout(() => {
+                elRomajiAreaDiv.classList.remove('error-border');
+                elError.classList.remove('show-error');
+            }, 500);
+        }
+
+        // --- 入力イベント ---
+        document.addEventListener('keydown', (e) => {
+            // ゲーム中でないなら無視
+            if (!elStartScreen.classList.contains('hidden') || !elResultScreen.classList.contains('hidden')) return;
+
+            const key = e.key.toLowerCase();
+            if (!/^[a-z]$/.test(key)) return;
+
+            let targetKana = currentSplit[currentKanaIndex];
+            let validPatterns = romanMap[targetKana];
+            let nextInput = currentRomajiInput + key;
+            let isValid = validPatterns.some(p => p.startsWith(nextInput));
+
+            if (isValid) {
+                currentRomajiInput = nextInput;
+                typedCharCount++; // 正打数をカウント
+                
+                if (validPatterns.includes(currentRomajiInput)) {
+                    currentKanaIndex++;
+                    currentRomajiInput = "";
+                    if (currentKanaIndex >= currentSplit.length) {
+                        updateDisplay(); // 最後の文字を表示
+                        setTimeout(() => {
+                            currentQIndex++;
+                            setQuestion();
+                        }, 100); // 次の問題への遷移を少し早く
+                        return;
+                    }
+                }
+                updateDisplay();
+            } else {
+                showError();
+            }
+        });
+
+        initKeyboard();
+
+    </script>
+</body>
+</html>

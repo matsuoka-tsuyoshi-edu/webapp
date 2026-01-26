@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>なんぶんの なんなんな</title>
+    
+    <style>
+        /* 【修正】全要素に対してダブルタップズームを無効化 */
+        * {
+            touch-action: manipulation;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; 
+            background-color: #f0f0f0;
+            font-family: 'Arial', 'Hiragino Kaku Gothic ProN', sans-serif;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            
+            /* 【修正】念のためbodyにも明示 */
+            touch-action: manipulation;
+            /* iOSでの長押し選択なども無効化してアプリらしく */
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* --- ヘッダー周り --- */
+        header {
+            position: relative;
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            flex-shrink: 0; 
+            
+            /* 【修正】高さを縮小しました */
+            /* 安全な領域(safe-area)は確保しつつ、余分な100pxを削除 */
+            padding-top: max(15px, env(safe-area-inset-top)); 
+            padding-bottom: 5px;
+            padding-left: 15px;
+            padding-right: 15px;
+            box-sizing: border-box;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between; 
+            height: auto;
+        }
+        
+        header h1 {
+            font-size: 1.2em; 
+            margin: 0;
+            padding: 0;
+            white-space: nowrap; 
+            margin-right: 10px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+        }
+        
+        header h1:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        #score-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 6px; 
+            overflow-x: auto; 
+            padding-left: 5px;
+            height: 40px; 
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+            padding-right: 10px;
+        }
+        #score-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* スコアの枠 */
+        .score-slot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-slot.empty {
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .score-slot.filled {
+            border: none;
+            background-color: transparent;
+        }
+
+        .mini-chart {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: white;
+            border: 2px solid rgba(255,255,255,0.9);
+            animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes pop-in {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* メインのコンテナ */
+        .container {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- 左半分 (視覚化エリア) --- */
+        .left-panel {
+            flex: 3; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+            background-color: #e8e8e8;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .message-box {
+            position: absolute;
+            top: 10px;
+            width: 90%;
+            height: 40px; 
+            text-align: center;
+            font-size: 1.6em; 
+            font-weight: bold;
+            line-height: 1.4;
+            z-index: 20;
+            pointer-events: none; 
+        }
+
+        #circle-container {
+            width: 90%;
+            max-height: 90%; 
+            aspect-ratio: 1 / 1; 
+
+            border-radius: 50%;
+            background-color: white; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        #circle-container.pop {
+            transform: scale(0.1);
+        }
+
+        .fraction-circle {
+            width: 95%;
+            height: 95%;
+            display: block;
+        }
+        
+        .segment {
+            stroke: #333;
+            stroke-width: 1.5; 
+            stroke-linejoin: round;
+            transition: fill 0.3s;
+        }
+        .segment.correct-segment {
+            fill: #FFEB3B;
+        }
+        .segment.uncolored {
+             fill: #DEDEDE;
+        }
+        
+        /* 約分オーバーレイ用のスタイル */
+        .overlay-segment {
+            fill: none; 
+            stroke: #2196F3; 
+            stroke-width: 4; 
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none; 
+        }
+        .overlay-segment.visible {
+            opacity: 1;
+        }
+        /* 分子部分だけ塗りつぶすクラス */
+        .overlay-segment.overlay-filled {
+            fill: rgba(33, 150, 243, 0.3); 
+        }
+
+
+        /* --- 右半分 (入力・操作エリア) --- */
+        .right-panel {
+            flex: 2; 
+            background-color: #FFF;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1);
+            z-index: 15;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .fraction-input-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .fraction-part-input {
+            width: 110px;
+            height: 110px;
+            font-size: 5.5em; 
+            text-align: center;
+            border: 4px solid #FF5722;
+            border-radius: 15px;
+            margin: 5px 0;
+            outline: none;
+            background-color: #FFE0B2;
+            caret-color: #E64A19;
+            transition: all 0.2s;
+            padding: 0;
+            line-height: 110px;
+        }
+        
+        .fraction-part-input:focus, .fraction-part-input.active {
+            background-color: #FFCC80;
+            border-color: #E64A19;
+            box-shadow: 0 0 15px rgba(255, 87, 34, 0.6);
+            transform: scale(1.05);
+        }
+        
+        .fraction-part-input.success-glow {
+            background-color: #B9F6CA; 
+            border-color: #00C853;
+        }
+        
+        .fraction-part-input.error-shake {
+             animation: shake 0.5s;
+             border-color: #F44336;
+        }
+
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .fraction-line {
+            width: 160px; 
+            height: 10px;
+            background-color: #000;
+            margin: 8px 0;
+            border-radius: 5px;
+        }
+
+        /* テンキーパッド */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        .key {
+            padding: 10px 0;
+            height: 60px;
+            font-size: 1.8em;
+            font-weight: bold;
+            border: 2px solid #555;
+            border-radius: 8px;
+            background-color: #E0E0E0;
+            cursor: pointer;
+            transition: background-color 0.1s, transform 0.1s;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .key:active {
+            background-color: #CCC;
+            transform: scale(0.95);
+        }
+
+        .clear-key {
+            background-color: #9E9E9E;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .check-key {
+            background-color: #FF9800;
+            color: white;
+            font-size: 1rem;
+            border-color: #E65100;
+            line-height: 1.2;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .correct {
+            color: #4CAF50;
+            text-shadow: 2px 2px 0 #FFF;
+            animation: success-flash 1s forwards;
+        }
+
+        .incorrect {
+            color: #F44336;
+            text-shadow: 1px 1px 0 #FFF;
+            animation: shake 0.5s;
+        }
+
+        @keyframes success-flash {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        /* --- スタート画面・リザルト画面 --- */
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.95);
+            z-index: 200; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        #result-screen {
+            overflow-y: auto;
+            justify-content: flex-start; 
+            padding: 40px 10px;
+            box-sizing: border-box;
+        }
+        
+        .overlay-screen h2 {
+            font-size: 2.5em; 
+            color: #FF9800;
+            margin: 20px 0;
+            text-shadow: 2px 2px 0 #FFF;
+        }
+        
+        .eval-message {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 20px;
+            animation: pop-in 0.5s;
+        }
+
+        .result-details {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .mistake-count {
+            color: #F44336;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* リザルト用履歴一覧 */
+        .result-history-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .result-chart-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .result-chart {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: white;
+            border: 4px solid #ccc; 
+        }
+        
+        .border-green {
+            border-color: #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+        
+        .border-red {
+            border-color: #F44336;
+        }
+
+        /* スタート画面のボタン群 */
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .start-button {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 6px 10px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+            width: 280px; 
+            min-height: 60px;
+        }
+        
+        .start-button:active {
+            transform: scale(0.95);
+        }
+
+        .btn-normal {
+            background-color: #FF9800; 
+            animation: float 3s infinite ease-in-out;
+        }
+
+        .btn-reduction-easy {
+            background-color: #29B6F6; /* 明るい青 */
+            animation: float 3s infinite ease-in-out 0.3s; 
+        }
+        
+        .btn-reduction-hard {
+            background-color: #0288D1; /* 濃い青 */
+            animation: float 3s infinite ease-in-out 0.6s; 
+        }
+        
+        .btn-mix {
+            background-color: #9C27B0; /* 紫 */
+            animation: float 3s infinite ease-in-out 0.9s; 
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); } 
+            100% { transform: translateY(0px); }
+        }
+
+        .restart-button {
+            padding: 20px 40px;
+            font-size: 1.5em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        .restart-button:active {
+            transform: scale(0.95);
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>なんぶんの なんなんな</h1>
+        <div id="score-container">
+            </div>
+    </header>
+
+    <div class="container">
+        <div class="left-panel">
+            <div id="message-box" class="message-box"></div>
+
+            <div id="circle-container">
+                <svg viewBox="0 0 100 100" class="fraction-circle" id="fraction-svg">
+                    <circle cx="50" cy="50" r="48" fill="white" stroke="none"/>
+                    <g id="segments-group"></g>
+                    <g id="overlay-group"></g>
+                    <circle cx="50" cy="50" r="48" fill="none" stroke="#333" stroke-width="2"/>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <div class="fraction-input-area">
+                <input type="number" id="numerator-input" class="fraction-part-input" maxlength="1" placeholder="" readonly>
+                <div class="fraction-line"></div>
+                <input type="number" id="denominator-input" class="fraction-part-input" maxlength="1" placeholder="" readonly>
+            </div>
+
+            <div class="keypad">
+                <button class="key" data-value="1">1</button>
+                <button class="key" data-value="2">2</button>
+                <button class="key" data-value="3">3</button>
+                <button class="key" data-value="4">4</button>
+                <button class="key" data-value="5">5</button>
+                <button class="key" data-value="6">6</button>
+                <button class="key" data-value="7">7</button>
+                <button class="key" data-value="8">8</button>
+                <button class="key" data-value="9">9</button>
+                
+                <button class="key clear-key">けす</button>
+                <button class="key" data-value="0">0</button>
+                <button id="check-button" class="key check-key">こたえを<br>チェック！</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="start-screen" class="overlay-screen">
+        <h2>なんぶんの<br>なんなんな</h2>
+        <div class="button-group">
+            <button id="start-normal-btn" class="start-button btn-normal">つうじょう</button>
+            <button id="start-reduction-easy-btn" class="start-button btn-reduction-easy">やくぶん Lv.1</button>
+            <button id="start-reduction-hard-btn" class="start-button btn-reduction-hard">やくぶん Lv.2</button>
+            <button id="start-mix-btn" class="start-button btn-mix">ミックス</button>
+        </div>
+    </div>
+
+    <div id="result-screen" class="overlay-screen" style="display: none;">
+        <h2>クリア おめでとう！</h2>
+        
+        <div id="eval-message" class="eval-message"></div>
+        
+        <div class="result-details">
+            <div>かかったじかん: <span id="final-time">0:00</span></div>
+            <div>まちがえたかいすう: <span id="mistake-count" class="mistake-count">0</span> かい</div>
+        </div>
+
+        <div id="result-history" class="result-history-container"></div>
+
+        <button id="restart-button" class="restart-button">もういっかい！</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const titleHeader = document.querySelector('header h1'); // タイトルタップ用
+            const numeratorInput = document.getElementById('numerator-input');
+            const denominatorInput = document.getElementById('denominator-input');
+            const keypadKeys = document.querySelectorAll('.key:not(.check-key):not(.clear-key)');
+            const clearKey = document.querySelector('.clear-key');
+            const checkButton = document.getElementById('check-button');
+            const messageBox = document.getElementById('message-box');
+            
+            const circleContainer = document.getElementById('circle-container');
+            const segmentsGroup = document.getElementById('segments-group');
+            const overlayGroup = document.getElementById('overlay-group');
+            const scoreContainer = document.getElementById('score-container');
+            
+            const startScreen = document.getElementById('start-screen');
+            const startNormalBtn = document.getElementById('start-normal-btn');
+            const startReductionEasyBtn = document.getElementById('start-reduction-easy-btn');
+            const startReductionHardBtn = document.getElementById('start-reduction-hard-btn');
+            const startMixBtn = document.getElementById('start-mix-btn');
+            
+            const resultScreen = document.getElementById('result-screen');
+            const evalMessageDisplay = document.getElementById('eval-message');
+            const finalTimeDisplay = document.getElementById('final-time');
+            const mistakeCountDisplay = document.getElementById('mistake-count');
+            const resultHistoryContainer = document.getElementById('result-history');
+            const restartButton = document.getElementById('restart-button');
+
+            // --- ゲーム状態変数 ---
+            let targetNumerator = 0;   
+            let targetDenominator = 0; 
+            
+            let visualNumerator = 0;   
+            let visualDenominator = 0; 
+
+            // モード管理: 'normal', 'reduction-easy', 'reduction-hard', 'mix'
+            let currentMode = 'normal';
+            let isProblemActive = false; 
+            let activeInput = denominatorInput; 
+
+            // 記録用
+            let solvedCount = 0;
+            const maxQuestions = 10; 
+            let startTime = null;
+            let totalMistakes = 0; 
+            let currentProblemMistakes = 0; 
+            
+            let problemHistory = [];
+            let usedQuestions = []; 
+
+            // --- ユーティリティ関数 ---
+            function getGCD(a, b) {
+                return b === 0 ? a : getGCD(b, a % b);
+            }
+
+            // --- イベントリスナー ---
+
+            // タイトルタップでスタートに戻る
+            titleHeader.addEventListener('click', () => {
+                if (startScreen.style.display === 'none') {
+                    if (confirm('さいしょの がめんに もどりますか？\n（いまの きろくは きえてしまいます）')) {
+                        backToTitle();
+                    }
+                }
+            });
+
+            startNormalBtn.addEventListener('click', () => {
+                currentMode = 'normal';
+                startScreen.style.display = 'none';
+                initGame();
+            });
+
+            startReductionEasyBtn.addEventListener('click', () => {
+                currentMode = 'reduction-easy';
+                startScreen.style.display = 'none';
+                initGame();
+            });
+
+            startReductionHardBtn.addEventListener('click', () => {
+                currentMode = 'reduction-hard';
+                startScreen.style.display = 'none';
+                initGame();
+            });
+
+            startMixBtn.addEventListener('click', () => {
+                currentMode = 'mix';
+                startScreen.style.display = 'none';
+                initGame();
+            });
+
+            restartButton.addEventListener('click', () => {
+                resultScreen.style.display = 'none';
+                startScreen.style.display = 'flex';
+            });
+
+            numeratorInput.addEventListener('click', () => { 
+                if(!isProblemActive) return;
+                activeInput = numeratorInput; 
+                highlightActiveInput();
+            });
+            denominatorInput.addEventListener('click', () => { 
+                if(!isProblemActive) return;
+                activeInput = denominatorInput; 
+                highlightActiveInput();
+            });
+
+            keypadKeys.forEach(key => {
+                key.addEventListener('click', () => {
+                    if (!isProblemActive) return;
+                    const value = key.getAttribute('data-value');
+                    
+                    if (activeInput) {
+                        activeInput.value = value;
+                        if (activeInput === denominatorInput) {
+                            activeInput = numeratorInput;
+                            highlightActiveInput();
+                        }
+                    }
+                });
+            });
+
+            clearKey.addEventListener('click', () => {
+                if (!isProblemActive) return;
+                if (activeInput) {
+                    activeInput.value = ''; 
+                }
+            });
+
+            checkButton.addEventListener('click', checkAnswer);
+
+            // --- ゲームロジック関数 ---
+
+            function backToTitle() {
+                isProblemActive = false;
+                startScreen.style.display = 'flex';
+                resultScreen.style.display = 'none';
+                
+                scoreContainer.innerHTML = '';
+                numeratorInput.value = '';
+                denominatorInput.value = '';
+                numeratorInput.classList.remove('success-glow');
+                denominatorInput.classList.remove('success-glow');
+                messageBox.textContent = '';
+                messageBox.className = 'message-box';
+                segmentsGroup.innerHTML = '';
+                overlayGroup.innerHTML = '';
+            }
+
+            function initGame() {
+                solvedCount = 0;
+                totalMistakes = 0;
+                problemHistory = [];
+                usedQuestions = [];
+                startTime = Date.now();
+                
+                scoreContainer.innerHTML = ''; 
+                
+                // 空枠生成
+                for (let i = 0; i < maxQuestions; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'score-slot empty';
+                    scoreContainer.appendChild(slot);
+                }
+
+                nextQuestion();
+                highlightActiveInput();
+            }
+
+            function nextQuestion() {
+                numeratorInput.value = '';
+                denominatorInput.value = '';
+                numeratorInput.classList.remove('success-glow');
+                denominatorInput.classList.remove('success-glow');
+                messageBox.textContent = '';
+                messageBox.className = 'message-box';
+                
+                currentProblemMistakes = 0;
+                
+                let uniqueFound = false;
+                let loopCount = 0;
+                
+                while (!uniqueFound && loopCount < 200) {
+                    loopCount++;
+                    
+                    let tempMode = currentMode;
+                    if (currentMode === 'mix') {
+                        const rand = Math.random();
+                        if (rand < 0.33) tempMode = 'normal';
+                        else if (rand < 0.66) tempMode = 'reduction-easy';
+                        else tempMode = 'reduction-hard';
+                    }
+                    
+                    if (tempMode === 'normal') {
+                        // 通常
+                        visualDenominator = Math.floor(Math.random() * 8) + 2; 
+                        visualNumerator = Math.floor(Math.random() * (visualDenominator - 1)) + 1; 
+                        
+                        if (currentMode === 'normal') {
+                            targetDenominator = visualDenominator;
+                            targetNumerator = visualNumerator;
+                        } else {
+                            const gcd = getGCD(visualNumerator, visualDenominator);
+                            targetDenominator = visualDenominator / gcd;
+                            targetNumerator = visualNumerator / gcd;
+                        }
+
+                    } else {
+                        // 約分モード (Easy or Hard)
+                        let targetDenList;
+                        
+                        if (tempMode === 'reduction-easy') {
+                            // Easy: 答えの分母が2,3,4
+                            targetDenList = [2, 3, 4];
+                        } else {
+                            // Hard: 答えの分母が5,6,7,8,9
+                            targetDenList = [5, 6, 7, 8, 9];
+                        }
+                        
+                        const baseDen = targetDenList[Math.floor(Math.random() * targetDenList.length)];
+                        
+                        let validNumerators = [];
+                        for (let n = 1; n < baseDen; n++) {
+                            if (getGCD(n, baseDen) === 1) {
+                                validNumerators.push(n);
+                            }
+                        }
+                        if (validNumerators.length === 0) continue; 
+                        const baseNum = validNumerators[Math.floor(Math.random() * validNumerators.length)];
+                        
+                        const maxMultiplier = Math.floor(40 / baseDen);
+                        if (maxMultiplier < 2) continue; 
+                        
+                        const multiplier = Math.floor(Math.random() * (maxMultiplier - 1)) + 2;
+                        
+                        visualDenominator = baseDen * multiplier;
+                        visualNumerator = baseNum * multiplier;
+                        
+                        targetDenominator = baseDen;
+                        targetNumerator = baseNum;
+                    }
+                    
+                    const qKey = `${visualNumerator}/${visualDenominator}`;
+                    
+                    if (!usedQuestions.includes(qKey)) {
+                        usedQuestions.push(qKey);
+                        uniqueFound = true;
+                    }
+                }
+                
+                drawPieChart(visualNumerator, visualDenominator, segmentsGroup, 48);
+                overlayGroup.innerHTML = '';
+                
+                activeInput = denominatorInput;
+                highlightActiveInput();
+                isProblemActive = true;
+                
+                circleContainer.classList.remove('pop');
+            }
+
+            function drawPieChart(num, den, targetGroup, radius) {
+                targetGroup.innerHTML = '';
+                
+                const anglePerSegment = 360 / den;
+                const cx = 50;
+                const cy = 50;
+                const startRadOffset = -90 * (Math.PI / 180); 
+                
+                for (let i = 0; i < den; i++) {
+                    const startRad = startRadOffset + (i * anglePerSegment) * (Math.PI / 180);
+                    const endRad = startRadOffset + ((i + 1) * anglePerSegment) * (Math.PI / 180); 
+                    
+                    const segStartRad = startRadOffset;
+                    const segEndRad = startRadOffset + (anglePerSegment * Math.PI / 180);
+                    
+                    const x1 = cx + radius * Math.cos(segStartRad);
+                    const y1 = cy + radius * Math.sin(segStartRad);
+                    const x2 = cx + radius * Math.cos(segEndRad);
+                    const y2 = cy + radius * Math.sin(segEndRad);
+                    
+                    const largeArcFlag = anglePerSegment > 180 ? 1 : 0;
+                    
+                    const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", pathData);
+                    
+                    if (targetGroup.id === 'segments-group') {
+                        path.setAttribute("class", "segment");
+                        if (i < num) path.classList.add("correct-segment");
+                        else path.classList.add("uncolored");
+                    } else if (targetGroup.id === 'overlay-group') {
+                        // overlayはここでは処理しない
+                    } else {
+                        path.setAttribute("fill", i < num ? "#FFEB3B" : "#DEDEDE");
+                        path.setAttribute("stroke", "#555");
+                        path.setAttribute("stroke-width", "2");
+                        path.setAttribute("stroke-linejoin", "round");
+                    }
+                    
+                    path.setAttribute("transform", `rotate(${i * anglePerSegment}, 50, 50)`);
+                    targetGroup.appendChild(path);
+                }
+            }
+            
+            function drawReductionOverlay() {
+                if (overlayGroup.children.length > 0) {
+                    const paths = overlayGroup.querySelectorAll('.overlay-segment');
+                    paths.forEach(p => p.classList.add('visible'));
+                    return;
+                }
+
+                const den = targetDenominator;
+                const anglePerSegment = 360 / den;
+                const cx = 50;
+                const cy = 50;
+                const radius = 48;
+                const startRadOffset = -90 * (Math.PI / 180); 
+                
+                for (let i = 0; i < den; i++) {
+                    const segStartRad = startRadOffset;
+                    const segEndRad = startRadOffset + (anglePerSegment * Math.PI / 180);
+                    
+                    const x1 = cx + radius * Math.cos(segStartRad);
+                    const y1 = cy + radius * Math.sin(segStartRad);
+                    const x2 = cx + radius * Math.cos(segEndRad);
+                    const y2 = cy + radius * Math.sin(segEndRad);
+                    const largeArcFlag = anglePerSegment > 180 ? 1 : 0;
+                    
+                    const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                    
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", pathData);
+                    path.setAttribute("class", "overlay-segment");
+                    
+                    if (i < targetNumerator) {
+                        path.classList.add("overlay-filled");
+                    }
+                    path.setAttribute("transform", `rotate(${i * anglePerSegment}, 50, 50)`);
+                    
+                    overlayGroup.appendChild(path);
+                    
+                    setTimeout(() => {
+                        path.classList.add('visible');
+                    }, 50);
+                }
+            }
+
+            function highlightActiveInput() {
+                numeratorInput.classList.remove('active');
+                denominatorInput.classList.remove('active');
+                numeratorInput.style.backgroundColor = '#FFE0B2'; 
+                denominatorInput.style.backgroundColor = '#FFE0B2';
+                
+                if (activeInput && isProblemActive) {
+                    activeInput.classList.add('active');
+                    activeInput.style.backgroundColor = '#FFCC80';
+                }
+            }
+
+            function createMiniPieChart(num, den) {
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute("viewBox", "0 0 100 100");
+                svg.setAttribute("class", "mini-chart");
+                
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                svg.appendChild(g);
+                drawPieChart(num, den, g, 48);
+                
+                return svg;
+            }
+
+            function showResult() {
+                const endTime = Date.now();
+                const diff = endTime - startTime;
+                
+                const totalSeconds = Math.floor(diff / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                
+                let timeText = "";
+                if (minutes > 0) timeText += `${minutes}ふん `;
+                timeText += `${seconds}びょう`;
+                
+                finalTimeDisplay.textContent = timeText;
+                mistakeCountDisplay.textContent = totalMistakes;
+
+                if (totalMistakes === 0) {
+                    evalMessageDisplay.textContent = "パーフェクト！てんさいだね！";
+                    evalMessageDisplay.style.color = "#E91E63"; 
+                } else if (totalMistakes <= 3) {
+                    evalMessageDisplay.textContent = "すごい！よくがんばったね！";
+                    evalMessageDisplay.style.color = "#4CAF50"; 
+                } else {
+                    evalMessageDisplay.textContent = "あきらめずに クリアして えらい！";
+                    evalMessageDisplay.style.color = "#FF9800"; 
+                }
+
+                resultHistoryContainer.innerHTML = '';
+                problemHistory.forEach(item => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'result-chart-wrapper';
+                    
+                    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    svg.setAttribute("viewBox", "0 0 100 100");
+                    svg.setAttribute("class", "result-chart");
+                    
+                    if (item.perfect) {
+                        svg.classList.add('border-green');
+                    } else {
+                        svg.classList.add('border-red');
+                    }
+                    
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    svg.appendChild(g);
+                    drawPieChart(item.visualNum, item.visualDen, g, 48);
+                    
+                    wrapper.appendChild(svg);
+                    resultHistoryContainer.appendChild(wrapper);
+                });
+
+                resultScreen.style.display = 'flex';
+            }
+
+            function checkAnswer() {
+                if (!isProblemActive) return;
+
+                messageBox.className = 'message-box';
+
+                const userNum = parseInt(numeratorInput.value, 10);
+                const userDen = parseInt(denominatorInput.value, 10);
+                
+                if (isNaN(userNum) || isNaN(userDen)) {
+                    messageBox.textContent = 'すうじを いれてね！'; 
+                    messageBox.classList.add('incorrect');
+                    return;
+                }
+                
+                const needsReduction = (currentMode !== 'normal');
+                
+                if (needsReduction && userNum === visualNumerator && userDen === visualDenominator && (visualNumerator !== targetNumerator)) {
+                     messageBox.textContent = 'ん？ やくぶん できるはずだよ！';
+                     messageBox.classList.add('incorrect');
+                     drawReductionOverlay();
+                     
+                     totalMistakes++;
+                     currentProblemMistakes++;
+
+                     setTimeout(() => {
+                         activeInput = denominatorInput;
+                         highlightActiveInput();
+                    }, 200); 
+
+                     return;
+                }
+
+                if (userNum === targetNumerator && userDen === targetDenominator) {
+                    messageBox.textContent = 'せいかい！やったね！';
+                    messageBox.classList.add('correct');
+                    
+                    if (needsReduction) {
+                        drawReductionOverlay();
+                    }
+                    
+                    numeratorInput.classList.add('success-glow');
+                    denominatorInput.classList.add('success-glow');
+                    isProblemActive = false; 
+                    
+                    const slots = scoreContainer.children;
+                    if (slots[solvedCount]) {
+                        const targetSlot = slots[solvedCount];
+                        targetSlot.classList.remove('empty');
+                        targetSlot.classList.add('filled');
+                        targetSlot.appendChild(createMiniPieChart(visualNumerator, visualDenominator));
+                    }
+                    
+                    problemHistory.push({
+                        visualNum: visualNumerator,
+                        visualDen: visualDenominator,
+                        perfect: (currentProblemMistakes === 0)
+                    });
+                    
+                    solvedCount++;
+
+                    setTimeout(() => {
+                        if (solvedCount >= maxQuestions) {
+                            showResult();
+                        } else {
+                            circleContainer.classList.add('pop');
+                            setTimeout(nextQuestion, 300);
+                        }
+                    }, 1500); 
+
+                } else {
+                    messageBox.textContent = 'ざんねん！ちがうよ';
+                    messageBox.classList.add('incorrect');
+                    
+                    if (needsReduction) {
+                        drawReductionOverlay();
+                    }
+                    
+                    totalMistakes++;
+                    currentProblemMistakes++;
+                    
+                    setTimeout(() => {
+                         activeInput = denominatorInput;
+                         highlightActiveInput();
+                    }, 200); 
+                }
+            }
+        });
+    </script>
+</body>
+</html>

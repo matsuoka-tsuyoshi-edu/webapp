@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>おべんとうをつくってみよう</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    .container {
+      display: flex;
+      align-items: flex-start; /* 上寄せに変更 */
+      justify-content: center;
+      flex-direction: row;
+      max-width: 90vw;
+      margin: 20px auto;
+    }
+
+    #bentoBox {
+      position: relative;
+      width: 50vw;
+      height: calc(50vw * 782 / 583);
+      background-image: url('bentobox.png');
+      background-size: contain;
+      background-position: center;
+      border: 2px solid #000;
+    }
+
+    .items-column {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5vw;
+      margin-left: 2vw;
+      align-items: flex-start; /* 中央寄せを防ぐ */
+      justify-content: flex-start; /* 上寄せにする */
+    }
+
+    .item {
+      width: 10vw;
+      height: 10vw;
+      cursor: pointer;
+      background-size: cover;
+      background-position: center;
+      touch-action: none;
+      -webkit-user-drag: none;
+      user-select: none;
+    }
+
+    #egao {
+      position: absolute;
+      top: 1vw;
+      right: 1vw;
+      width: 10vw;
+      height: 10vw;
+      background-image: url('egao.png');
+      background-size: cover;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="bentoBox">
+      <div id="egao"></div>
+    </div>
+
+    <!-- 左側のアイテム列 -->
+    <div id="items" class="items-column">
+      <div class="item" data-type="onigiri" style="background-image: url('onigiri.png');"></div>
+      <div class="item" data-type="karaage" style="background-image: url('karaage.png');"></div>
+      <div class="item" data-type="tamago" style="background-image: url('tamago.png');"></div>
+      <div class="item" data-type="sake" style="background-image: url('sake.png');"></div>
+      <div class="item" data-type="tako" style="background-image: url('tako.png');"></div>
+      <div class="item" data-type="hanbaagu" style="background-image: url('hanba-gu.png');"></div>
+    </div>
+
+    <!-- 右側のアイテム列（noritamaが一番上） -->
+    <div id="items-right" class="items-column">
+      <div class="item" data-type="noritama" style="background-image: url('noritama.png');"></div>
+      <div class="item" data-type="burokkori" style="background-image: url('burokkori.png');"></div>
+      <div class="item" data-type="retasu" style="background-image: url('retasu.png');"></div>
+      <div class="item" data-type="kyabetsu" style="background-image: url('kyabetsu.png');"></div>
+      <div class="item" data-type="putitomato" style="background-image: url('putitomato.png');"></div>
+      <div class="item" data-type="ebifurai" style="background-image: url('ebifurai.png');"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const items = document.querySelectorAll('.item');
+      const bentoBox = document.getElementById('bentoBox');
+      const egao = document.getElementById('egao');
+      let draggedItem = null;
+
+      const itemSizes = {
+        onigiri: { width: '20vw', height: '20vw' },
+        karaage: { width: '18vw', height: '18vw' },
+        tamago: { width: '16vw', height: '16vw' },
+        sake: { width: '17vw', height: '17vw' },
+        tako: { width: '15vw', height: '15vw' },
+        hanbaagu: { width: '18vw', height: '18vw' },
+        noritama: { width: '18vw', height: '18vw' },
+        burokkori: { width: '14vw', height: '14vw' },
+        retasu: { width: '20vw', height: '20vw' },
+        kyabetsu: { width: '16vw', height: '16vw' },
+        putitomato: { width: '16vw', height: '16vw' },
+        ebifurai: { width: '18vw', height: '18vw' }
+      };
+
+      function makeDraggable(item, type, isClone = false) {
+        item.addEventListener('touchstart', e => {
+          e.preventDefault();
+          const touch = e.touches[0];
+
+          if (isClone) {
+            const newItem = item.cloneNode(true);
+            const size = itemSizes[type] || { width: '18vw', height: '18vw' };
+
+            newItem.style.position = 'absolute';
+            newItem.style.zIndex = 1000;
+            newItem.style.opacity = 0.7;
+            newItem.dataset.type = type;
+            newItem.dataset.isClone = 'true';
+
+            document.body.appendChild(newItem);
+            newItem.style.width = size.width;
+            newItem.style.height = size.height;
+
+            requestAnimationFrame(() => {
+              const centerX = newItem.offsetWidth / 2;
+              const centerY = newItem.offsetHeight / 2;
+              newItem.style.left = `${touch.clientX - centerX}px`;
+              newItem.style.top = `${touch.clientY - centerY}px`;
+              draggedItem = newItem;
+            });
+          } else {
+            const rect = item.getBoundingClientRect();
+            const centerX = item.offsetWidth / 2;
+            const centerY = item.offsetHeight / 2;
+
+            item.style.position = 'absolute';
+            item.style.left = `${rect.left}px`;
+            item.style.top = `${rect.top}px`;
+            item.style.zIndex = 1000;
+            item.style.opacity = 0.7;
+
+            document.body.appendChild(item);
+            draggedItem = item;
+          }
+        });
+      }
+
+      items.forEach(item => {
+        const type = item.getAttribute('data-type');
+        makeDraggable(item, type, true);
+      });
+
+      document.addEventListener('touchmove', e => {
+        if (draggedItem) {
+          const touch = e.touches[0];
+          const centerX = draggedItem.offsetWidth / 2;
+          const centerY = draggedItem.offsetHeight / 2;
+          draggedItem.style.left = `${touch.clientX - centerX}px`;
+          draggedItem.style.top = `${touch.clientY - centerY}px`;
+        }
+      });
+
+      document.addEventListener('touchend', e => {
+        if (draggedItem) {
+          const touch = e.changedTouches[0];
+          const x = touch.clientX;
+          const y = touch.clientY;
+
+          const boxRect = bentoBox.getBoundingClientRect();
+          const inBox =
+            x >= boxRect.left &&
+            x <= boxRect.right &&
+            y >= boxRect.top &&
+            y <= boxRect.bottom;
+
+          if (inBox) {
+            const type = draggedItem.dataset.type;
+            const newItem = draggedItem.cloneNode(true);
+            const size = itemSizes[type] || { width: '18vw', height: '18vw' };
+            newItem.style.width = size.width;
+            newItem.style.height = size.height;
+            newItem.style.position = 'absolute';
+            newItem.style.zIndex = 1;
+            newItem.style.opacity = 1;
+            newItem.dataset.type = type;
+
+            bentoBox.appendChild(newItem);
+
+            requestAnimationFrame(() => {
+              const centerX = newItem.offsetWidth / 2;
+              const centerY = newItem.offsetHeight / 2;
+              newItem.style.left = `${x - boxRect.left - centerX}px`;
+              newItem.style.top = `${y - boxRect.top - centerY}px`;
+            });
+
+            makeDraggable(newItem, type, false);
+          }
+
+          if (draggedItem.dataset.isClone === 'true') {
+            draggedItem.remove();
+          } else {
+            draggedItem.style.zIndex = 1;
+            draggedItem.style.opacity = 1;
+          }
+
+          draggedItem = null;
+        }
+      });
+
+      egao.addEventListener('click', () => {
+        const itemsInBox = bentoBox.querySelectorAll('.item');
+        itemsInBox.forEach(item => bentoBox.removeChild(item));
+      });
+    });
+  </script>
+</body>
+</html>

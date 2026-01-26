@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>まほうのレジスター（完成版v2）</title>
+    <style>
+        /* --- 基本設定 --- */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f8ff;
+            background-image: 
+                radial-gradient(#fff 20%, transparent 20%),
+                radial-gradient(#fff 20%, transparent 20%);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+            font-family: "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #app {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* --- メインエリア（机） --- */
+        #desk-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 63%;
+            height: 70%;
+            z-index: 1;
+        }
+
+        /* --- トレー格納エリア（右側） --- */
+        #trays-container {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            width: 35%;
+            height: 72%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 0;
+        }
+
+        /* トレー枠 */
+        .tray-wrapper {
+            flex: 1;
+            background: rgba(255,255,255,0.6);
+            border-radius: 20px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .magic-tray {
+            flex: 1;
+            border-radius: 15px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.5);
+            border: 4px dashed #ccc;
+            position: relative;
+            box-sizing: border-box;
+        }
+        
+        /* アクションボタン */
+        .action-btn {
+            margin-top: 8px;
+            padding: 15px 0;
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.4rem;
+            font-family: inherit;
+            font-weight: bold;
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .action-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        /* 上：あつめる */
+        #tray-combine { border-color: #4da6ff; background: #e6f2ff; }
+        #btn-combine { background: #4da6ff; }
+        
+        /* 下：くずす */
+        #tray-break { border-color: #ff9933; background: #fff0e6; }
+        #btn-break { background: #ff9933; }
+
+        .tray-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(0,0,0,0.4);
+            font-size: 1.6rem;
+            pointer-events: none;
+            text-align: center;
+            width: 100%;
+            line-height: 1.4;
+        }
+
+        /* --- ツールバー --- */
+        #toolbar {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 98%;
+            height: 140px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            padding: 0 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            transition: all 0.2s ease;
+        }
+
+        /* ツールバーのゴミ箱モード */
+        #toolbar.trash-active {
+            background: rgba(255, 220, 220, 0.8); /* 少し赤く */
+            opacity: 0.6; /* 薄くする */
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+        }
+        /* ゴミ箱アイコンを擬似要素で表示 */
+        #toolbar.trash-active::after {
+            content: "🗑️";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            z-index: 1000;
+            opacity: 1;
+        }
+        /* 子要素（お金ボタン）はゴミ箱モード中さらに薄く */
+        #toolbar.trash-active .tool-wrapper {
+            opacity: 0.2; 
+        }
+
+        /* ツールバー内のお金ラッパー */
+        .tool-wrapper {
+            position: relative;
+            padding: 2px;
+            border-radius: 10px;
+            background: rgba(0,0,0,0.05);
+            transform: scale(0.85); 
+            transform-origin: center;
+            min-width: 60px; 
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.2s;
+        }
+        .tool-wrapper:active {
+            background: rgba(0,0,0,0.2);
+            transform: scale(0.8);
+        }
+
+        /* 貯金箱（お片付け） */
+        #piggy-bank {
+            position: absolute;
+            left: 30px;
+            bottom: 220px;
+            width: 100px;
+            height: 100px;
+            background: #ffaec9;
+            border-radius: 50%;
+            border: 5px solid #fff;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3.5rem;
+            cursor: pointer;
+            z-index: 90;
+        }
+        #piggy-bank:active { transform: scale(0.9); }
+
+        /* --- お金のデザイン --- */
+        .money {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            cursor: grab;
+            touch-action: none;
+            font-family: "Arial Black", "Arial", sans-serif; 
+            font-size: 2.8rem; 
+            line-height: 1;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            pointer-events: auto;
+        }
+        .money:active {
+            transform: scale(1.1);
+            cursor: grabbing;
+            z-index: 1000 !important;
+        }
+        
+        /* 硬貨共通 */
+        .coin {
+            border-radius: 50% !important; 
+            border: 4px solid rgba(0,0,0,0.2);
+        }
+        
+        /* 紙幣共通 */
+        .bill {
+            border-radius: 6px;
+            border: 2px solid rgba(0,0,0,0.2);
+            font-size: 2.2rem;
+        }
+
+        /* 個別のデザイン */
+        .m-1 { width: 80px; height: 80px; background: #dcdcdc; color: #555; }
+        .m-5 { width: 84px; height: 84px; background: #e6c35c; color: #555; }
+        .m-5::after, .m-50::after {
+            content: ""; position: absolute; width: 14px; height: 14px; 
+            background: #f0f8ff; border-radius: 50%; 
+            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        .m-10 { width: 90px; height: 90px; background: #c77a34; color: #fff; }
+        .m-50 { width: 86px; height: 86px; background: #dcdcdc; color: #555; }
+        .m-100 { width: 92px; height: 92px; background: #dcdcdc; color: #555; }
+        .m-500 { width: 100px; height: 100px; background: #e6c35c; color: #555; border: 6px solid #dcdcdc; }
+
+        .m-1000 { width: 180px; height: 90px; background: #e0f0ff; color: #336699; }
+        .m-5000 { width: 190px; height: 95px; background: #ffe0f0; color: #993366; }
+        .m-10000 { width: 200px; height: 100px; background: #f0e0d0; color: #8b4513; }
+
+        .tool-btn {
+            position: relative;
+            transform: none;
+            box-shadow: none;
+            pointer-events: none;
+        }
+
+        /* エフェクト */
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .anim-pop { animation: popIn 0.3s ease-out forwards; }
+
+        .sparkle {
+            position: absolute;
+            width: 30px; height: 30px; background: gold;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            pointer-events: none; z-index: 2000;
+            animation: sparkleAnim 0.6s ease-out forwards;
+        }
+        @keyframes sparkleAnim {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            100% { transform: scale(1.5) rotate(180deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="desk-area"></div>
+    <div id="piggy-bank">🐷</div>
+
+    <div id="trays-container">
+        <div class="tray-wrapper">
+            <div id="tray-combine" class="magic-tray">
+                <div class="tray-label">ここに<br>おかねを<br>おく</div>
+            </div>
+            <button id="btn-combine" class="action-btn" onclick="executeCombine()">
+                おおきい おかねに
+            </button>
+        </div>
+
+        <div class="tray-wrapper">
+            <div id="tray-break" class="magic-tray">
+                <div class="tray-label">ここに<br>おかねを<br>おく</div>
+            </div>
+            <button id="btn-break" class="action-btn" onclick="executeBreak()">
+                ちいさい おかねに
+            </button>
+        </div>
+    </div>
+
+    <div id="toolbar"></div>
+</div>
+
+<script>
+    /* 設定データ */
+    const MONEY_DATA = [
+        { val: 1, class: 'm-1 coin', label: '1' },
+        { val: 5, class: 'm-5 coin', label: '5' },
+        { val: 10, class: 'm-10 coin', label: '10' },
+        { val: 50, class: 'm-50 coin', label: '50' },
+        { val: 100, class: 'm-100 coin', label: '100' },
+        { val: 500, class: 'm-500 coin', label: '500' },
+        { val: 1000, class: 'm-1000 bill', label: '1000' },
+        { val: 5000, class: 'm-5000 bill', label: '5000' },
+        { val: 10000, class: 'm-10000 bill', label: '10000' }
+    ];
+
+    /**
+     * 両替ルール（小→大）
+     * 配列の後ろから順にチェックされます。
+     * つまり「10枚で位上げ」が優先され、足りない時に「5枚で5のつくお金」になります。
+     */
+    const COMBINE_RULES = [
+        { src: 1, count: 5, dst: 5 },
+        { src: 1, count: 10, dst: 10 },
+
+        { src: 5, count: 2, dst: 10 },
+        
+        { src: 10, count: 5, dst: 50 },
+        { src: 10, count: 10, dst: 100 },
+
+        { src: 50, count: 2, dst: 100 },
+
+        { src: 100, count: 5, dst: 500 },
+        { src: 100, count: 10, dst: 1000 },
+
+        { src: 500, count: 2, dst: 1000 },
+
+        // ここを追加・修正！
+        // 1000円5枚 -> 5000円
+        { src: 1000, count: 5, dst: 5000 }, 
+        // 1000円10枚 -> 10000円 (配列の後ろなのでこちらが優先される)
+        { src: 1000, count: 10, dst: 10000 },
+
+        { src: 5000, count: 2, dst: 10000 }
+    ];
+
+    // 崩すルール（大→小）
+    const BREAK_RULES = {
+        5: { dst: 1, count: 5 },
+        10: { dst: 1, count: 10 }, 
+        50: { dst: 10, count: 5 },
+        100: { dst: 10, count: 10 }, 
+        500: { dst: 100, count: 5 },
+        1000: { dst: 100, count: 10 },
+        5000: { dst: 1000, count: 5 },
+        10000: { dst: 1000, count: 10 } 
+    };
+
+    const app = document.getElementById('app');
+    const toolbar = document.getElementById('toolbar');
+    const trayCombine = document.getElementById('tray-combine');
+    const trayBreak = document.getElementById('tray-break');
+    const piggyBank = document.getElementById('piggy-bank');
+    const deskArea = document.getElementById('desk-area');
+
+    let zIndexCounter = 100;
+    let spawnCounter = 0;
+
+    // 初期化
+    (function init() {
+        MONEY_DATA.forEach(data => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tool-wrapper';
+            const icon = document.createElement('div');
+            icon.className = `money ${data.class} tool-btn`;
+            icon.innerText = data.label;
+            wrapper.appendChild(icon);
+            toolbar.appendChild(wrapper);
+
+            const spawnAction = (e) => {
+                e.preventDefault(); 
+                spawnMoneyCenter(data);
+            };
+
+            wrapper.addEventListener('touchstart', spawnAction, {passive:false});
+            wrapper.addEventListener('mousedown', spawnAction);
+        });
+
+        const cleanUp = (e) => {
+             e.preventDefault();
+             const allMoney = document.querySelectorAll('.money:not(.tool-btn)');
+             allMoney.forEach((m, i) => {
+                 setTimeout(() => {
+                     m.style.transition = 'all 0.5s ease-in';
+                     m.style.transform = `translate(${piggyBank.offsetLeft - m.offsetLeft}px, ${piggyBank.offsetTop - m.offsetTop}px) scale(0.1)`;
+                     m.style.opacity = 0;
+                     setTimeout(() => m.remove(), 500);
+                 }, i * 10);
+             });
+             spawnCounter = 0;
+        };
+        piggyBank.addEventListener('touchstart', cleanUp, {passive:false});
+        piggyBank.addEventListener('mousedown', cleanUp);
+    })();
+
+    function spawnMoneyCenter(data) {
+        const el = document.createElement('div');
+        el.className = `money ${data.class} anim-pop`;
+        el.innerText = data.label;
+        el.dataset.val = data.val;
+        
+        const deskW = window.innerWidth * 0.63;
+        const deskH = window.innerHeight * 0.7;
+        const centerX = (deskW / 2) - 40;
+        const centerY = (deskH / 2);
+
+        const offsetStep = 15; 
+        const maxSteps = 8;
+        const currentStep = spawnCounter % maxSteps;
+        const offsetX = currentStep * offsetStep; 
+        const offsetY = currentStep * offsetStep;
+
+        el.style.left = (centerX + offsetX) + 'px';
+        el.style.top = (centerY + offsetY) + 'px';
+        spawnCounter++;
+        el.style.zIndex = zIndexCounter++;
+        app.appendChild(el);
+        addDrag(el);
+    }
+
+    function spawnMoneyResult(data, x, y) {
+        const el = document.createElement('div');
+        el.className = `money ${data.class} anim-pop`;
+        el.innerText = data.label;
+        el.dataset.val = data.val;
+        el.style.left = x + 'px'; el.style.top = y + 'px';
+        el.style.zIndex = zIndexCounter++;
+        app.appendChild(el);
+        addDrag(el);
+    }
+
+    function addDrag(el) {
+        let isDrag = false, offX, offY;
+        
+        const start = (e) => {
+            e.preventDefault(); isDrag = true;
+            el.style.zIndex = zIndexCounter++;
+            const t = e.changedTouches ? e.changedTouches[0] : e;
+            const r = el.getBoundingClientRect();
+            offX = t.pageX - r.left; offY = t.pageY - r.top;
+            el.classList.remove('anim-pop');
+            el.style.transition = 'none';
+        };
+        
+        const move = (e) => {
+            if(!isDrag) return;
+            const t = e.changedTouches ? e.changedTouches[0] : e;
+            const curX = t.pageX;
+            const curY = t.pageY;
+
+            el.style.left = (curX - offX) + 'px';
+            el.style.top = (curY - offY) + 'px';
+
+            // ツールバーとの衝突判定（ゴミ箱表示）
+            checkToolbarCollision(curX, curY);
+        };
+        
+        const end = (e) => {
+            if(!isDrag) return;
+            isDrag = false;
+            
+            // ツールバーの上で離した場合は削除
+            const t = e.changedTouches ? e.changedTouches[0] : e;
+            if (checkToolbarCollision(t.pageX, t.pageY)) {
+                el.remove();
+                toolbar.classList.remove('trash-active');
+            } else {
+                toolbar.classList.remove('trash-active');
+            }
+        };
+
+        el.addEventListener('touchstart', start, {passive:false});
+        el.addEventListener('touchmove', move, {passive:false});
+        el.addEventListener('touchend', end);
+        el.addEventListener('mousedown', start);
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', end);
+    }
+
+    /**
+     * ツールバーエリアと重なっているか判定＆スタイル変更
+     */
+    function checkToolbarCollision(x, y) {
+        const rect = toolbar.getBoundingClientRect();
+        // 判定を少し甘くして、ツールバーに入ったらすぐ反応するようにする
+        if (x > rect.left && x < rect.right && y > rect.top && y < rect.bottom + 50) {
+            toolbar.classList.add('trash-active');
+            return true;
+        } else {
+            toolbar.classList.remove('trash-active');
+            return false;
+        }
+    }
+
+    function getMoneyInTray(trayElement) {
+        const rect = trayElement.getBoundingClientRect();
+        const all = Array.from(document.querySelectorAll('.money:not(.tool-btn)'));
+        return all.filter(m => {
+            const r = m.getBoundingClientRect();
+            const cx = r.left + r.width/2;
+            const cy = r.top + r.height/2;
+            return (cx > rect.left && cx < rect.right && cy > rect.top && cy < rect.bottom);
+        });
+    }
+
+    window.executeCombine = function() {
+        const inTray = getMoneyInTray(trayCombine);
+        if(inTray.length === 0) return;
+
+        const counts = {};
+        inTray.forEach(m => {
+            const v = parseInt(m.dataset.val);
+            if(!counts[v]) counts[v] = [];
+            counts[v].push(m);
+        });
+
+        let exchanged = false;
+        // ルールは後ろから（金額が高い/枚数が多い順）適用
+        for (let i = COMBINE_RULES.length - 1; i >= 0; i--) {
+            const rule = COMBINE_RULES[i];
+            if (counts[rule.src] && counts[rule.src].length >= rule.count) {
+                exchanged = true;
+                const toRemove = counts[rule.src].slice(0, rule.count);
+                let cx = 0, cy = 0;
+                toRemove.forEach(m => {
+                    cx += m.offsetLeft; cy += m.offsetTop;
+                    m.style.transition = 'all 0.4s ease';
+                    m.style.transform = 'scale(0) rotate(360deg)';
+                    m.style.opacity = 0;
+                    setTimeout(() => m.remove(), 400);
+                });
+                cx /= rule.count; cy /= rule.count;
+                createSparkles(cx+40, cy+40);
+                const newData = MONEY_DATA.find(d => d.val === rule.dst);
+                setTimeout(() => spawnMoneyResult(newData, cx, cy), 400);
+                break; 
+            }
+        }
+        if(!exchanged) {
+            trayCombine.animate([
+                { transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }
+            ], { duration: 200 });
+        }
+    };
+
+    window.executeBreak = function() {
+        const inTray = getMoneyInTray(trayBreak);
+        if(inTray.length === 0) return;
+
+        const target = inTray[0]; 
+        const val = parseInt(target.dataset.val);
+
+        if (BREAK_RULES[val]) {
+            const rule = BREAK_RULES[val];
+            const rect = target.getBoundingClientRect();
+            createSparkles(target.offsetLeft + rect.width/2, target.offsetTop + rect.height/2);
+            target.remove();
+
+            const newData = MONEY_DATA.find(d => d.val === rule.dst);
+            for(let i=0; i<rule.count; i++) {
+                setTimeout(() => {
+                    const tx = (window.innerWidth * 0.5) * Math.random() + 20;
+                    const ty = (window.innerHeight * 0.6) * Math.random() + 20;
+                    spawnMoneyResult(newData, tx, ty);
+                }, i * 40);
+            }
+        } else {
+            trayBreak.animate([
+                { transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }
+            ], { duration: 200 });
+        }
+    };
+
+    function createSparkles(x, y) {
+        for(let i=0; i<12; i++) {
+            const s = document.createElement('div');
+            s.className = 'sparkle';
+            s.style.left = x + 'px'; s.style.top = y + 'px';
+            const a = Math.random() * 360;
+            const d = 50 + Math.random() * 60;
+            s.style.transform = `translate(${Math.cos(a)*d}px, ${Math.sin(a)*d}px)`;
+            app.appendChild(s);
+            setTimeout(() => s.remove(), 600);
+        }
+    }
+</script>
+</body>
+</html>

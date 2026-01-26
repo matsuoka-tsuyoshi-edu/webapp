@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>モザイクアート・メーカー V16 (Width +4px Fix)</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
+<style>
+    /* --- 全体設定 --- */
+    html, body {
+        touch-action: manipulation; 
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Yu Gothic", sans-serif; 
+        margin: 0; padding: 0; 
+        background-color: #f0f0f0; 
+        display: flex; flex-direction: column; 
+        height: 100vh; 
+        font-size: 16px; 
+    }
+    
+    /* --- ツールバー --- */
+    header { 
+        background-color: #e8e8e8; padding: 10px 15px; border-bottom: 2px solid #bbb; 
+        display: flex; flex-wrap: wrap; gap: 12px; align-items: center; flex-shrink: 0;
+    }
+    
+    /* ボタンデザイン */
+    button { 
+        padding: 12px 16px; font-size: 15px; font-weight: bold; border: 1px solid #999; 
+        border-radius: 8px; background: #fff; cursor: pointer; box-shadow: 0 2px 2px rgba(0,0,0,0.1);
+        -webkit-tap-highlight-color: transparent; 
+    }
+    button:active { background: #ddd; transform: translateY(1px); }
+    button.primary { background: #007aff; color: white; border: none; }
+    button.save { background: #28a745; color: white; border: none; }
+    button.img-dl { background: #17a2b8; color: white; border: none; }
+
+    /* 入力グループ */
+    .group-box { 
+        display: flex; align-items: center; gap: 8px; border: 2px solid #ccc; 
+        padding: 6px 10px; border-radius: 8px; background: #fff; 
+    }
+    .group-label { 
+        font-size: 12px; font-weight: bold; color: #333; background: #eee; padding: 2px 5px; 
+        border-radius: 4px; writing-mode: vertical-rl; text-orientation: upright; height: 40px; line-height: 1.2;
+    }
+    .input-wrapper { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    .input-wrapper label { font-size: 11px; font-weight: bold; color: #555; margin-bottom: 2px;}
+    .input-wrapper input { 
+        font-size: 18px; border: 1px solid #999; border-radius: 4px; width: 60px; 
+        text-align: right; padding: 6px; background-color: #fafafa;
+    }
+    
+    /* --- メインエリア --- */
+    main { flex: 1; display: flex; padding: 10px; gap: 10px; background: #333; overflow: hidden; }
+    .view-panel { flex: 1; background: #444; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+    .panel-header { background: #555; color: #fff; padding: 8px; font-size: 16px; font-weight:bold; text-align: center; }
+    .canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 10px; overflow: auto; -webkit-overflow-scrolling: touch; }
+    canvas, img { box-shadow: 0 0 15px rgba(0,0,0,0.5); max-width: 100%; max-height: 100%; object-fit: contain; }
+
+    /* --- ダイアログ共通 --- */
+    dialog { border: none; border-radius: 12px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); width: 600px; max-width: 95%; }
+    dialog::backdrop { background: rgba(0,0,0,0.6); }
+    .dialog-header { font-size: 20px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+    .settings-row { margin-bottom: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px; }
+    .dialog-buttons { display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px; }
+
+    /* --- リスト --- */
+    .color-list { display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow-y: auto; margin-bottom: 10px; border: 1px solid #ddd; padding: 5px; background: #fff; -webkit-overflow-scrolling: touch;}
+    .color-item { display: flex; align-items: center; gap: 10px; padding: 8px; background: #f9f9f9; border-bottom: 1px solid #eee; }
+    .color-item input[type="checkbox"] { transform: scale(1.5); margin-right: 5px;}
+    .color-item input[type="color"] { width: 35px; height: 35px; border: none; }
+    .color-item input[type="text"] { font-size: 16px; padding: 6px; width: 120px;}
+    .color-item label { font-size: 14px; font-weight: bold; flex: 1; margin-left: 5px; color:#555;}
+
+    hr { border:none; border-top:1px solid #ccc; margin: 15px 0; }
+    #fileInput { display: none; }
+</style>
+</head>
+<body>
+
+    <header>
+        <button onclick="document.getElementById('fileInput').click()">📷 画像読込</button>
+        <input type="file" id="fileInput" accept="image/*" onchange="handleImageLoad(this)">
+        
+        <div class="group-box" style="background:#fffbe6;">
+            <span class="group-label">1枚の<br>マス数</span>
+            <div class="input-wrapper">
+                <label>横</label>
+                <input type="number" id="dotsPerSheetX" value="22" min="1" onchange="recalcHeight()">
+            </div>
+            <div class="input-wrapper">
+                <label>縦</label>
+                <input type="number" id="dotsPerSheetY" value="11" min="1" onchange="recalcHeight()">
+            </div>
+        </div>
+
+        <div class="group-box">
+            <span class="group-label">用紙<br>枚数</span>
+            <div class="input-wrapper">
+                <label>横</label>
+                <input type="number" id="sheetCols" value="14" min="1" onchange="recalcHeight()">
+            </div>
+            <div class="input-wrapper">
+                <label>縦(自動)</label>
+                <input type="number" id="sheetRows" value="11" min="1" style="background:#eee;" readonly>
+            </div>
+        </div>
+
+        <button class="primary" onclick="openColorDialog()">🎨 作成実行</button>
+        
+        <div style="flex-grow: 1;"></div>
+        
+        <button class="img-dl" onclick="saveImageOnly()">⬇ 画像保存</button>
+        <button class="save" onclick="openSaveDialog()">💾 データ保存</button>
+    </header>
+
+    <main>
+        <div class="view-panel">
+            <div class="panel-header">元の写真</div>
+            <div class="canvas-container">
+                <img id="previewImg" src="" style="display:none;">
+            </div>
+        </div>
+        <div class="view-panel">
+            <div class="panel-header">モザイクアート結果</div>
+            <div class="canvas-container">
+                <canvas id="mainCanvas"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <dialog id="colorDialog">
+        <div class="dialog-header">モザイク化の設定</div>
+        <div class="settings-row">
+            <label style="font-weight:bold;">変換モード</label>
+            <select id="algorithmSelect" style="width:100%; padding:8px; font-size:16px; margin-top:5px;">
+                <option value="dithering" selected>ディザリング (点描・推奨)</option>
+                <option value="redmean">人間の目に近い (ベタ塗り)</option>
+                <option value="simple">単純比較 (ベタ塗り・旧)</option>
+            </select>
+        </div>
+        <div style="font-size:16px; font-weight:bold; margin-bottom:5px;">使用する色 (チェックで選択):</div>
+        <div class="color-list" id="colorListContainer"></div>
+        <div class="dialog-buttons">
+            <button onclick="resetColors()">初期化</button>
+            <button onclick="document.getElementById('colorDialog').close()">キャンセル</button>
+            <button class="primary" onclick="runMosaic()">実行する</button>
+        </div>
+    </dialog>
+
+    <dialog id="saveDialog">
+        <div class="dialog-header">Excel保存の設定</div>
+        
+        <div class="settings-row" style="padding:15px;">
+            <div style="margin-bottom:15px; display:flex; align-items:center; gap:10px;">
+                <label style="font-weight:bold;">ファイル名:</label>
+                <input type="text" id="saveFileName" value="mosaic_art" style="flex:1; font-size:18px; padding:5px;">
+            </div>
+
+            <div style="margin-bottom:15px; background:#ffe; padding:10px; border:1px solid #ebd; border-radius:5px;">
+                <label style="font-weight:bold; display:block; margin-bottom:5px; color:#d33;">★シート構成:</label>
+                <select id="sheetStructure" style="width:100%; padding:8px; font-size:16px; font-weight:bold;">
+                    <option value="single" selected>1つのシートにつなげる (標準)</option>
+                    <option value="separate">ページごとにシートを分ける (推奨・印刷ズレなし)</option>
+                </select>
+                <div style="font-size:12px; color:#666; margin-top:3px;">
+                    ※「1つのシート」は一覧性に優れます。<br>※印刷がズレる場合は「ページごとに分ける」を選んでください。
+                </div>
+            </div>
+
+            <div style="margin-bottom:10px;">
+                <label style="font-weight:bold; display:block; margin-bottom:5px;">ページの出力順:</label>
+                <select id="outputOrder" style="width:100%; padding:8px; font-size:16px;">
+                    <option value="col_row" selected>縦に進む (上→下, 左→右)</option>
+                    <option value="row_col">横に進む (左→右, 上→下)</option>
+                </select>
+            </div>
+
+            <div class="save-option" style="margin-bottom:10px;">
+                <input type="checkbox" id="exportPreview" style="transform:scale(1.3); margin-right:5px;">
+                <label for="exportPreview" style="font-size:16px;">全体確認用のシートも作成する</label>
+            </div>
+
+            <hr>
+
+            <div style="margin-bottom:10px; font-weight:bold;">印刷設定 (A3横想定):</div>
+            <div style="display:flex; gap:15px; align-items:center; margin-bottom:15px;">
+                <div class="input-wrapper" style="flex-direction:row; gap:5px;">
+                    <label style="font-size:14px;">マス目のサイズ:</label>
+                    <input type="number" id="cellPixelSize" value="37" style="width:60px;">
+                    <span style="font-size:14px;">px</span>
+                </div>
+                <div style="font-size:12px; color:#666;">
+                    ※37px ≒ 1cm (出力時は横幅+4pxされます)
+                </div>
+            </div>
+
+            <div style="font-weight:bold; margin-bottom:5px;">セルの塗りつぶし指定:</div>
+            <div class="color-list" id="saveColorListContainer" style="height:120px;"></div>
+        </div>
+
+        <div class="dialog-buttons">
+            <button onclick="document.getElementById('saveDialog').close()">キャンセル</button>
+            <button class="save" onclick="executeSave()">保存を実行</button>
+        </div>
+    </dialog>
+
+<script>
+    // --- 定数・変数 ---
+    const DEFAULT_COLORS = [
+        { name: "黒", hex: "#000000", checked: true },
+        { name: "白", hex: "#FFFFFF", checked: true },
+        { name: "青", hex: "#0000FF", checked: true },
+        { name: "赤", hex: "#FF0000", checked: true },
+        { name: "黄", hex: "#FFFF00", checked: true },
+        { name: "緑", hex: "#008000", checked: true },
+        { name: "水色", hex: "#00FFFF", checked: false },
+        { name: "紫", hex: "#800080", checked: false },
+        { name: "ピンク", hex: "#FF69B4", checked: false },
+        { name: "茶色", hex: "#8B4513", checked: false },
+        { name: "オレンジ", hex: "#FFA500", checked: false },
+        { name: "黄緑", hex: "#ADFF2F", checked: false }
+    ];
+
+    let currentColors = JSON.parse(JSON.stringify(DEFAULT_COLORS));
+    let originalImage = null;
+    let lastResultData = null;
+
+    const previewImg = document.getElementById('previewImg');
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- 画像読み込み ---
+    function handleImageLoad(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    originalImage = img;
+                    previewImg.src = img.src;
+                    previewImg.style.display = 'block';
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    lastResultData = null;
+                    recalcHeight();
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // --- 縦枚数計算 ---
+    function recalcHeight() {
+        if (!originalImage) return;
+        const sheetCols = parseInt(document.getElementById('sheetCols').value) || 1;
+        const dX = parseInt(document.getElementById('dotsPerSheetX').value) || 22;
+        const dY = parseInt(document.getElementById('dotsPerSheetY').value) || 20;
+        const totalWidthDots = sheetCols * dX;
+        const imgRatio = originalImage.height / originalImage.width;
+        document.getElementById('sheetRows').value = Math.max(1, Math.round((totalWidthDots * imgRatio) / dY));
+    }
+
+    // --- ダイアログ ---
+    function openColorDialog() {
+        if (!originalImage) { alert("画像を読み込んでください"); return; }
+        renderColorList('colorListContainer', true);
+        document.getElementById('colorDialog').showModal();
+    }
+    
+    function renderColorList(containerId, isEditMode) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        currentColors.forEach((color, index) => {
+            const div = document.createElement('div');
+            div.className = 'color-item';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            
+            if(isEditMode) {
+                checkbox.checked = color.checked;
+                checkbox.dataset.index = index;
+            } else {
+                if (color.name === "黒" || color.name === "白") checkbox.checked = true;
+                else checkbox.checked = false;
+                checkbox.dataset.fillIndex = index;
+            }
+            
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            colorInput.value = color.hex;
+            colorInput.disabled = !isEditMode; 
+            if(isEditMode) colorInput.onchange = (e) => { currentColors[index].hex = e.target.value; };
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.value = color.name;
+            nameInput.disabled = !isEditMode;
+            if(isEditMode) nameInput.onchange = (e) => { currentColors[index].name = e.target.value; };
+            else { nameInput.style.border = "none"; nameInput.style.background = "transparent"; }
+
+            div.appendChild(checkbox);
+            div.appendChild(colorInput);
+            div.appendChild(nameInput);
+            
+            if(!isEditMode) {
+                const label = document.createElement('label');
+                label.textContent = "←塗りつぶす";
+                label.style.fontSize = "12px";
+                label.style.fontWeight = "normal";
+                div.appendChild(label);
+            }
+            container.appendChild(div);
+        });
+    }
+
+    function resetColors() {
+        currentColors = JSON.parse(JSON.stringify(DEFAULT_COLORS));
+        renderColorList('colorListContainer', true);
+    }
+
+    // --- モザイク実行 ---
+    function runMosaic() {
+        const sheetsRows = parseInt(document.getElementById('sheetRows').value);
+        const sheetsCols = parseInt(document.getElementById('sheetCols').value);
+        const dX = parseInt(document.getElementById('dotsPerSheetX').value);
+        const dY = parseInt(document.getElementById('dotsPerSheetY').value);
+        const algorithm = document.getElementById('algorithmSelect').value;
+        const targetWidth = sheetsCols * dX;
+        const targetHeight = sheetsRows * dY;
+        const activeCheckboxes = document.querySelectorAll('#colorListContainer input[type="checkbox"]:checked');
+        const activePalette = [];
+        activeCheckboxes.forEach(box => activePalette.push(currentColors[box.dataset.index]));
+        
+        if (activePalette.length === 0) { alert("色を選択してください"); return; }
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = targetWidth;
+        tempCanvas.height = targetHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.fillStyle = "#FFFFFF";
+        tempCtx.fillRect(0, 0, targetWidth, targetHeight);
+
+        const imgRatio = originalImage.width / originalImage.height;
+        const targetRatio = targetWidth / targetHeight;
+        let drawW, drawH, offsetX, offsetY;
+        if (imgRatio > targetRatio) {
+            drawH = targetHeight; drawW = originalImage.width * (targetHeight / originalImage.height);
+            offsetX = (targetWidth - drawW) / 2; offsetY = 0;
+        } else {
+            drawW = targetWidth; drawH = originalImage.height * (targetWidth / originalImage.width);
+            offsetX = 0; offsetY = (targetHeight - drawH) / 2;
+        }
+        tempCtx.drawImage(originalImage, offsetX, offsetY, drawW, drawH);
+
+        const imageData = tempCtx.getImageData(0, 0, targetWidth, targetHeight);
+        const processedPalette = activePalette.map(c => {
+            const rgb = hexToRgb(c.hex);
+            return { ...c, rgb: rgb };
+        });
+        const colorNameGrid = Array.from({ length: targetHeight }, () => Array(targetWidth).fill(""));
+
+        if (algorithm === 'dithering') applyDithering(imageData, processedPalette, targetWidth, targetHeight, colorNameGrid);
+        else applyFlatColor(imageData, processedPalette, algorithm, colorNameGrid);
+
+        canvas.width = targetWidth; canvas.height = targetHeight;
+        tempCtx.putImageData(imageData, 0, 0);
+        ctx.drawImage(tempCanvas, 0, 0);
+
+        lastResultData = { grid: colorNameGrid, width: targetWidth, height: targetHeight, sheetsCols: sheetsCols, sheetsRows: sheetsRows, dotsX: dX, dotsY: dY, activePalette: activePalette };
+        document.getElementById('colorDialog').close();
+    }
+
+    // --- ロジック ---
+    function applyDithering(imageData, palette, w, h, nameGrid) {
+        const data = imageData.data;
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const i = (y * w + x) * 4;
+                const r = data[i], g = data[i+1], b = data[i+2];
+                const nearest = findNearestColor(r, g, b, palette);
+                const newRgb = nearest.rgb;
+                data[i] = newRgb.r; data[i+1] = newRgb.g; data[i+2] = newRgb.b;
+                nameGrid[y][x] = nearest.name;
+                const er = r - newRgb.r, eg = g - newRgb.g, eb = b - newRgb.b;
+                distribute(data, x+1, y, w, h, er, eg, eb, 7/16);
+                distribute(data, x-1, y+1, w, h, er, eg, eb, 3/16);
+                distribute(data, x, y+1, w, h, er, eg, eb, 5/16);
+                distribute(data, x+1, y+1, w, h, er, eg, eb, 1/16);
+            }
+        }
+    }
+    function distribute(data, x, y, w, h, er, eg, eb, f) {
+        if (x<0||x>=w||y<0||y>=h) return;
+        const i = (y*w+x)*4;
+        data[i] = clamp(data[i]+er*f); data[i+1] = clamp(data[i+1]+eg*f); data[i+2] = clamp(data[i+2]+eb*f);
+    }
+    function clamp(v) { return Math.max(0, Math.min(255, v)); }
+    function applyFlatColor(imageData, palette, algo, nameGrid) {
+        const data = imageData.data;
+        const w = nameGrid[0].length;
+        for (let i = 0; i < data.length; i += 4) {
+            const r=data[i], g=data[i+1], b=data[i+2];
+            const nearest = findNearestColor(r,g,b, palette);
+            data[i]=nearest.rgb.r; data[i+1]=nearest.rgb.g; data[i+2]=nearest.rgb.b;
+            const idx = i/4;
+            nameGrid[Math.floor(idx/w)][idx%w] = nearest.name;
+        }
+    }
+    function findNearestColor(r, g, b, palette) {
+        let minDist = Infinity;
+        let nearest = palette[0];
+        for (const color of palette) {
+            const rMean = (r + color.rgb.r)/2;
+            const dist = Math.sqrt((2+rMean/256)*(r-color.rgb.r)**2 + 4*(g-color.rgb.g)**2 + (2+(255-rMean)/256)*(b-color.rgb.b)**2);
+            if (dist < minDist) { minDist = dist; nearest = color; }
+        }
+        return nearest;
+    }
+    function hexToRgb(hex) {
+        const bigint = parseInt(hex.slice(1), 16);
+        return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+    }
+
+    // --- 保存関連 ---
+    function saveImageOnly() {
+        if (!lastResultData) { alert("先にモザイク画を作成してください"); return; }
+        const link = document.createElement('a'); link.download = "mosaic_image.png"; link.href = canvas.toDataURL(); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+    function openSaveDialog() {
+        if (!lastResultData) { alert("先にモザイク画を作成してください"); return; }
+        renderColorList('saveColorListContainer', false);
+        document.getElementById('saveDialog').showModal();
+    }
+    function executeSave() {
+        const baseName = document.getElementById('saveFileName').value || "mosaic";
+        const doPreview = document.getElementById('exportPreview').checked;
+        const cellSize = parseInt(document.getElementById('cellPixelSize').value) || 37; 
+        const outputOrder = document.getElementById('outputOrder').value; 
+        const sheetStructure = document.getElementById('sheetStructure').value; // separate or single
+
+        const fillSettings = {};
+        const checkboxes = document.querySelectorAll('#saveColorListContainer input[type="checkbox"]');
+        checkboxes.forEach(box => {
+            if(box.checked) {
+                const color = currentColors[box.dataset.fillIndex];
+                fillSettings[color.name] = true;
+            }
+        });
+
+        generateExcel(baseName, fillSettings, doPreview, cellSize, outputOrder, sheetStructure);
+        document.getElementById('saveDialog').close();
+    }
+
+    // --- Excel生成コアロジック ---
+    function generateExcel(baseName, fillSettings, doPreview, cellSize, outputOrder, sheetStructure) {
+        const wb = XLSX.utils.book_new();
+        const grid = lastResultData.grid;
+        const colorMap = {};
+        lastResultData.activePalette.forEach(c => colorMap[c.name] = c.hex);
+
+        const rows = lastResultData.sheetsRows;
+        const cols = lastResultData.sheetsCols;
+        const dX = lastResultData.dotsX;
+        const dY = lastResultData.dotsY;
+        const activePalette = lastResultData.activePalette;
+
+        let loopOuter, loopInner, isColMajor;
+        if (outputOrder === 'col_row') { loopOuter = cols; loopInner = rows; isColMajor = true; } 
+        else { loopOuter = rows; loopInner = cols; isColMajor = false; }
+
+        const borderStyle = { top: { style: "thin", color: { rgb: "000000" } }, bottom: { style: "thin", color: { rgb: "000000" } }, left: { style: "thin", color: { rgb: "000000" } }, right: { style: "thin", color: { rgb: "000000" } } };
+        
+        let singleSheetData = [];
+        let singleSheetRowBreaks = [];
+        let singleSheetRowIndex = 0;
+
+        for (let i = 0; i < loopOuter; i++) {
+            for (let j = 0; j < loopInner; j++) {
+                let r, c;
+                if (isColMajor) { c = i; r = j; } else { r = i; c = j; }
+                const pageNum = (i * loopInner) + j + 1;
+                const pageData = []; 
+
+                pageData.push([{ v: `ページ: ${pageNum} (縦${r+1} - 横${c+1})`, s: { font: { bold: true, sz: 14 } } }]);
+                
+                const startY = r * dY;
+                const startX = c * dX;
+                const pageColors = {};
+                activePalette.forEach(c => pageColors[c.name] = 0);
+
+                for (let y = 0; y < dY; y++) {
+                    const rowData = [];
+                    for (let x = 0; x < dX; x++) {
+                        let cellVal = "";
+                        if (startY + y < grid.length && startX + x < grid[0].length) cellVal = grid[startY + y][startX + x] || "";
+                        
+                        let cellStyle = { border: borderStyle, alignment: { horizontal: "center", vertical: "center", wrapText: false } };
+                        if (cellVal && fillSettings[cellVal] && colorMap[cellVal]) {
+                            const hex = colorMap[cellVal].replace('#', '');
+                            cellStyle.fill = { fgColor: { rgb: hex } };
+                            cellStyle.font = { color: { rgb: hex } }; 
+                        }
+                        rowData.push({ v: cellVal, s: cellStyle });
+                        if (cellVal && pageColors.hasOwnProperty(cellVal)) pageColors[cellVal]++;
+                    }
+                    pageData.push(rowData);
+                }
+                
+                pageData.push([]); 
+                let summaryString = "";
+                activePalette.forEach(color => { summaryString += `${color.name}:${pageColors[color.name]}  `; });
+                pageData.push([{ v: summaryString, s: { font: { sz: 12 }, alignment: { wrapText: false } } }]);
+
+                if (sheetStructure === 'separate') {
+                    const wsPage = XLSX.utils.aoa_to_sheet(pageData);
+                    setSheetLayout(wsPage, dX, cellSize);
+                    XLSX.utils.book_append_sheet(wb, wsPage, `P${pageNum}`);
+                } else {
+                    singleSheetData = singleSheetData.concat(pageData);
+                    singleSheetData.push([], []); 
+                    singleSheetRowIndex += pageData.length + 2;
+                    singleSheetRowBreaks.push(singleSheetRowIndex - 1);
+                }
+            }
+        }
+
+        if (sheetStructure === 'single') {
+            const ws = XLSX.utils.aoa_to_sheet(singleSheetData);
+            setSheetLayout(ws, dX, cellSize);
+            ws['!rowbreaks'] = singleSheetRowBreaks.map(r => ({ r: r }));
+            XLSX.utils.book_append_sheet(wb, ws, "印刷用(全ページ)");
+        }
+
+        if (doPreview) {
+            let previewData = [];
+            for(let y=0; y<grid.length; y++) {
+                let row = [];
+                for(let x=0; x<grid[0].length; x++) {
+                    const cName = grid[y][x];
+                    let pStyle = { border: { top: {style:"thin",color:{rgb:"cccccc"}}, bottom:{style:"thin",color:{rgb:"cccccc"}}, left:{style:"thin",color:{rgb:"cccccc"}}, right:{style:"thin",color:{rgb:"cccccc"}} }};
+                    if(cName && colorMap[cName]) pStyle.fill = { fgColor: { rgb: colorMap[cName].replace('#','') } };
+                    row.push({ v: "", s: pStyle }); 
+                }
+                previewData.push(row);
+            }
+            const wsPreview = XLSX.utils.aoa_to_sheet(previewData);
+            setPreviewSheetLayout(wsPreview, grid[0].length); 
+            XLSX.utils.book_append_sheet(wb, wsPreview, "全体確認用");
+        }
+
+        XLSX.writeFile(wb, baseName + ".xlsx");
+    }
+
+    // ★★★ここを修正しました: 横幅を +4px 広げます★★★
+    function setSheetLayout(ws, dX, cellSize) {
+        const colWidths = [];
+        
+        // 入力値に +4 した値を横幅として設定
+        const adjustedWidth = cellSize + 4; 
+        
+        for(let i=0; i<dX; i++) colWidths.push({ wpx: adjustedWidth });
+        ws['!cols'] = colWidths;
+
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        const rowHeights = [];
+        for(let r=0; r<=range.e.r; r++) {
+             rowHeights.push({ hpx: cellSize }); // 高さは入力値そのまま
+        }
+        ws['!rows'] = rowHeights;
+
+        ws['!pageSetup'] = { paperSize: 8, orientation: 'landscape', fitToWidth: 1, fitToHeight: 0 };
+        ws['!margins'] = { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0, footer: 0 };
+    }
+
+    function setPreviewSheetLayout(ws, colsCount) {
+        const colWidths = [];
+        for(let i=0; i<colsCount; i++) colWidths.push({ wpx: 10 });
+        ws['!cols'] = colWidths;
+
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        const rowHeights = [];
+        for(let r=0; r<=range.e.r; r++) {
+             rowHeights.push({ hpx: 10 }); 
+        }
+        ws['!rows'] = rowHeights;
+    }
+</script>
+</body>
+</html>

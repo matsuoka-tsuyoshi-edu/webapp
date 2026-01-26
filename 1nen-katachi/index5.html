@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>てんをつないで</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #fdfdfd;
+            font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* --- サイドバー --- */
+        #sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100px;
+            height: 100%;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .palette-item, .tool-btn {
+            pointer-events: auto;
+            position: relative;
+            z-index: 51;
+        }
+
+        .palette-item {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .palette-item:active { transform: scale(0.9); }
+        .palette-item.selected {
+            border-color: #333;
+            background-color: #eee;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* 色丸アイコン */
+        .color-circle {
+            width: 30px; height: 30px; border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.1);
+            margin-bottom: 8px; /* 文字との隙間確保 */
+        }
+
+        /* 文字位置調整 */
+        .palette-text {
+            position: absolute; 
+            bottom: 5px; 
+            width: 100%; 
+            text-align: center; 
+            font-size: 10px; 
+            font-weight: bold; 
+            color: #555;
+        }
+
+        .tool-btn {
+            margin-top: 10px;
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            border: 3px solid #ccc;
+            background: white;
+            font-size: 30px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+        .tool-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.1); }
+
+        #undoBtn { margin-top: auto; color: #1976D2; border-color: #1976D2; }
+        #clearBtn { color: #d32f2f; border-color: #d32f2f; margin-bottom: 30px; }
+
+        #instruction {
+            position: absolute; bottom: 20px; left: 120px; right: 20px;
+            text-align: center; font-size: 24px; font-weight: bold; color: #444;
+            pointer-events: none; text-shadow: 2px 2px 0 #fff; z-index: 40;
+        }
+
+        canvas { display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="palette-item selected" id="p-pencil" onmousedown="selectColor('pencil')" ontouchstart="selectColor('pencil')">
+        <div class="color-circle" style="background-color: #757575; opacity: 0.7;"></div>
+        <div class="palette-text">えんぴつ</div>
+    </div>
+    <div class="palette-item" id="p-black" onmousedown="selectColor('black')" ontouchstart="selectColor('black')">
+        <div class="color-circle" style="background-color: #000;"></div>
+        <div class="palette-text">くろ</div>
+    </div>
+    <div class="palette-item" id="p-red" onmousedown="selectColor('red')" ontouchstart="selectColor('red')">
+        <div class="color-circle" style="background-color: #ff5252;"></div>
+        <div class="palette-text">あか</div>
+    </div>
+    <div class="palette-item" id="p-yellow" onmousedown="selectColor('yellow')" ontouchstart="selectColor('yellow')">
+        <div class="color-circle" style="background-color: #FFD700;"></div>
+        <div class="palette-text">きいろ</div>
+    </div>
+    <div class="palette-item" id="p-green" onmousedown="selectColor('green')" ontouchstart="selectColor('green')">
+        <div class="color-circle" style="background-color: #66BB6A;"></div>
+        <div class="palette-text">みどり</div>
+    </div>
+
+    <div class="tool-btn" id="undoBtn" onclick="undo()" title="ひとつもどす">↩︎</div>
+    <div class="tool-btn" id="clearBtn" onclick="confirmClear()" title="ぜんぶけす">🗑️</div>
+</div>
+
+<div id="instruction">てん を つないで かたちを つくろう</div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // --- 設定 ---
+    const SIDEBAR_WIDTH = 100;
+    const GRID_SIZE = 50; 
+    const DOT_RADIUS = 3; 
+    
+    const DOT_HIT_RADIUS = 15;  
+    const LINE_HIT_RADIUS = 30; 
+    const HANDLE_HIT_RADIUS = 30; 
+    
+    // 色定義
+    const COLORS = {
+        'pencil': { code: '#616161', width: 9, alpha: 0.7 },
+        'black':  { code: '#000000', width: 12, alpha: 1.0 },
+        'red':    { code: '#ff5252', width: 12, alpha: 1.0 },
+        'yellow': { code: '#FFD700', width: 12, alpha: 1.0 },
+        'green':  { code: '#66BB6A', width: 12, alpha: 1.0 }
+    };
+
+    // 状態
+    let lines = []; 
+    let historyStack = []; 
+    let currentColor = 'pencil';
+
+    let cameraX = 0;
+    let cameraY = 0;
+
+    // 操作用
+    let selectedLine = null; 
+    let draggingLine = null; 
+    
+    let dragType = -1; 
+    
+    let startX, startY; 
+    let startCameraX, startCameraY;
+    let originalLine = null; 
+    let isDeleteHover = false; 
+
+    function init() {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        saveHistory(); 
+        requestAnimationFrame(gameLoop);
+    }
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    window.selectColor = function(color) {
+        currentColor = color;
+        document.querySelectorAll('.palette-item').forEach(el => el.classList.remove('selected'));
+        document.getElementById('p-' + color).classList.add('selected');
+        selectedLine = null; 
+        draw();
+    }
+
+    function saveHistory() {
+        const state = JSON.stringify(lines);
+        if (historyStack.length > 0 && historyStack[historyStack.length - 1] === state) return;
+        historyStack.push(state);
+    }
+
+    window.undo = function() {
+        if (historyStack.length > 1) {
+            historyStack.pop(); 
+            const prevState = historyStack[historyStack.length - 1];
+            lines = JSON.parse(prevState);
+            selectedLine = null; 
+        } else {
+             if (lines.length > 0) {
+                 lines = [];
+                 selectedLine = null;
+                 saveHistory();
+             }
+        }
+    }
+
+    window.confirmClear = function() {
+        if(lines.length === 0) return;
+        if(confirm("ほんとうに、すべてけしますか？")) {
+            lines = [];
+            selectedLine = null;
+            cameraX = 0; cameraY = 0;
+            saveHistory();
+        }
+    }
+
+    function gameLoop() {
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function drawSidebarBackground() {
+        if (isDeleteHover) {
+            ctx.fillStyle = "rgba(255, 235, 238, 0.9)";
+            ctx.fillRect(0, 0, SIDEBAR_WIDTH, canvas.height);
+            
+            // ★修正ポイント：さらに20px下げました (280 -> 260)
+            const iconY = canvas.height - 260;
+            
+            ctx.save();
+            ctx.fillStyle = "#d32f2f"; 
+            ctx.font = "50px Arial"; 
+            ctx.textAlign = "center"; 
+            ctx.textBaseline = "middle";
+            ctx.fillText("🗑️", SIDEBAR_WIDTH / 2, iconY);
+            
+            ctx.font = "bold 14px sans-serif";
+            ctx.fillText("ここにすてる", SIDEBAR_WIDTH / 2, iconY + 50);
+            ctx.restore();
+            
+            ctx.strokeStyle = "rgba(255, 0, 0, 0.2)"; 
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(SIDEBAR_WIDTH, 0); ctx.lineTo(SIDEBAR_WIDTH, canvas.height); ctx.stroke();
+        } else {
+            ctx.fillStyle = "rgba(240, 240, 240, 0.9)";
+            ctx.fillRect(0, 0, SIDEBAR_WIDTH, canvas.height);
+            ctx.strokeStyle = "#ccc"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(SIDEBAR_WIDTH, 0); ctx.lineTo(SIDEBAR_WIDTH, canvas.height); ctx.stroke();
+        }
+    }
+
+    function drawDots() {
+        ctx.save();
+        ctx.fillStyle = "#888"; 
+        
+        const minX = -cameraX + SIDEBAR_WIDTH;
+        const maxX = -cameraX + canvas.width;
+        const minY = -cameraY;
+        const maxY = -cameraY + canvas.height;
+
+        const firstGridX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+        const firstGridY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+
+        for (let x = firstGridX; x <= maxX; x += GRID_SIZE) {
+            for (let y = firstGridY; y <= maxY; y += GRID_SIZE) {
+                const sx = x + cameraX;
+                const sy = y + cameraY;
+                if (sx < SIDEBAR_WIDTH) continue;
+
+                ctx.beginPath();
+                ctx.arc(sx, sy, DOT_RADIUS, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.restore();
+    }
+
+    function drawLine(line) {
+        const l = line;
+        const style = COLORS[l.colorType];
+        
+        ctx.beginPath();
+        ctx.moveTo(l.x1, l.y1);
+        ctx.lineTo(l.x2, l.y2);
+        
+        ctx.lineCap = 'round';
+        ctx.lineWidth = style.width;
+        ctx.strokeStyle = style.code;
+        ctx.globalAlpha = style.alpha;
+        
+        if (line === draggingLine && isDeleteHover) {
+            ctx.globalAlpha = 0.3;
+        }
+        
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+
+        if (line === selectedLine) {
+            ctx.fillStyle = "#fff";
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 1;
+            
+            [ {x:l.x1, y:l.y1}, {x:l.x2, y:l.y2} ].forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 8, 0, Math.PI*2); 
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawDots();
+        ctx.save();
+        ctx.translate(cameraX, cameraY);
+        lines.forEach(l => {
+            if (l === draggingLine) return; 
+            drawLine(l);
+        });
+        if (draggingLine) {
+            drawLine(draggingLine);
+        }
+        ctx.restore();
+        drawSidebarBackground();
+    }
+
+    function getNearestGrid(wx, wy) {
+        const gx = Math.round(wx / GRID_SIZE) * GRID_SIZE;
+        const gy = Math.round(wy / GRID_SIZE) * GRID_SIZE;
+        return { x: gx, y: gy };
+    }
+
+    function pointToLineDistance(px, py, x1, y1, x2, y2) {
+        const A = px - x1; const B = py - y1;
+        const C = x2 - x1; const D = y2 - y1;
+        const dot = A * C + B * D;
+        const len_sq = C * C + D * D;
+        let param = -1;
+        if (len_sq != 0) param = dot / len_sq;
+        let xx, yy;
+        if (param < 0) { xx = x1; yy = y1; }
+        else if (param > 1) { xx = x2; yy = y2; }
+        else { xx = x1 + param * C; yy = y1 + param * D; }
+        const dx = px - xx; const dy = py - yy;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // --- イベントハンドラ ---
+
+    function handleStart(e) {
+        const t = e.touches ? e.touches[0] : e;
+        const tx = t.clientX;
+        const ty = t.clientY;
+
+        if (tx < SIDEBAR_WIDTH) return;
+        if (e.cancelable) e.preventDefault();
+
+        const wx = tx - cameraX;
+        const wy = ty - cameraY;
+
+        // 1. 選択中の線（修正モード）
+        if (selectedLine) {
+            if (Math.hypot(wx - selectedLine.x1, wy - selectedLine.y1) < HANDLE_HIT_RADIUS) {
+                draggingLine = selectedLine;
+                dragType = 1; 
+                lines = lines.filter(l => l !== selectedLine);
+                saveHistory();
+                draw();
+                return;
+            }
+            if (Math.hypot(wx - selectedLine.x2, wy - selectedLine.y2) < HANDLE_HIT_RADIUS) {
+                draggingLine = selectedLine;
+                dragType = 2; 
+                lines = lines.filter(l => l !== selectedLine);
+                saveHistory();
+                draw();
+                return;
+            }
+            if (pointToLineDistance(wx, wy, selectedLine.x1, selectedLine.y1, selectedLine.x2, selectedLine.y2) < LINE_HIT_RADIUS) {
+                draggingLine = selectedLine;
+                originalLine = { ...selectedLine };
+                startX = tx; startY = ty;
+                dragType = 0; 
+                lines = lines.filter(l => l !== selectedLine);
+                saveHistory();
+                draw();
+                return;
+            }
+            // 選択解除
+            selectedLine = null;
+            draw();
+        }
+
+        // 2. 新規作成優先
+        const nearest = getNearestGrid(wx, wy);
+        const distToDot = Math.hypot(wx - nearest.x, wy - nearest.y);
+        const isNearDot = distToDot < DOT_HIT_RADIUS;
+
+        let clickedLine = null;
+        for (let i = lines.length - 1; i >= 0; i--) {
+            const l = lines[i];
+            if (pointToLineDistance(wx, wy, l.x1, l.y1, l.x2, l.y2) < LINE_HIT_RADIUS) {
+                clickedLine = l;
+                break;
+            }
+        }
+
+        if (isNearDot) {
+            selectedLine = null;
+            dragType = 99; 
+            draggingLine = {
+                x1: nearest.x, y1: nearest.y,
+                x2: nearest.x, y2: nearest.y,
+                colorType: currentColor
+            };
+            draw();
+            return;
+        } else if (clickedLine) {
+            selectedLine = clickedLine;
+            draggingLine = clickedLine;
+            originalLine = { ...clickedLine };
+            startX = tx; startY = ty;
+            dragType = 0;
+            lines = lines.filter(l => l !== clickedLine);
+            lines.push(clickedLine);
+            lines.pop(); 
+            saveHistory();
+            draw();
+            return;
+        }
+
+        // 3. スクロール
+        selectedLine = null; 
+        draggingLine = null;
+        startX = tx; startY = ty;
+        startCameraX = cameraX; startCameraY = cameraY;
+        dragType = -99; 
+        draw();
+    }
+
+    function handleMove(e) {
+        if (e.cancelable) e.preventDefault();
+        const t = e.touches ? e.touches[0] : e;
+        const tx = t.clientX;
+        const ty = t.clientY;
+
+        if (dragType === -99 && startX !== undefined) {
+            const dx = tx - startX;
+            const dy = ty - startY;
+            cameraX = startCameraX + dx;
+            cameraY = startCameraY + dy;
+            draw();
+            return;
+        }
+
+        if (!draggingLine) return;
+
+        const wx = tx - cameraX;
+        const wy = ty - cameraY;
+
+        if (dragType === 0) {
+            const dx = (tx - startX);
+            const dy = (ty - startY);
+            draggingLine.x1 = originalLine.x1 + dx;
+            draggingLine.y1 = originalLine.y1 + dy;
+            draggingLine.x2 = originalLine.x2 + dx;
+            draggingLine.y2 = originalLine.y2 + dy;
+
+            const screenX = Math.min(draggingLine.x1, draggingLine.x2) + cameraX;
+            if (screenX < SIDEBAR_WIDTH) {
+                if(!isDeleteHover) { isDeleteHover = true; draw(); }
+            } else {
+                if(isDeleteHover) { isDeleteHover = false; draw(); }
+            }
+
+        } else if (dragType === 1 || dragType === 2 || dragType === 99) {
+            const snapPos = getNearestGrid(wx, wy);
+            if (dragType === 1) {
+                draggingLine.x1 = snapPos.x;
+                draggingLine.y1 = snapPos.y;
+            } else {
+                draggingLine.x2 = snapPos.x;
+                draggingLine.y2 = snapPos.y;
+            }
+        }
+        draw();
+    }
+
+    function handleEnd(e) {
+        if (dragType === -99) { 
+            startX = undefined;
+            return;
+        }
+
+        if (!draggingLine) return;
+
+        const minScreenX = Math.min(draggingLine.x1, draggingLine.x2) + cameraX;
+        if (minScreenX < SIDEBAR_WIDTH) {
+            draggingLine = null; 
+            selectedLine = null;
+            isDeleteHover = false;
+            if (dragType !== 99) saveHistory(); 
+            draw();
+            return;
+        }
+
+        if (dragType === 0) {
+            const dx = draggingLine.x2 - draggingLine.x1;
+            const dy = draggingLine.y2 - draggingLine.y1;
+            const snap1 = getNearestGrid(draggingLine.x1, draggingLine.y1);
+            draggingLine.x1 = snap1.x;
+            draggingLine.y1 = snap1.y;
+            const snap2 = getNearestGrid(draggingLine.x2, draggingLine.y2);
+            draggingLine.x2 = snap2.x;
+            draggingLine.y2 = snap2.y;
+        } else {
+            if (draggingLine.x1 === draggingLine.x2 && draggingLine.y1 === draggingLine.y2) {
+                draggingLine = null;
+                selectedLine = null;
+                draw();
+                return;
+            }
+        }
+
+        lines.push(draggingLine);
+
+        if (dragType === 99) {
+            selectedLine = null; 
+        } else {
+            selectedLine = draggingLine;
+        }
+        
+        draggingLine = null;
+        isCreating = false;
+        saveHistory();
+        draw();
+    }
+
+    canvas.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    canvas.addEventListener('touchstart', handleStart, {passive: false});
+    canvas.addEventListener('touchmove', handleMove, {passive: false});
+    canvas.addEventListener('touchend', handleEnd);
+
+    init();
+</script>
+</body>
+</html>

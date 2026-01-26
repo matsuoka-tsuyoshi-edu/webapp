@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>小半洞窟クエスト</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+    body { margin: 0; overflow: hidden; background-color: #050505; font-family: "Hiragino Kaku Gothic ProN", sans-serif; user-select: none; -webkit-user-select: none; }
+    
+    /* UIレイヤー共通 */
+    .ui-layer {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none; 
+        display: none; flex-direction: column; justify-content: center; align-items: center;
+        text-align: center; color: white;
+    }
+    .active { display: flex; animation: fadeIn 0.5s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* タイトル画面 */
+    #title-screen { 
+        background: rgba(0,0,0,0.8); pointer-events: auto; z-index: 100; 
+        justify-content: flex-start; 
+        overflow-y: auto; 
+        padding-top: 40px; 
+        padding-bottom: 20px;
+    }
+    .title-content-wrapper {
+        display: flex; flex-direction: column; align-items: center; width: 100%;
+    }
+
+    h1 { font-size: 48px; color: #ffca28; text-shadow: 0 0 20px #ff6f00; margin-bottom: 10px; margin-top: 0; }
+    .sub-title { font-size: 24px; color: #fff; margin-bottom: 20px; }
+    
+    .preset-area {
+        background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid #555;
+    }
+    
+    .footer-row {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+        width: 90%;
+        padding-top: 20px;
+        border-top: 1px solid #555;
+    }
+
+    #warning-msg {
+        color: #ffeb3b; font-weight: bold; font-size: 14px;
+        background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 8px; border: 2px solid #ffeb3b;
+        position: static; 
+        margin: 5px;
+    }
+
+    .btn { background: #ff9800; color: white; border: none; padding: 15px 40px; font-size: 24px; border-radius: 30px; font-weight: bold; cursor: pointer; margin: 10px; box-shadow: 0 5px 0 #e65100; transition: transform 0.1s; pointer-events: auto; }
+    .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #e65100; }
+    
+    .btn-sub { background: #0288d1; box-shadow: 0 5px 0 #01579b; font-size: 16px; padding: 10px 20px; margin: 5px;}
+    .btn-dl { background: #4CAF50; box-shadow: 0 5px 0 #2E7D32; font-size: 16px; padding: 10px 20px; margin: 5px; }
+    
+    .btn-small {
+        font-size: 14px; padding: 8px 15px; margin: 5px; border-radius: 20px;
+    }
+
+    select { font-size: 20px; padding: 10px; border-radius: 10px; border: none; margin: 5px; min-width: 120px; }
+    #file-input { display: none; }
+
+    /* スタート待機 (カウントダウン表示用) */
+    #pre-game-overlay { 
+        pointer-events: none; 
+        z-index: 80; 
+        background: transparent; 
+    }
+    #start-countdown {
+        font-size: 150px; font-weight: 900; color: #fff;
+        text-shadow: 4px 4px 0 #000, -2px -2px 0 #000, 0 0 30px #ff1744;
+        /* アニメーション時間を1秒に変更してリズムを同期 */
+        animation: popIn 1s infinite;
+    }
+    @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+
+    /* ゲームHUD */
+    #game-hud { justify-content: space-between; padding: 20px; box-sizing: border-box; }
+    #question-box {
+        margin-top: 10px; background: rgba(0, 0, 0, 0.7); padding: 20px 30px;
+        border-radius: 15px; border: 3px solid #fff; width: 90%; min-height: 200px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        position: relative; pointer-events: auto;
+    }
+    
+    .media-container { width: 100%; text-align: center; margin-bottom: 15px; }
+    #question-image { max-height: 200px; max-width: 100%; object-fit: contain; border-radius: 8px; border: 2px solid #fff; display: none; margin: 0 auto 10px auto; }
+    #question-video { max-height: 200px; max-width: 100%; border-radius: 8px; border: 2px solid #fff; display: none; margin: 0 auto 10px auto; }
+    #question-audio { width: 80%; display: none; margin: 0 auto 10px auto; }
+
+    #question-text { font-size: 32px; font-weight: bold; line-height: 1.4; text-shadow: 2px 2px 0 #000; margin-bottom: 20px; pointer-events: none;}
+    #q-counter { position: absolute; top: 10px; left: 20px; font-size: 18px; color: #aaa; pointer-events: none;}
+    #timer-display { position: absolute; bottom: 10px; right: 20px; font-size: 60px; font-weight: 900; text-shadow: 2px 2px 4px #000; display: none; pointer-events: none;}
+    .timer-blue { color: #2196F3; } .timer-yellow { color: #FFEB3B; }
+    .timer-red { color: #FF1744; animation: urgent 0.5s infinite alternate; }
+    @keyframes urgent { from { transform: scale(1); } to { transform: scale(1.1); } }
+
+    #options-area { width: 100%; height: 45%; display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 20px; pointer-events: none; }
+    
+    .option-card {
+        width: 45%; height: 140px; background: rgba(0,0,0,0.6); border-radius: 20px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px; font-weight: bold; text-shadow: 1px 1px 4px #000;
+        border: 4px solid; pointer-events: auto; cursor: pointer; padding: 10px; word-break: break-all;
+    }
+    #opt-left { border-color: #0088ff; color: #88ccff; }
+    #opt-right { border-color: #ffaa00; color: #ffdd88; }
+    #feedback-msg {
+        position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+        font-size: 80px; font-weight: 900; color: #ffeb3b;
+        text-shadow: 4px 4px 0 #ff5722, -2px -2px 0 #fff; display: none; z-index: 50; pointer-events: none;
+    }
+    
+    /* 学習用・解説モーダル */
+    #explanation-modal { pointer-events: auto; z-index: 85; background: rgba(0,0,0,0.9); }
+    .exp-box {
+        background: #fff; color: #333; padding: 25px; border-radius: 15px; max-width: 700px; width: 90%;
+        text-align: left; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 6px solid #4CAF50;
+        max-height: 80vh; overflow-y: auto;
+    }
+    .exp-header { font-size: 36px; font-weight: bold; color: #4CAF50; text-align: center; margin-bottom: 10px; border-bottom: 2px solid #ddd; padding-bottom: 10px;}
+    .exp-q-text { font-size: 16px; color: #666; margin-bottom: 5px; font-weight: bold; }
+    .exp-content { font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #000; }
+    .exp-ans-label { color: #d32f2f; font-weight: bold; margin-right: 10px; }
+    .exp-body { background: #f1f8e9; padding: 15px; border-radius: 8px; font-size: 18px; line-height: 1.6; margin-bottom: 20px; }
+
+    /* 結果画面 */
+    #result-screen { background: rgba(0,0,0,0.95); pointer-events: auto; z-index: 90; }
+    .result-title { font-size: 60px; font-weight: 900; margin-bottom: 10px; }
+    .clear-text { color: #76ff03; text-shadow: 0 0 20px #76ff03; }
+    .over-text { color: #ff1744; text-shadow: 0 0 20px #ff1744; }
+    #result-msg { font-size: 28px; font-weight: bold; margin-bottom: 10px; color: #fff; text-shadow: 1px 1px 5px #000; }
+    
+    #result-exp-area {
+        background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; 
+        margin-bottom: 20px; max-width: 700px; width: 90%;
+        font-size: 18px; line-height: 1.5; border: 2px solid #777; color: #eee; text-align: left;
+        max-height: 40vh; overflow-y: auto;
+    }
+    
+    .button-row {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        gap: 20px;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .exp-media-display { max-width: 300px; max-height: 200px; display: block; margin: 5px 0 10px 0; border:1px solid #ddd; }
+    .exp-audio-display { width: 100%; margin: 5px 0 10px 0; }
+</style>
+</head>
+<body>
+
+<div id="title-screen" class="ui-layer active">
+    <div class="title-content-wrapper">
+        <h1>小半洞窟クエスト</h1>
+        <p class="sub-title">最近、発見された<br>小半（おながら）洞窟を探検だ！</p>
+        
+        <div class="preset-area">
+            <p style="margin-bottom:10px; font-size:18px;">▼ 問題と設定</p>
+            
+            <label>⏱️</label>
+            <select id="time-select" onchange="updateSettings()">
+                <option value="5">5秒</option>
+                <option value="10">10秒</option>
+                <option value="20">20秒</option>
+            </select>
+            
+            <br>
+
+            <select id="cat-select" onchange="filterFileDropdown()">
+                <option value="ALL">【全て】</option>
+            </select>
+            <select id="preset-select"><option>リスト読み込み中...</option></select>
+            <br>
+            <button class="btn" onclick="requestPermissionAndStart('preset')">この問題でスタート</button>
+            <button class="btn btn-dl" onclick="downloadSelectedPreset()">📥 保存</button>
+        </div>
+
+        <div class="footer-row">
+            <button class="btn btn-sub btn-small" onclick="document.getElementById('file-input').click()">📂 ファイル選択</button>
+            <input type="file" id="file-input" accept=".xlsx, .xls" onchange="loadExcel(this)">
+
+            <button class="btn btn-sub btn-small" style="background:#555;" onclick="downloadSample()">📄 サンプルDL</button>
+
+            <div id="warning-msg">⚠️ 危険な探検禁止</div>
+        </div>
+    </div>
+</div>
+
+<div id="pre-game-overlay" class="ui-layer">
+    <div id="start-countdown"></div>
+</div>
+
+<div id="game-hud" class="ui-layer">
+    <div id="question-box">
+        <span id="q-counter"></span>
+        <div class="media-container">
+            <img id="question-image" src="" alt="問題画像">
+            <video id="question-video" controls playsinline></video>
+            <audio id="question-audio" controls></audio>
+        </div>
+        <div id="question-text"></div>
+        <div id="timer-display">5</div>
+    </div>
+    <div id="feedback-msg">NICE!</div>
+    <div id="options-area">
+        <div id="opt-left" class="option-card" onclick="choosePath('left')">選択肢1</div>
+        <div id="opt-right" class="option-card" onclick="choosePath('right')">選択肢2</div>
+    </div>
+</div>
+
+<div id="explanation-modal" class="ui-layer">
+    <div class="exp-box">
+        <div class="exp-header">正解！！</div>
+        
+        <div class="exp-q-text">【問題】</div>
+        <div id="exp-q-display" class="exp-content"></div>
+        
+        <img id="exp-img-modal" class="exp-media-display" style="display:none;">
+        <video id="exp-video-modal" class="exp-media-display" controls style="display:none;"></video>
+        <audio id="exp-audio-modal" class="exp-audio-display" controls style="display:none;"></audio>
+        
+        <div class="exp-q-text">【正解】</div>
+        <div class="exp-content">
+            <span class="exp-ans-label">⭕️</span>
+            <span id="exp-a-display"></span>
+        </div>
+        
+        <div class="exp-q-text">【解説】</div>
+        <div id="exp-text-correct" class="exp-body"></div>
+        
+        <div style="text-align:center;">
+            <button class="btn" onclick="resumeGame()">次の問題へ進む</button>
+        </div>
+    </div>
+</div>
+
+<div id="result-screen" class="ui-layer">
+    <div id="result-title" class="result-title"></div>
+    <div id="result-msg"></div>
+    <div id="result-exp-area"></div>
+    
+    <div class="button-row">
+        <button id="btn-retry" class="btn" onclick="retryGame()">再挑戦</button>
+        <button class="btn btn-sub" onclick="backToTitle()">タイトル</button>
+    </div>
+</div>
+
+
+<script>
+    // --- ★設定エリア★ ---
+    const MAX_SPEED = 0.8;      
+    const TURN_SPEED = 0.2;     
+    const FPS_LIMIT = 60;       
+    // -------------------
+
+    let allQuestions = [], currentQuestions = [], qIndex = 0;
+    let gameState = "TITLE"; 
+    
+    let timerInterval;     // クイズ回答中のタイマー
+    let countdownInterval; // ★スタート前のカウントダウン用タイマー（重複防止用）
+
+    let timeLimitSetting = 5; 
+    let timeLeft = 5;
+
+    let currentOptionMapping = { left: null, right: null };
+    let allFileList = [];
+    
+    // ジャイロ制御用
+    let isGyroActive = false;
+    let currentTiltValue = 0;
+
+    function updateSettings() {
+        const val = document.getElementById('time-select').value;
+        timeLimitSetting = parseInt(val, 10);
+    }
+
+    window.onload = function() {
+        const select = document.getElementById('preset-select');
+        fetch('./dat/filelist.txt')
+            .then(res => {
+                if(!res.ok) { select.innerHTML = '<option>リスト読み込み失敗</option>'; throw new Error("filelist missing"); }
+                return res.text();
+            })
+            .then(text => {
+                const lines = text.split(/\r\n|\n/);
+                allFileList = [];
+                lines.forEach(line => {
+                    const name = line.trim();
+                    if(name) allFileList.push(name);
+                });
+
+                if(allFileList.length === 0) {
+                    select.innerHTML = '<option>問題がありません</option>';
+                    return;
+                }
+                
+                const categories = new Set();
+                allFileList.forEach(name => {
+                    if(name.length >= 2) categories.add(name.substring(0, 2));
+                });
+                const catSelect = document.getElementById('cat-select');
+                catSelect.innerHTML = '<option value="ALL">【全て】</option>';
+                Array.from(categories).sort().forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat; opt.textContent = cat;
+                    catSelect.appendChild(opt);
+                });
+                updateFileDropdown("ALL");
+            })
+            .catch(err => { console.error(err); });
+    };
+
+    function filterFileDropdown() {
+        updateFileDropdown(document.getElementById('cat-select').value);
+    }
+
+    function updateFileDropdown(category) {
+        const fileSelect = document.getElementById('preset-select');
+        fileSelect.innerHTML = ''; 
+        let filteredList = (category === "ALL") ? allFileList : allFileList.filter(name => name.startsWith(category));
+        
+        if (filteredList.length === 0) {
+            const opt = document.createElement('option'); opt.textContent = "(該当ファイルなし)"; fileSelect.appendChild(opt);
+        } else {
+            filteredList.forEach(name => {
+                const opt = document.createElement('option'); opt.value = name + ".xlsx"; opt.textContent = name; fileSelect.appendChild(opt);
+            });
+        }
+    }
+
+    function downloadSample() {
+        const data = [
+            ["カテゴリ", "問題", "選択肢1", "選択肢2", "正解", "解説", "画像", "音声", "動画"],
+            ["社会", "記号は何？", "工場", "発電所", "2", "発電所です。", "hatsudensho.jpg", "", ""],
+            ["英語", "何を言ってる？", "りんご", "みかん", "1", "Appleと言っています。", "apple.jpg", "apple.mp3", ""],
+            ["理科", "この実験は？", "酸化", "還元", "1", "燃焼実験です。", "", "", "jikken.mp4"]
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "問題");
+        XLSX.writeFile(wb, "小半洞窟クエスト_サンプル.xlsx");
+    }
+
+    // --- 起動フロー統合 ---
+    
+    function requestPermissionAndStart(mode) {
+        // ジャイロ許可リクエスト (iOS対応)
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(response => {
+                    if (response === 'granted') {
+                        isGyroActive = true;
+                        window.addEventListener('deviceorientation', handleGyro);
+                    }
+                    if(mode === 'preset') loadPresetFile(); 
+                })
+                .catch(e => {
+                    console.log("Gyro error: " + e);
+                    // 許可されなくてもゲームは進める
+                    if(mode === 'preset') loadPresetFile();
+                });
+        } else {
+            // Android等
+            isGyroActive = true;
+            window.addEventListener('deviceorientation', handleGyro);
+            if(mode === 'preset') loadPresetFile();
+        }
+    }
+
+    function loadPresetFile() {
+        const fileName = document.getElementById('preset-select').value;
+        if(!fileName || fileName.indexOf('.xlsx') === -1) return;
+        fetch('./dat/' + fileName)
+            .then(res => { if(!res.ok) throw new Error("File not found"); return res.arrayBuffer(); })
+            .then(data => { parseExcelData(new Uint8Array(data)); })
+            .catch(err => { alert("エラー: " + err.message + "\n※Webサーバー経由で実行してください。"); });
+    }
+
+    function downloadSelectedPreset() {
+        const fileName = document.getElementById('preset-select').value;
+        if(!fileName || fileName.indexOf('.xlsx') === -1) return;
+        const link = document.createElement('a'); link.href = './dat/' + fileName; link.download = fileName;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function loadExcel(input) {
+        const file = input.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) { parseExcelData(new Uint8Array(e.target.result)); };
+        reader.readAsArrayBuffer(file); input.value = ""; 
+    }
+
+    function parseExcelData(data) {
+        try {
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
+            json.shift(); 
+            allQuestions = json.map(row => {
+                if(!row || row.length < 5) return null;
+                return { 
+                    cat: row[0], q: row[1], o1: row[2], o2: row[3], a: row[4], 
+                    exp: row[5] || "解説はありません", 
+                    img: row[6] || null, 
+                    audio: row[7] || null, 
+                    video: row[8] || null 
+                };
+            }).filter(i => i);
+            if(allQuestions.length === 0) { alert("データが空です"); return; }
+            prepareGame();
+        } catch(err) { alert("読み込みエラー: " + err); }
+    }
+
+    // --- ゲームロジック ---
+    function prepareGame() {
+        if (allQuestions.length === 0) return;
+        let shuffled = allQuestions.slice().sort(() => Math.random() - 0.5);
+        currentQuestions = shuffled.slice(0, Math.min(shuffled.length, 10)); 
+        qIndex = 0;
+        
+        updateSettings();
+        
+        reset3DGame();
+        
+        switchLayer('pre-game-overlay');
+        
+        gameState = "PRE_RUN"; 
+        speed = MAX_SPEED; 
+        
+        startCountdown();
+    }
+    
+    function startCountdown() {
+        // ★修正点: 既存のタイマーが動いていたら止める（連打対策）
+        if(countdownInterval) clearInterval(countdownInterval);
+
+        let count = 5;
+        const el = document.getElementById('start-countdown');
+        el.textContent = count;
+        el.style.display = "block";
+
+        countdownInterval = setInterval(() => {
+            count--;
+            if(count > 0) {
+                el.textContent = count;
+            } else {
+                clearInterval(countdownInterval);
+                el.textContent = "GO!";
+                
+                setTimeout(() => {
+                    el.style.display = "none";
+                    startQuizFlow();
+                }, 500);
+            }
+        }, 1000);
+    }
+
+    function startQuizFlow() {
+        switchLayer('game-hud');
+        setupQuestion();
+        preRunGroup.visible = false;
+        tunnelGroup.visible = true;
+        playerGroup.position.z = 80;
+        gameState = "RUNNING";
+        speed = MAX_SPEED;
+    }
+    
+    function handleGyro(e) {
+        let tilt = 0;
+        if(window.innerWidth > window.innerHeight) {
+             tilt = e.beta; 
+        } else {
+             tilt = e.gamma;
+        }
+        
+        if(tilt > 45) tilt = 45;
+        if(tilt < -45) tilt = -45;
+        currentTiltValue = tilt;
+
+        if(gameState === "WAITING") {
+            if(tilt > 20) {
+                choosePath('right');
+            } else if(tilt < -20) {
+                choosePath('left');
+            }
+        }
+    }
+
+    function retryGame() {
+        qIndex = 0;
+        reset3DGame();
+        switchLayer('pre-game-overlay');
+        gameState = "PRE_RUN";
+        speed = MAX_SPEED;
+        startCountdown();
+    }
+    
+    function stopAllMedia() {
+        const audios = document.querySelectorAll('audio');
+        const videos = document.querySelectorAll('video');
+        audios.forEach(a => { a.pause(); a.currentTime = 0; });
+        videos.forEach(v => { v.pause(); v.currentTime = 0; });
+    }
+
+    function setupQuestion() {
+        stopAllMedia();
+
+        const q = currentQuestions[qIndex];
+        document.getElementById('q-counter').textContent = `Q.${qIndex+1} / ${currentQuestions.length}`;
+        document.getElementById('question-text').textContent = q.q;
+        
+        const imgEl = document.getElementById('question-image');
+        const vidEl = document.getElementById('question-video');
+        const audEl = document.getElementById('question-audio');
+        
+        if(q.img) { imgEl.src = "./dat/" + q.img; imgEl.style.display = "block"; } else { imgEl.style.display = "none"; imgEl.src = ""; }
+        if(q.video) { vidEl.src = "./dat/" + q.video; vidEl.style.display = "block"; } else { vidEl.style.display = "none"; vidEl.src = ""; }
+        if(q.audio) { audEl.src = "./dat/" + q.audio; audEl.style.display = "block"; } else { audEl.style.display = "none"; audEl.src = ""; }
+
+        const options = [ { text: q.o1, val: "1" }, { text: q.o2, val: "2" } ];
+        if (Math.random() < 0.5) options.reverse();
+        document.getElementById('opt-left').textContent = options[0].text;
+        document.getElementById('opt-right').textContent = options[1].text;
+        currentOptionMapping = { left: options[0].val, right: options[1].val };
+        
+        document.getElementById('question-box').style.opacity = 0; 
+        document.getElementById('options-area').style.pointerEvents = 'none';
+        document.getElementById('options-area').style.opacity = 0;
+        document.getElementById('feedback-msg').style.display = 'none';
+        document.getElementById('timer-display').style.display = 'none';
+    }
+
+    function startTimer() {
+        timeLeft = timeLimitSetting;
+        const el = document.getElementById('timer-display');
+        updateTimerDisplay(el, timeLeft);
+        el.style.display = 'block';
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay(el, timeLeft);
+            if(timeLeft <= 0) { clearInterval(timerInterval); triggerTimeOut(); }
+        }, 1000);
+    }
+
+    function updateTimerDisplay(el, time) {
+        el.textContent = time; el.className = ""; 
+        if (time > 3) el.classList.add("timer-blue");
+        else if (time > 1) el.classList.add("timer-yellow");
+        else el.classList.add("timer-red");
+    }
+
+    function stopTimer() { clearInterval(timerInterval); document.getElementById('timer-display').style.display = 'none'; }
+
+    function triggerTimeOut() {
+        stopAllMedia();
+        document.getElementById('question-box').style.opacity = 0;
+        document.getElementById('options-area').style.opacity = 0;
+        gameState = "DERAIL";
+        const q = currentQuestions[qIndex];
+        const correctText = (String(q.a) == "1") ? q.o1 : q.o2;
+        const failMsg = "時間切れ...";
+        const qData = { q: q.q, correctText: correctText, exp: q.exp, img: q.img, audio: q.audio, video: q.video };
+        setTimeout(() => { showResultScreen(false, failMsg, "GAME OVER", qData); gameState = "GAMEOVER"; }, 2500); 
+    }
+
+    function checkAnswer(side) {
+        const q = currentQuestions[qIndex];
+        const ansVal = String(q.a).trim().replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+        const userVal = currentOptionMapping[side];
+        return (ansVal === userVal);
+    }
+
+    function backToTitle() { 
+        stopAllMedia();
+        switchLayer('title-screen'); gameState = "TITLE"; 
+    }
+
+    function switchLayer(id) {
+        document.querySelectorAll('.ui-layer').forEach(l => l.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function showCorrectModal() {
+        const q = currentQuestions[qIndex];
+        const correctText = (String(q.a) == "1") ? q.o1 : q.o2;
+        
+        document.getElementById('exp-q-display').textContent = q.q;
+        document.getElementById('exp-a-display').textContent = correctText;
+        document.getElementById('exp-text-correct').textContent = q.exp;
+        
+        const expImg = document.getElementById('exp-img-modal');
+        const expVid = document.getElementById('exp-video-modal');
+        const expAud = document.getElementById('exp-audio-modal');
+
+        if(q.img) { expImg.src = "./dat/" + q.img; expImg.style.display = "block"; } else { expImg.style.display = "none"; }
+        if(q.video) { expVid.src = "./dat/" + q.video; expVid.style.display = "block"; } else { expVid.style.display = "none"; }
+        if(q.audio) { expAud.src = "./dat/" + q.audio; expAud.style.display = "block"; } else { expAud.style.display = "none"; }
+        
+        switchLayer('explanation-modal');
+    }
+
+    function resumeGame() {
+        stopAllMedia();
+        switchLayer('game-hud'); 
+        playerGroup.position.set(0, 0, 0); 
+        deadL.visible = false; deadR.visible = false;
+        qIndex++;
+        if(qIndex >= currentQuestions.length) {
+            gameState = "EXITING";
+            exitWall.position.set(0, 0, playerGroup.position.z - 150);
+            exitWall.visible = true;
+            speed = MAX_SPEED;
+        } else {
+            setupQuestion(); 
+            gameState = "RUNNING";
+            speed = MAX_SPEED;
+        }
+    }
+
+    function showResultScreen(isClear, msg, title, qData = null) {
+        switchLayer('result-screen');
+        const tEl = document.getElementById('result-title');
+        const mEl = document.getElementById('result-msg');
+        const eEl = document.getElementById('result-exp-area');
+        tEl.textContent = title;
+        tEl.className = isClear ? "result-title clear-text" : "result-title over-text";
+        mEl.innerHTML = msg;
+        
+        if (qData) {
+            let mediaHtml = "";
+            if(qData.img) mediaHtml += `<img src="./dat/${qData.img}" class="exp-media-display">`;
+            if(qData.video) mediaHtml += `<video src="./dat/${qData.video}" controls class="exp-media-display"></video>`;
+            if(qData.audio) mediaHtml += `<audio src="./dat/${qData.audio}" controls class="exp-audio-display"></audio>`;
+            
+            eEl.innerHTML = `
+                <div style="font-size:16px; color:#aaa; margin-bottom:4px;">【問題】</div>
+                ${mediaHtml}
+                <div style="font-size:22px; font-weight:bold; margin-bottom:15px;">${qData.q}</div>
+                <div style="font-size:16px; color:#aaa; margin-bottom:4px;">【正解】</div>
+                <div style="font-size:28px; font-weight:bold; color:#ffeb3b; margin-bottom:15px;">${qData.correctText}</div>
+                <div style="font-size:16px; color:#aaa; margin-bottom:4px;">【解説】</div>
+                <div style="font-size:18px; line-height:1.5;">${qData.exp}</div>
+            `;
+            eEl.style.display = "block";
+        } else {
+            eEl.style.display = "none";
+        }
+    }
+
+    // --- Three.js Setup ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050505); 
+    const fog = new THREE.Fog(0x050505, 5, 60);
+    scene.fog = fog;
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const tunnelGroup = new THREE.Group();
+    const preRunGroup = new THREE.Group();
+    const playerGroup = new THREE.Group();
+    const gemRoomGroup = new THREE.Group();
+    const exitWall = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, fog: false }));
+    exitWall.visible = false;
+
+    scene.add(tunnelGroup); scene.add(preRunGroup); scene.add(playerGroup); scene.add(gemRoomGroup); scene.add(exitWall);
+    gemRoomGroup.visible = false; tunnelGroup.visible = false; 
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.25)); 
+    
+    const spotLight = new THREE.SpotLight(0xffddaa, 4.0, 60, Math.PI/4, 0.5, 1);
+    spotLight.position.set(0, 2, 0); 
+    spotLight.target.position.set(0, 0, -20);
+    playerGroup.add(spotLight); playerGroup.add(spotLight.target);
+    const pointLight = new THREE.PointLight(0xffaa00, 2.5, 8);
+    pointLight.position.set(0, 1.5, 0); playerGroup.add(pointLight);
+
+    const cartMat = new THREE.MeshLambertMaterial({ color: 0x5D4037 });
+    const cart = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 1.8), cartMat);
+    cart.position.y = 0.4; playerGroup.add(cart);
+    const pHead = new THREE.Mesh(new THREE.SphereGeometry(0.35), new THREE.MeshLambertMaterial({color:0xffff00}));
+    pHead.position.set(0, 1.1, 0); playerGroup.add(pHead);
+    const pBody = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.4), new THREE.MeshLambertMaterial({color:0x2196f3}));
+    pBody.position.set(0, 0.6, 0); playerGroup.add(pBody);
+    camera.position.set(0, 2.5, 4.5); camera.lookAt(0, 1.0, -5); playerGroup.add(camera);
+
+    const matWall = new THREE.MeshLambertMaterial({ color: 0x886644 }); 
+    const matFloor = new THREE.MeshLambertMaterial({ color: 0x222222 });
+    const matRail = new THREE.MeshLambertMaterial({ color: 0xaaaaaa });
+    const matDead = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+
+    function createStraightTunnel(group) {
+        for(let z=20; z > -400; z-=5) {
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(16, 0.2, 5.1), matFloor);
+            floor.position.set(0, -0.1, z); group.add(floor);
+            const ceil = floor.clone(); ceil.position.y = 7; group.add(ceil);
+            const wL = new THREE.Mesh(new THREE.BoxGeometry(1, 7, 5.1), matWall);
+            wL.position.set(-7, 3.5, z); group.add(wL);
+            const wR = wL.clone(); wR.position.set(7, 3.5, z); group.add(wR);
+        }
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.1,420), matRail);
+        rail.position.set(0, 0.05, -190); group.add(rail);
+    }
+    createStraightTunnel(preRunGroup);
+
+    for(let z=100; z > -250; z-=5) { 
+        const floor = new THREE.Mesh(new THREE.BoxGeometry(16, 0.2, 5.1), matFloor);
+        floor.position.set(0, -0.1, z); tunnelGroup.add(floor);
+        const ceil = floor.clone(); ceil.position.y = 7; tunnelGroup.add(ceil);
+        const wL = new THREE.Mesh(new THREE.BoxGeometry(1, 7, 5.1), matWall);
+        wL.position.set(-7, 3.5, z); tunnelGroup.add(wL);
+        const wR = wL.clone(); wR.position.set(7, 3.5, z); tunnelGroup.add(wR);
+    }
+    
+    const rStart = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.1,130), matRail); 
+    rStart.position.set(0, 0.05, 25); tunnelGroup.add(rStart);
+    createRailSegment(-30, -50, 0, -3); createRailSegment(-30, -50, 0, 3);
+    createRailRect(-3, -50, -100); createRailRect(3, -50, -100);
+    createRailSegment(-100, -120, -3, 0); createRailSegment(-100, -120, 3, 0);
+    const rEnd = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.1,130), matRail);
+    rEnd.position.set(0, 0.05, -185); tunnelGroup.add(rEnd);
+
+    const boxL = new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5), new THREE.MeshBasicMaterial({color:0x0088ff}));
+    boxL.position.set(-3, 2, -50); tunnelGroup.add(boxL);
+    const boxR = new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5), new THREE.MeshBasicMaterial({color:0xffaa00}));
+    boxR.position.set(3, 2, -50); tunnelGroup.add(boxR);
+
+    const deadL = createDeadEnd(-3, -102);
+    const deadR = createDeadEnd(3, -102);
+
+    function createRailSegment(z1, z2, x1, x2) {
+        const len = Math.sqrt((z2-z1)**2 + (x2-x1)**2);
+        const ang = Math.atan2(x2-x1, z2-z1);
+        const r = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.1,len), matRail);
+        r.position.set((x1+x2)/2, 0.05, (z1+z2)/2); r.rotation.y = ang; tunnelGroup.add(r);
+    }
+    function createRailRect(x, zStart, zEnd) {
+        const len = Math.abs(zEnd - zStart);
+        const r = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.1,len), matRail);
+        r.position.set(x, 0.05, (zStart+zEnd)/2); tunnelGroup.add(r);
+    }
+    function createDeadEnd(x, z) {
+        const g = new THREE.Group();
+        const w = new THREE.Mesh(new THREE.BoxGeometry(2.5, 4, 0.5), matDead);
+        w.position.set(x, 2, z); g.add(w);
+        const b1 = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.2,0.6), new THREE.MeshBasicMaterial({color:0x000000}));
+        b1.position.set(x,2,z+0.3); b1.rotation.z=Math.PI/4; g.add(b1);
+        const b2 = b1.clone(); b2.rotation.z=-Math.PI/4; g.add(b2);
+        g.visible = false; tunnelGroup.add(g);
+        return g;
+    }
+
+    function setupGemRoom() {
+        gemRoomGroup.visible = true;
+        const colors = [0xffff00, 0xff0000, 0xffffff, 0x0000ff, 0x00ff00, 0x800080];
+        const geo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const baseX = playerGroup.position.x;
+        const baseZ = playerGroup.position.z - 20;
+        for(let i=0; i<500; i++) {
+            const mat = new THREE.MeshPhongMaterial({color: colors[Math.floor(Math.random()*colors.length)], specular: 0xffffff, shininess: 100, emissive: 0x333333});
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(baseX + (Math.random()-0.5)*20, Math.random()*1.5, baseZ + (Math.random()-0.5)*20);
+            mesh.rotation.set(Math.random(), Math.random(), Math.random());
+            gemRoomGroup.add(mesh);
+        }
+        const roomMat = new THREE.MeshPhongMaterial({color: 0xFFD700, specular: 0xffffff, shininess: 80});
+        const floor = new THREE.Mesh(new THREE.BoxGeometry(60, 0.1, 60), roomMat);
+        floor.position.set(baseX, -0.5, baseZ); gemRoomGroup.add(floor);
+        const wallBack = new THREE.Mesh(new THREE.BoxGeometry(60, 30, 1), roomMat);
+        wallBack.position.set(baseX, 15, baseZ - 30); gemRoomGroup.add(wallBack);
+        const brightLight = new THREE.PointLight(0xffffff, 1.2, 100);
+        brightLight.position.set(baseX, 20, baseZ); gemRoomGroup.add(brightLight);
+    }
+
+    let speed = 0, targetX = 0, bankAngle = 0, isCorrectPath = true, frameCount = 0;
+    const STOP_Z = -25, SPLIT_END = -50, MERGE_START = -100, LOOP_Z = -160;
+
+    function reset3DGame() {
+        preRunGroup.visible = true; tunnelGroup.visible = false;
+        while(gemRoomGroup.children.length > 0){ gemRoomGroup.remove(gemRoomGroup.children[0]); }
+        gemRoomGroup.visible = false; exitWall.visible = false; 
+        playerGroup.position.set(0, 0, 0); playerGroup.rotation.set(0, 0, 0);
+        bankAngle = 0; speed = 0; deadL.visible = false; deadR.visible = false;
+        camera.position.set(0, 2.5, 4.5); camera.rotation.set(0, 0, 0); camera.lookAt(0, 1.0, -5);
+        playerGroup.add(camera);
+        scene.fog = fog; 
+    }
+
+    function showFeedback() {
+        const msgs = ["ナイス！", "正解！", "お見事！", "セーフ！", "名推理！", "やったね！"];
+        const msg = msgs[Math.floor(Math.random() * msgs.length)];
+        const el = document.getElementById('feedback-msg');
+        el.textContent = msg; el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 1500);
+    }
+
+    function getClearMessage() {
+        const msgs = ["やったね✨️ 大成功！", "すごい！ 伝説の探検家だ！", "お宝ザクザク！ 大金持ち！", "無事に生還！ おめでとう！", "全問クリア！ 天才かも！？"];
+        return msgs[Math.floor(Math.random() * msgs.length)];
+    }
+
+    window.choosePath = function(side) {
+        if(gameState !== "WAITING") return;
+        
+        stopAllMedia();
+        
+        stopTimer();
+        document.getElementById('question-box').style.opacity = 0;
+        document.getElementById('options-area').style.opacity = 0;
+        
+        const isCorrect = checkAnswer(side);
+        isCorrectPath = isCorrect;
+        
+        if (side === 'left') { targetX = -3; if(!isCorrect) deadL.visible = true; else deadR.visible = true; } 
+        else { targetX = 3; if(!isCorrect) deadR.visible = true; else deadL.visible = true; }
+        
+        if(isCorrect) showFeedback();
+        
+        gameState = "TURNING"; speed = TURN_SPEED;
+    };
+
+    let lastFrameTime = 0;
+    const fpsInterval = 1000 / FPS_LIMIT;
+
+    function animate(timestamp) {
+        requestAnimationFrame(animate);
+
+        const elapsed = timestamp - lastFrameTime;
+        if (elapsed < fpsInterval) return;
+        lastFrameTime = timestamp - (elapsed % fpsInterval);
+        
+        frameCount++;
+
+        if(gameState === "TITLE" || gameState === "GAMEOVER" || gameState === "EXPLAIN") return;
+
+        if(gameState === "CLEAR" || gameState === "CLEAR_WAIT") {
+            const r = 25; 
+            const camX = playerGroup.position.x + r * Math.sin(frameCount * 0.003);
+            const camZ = playerGroup.position.z - 20 + r * Math.cos(frameCount * 0.003);
+            camera.position.set(camX, 10, camZ); 
+            camera.lookAt(playerGroup.position.x, 0, playerGroup.position.z - 20); 
+            return;
+        }
+
+        if(speed > 0) playerGroup.position.y = 0.4 + Math.sin(frameCount*0.6)*0.01;
+        const z = playerGroup.position.z;
+
+        if (gameState === "PRE_RUN") {
+            playerGroup.position.z -= speed;
+            if (z < -380) playerGroup.position.set(0, 0, 0);
+        }
+        else if (gameState === "RUNNING") {
+            playerGroup.position.z -= speed;
+            if (z <= STOP_Z) {
+                playerGroup.position.z = STOP_Z; speed = 0; gameState = "WAITING";
+                document.getElementById('question-box').style.opacity = 1;
+                document.getElementById('options-area').style.pointerEvents = 'auto';
+                document.getElementById('options-area').style.opacity = 1;
+                startTimer();
+            } else if (z < -15) speed = Math.max(0.05, speed * 0.95);
+        }
+        else if (gameState === "WAITING") {
+            if(isGyroActive) {
+                playerGroup.rotation.z = -currentTiltValue * (Math.PI / 180);
+                camera.rotation.z = -currentTiltValue * (Math.PI / 180) * 0.5;
+            }
+        }
+        else if (gameState === "DERAIL") {
+            if (Math.abs(playerGroup.rotation.z) < 0.5) {
+                playerGroup.rotation.z += 0.01; playerGroup.rotation.y += 0.005; playerGroup.position.y -= 0.002;
+            }
+        }
+        else if (gameState === "EXITING") {
+            playerGroup.position.z -= speed;
+            if(playerGroup.position.z < exitWall.position.z + 5) {
+                gameState = "CLEAR";
+                tunnelGroup.visible = false; exitWall.visible = false; setupGemRoom(); scene.fog = null; 
+                gameState = "CLEAR_WAIT";
+                const clearMsg = getClearMessage();
+                setTimeout(() => { showResultScreen(true, clearMsg, "GAME CLEAR!!", null); }, 2000);
+            }
+        }
+        else if (gameState === "TURNING") {
+            if(speed < MAX_SPEED) speed += 0.02;
+            playerGroup.position.z -= speed;
+
+            if (z > SPLIT_END) {
+                playerGroup.position.x += (targetX - playerGroup.position.x) * 0.1;
+                bankAngle += ((targetX > 0 ? -0.6 : 0.6) - bankAngle) * 0.1;
+                
+            } else if (z > MERGE_START) {
+                if(!isCorrectPath && z < -95) {
+                    speed = 0; playerGroup.rotation.x = -0.2;
+                    gameState = "CRASH_WAIT";
+                    const q = currentQuestions[qIndex];
+                    const correctText = (String(q.a) == "1") ? q.o1 : q.o2;
+                    const failMsg = "残念... 壁に激突！";
+                    const qData = { q: q.q, correctText: correctText, exp: q.exp, img: q.img, audio: q.audio, video: q.video };
+                    setTimeout(() => { showResultScreen(false, failMsg, "GAME OVER", qData); gameState = "GAMEOVER"; }, 2000);
+                    return;
+                }
+                bankAngle += (0 - bankAngle) * 0.1;
+                playerGroup.position.x = targetX;
+            } else if (z > -120) {
+                playerGroup.position.x += (0 - playerGroup.position.x) * 0.1;
+                bankAngle += ((targetX > 0 ? 0.6 : -0.6) - bankAngle) * 0.1;
+            } else {
+                bankAngle += (0 - bankAngle) * 0.1;
+                playerGroup.position.x = 0;
+                if (z < LOOP_Z) {
+                    gameState = "EXPLAIN";
+                    speed = 0; 
+                    showCorrectModal();
+                }
+            }
+            playerGroup.rotation.z = bankAngle;
+            playerGroup.rotation.y = -bankAngle * 0.8;
+            camera.rotation.z = bankAngle * 0.3;
+        } else {
+            camera.rotation.z += (0 - camera.rotation.z) * 0.1;
+        }
+        renderer.render(scene, camera);
+    }
+    requestAnimationFrame(animate);
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth/window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+</script>
+</body>
+</html>

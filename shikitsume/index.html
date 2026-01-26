@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>しきつめーる v15（回転修正版）</title>
+    <style>
+        /* --- 基本設定 --- */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+            display: flex;
+            height: 100vh;
+            height: 100dvh; 
+        }
+
+        /* --- 左側：サイドバー --- */
+        #sidebar {
+            width: 280px;
+            background-color: #ffffff;
+            border-right: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 20;
+            height: 100%;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        #sidebar.drag-over-delete {
+            background-color: #ffebee;
+        }
+        
+        #sidebar.drag-over-delete::after {
+            content: "🗑️";
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            pointer-events: none;
+            opacity: 0.6;
+            background: transparent;
+            border: none;
+            width: auto;
+            padding: 0;
+        }
+
+        /* サイドバー上部 */
+        .sidebar-header {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .control-btn:active { background: #eee; }
+        .btn-undo { color: #555; }
+        .btn-clear { color: #d32f2f; }
+
+        /* サイドバー中央（メニュー） */
+        #menu-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            min-height: 0;
+        }
+
+        /* サイドバー下部 */
+        .sidebar-footer {
+            padding: 15px;
+            padding-bottom: 40px; 
+            border-top: 1px solid #ddd;
+            background-color: #fafafa;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+
+        .current-shape-display {
+            width: 100%;
+            height: 100px; 
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .current-shape-display:active {
+            background-color: #e3f2fd;
+            border-color: #2196F3;
+        }
+
+        .current-shape-label {
+            position: absolute;
+            top: -8px;
+            left: 10px;
+            background: #fafafa;
+            padding: 0 5px;
+            font-size: 11px;
+            color: #888;
+        }
+
+        /* 編集ボタン（鉛筆） */
+        #btn-edit-shape {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 36px;
+            height: 36px;
+            background: #FF9800;
+            color: white;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-size: 18px;
+            display: none; 
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+        }
+        #btn-edit-shape:active { transform: scale(0.95); background: #F57C00; }
+
+        .toggle-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #ccc;
+            background: #fff;
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .toggle-btn.active {
+            background-color: #fff9c4;
+            border-color: #fbc02d;
+            color: #333;
+        }
+
+        /* --- メニューアイテム --- */
+        .menu-category { margin-bottom: 20px; }
+        .category-title {
+            font-size: 16px; color: #555; margin-bottom: 8px;
+            font-weight: bold; border-left: 4px solid #ddd; padding-left: 8px;
+        }
+        .shape-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+        .shape-select-btn {
+            aspect-ratio: 1.2;
+            background: #fff; border: 1px solid #ddd; border-radius: 8px;
+            cursor: pointer; position: relative;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 5px;
+        }
+        .shape-select-btn:hover { border-color: #aaa; }
+        .shape-select-btn.selected {
+            background-color: #e3f2fd; border-color: #2196F3; box-shadow: 0 0 0 1px #2196F3;
+        }
+        .shape-select-btn canvas { max-width: 90%; max-height: 80%; }
+        .shape-name-sub { display: none; }
+
+        /* --- 右側：キャンバスエリア --- */
+        #canvas-area {
+            flex-grow: 1; position: relative;
+            background-color: #fff; overflow: hidden;
+        }
+        canvas { display: block; }
+
+        .dragging-overlay {
+            position: fixed; pointer-events: none; z-index: 9999;
+            opacity: 0.9; filter: drop-shadow(5px 5px 10px rgba(0,0,0,0.3));
+        }
+
+        /* --- ダイアログ共通 --- */
+        .overlay-base {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none;
+            align-items: center; justify-content: center; z-index: 10000;
+        }
+
+        #dialog-overlay {
+            z-index: 12000; /* エディタより手前に表示 */
+        }
+
+        .dialog-box {
+            background: white; padding: 25px; border-radius: 12px;
+            text-align: center; width: 320px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .dialog-msg { font-size: 16px; margin-bottom: 25px; line-height: 1.6; }
+        .dialog-btns { display: flex; justify-content: space-around; gap: 10px; }
+        .dialog-btn {
+            flex: 1; padding: 12px; border-radius: 6px; border: none;
+            cursor: pointer; font-weight: bold; font-size: 14px;
+        }
+        .btn-yes { background: #2196F3; color: white; }
+        .btn-no { background: #eee; color: #333; }
+
+        /* --- 図形編集エディタ --- */
+        #editor-box {
+            width: 90%; max-width: 500px; height: 80%;
+            display: flex; flex-direction: column;
+            background: white; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        #editor-header {
+            padding: 15px; background: #eee; text-align: center;
+            font-weight: bold; color: #555;
+        }
+        #editor-canvas-container {
+            flex-grow: 1; position: relative; background: #fff;
+            background-image: radial-gradient(#ddd 1px, transparent 1px);
+            background-size: 20px 20px;
+            touch-action: none;
+        }
+        #editor-footer {
+            padding: 15px; display: flex; gap: 20px; justify-content: center;
+            border-top: 1px solid #ddd; background: #fafafa;
+        }
+        .editor-btn {
+            width: 60px; height: 60px; border-radius: 50%;
+            border: none; font-size: 24px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-save { background: #4CAF50; color: white; }
+        .btn-cancel { background: #f44336; color: white; }
+
+        #editor-reset-btn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 44px;
+            height: 44px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            color: #555;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #editor-reset-btn:active { background: #eee; transform: rotate(-30deg); transition: 0.1s; }
+
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <button class="control-btn btn-undo" id="btn-undo"><span>↩</span> もどる</button>
+            <button class="control-btn btn-clear" id="btn-clear-all"><span>🗑️</span> ぜんぶ消す</button>
+        </div>
+        <div id="menu-container"></div>
+        <div class="sidebar-footer">
+            <div class="current-shape-display" id="current-display-area">
+                <span class="current-shape-label">つかう図形（タップで追加）</span>
+                <canvas id="current-preview-canvas" width="100" height="90"></canvas>
+                <button id="btn-edit-shape" title="形を変える">✏️</button>
+            </div>
+            <button class="toggle-btn" id="angle-toggle-btn"><span>📐</span> 角をみる</button>
+        </div>
+    </div>
+
+    <div id="canvas-area">
+        <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <div id="dialog-overlay" class="overlay-base">
+        <div class="dialog-box">
+            <p class="dialog-msg" id="dialog-msg-text">確認メッセージ</p>
+            <div class="dialog-btns">
+                <button class="dialog-btn btn-no" id="dialog-no">キャンセル</button>
+                <button class="dialog-btn btn-yes" id="dialog-yes">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editor-overlay" class="overlay-base">
+        <div id="editor-box">
+            <div id="editor-header">頂点をドラッグして形を変えよう</div>
+            <div id="editor-canvas-container">
+                <canvas id="editorCanvas"></canvas>
+                <button id="editor-reset-btn" title="最初の形に戻す">🔄</button>
+            </div>
+            <div id="editor-footer">
+                <button class="editor-btn btn-cancel" id="editor-cancel">❌</button>
+                <button class="editor-btn btn-save" id="editor-save">✔</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 図形データ定義
+         */
+        const SHAPE_DEFS = [
+            {
+                category: "三角形",
+                items: [
+                    { id: "tri_eq", name: "正三角形", vertices: [{x:0,y:-130}, {x:-112.5,y:65}, {x:112.5,y:65}], color: "#F8BBD0" },
+                    { id: "tri_iso", name: "二とうへん三角形", vertices: [{x:0,y:-135}, {x:-56.25,y:90}, {x:56.25,y:90}], color: "#FFCDD2" },
+                    { id: "tri_iso_right", name: "直角二とうへん三角形", vertices: [{x:-90,y:-45}, {x:-90,y:135}, {x:90,y:135}], color: "#ef9a9a" },
+                    { id: "tri_right_3060", name: "直角三角形", vertices: [{x:-56.25,y:-97.5}, {x:-56.25,y:97.5}, {x:56.25,y:97.5}], color: "#E1BEE7" },
+                    { id: "tri_sca", name: "いろいろな三角形", vertices: [{x:-67.5,y:-90}, {x:-112.5,y:90}, {x:112.5,y:90}], color: "#D1C4E9" }
+                ]
+            },
+            {
+                category: "四角形",
+                items: [
+                    { id: "rect_sq", name: "正方形", vertices: [{x:-90,y:-90}, {x:90,y:-90}, {x:90,y:90}, {x:-90,y:90}], color: "#C5CAE9" },
+                    { id: "rect_long", name: "長方形", vertices: [{x:-135,y:-67.5}, {x:135,y:-67.5}, {x:135,y:67.5}, {x:-135,y:67.5}], color: "#BBDEFB" },
+                    { id: "rect_para", name: "へいこうしへん形", vertices: [{x:-67.5,y:-90}, {x:112.5,y:-90}, {x:67.5,y:90}, {x:-112.5,y:90}], color: "#B3E5FC" },
+                    { id: "rect_trap", name: "台形", vertices: [{x:-67.5,y:-90}, {x:67.5,y:-90}, {x:112.5,y:90}, {x:-112.5,y:90}], color: "#B2EBF2" },
+                    { id: "rect_rhom", name: "ひし形", vertices: [{x:0,y:-135}, {x:90,y:0}, {x:0,y:135}, {x:-90,y:0}], color: "#B2DFDB" },
+                    { id: "rect_sca", name: "いろいろな四角形", vertices: [{x:-67.5,y:-90}, {x:90,y:-45}, {x:112.5,y:90}, {x:-112.5,y:90}], color: "#C8E6C9" }
+                ]
+            },
+            {
+                category: "五角形・六角形",
+                items: [
+                    { id: "penta_reg", name: "正五角形", vertices: calculateRegularPoly(5, 101.25), color: "#DCEDC8" },
+                    { id: "hexa_reg", name: "正六角形", vertices: calculateRegularPoly(6, 101.25), color: "#FFF9C4" }
+                ]
+            }
+        ];
+
+        function calculateRegularPoly(sides, radius) {
+            const verts = [];
+            for(let i=0; i<sides; i++) {
+                const angle = (i * 2 * Math.PI / sides) - Math.PI/2;
+                verts.push({
+                    x: Math.cos(angle) * radius,
+                    y: Math.sin(angle) * radius
+                });
+            }
+            return verts;
+        }
+
+        // --- 初期化時に元の形状を保存（リセット用） ---
+        SHAPE_DEFS.forEach(cat => {
+            cat.items.forEach(item => {
+                item.initialVertices = JSON.parse(JSON.stringify(item.vertices));
+                item.isCustomized = false; // カスタムフラグ初期化
+            });
+        });
+
+        // --- アプリケーションの状態 ---
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const sidebar = document.getElementById('sidebar');
+        const GRID_SIZE = 50;
+
+        let placedShapes = [];
+        let shapeHistory = [];
+        let currentShapeType = null;
+        let selectedShape = null;
+        let isAngleVisible = false;
+
+        const view = { x: 0, y: 0, scale: 1.0, minScale: 0.2, maxScale: 3.0 };
+
+        // --- ダイアログ制御用 ---
+        let onDialogYes = null;
+        const dialogOverlay = document.getElementById('dialog-overlay');
+        const dialogMsg = document.getElementById('dialog-msg-text');
+        
+        function showConfirmDialog(message, onYes) {
+            dialogMsg.innerHTML = message;
+            onDialogYes = onYes;
+            dialogOverlay.style.display = 'flex';
+        }
+
+        document.getElementById('dialog-yes').onclick = () => {
+            if (onDialogYes) onDialogYes();
+            dialogOverlay.style.display = 'none';
+            onDialogYes = null;
+        };
+        document.getElementById('dialog-no').onclick = () => {
+            dialogOverlay.style.display = 'none';
+            onDialogYes = null;
+        };
+
+        // --- UI生成 ---
+        function initUI() {
+            const container = document.getElementById('menu-container');
+            
+            SHAPE_DEFS.forEach(group => {
+                const catDiv = document.createElement('div');
+                catDiv.className = 'menu-category';
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.innerText = group.category;
+                catDiv.appendChild(title);
+
+                const grid = document.createElement('div');
+                grid.className = 'shape-grid';
+
+                group.items.forEach(item => {
+                    const btn = document.createElement('div');
+                    btn.className = 'shape-select-btn';
+                    btn.onclick = () => trySelectShapeType(item);
+                    const icv = document.createElement('canvas');
+                    icv.width = 100; icv.height = 80;
+                    drawIcon(icv.getContext('2d'), item);
+                    const lbl = document.createElement('div');
+                    lbl.className = 'shape-name-sub';
+                    lbl.innerText = item.name;
+                    btn.appendChild(icv);
+                    btn.appendChild(lbl);
+                    btn.dataset.id = item.id;
+                    grid.appendChild(btn);
+                });
+                catDiv.appendChild(grid);
+                container.appendChild(catDiv);
+            });
+        }
+
+        function drawIcon(ctx, def) {
+            ctx.clearRect(0, 0, 100, 80);
+            ctx.save();
+            ctx.translate(50, 40);
+            let scale = 0.22;
+            if (def.id.includes('rect_long') || def.id.includes('rhom')) scale = 0.2;
+            ctx.scale(scale, scale);
+            let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+            def.vertices.forEach(v => {
+                minX = Math.min(minX, v.x); maxX = Math.max(maxX, v.x);
+                minY = Math.min(minY, v.y); maxY = Math.max(maxY, v.y);
+            });
+            const cx = (minX + maxX) / 2;
+            const cy = (minY + maxY) / 2;
+            ctx.translate(-cx, -cy);
+            ctx.beginPath();
+            def.vertices.forEach((v, i) => {
+                if (i===0) ctx.moveTo(v.x, v.y);
+                else ctx.lineTo(v.x, v.y);
+            });
+            ctx.closePath();
+            ctx.fillStyle = def.color;
+            ctx.fill();
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // --- ロジック ---
+        function saveState() {
+            const snapshot = JSON.parse(JSON.stringify(placedShapes));
+            shapeHistory.push(snapshot);
+            if (shapeHistory.length > 50) shapeHistory.shift();
+        }
+
+        function undo() {
+            if (shapeHistory.length === 0) return;
+            placedShapes = shapeHistory.pop();
+            selectedShape = null;
+            updateCanvas();
+        }
+
+        function trySelectShapeType(shapeDef) {
+            if (currentShapeType && currentShapeType.id === shapeDef.id) {
+                saveState();
+                const offsetX = (placedShapes.length % 5) * 10;
+                const offsetY = (placedShapes.length % 5) * 10;
+                addShapeToCenter(shapeDef, offsetX, offsetY);
+                return;
+            }
+            if (placedShapes.length > 0) {
+                showConfirmDialog(
+                    "新しい図形を選ぶと、<br>今の図形はリセットされます。<br>よろしいですか？",
+                    () => {
+                        saveState();
+                        placedShapes = [];
+                        selectedShape = null;
+                        setShapeType(shapeDef);
+                        view.x = 0; view.y = 0; view.scale = 1.0;
+                        updateCanvas();
+                    }
+                );
+            } else {
+                setShapeType(shapeDef);
+            }
+        }
+
+        document.getElementById('btn-clear-all').onclick = () => {
+            if (placedShapes.length === 0) return;
+            showConfirmDialog(
+                "本当にぜんぶ消しますか？",
+                () => {
+                    saveState();
+                    placedShapes = [];
+                    selectedShape = null;
+                    view.x = 0; view.y = 0; view.scale = 1.0;
+                    updateCanvas();
+                }
+            );
+        };
+
+        document.getElementById('btn-undo').onclick = undo;
+
+        document.getElementById('current-display-area').onclick = (e) => {
+            if (e.target.id === 'btn-edit-shape' || e.target.closest('#btn-edit-shape')) return;
+            if (currentShapeType) {
+                saveState();
+                const offsetX = (placedShapes.length % 5) * 10 + 10;
+                const offsetY = (placedShapes.length % 5) * 10 + 10;
+                addShapeToCenter(currentShapeType, offsetX, offsetY);
+            }
+        };
+
+        function setShapeType(shapeDef) {
+            currentShapeType = shapeDef;
+            document.querySelectorAll('.shape-select-btn').forEach(b => {
+                b.classList.toggle('selected', b.dataset.id === shapeDef.id);
+            });
+            updateCurrentPreview();
+
+            const editBtn = document.getElementById('btn-edit-shape');
+            const editable = (shapeDef.id === 'tri_sca' || shapeDef.id === 'rect_sca');
+            editBtn.style.display = editable ? 'flex' : 'none';
+
+            if (placedShapes.length === 0) {
+                saveState();
+                addShapeToCenter(shapeDef);
+            }
+        }
+
+        function updateCurrentPreview() {
+            if(!currentShapeType) return;
+            const prevCv = document.getElementById('current-preview-canvas');
+            const pCtx = prevCv.getContext('2d');
+            prevCv.width = 100; prevCv.height = 90; 
+            drawIcon(pCtx, currentShapeType);
+        }
+
+        function addShapeToCenter(shapeDef, offsetX = 0, offsetY = 0) {
+            const screenCx = canvas.width / 2;
+            const screenCy = canvas.height / 2;
+            const worldCenter = screenToWorld(screenCx, screenCy);
+            
+            const cx = Math.round(worldCenter.x / GRID_SIZE) * GRID_SIZE;
+            const cy = Math.round(worldCenter.y / GRID_SIZE) * GRID_SIZE;
+            
+            let maxY = -Infinity;
+            shapeDef.vertices.forEach(v => maxY = Math.max(maxY, v.y));
+            const adjustedY = cy - maxY;
+
+            const newShape = createShapeInstance(shapeDef, cx + offsetX, adjustedY + offsetY);
+            
+            placedShapes.push(newShape);
+            selectedShape = newShape;
+            updateCanvas();
+        }
+
+        function createShapeInstance(def, x, y) {
+            return {
+                id: Date.now() + Math.random(),
+                defId: def.id,
+                color: def.color,
+                x: x,
+                y: y,
+                rotation: 0,
+                isCustomized: def.isCustomized || false, // カスタム状態を継承
+                vertices: def.vertices.map(v => ({...v}))
+            };
+        }
+
+        function screenToWorld(sx, sy) {
+            return {
+                x: (sx - view.x) / view.scale,
+                y: (sy - view.y) / view.scale
+            };
+        }
+        function worldToScreen(wx, wy) {
+            return {
+                x: wx * view.scale + view.x,
+                y: wy * view.scale + view.y
+            };
+        }
+
+        // --- エディタ機能 ---
+        const editorOverlay = document.getElementById('editor-overlay');
+        const editorCanvas = document.getElementById('editorCanvas');
+        const eCtx = editorCanvas.getContext('2d');
+        let editVertices = [];
+        let editDragIndex = -1;
+        let editorScale = 1;
+
+        document.getElementById('btn-edit-shape').onclick = () => {
+            if(!currentShapeType) return;
+            editVertices = currentShapeType.vertices.map(v => ({...v}));
+            editorOverlay.style.display = 'flex';
+            resizeEditorCanvas();
+        };
+
+        // 初期化（リセット）ボタン
+        document.getElementById('editor-reset-btn').onclick = () => {
+            if(!currentShapeType || !currentShapeType.initialVertices) return;
+            if(confirm('形を一番はじめの状態に戻しますか？')) {
+                editVertices = JSON.parse(JSON.stringify(currentShapeType.initialVertices));
+                updateEditorCanvas();
+            }
+        };
+
+        function resizeEditorCanvas() {
+            const container = document.getElementById('editor-canvas-container');
+            editorCanvas.width = container.offsetWidth;
+            editorCanvas.height = container.offsetHeight;
+            updateEditorCanvas();
+        }
+        window.addEventListener('resize', () => {
+            if(editorOverlay.style.display === 'flex') resizeEditorCanvas();
+            resizeCanvas();
+        });
+
+        function updateEditorCanvas() {
+            eCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+            const cx = editorCanvas.width / 2;
+            const cy = editorCanvas.height / 2;
+            
+            eCtx.save();
+            eCtx.translate(cx, cy);
+            editorScale = 1.0; 
+            eCtx.scale(editorScale, editorScale);
+
+            eCtx.beginPath();
+            editVertices.forEach((v, i) => {
+                if(i===0) eCtx.moveTo(v.x, v.y);
+                else eCtx.lineTo(v.x, v.y);
+            });
+            eCtx.closePath();
+            eCtx.fillStyle = currentShapeType.color;
+            eCtx.fill();
+            eCtx.strokeStyle = '#555';
+            eCtx.lineWidth = 3;
+            eCtx.stroke();
+
+            eCtx.fillStyle = '#fff';
+            eCtx.lineWidth = 2;
+            eCtx.strokeStyle = '#000';
+            const r = 12;
+            editVertices.forEach(v => {
+                eCtx.beginPath();
+                eCtx.arc(v.x, v.y, r, 0, Math.PI*2);
+                eCtx.fill();
+                eCtx.stroke();
+            });
+            eCtx.restore();
+        }
+
+        editorCanvas.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            const rect = editorCanvas.getBoundingClientRect();
+            const ex = e.clientX - rect.left;
+            const ey = e.clientY - rect.top;
+            const cx = editorCanvas.width / 2;
+            const cy = editorCanvas.height / 2;
+            let hitIdx = -1;
+            const threshold = 30;
+            editVertices.forEach((v, i) => {
+                const vx = v.x * editorScale + cx;
+                const vy = v.y * editorScale + cy;
+                if(Math.hypot(ex - vx, ey - vy) < threshold) hitIdx = i;
+            });
+            if(hitIdx >= 0) {
+                editDragIndex = hitIdx;
+                editorCanvas.setPointerCapture(e.pointerId);
+            }
+        });
+
+        editorCanvas.addEventListener('pointermove', e => {
+            if(editDragIndex < 0) return;
+            e.preventDefault();
+            const rect = editorCanvas.getBoundingClientRect();
+            const ex = e.clientX - rect.left;
+            const ey = e.clientY - rect.top;
+            const cx = editorCanvas.width / 2;
+            const cy = editorCanvas.height / 2;
+            editVertices[editDragIndex].x = (ex - cx) / editorScale;
+            editVertices[editDragIndex].y = (ey - cy) / editorScale;
+            updateEditorCanvas();
+        });
+
+        editorCanvas.addEventListener('pointerup', () => { editDragIndex = -1; });
+
+        document.getElementById('editor-cancel').onclick = () => {
+            editorOverlay.style.display = 'none';
+        };
+
+        // 頂点が一致するか判定する関数
+        function areVerticesDefault(verts, defaults) {
+            if(verts.length !== defaults.length) return false;
+            const EPS = 0.1;
+            for(let i=0; i<verts.length; i++) {
+                if(Math.abs(verts[i].x - defaults[i].x) > EPS || 
+                   Math.abs(verts[i].y - defaults[i].y) > EPS) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        document.getElementById('editor-save').onclick = () => {
+            if(!currentShapeType) return;
+
+            const applyChanges = () => {
+                currentShapeType.vertices = editVertices.map(v => ({...v}));
+                
+                // 初期形状と比較してカスタムフラグを設定
+                const isDefault = areVerticesDefault(currentShapeType.vertices, currentShapeType.initialVertices);
+                currentShapeType.isCustomized = !isDefault;
+
+                updateCurrentPreview();
+                document.querySelectorAll('.shape-select-btn').forEach(btn => {
+                    if(btn.dataset.id === currentShapeType.id) {
+                        const cv = btn.querySelector('canvas');
+                        drawIcon(cv.getContext('2d'), currentShapeType);
+                    }
+                });
+                editorOverlay.style.display = 'none';
+            };
+
+            if (placedShapes.length > 0) {
+                showConfirmDialog(
+                    "形を変えると、今ある図形は<br>リセットされます。<br>よろしいですか？",
+                    () => {
+                        saveState();
+                        placedShapes = [];
+                        selectedShape = null;
+                        view.x = 0; view.y = 0; view.scale = 1.0;
+                        applyChanges();
+                        updateCanvas(); 
+                    }
+                );
+            } else {
+                applyChanges();
+            }
+        };
+
+
+        // --- キャンバス描画 (メイン) ---
+        function resizeCanvas() {
+            canvas.width = document.getElementById('canvas-area').offsetWidth;
+            canvas.height = document.getElementById('canvas-area').offsetHeight;
+            updateCanvas();
+        }
+
+        function updateCanvas() {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fdfdfd';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.translate(view.x, view.y);
+            ctx.scale(view.scale, view.scale);
+            drawInfiniteGrid();
+            placedShapes.forEach(shape => drawShape(shape, shape === selectedShape));
+        }
+
+        function drawInfiniteGrid() {
+            const startX = -view.x / view.scale;
+            const startY = -view.y / view.scale;
+            const endX = startX + canvas.width / view.scale;
+            const endY = startY + canvas.height / view.scale;
+            const left = Math.floor(startX / GRID_SIZE) * GRID_SIZE;
+            const top = Math.floor(startY / GRID_SIZE) * GRID_SIZE;
+            const right = Math.ceil(endX / GRID_SIZE) * GRID_SIZE;
+            const bottom = Math.ceil(endY / GRID_SIZE) * GRID_SIZE;
+            ctx.lineWidth = 1 / view.scale;
+            if (ctx.lineWidth < 0.5) ctx.lineWidth = 0.5;
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.beginPath();
+            for (let x = left; x <= right; x += GRID_SIZE) { ctx.moveTo(x, top); ctx.lineTo(x, bottom); }
+            for (let y = top; y <= bottom; y += GRID_SIZE) { ctx.moveTo(left, y); ctx.lineTo(right, y); }
+            ctx.stroke();
+        }
+
+        function drawShape(shape, isSelected, context = ctx) {
+            context.save();
+            context.translate(shape.x, shape.y);
+            context.rotate(shape.rotation);
+            context.beginPath();
+            shape.vertices.forEach((v, i) => {
+                if (i === 0) context.moveTo(v.x, v.y); else context.lineTo(v.x, v.y);
+            });
+            context.closePath();
+            context.fillStyle = shape.color;
+            context.fill();
+            const baseLineWidth = isSelected ? 4 : 2;
+            context.lineWidth = baseLineWidth / view.scale;
+            context.strokeStyle = isSelected ? '#2196F3' : '#555';
+            context.stroke();
+            if (isSelected) {
+                context.fillStyle = '#fff';
+                const handleSize = 10 / view.scale;
+                context.lineWidth = 2 / view.scale;
+                shape.vertices.forEach(v => {
+                    context.beginPath(); context.arc(v.x, v.y, handleSize, 0, Math.PI * 2);
+                    context.fill(); context.stroke();
+                });
+            }
+            if (isAngleVisible && context === ctx) drawAngles(shape);
+            context.restore();
+        }
+
+        function drawAngles(shape) {
+            const colors = ['#F44336', '#4CAF50', '#2196F3', '#FFC107', '#9C27B0', '#FF9800'];
+            shape.vertices.forEach((v, i) => {
+                const prev = shape.vertices[(i - 1 + shape.vertices.length) % shape.vertices.length];
+                const next = shape.vertices[(i + 1) % shape.vertices.length];
+                const dirPrev = Math.atan2(prev.y - v.y, prev.x - v.x);
+                const dirNext = Math.atan2(next.y - v.y, next.x - v.x);
+                let start = dirPrev;
+                let end = dirNext;
+                let diff = end - start;
+                while (diff <= -Math.PI) diff += 2*Math.PI;
+                while (diff > Math.PI) diff -= 2*Math.PI;
+                const midAngle = start + diff / 2;
+                const checkX = v.x + Math.cos(midAngle) * 5;
+                const checkY = v.y + Math.sin(midAngle) * 5;
+                const isInside = pointInPolygonLocal(checkX, checkY, shape.vertices);
+                ctx.beginPath();
+                ctx.moveTo(v.x, v.y);
+                const arcRadius = 30 / view.scale;
+                if (isInside) { ctx.arc(v.x, v.y, arcRadius, start, end, diff < 0); } 
+                else { ctx.arc(v.x, v.y, arcRadius, start, end, diff >= 0); }
+                let colorIndex = i;
+                const id = shape.defId;
+                if (id.includes('reg') || id.includes('eq') || id.includes('sq')) colorIndex = 0;
+                if (id === 'tri_iso_right' && (i === 0 || i === 2)) colorIndex = 0;
+                ctx.fillStyle = colors[colorIndex % colors.length];
+                ctx.fill();
+            });
+        }
+        
+        function pointInPolygonLocal(x, y, vertices) {
+            let inside = false;
+            for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+                const xi = vertices[i].x, yi = vertices[i].y;
+                const xj = vertices[j].x, yj = vertices[j].y;
+                const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        // --- 操作ロジック ---
+        let dragMode = null; 
+        let dragStartPosWorld = { x: 0, y: 0 };
+        let initialRotation = 0;
+        let rotateCenter = { x: 0, y: 0 };
+        let activePointers = new Map();
+        let initialPinchDist = 0;
+        let initialScale = 1;
+        let initialViewX = 0, initialViewY = 0;
+        let initialPinchCenter = { x: 0, y: 0 };
+        let lastPanPos = { x: 0, y: 0 };
+        let isDraggingOverSidebar = false;
+        let lastTapTime = 0;
+        let lastTapShapeId = null;
+        let dragOverlayCanvas = null;
+        let dragOverlayOffset = { x: 0, y: 0 };
+
+        canvas.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const px = e.clientX - rect.left; 
+            const py = e.clientY - rect.top;
+            activePointers.set(e.pointerId, { x: px, y: py });
+
+            if (activePointers.size >= 2) {
+                if(dragOverlayCanvas) removeDragOverlay();
+                dragMode = 'pinch';
+                const ptrs = Array.from(activePointers.values());
+                initialPinchDist = Math.hypot(ptrs[0].x - ptrs[1].x, ptrs[0].y - ptrs[1].y);
+                initialScale = view.scale;
+                initialViewX = view.x; initialViewY = view.y;
+                initialPinchCenter = { x: (ptrs[0].x + ptrs[1].x) / 2, y: (ptrs[0].y + ptrs[1].y) / 2 };
+                return;
+            }
+            const wPos = screenToWorld(px, py);
+            if (selectedShape && checkVertexHit(selectedShape, wPos.x, wPos.y)) {
+                saveState();
+                dragMode = 'shape_rotate';
+                dragStartPosWorld = wPos;
+                initialRotation = selectedShape.rotation;
+                rotateCenter = { x: selectedShape.x, y: selectedShape.y };
+                return;
+            }
+            let hitShape = null;
+            for (let i = placedShapes.length - 1; i >= 0; i--) {
+                if (checkShapeHit(placedShapes[i], wPos.x, wPos.y)) {
+                    hitShape = placedShapes[i];
+                    break;
+                }
+            }
+            if (hitShape) {
+                const now = Date.now();
+                if (hitShape.id === lastTapShapeId && (now - lastTapTime) < 300) {
+                    saveState();
+                    const clone = createShapeInstance(currentShapeType, wPos.x, wPos.y);
+                    clone.rotation = hitShape.rotation;
+                    startOverlayDrag(clone, e.clientX, e.clientY);
+                    lastTapTime = 0;
+                    return;
+                }
+                lastTapTime = now;
+                lastTapShapeId = hitShape.id;
+                selectedShape = hitShape;
+                placedShapes = placedShapes.filter(s => s !== hitShape);
+                updateCanvas();
+                saveState();
+                startOverlayDrag(hitShape, e.clientX, e.clientY);
+            } else {
+                selectedShape = null;
+                dragMode = 'pan';
+                lastPanPos = { x: px, y: py };
+                updateCanvas();
+            }
+        });
+
+        function startOverlayDrag(shape, clientX, clientY) {
+            dragMode = 'overlay_move';
+            selectedShape = shape;
+            const maxR = 250; 
+            const size = maxR * 2 * view.scale;
+            dragOverlayCanvas = document.createElement('canvas');
+            dragOverlayCanvas.width = size; dragOverlayCanvas.height = size;
+            dragOverlayCanvas.className = 'dragging-overlay';
+            const oCtx = dragOverlayCanvas.getContext('2d');
+            oCtx.translate(size/2, size/2);
+            oCtx.scale(view.scale, view.scale);
+            const tempShape = {...shape, x: 0, y: 0}; 
+            drawShape(tempShape, true, oCtx);
+            document.body.appendChild(dragOverlayCanvas);
+            const rect = canvas.getBoundingClientRect();
+            const canvasScreenPos = worldToScreen(shape.x, shape.y);
+            const pageScreenX = canvasScreenPos.x + rect.left;
+            const pageScreenY = canvasScreenPos.y + rect.top;
+            dragOverlayOffset.x = pageScreenX - clientX;
+            dragOverlayOffset.y = pageScreenY - clientY;
+            updateOverlayPosition(clientX, clientY, size);
+        }
+
+        function updateOverlayPosition(clientX, clientY, size) {
+            if(!dragOverlayCanvas) return;
+            const centerX = clientX + dragOverlayOffset.x;
+            const centerY = clientY + dragOverlayOffset.y;
+            dragOverlayCanvas.style.left = (centerX - size/2) + 'px';
+            dragOverlayCanvas.style.top = (centerY - size/2) + 'px';
+        }
+        
+        function removeDragOverlay() {
+            if(dragOverlayCanvas && dragOverlayCanvas.parentNode) {
+                dragOverlayCanvas.parentNode.removeChild(dragOverlayCanvas);
+            }
+            dragOverlayCanvas = null;
+        }
+
+        canvas.addEventListener('pointermove', e => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const px = e.clientX - rect.left; const py = e.clientY - rect.top;
+            if (activePointers.has(e.pointerId)) activePointers.set(e.pointerId, { x: px, y: py });
+
+            if (dragMode === 'pinch' && activePointers.size >= 2) {
+                if(dragOverlayCanvas) removeDragOverlay();
+                const ptrs = Array.from(activePointers.values());
+                const currentDist = Math.hypot(ptrs[0].x - ptrs[1].x, ptrs[0].y - ptrs[1].y);
+                const currentCenter = { x: (ptrs[0].x + ptrs[1].x) / 2, y: (ptrs[0].y + ptrs[1].y) / 2 };
+                let newScale = initialScale * (currentDist / initialPinchDist);
+                newScale = Math.min(Math.max(newScale, view.minScale), view.maxScale);
+                const worldCenter = { x: (initialPinchCenter.x - initialViewX) / initialScale, y: (initialPinchCenter.y - initialViewY) / initialScale };
+                view.scale = newScale;
+                view.x = currentCenter.x - worldCenter.x * newScale;
+                view.y = currentCenter.y - worldCenter.y * newScale;
+                updateCanvas();
+                return;
+            }
+            if (dragMode === 'pan') {
+                const dx = px - lastPanPos.x; const dy = py - lastPanPos.y;
+                view.x += dx; view.y += dy;
+                lastPanPos = { x: px, y: py };
+                updateCanvas();
+                return;
+            }
+            if (dragMode === 'overlay_move' && selectedShape) {
+                updateOverlayPosition(e.clientX, e.clientY, dragOverlayCanvas.width);
+                const sidebarRect = sidebar.getBoundingClientRect();
+                if (e.clientX < sidebarRect.right) {
+                    if (!isDraggingOverSidebar) {
+                        isDraggingOverSidebar = true;
+                        sidebar.classList.add('drag-over-delete');
+                    }
+                } else {
+                    if (isDraggingOverSidebar) {
+                        isDraggingOverSidebar = false;
+                        sidebar.classList.remove('drag-over-delete');
+                    }
+                }
+                return;
+            }
+            if (dragMode === 'shape_rotate' && selectedShape) {
+                const wPos = screenToWorld(px, py);
+                const startAngle = Math.atan2(dragStartPosWorld.y - rotateCenter.y, dragStartPosWorld.x - rotateCenter.x);
+                const currentAngle = Math.atan2(wPos.y - rotateCenter.y, wPos.x - rotateCenter.x);
+                let diff = currentAngle - startAngle;
+                let newRot = initialRotation + diff;
+                
+                // ▼▼▼ 回転モードの切り替え ▼▼▼
+                if (!selectedShape.isCustomized) {
+                    // 通常の図形：3度刻み
+                    const SNAP_DEG = 3; 
+                    const SNAP_RAD = SNAP_DEG * Math.PI / 180;
+                    newRot = Math.round(newRot / SNAP_RAD) * SNAP_RAD;
+                } else {
+                    // カスタム図形：自由回転（何もしない）
+                }
+                // ▲▲▲
+                
+                selectedShape.rotation = newRot;
+                updateCanvas();
+            }
+        });
+
+        window.addEventListener('pointerup', e => {
+            activePointers.delete(e.pointerId);
+            if (dragMode === 'overlay_move' && selectedShape) {
+                removeDragOverlay();
+                if (isDraggingOverSidebar) {
+                    selectedShape = null;
+                    sidebar.classList.remove('drag-over-delete');
+                    isDraggingOverSidebar = false;
+                } else {
+                    const currentScreenX = e.clientX + dragOverlayOffset.x;
+                    const currentScreenY = e.clientY + dragOverlayOffset.y;
+                    const rect = canvas.getBoundingClientRect();
+                    const canvasX = currentScreenX - rect.left;
+                    const canvasY = currentScreenY - rect.top;
+                    const finalWorldPos = screenToWorld(canvasX, canvasY);
+                    const snap = applyMagnet(finalWorldPos.x, finalWorldPos.y, selectedShape);
+                    selectedShape.x = snap.x; selectedShape.y = snap.y;
+                    placedShapes.push(selectedShape);
+                }
+                updateCanvas();
+                dragMode = null;
+            }
+            if (activePointers.size < 2 && dragMode === 'pinch') dragMode = null;
+            if (activePointers.size === 0 && dragMode !== 'overlay_move') dragMode = null;
+        });
+        
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
+            const scaleAmount = -e.deltaY * 0.001;
+            let newScale = view.scale * (1 + scaleAmount);
+            newScale = Math.min(Math.max(newScale, view.minScale), view.maxScale);
+            const worldPos = screenToWorld(mx, my);
+            view.x = mx - worldPos.x * newScale;
+            view.y = my - worldPos.y * newScale;
+            view.scale = newScale;
+            updateCanvas();
+        }, { passive: false });
+
+
+        function checkVertexHit(shape, wx, wy) {
+            const cos = Math.cos(shape.rotation), sin = Math.sin(shape.rotation);
+            const threshold = Math.max(25, 10 / view.scale);
+            for (let v of shape.vertices) {
+                const vx = shape.x + (v.x * cos - v.y * sin);
+                const vy = shape.y + (v.x * sin + v.y * cos);
+                if (Math.hypot(wx - vx, wy - vy) < threshold) return true;
+            }
+            return false;
+        }
+
+        function checkShapeHit(shape, wx, wy) {
+            const dx = wx - shape.x, dy = wy - shape.y;
+            const cos = Math.cos(-shape.rotation), sin = Math.sin(-shape.rotation);
+            const lx = dx * cos - dy * sin, ly = dx * sin + dy * cos;
+            return pointInPolygonLocal(lx, ly, shape.vertices);
+        }
+
+        function applyMagnet(x, y, selfShape) {
+            const SNAP_DIST = 25;
+            let bestX = x, bestY = y, minD = SNAP_DIST, snapped = false;
+            const cos = Math.cos(selfShape.rotation), sin = Math.sin(selfShape.rotation);
+            const selfVerts = selfShape.vertices.map(v => ({
+                x: x + (v.x * cos - v.y * sin),
+                y: y + (v.x * sin + v.y * cos)
+            }));
+            const targets = [];
+            placedShapes.forEach(s => {
+                if (s === selfShape) return;
+                const sCos = Math.cos(s.rotation), sSin = Math.sin(s.rotation);
+                s.vertices.forEach(v => {
+                    targets.push({ x: s.x + (v.x * sCos - v.y * sSin), y: s.y + (v.x * sSin + v.y * sCos) });
+                });
+            });
+            for (let sv of selfVerts) {
+                for (let tv of targets) {
+                    const d = Math.hypot(sv.x - tv.x, sv.y - tv.y);
+                    if (d < minD) {
+                        minD = d;
+                        bestX = tv.x - (sv.x - x);
+                        bestY = tv.y - (sv.y - y);
+                        snapped = true;
+                    }
+                }
+            }
+            if (snapped) return { x: bestX, y: bestY };
+            minD = SNAP_DIST;
+            for (let sv of selfVerts) {
+                const gx = Math.round(sv.x / GRID_SIZE) * GRID_SIZE;
+                const gy = Math.round(sv.y / GRID_SIZE) * GRID_SIZE;
+                const d = Math.hypot(sv.x - gx, sv.y - gy);
+                if (d < minD) {
+                    minD = d;
+                    bestX = gx - (sv.x - x);
+                    bestY = gy - (sv.y - y);
+                }
+            }
+            return { x: bestX, y: bestY };
+        }
+
+        document.getElementById('angle-toggle-btn').onclick = function() {
+            isAngleVisible = !isAngleVisible;
+            this.classList.toggle('active', isAngleVisible);
+            updateCanvas();
+        };
+
+        initUI();
+        resizeCanvas();
+    </script>
+</body>
+</html>

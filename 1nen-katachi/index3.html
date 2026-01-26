@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>じゆうにつくろう！</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #fdfdfd;
+            font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100px;
+            height: 100%;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .palette-item, .tool-btn {
+            pointer-events: auto;
+            position: relative;
+            z-index: 51;
+        }
+
+        .palette-item {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .palette-item:active {
+            transform: scale(0.9);
+        }
+        
+        .triangle-icon {
+            width: 0;
+            height: 0;
+            border-left: 35px solid transparent;
+            border-right: 35px solid transparent;
+            border-bottom: 35px solid transparent;
+            position: absolute;
+            top: 10px;
+            left: 0;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+        }
+        
+        .tool-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid #ccc;
+            background: white;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+        .tool-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+        }
+
+        /* スナップボタン（ONのとき） */
+        #snapBtn.active {
+            background-color: #dcedc8;
+            border-color: #8bc34a;
+            color: #33691e;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #snapBtn { margin-top: auto; }
+        
+        #undoBtn { color: #1976D2; border-color: #1976D2; }
+        #clearBtn { color: #d32f2f; border-color: #d32f2f; margin-bottom: 30px; }
+
+        #instruction {
+            position: absolute;
+            bottom: 20px;
+            left: 120px;
+            right: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #444;
+            pointer-events: none;
+            text-shadow: 2px 2px 0 #fff;
+            z-index: 40;
+        }
+
+        canvas { 
+            display: block; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="palette-item" id="gen-red" onmousedown="spawnPiece('red', event)" ontouchstart="spawnPiece('red', event)">
+        <div class="triangle-icon" style="border-bottom-color: #ff5252;"></div>
+        <div style="position:absolute; bottom:-5px; width:100%; text-align:center; font-size:12px; font-weight:bold; color:#555;">あか</div>
+    </div>
+    <div class="palette-item" id="gen-yellow" onmousedown="spawnPiece('yellow', event)" ontouchstart="spawnPiece('yellow', event)">
+        <div class="triangle-icon" style="border-bottom-color: #FFD700;"></div>
+        <div style="position:absolute; bottom:-5px; width:100%; text-align:center; font-size:12px; font-weight:bold; color:#555;">きいろ</div>
+    </div>
+    <div class="palette-item" id="gen-blue" onmousedown="spawnPiece('blue', event)" ontouchstart="spawnPiece('blue', event)">
+        <div class="triangle-icon" style="border-bottom-color: #1565C0;"></div>
+        <div style="position:absolute; bottom:-5px; width:100%; text-align:center; font-size:12px; font-weight:bold; color:#555;">あお</div>
+    </div>
+
+    <div class="tool-btn active" id="snapBtn" onclick="toggleSnap()" title="マス目にあわせる">🧲</div>
+    <div class="tool-btn" id="undoBtn" onclick="undo()" title="ひとつもどす">↩︎</div>
+    <div class="tool-btn" id="clearBtn" onclick="confirmClear()" title="ぜんぶけす">🗑️</div>
+</div>
+
+<div id="instruction">いろいたを タップして、じゆうに かたちを つくろう</div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // --- 設定 ---
+    const SIDEBAR_WIDTH = 100;
+    const SIZE = 140; // 直角辺の長さ
+    const GRID_SIZE = 35; // 方眼紙のグリッドサイズ (140の1/4)
+    const SNAP_VERTEX_DIST = 25; // 吸着距離
+
+    const PRESETS = {
+        'red':    { front: '#ff5252', back: '#ffebee' }, 
+        'yellow': { front: '#FFD700', back: '#1565C0' }, 
+        'blue':   { front: '#1565C0', back: '#FFD700' }  
+    };
+
+    let pieces = [];
+    let historyStack = []; 
+
+    let activePiece = null;
+    let dragMode = null; 
+    let startX, startY;
+    let startPieceX, startPieceY; 
+    let startAngle = 0;
+    let initialPieceAngle = 0;
+    
+    // カメラ（画面スクロール）の位置
+    let cameraX = 0;
+    let cameraY = 0;
+    let startCameraX, startCameraY;
+
+    let lastTapTime = 0;
+    let lastTapPiece = null;
+    let isDeleteHover = false; 
+
+    // マグネットの状態
+    let isGridSnapEnabled = true;
+    
+    function init() {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        saveHistory(); 
+        requestAnimationFrame(gameLoop);
+    }
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    function saveHistory() {
+        const state = JSON.stringify(pieces);
+        if (historyStack.length > 0 && historyStack[historyStack.length - 1] === state) return;
+        historyStack.push(state);
+    }
+
+    window.undo = function() {
+        if (historyStack.length > 1) {
+            historyStack.pop(); 
+            const prevState = historyStack[historyStack.length - 1];
+            pieces = JSON.parse(prevState);
+            pieces.forEach(p => p.scaleX = p.targetScaleX);
+        } else {
+             if (pieces.length > 0) {
+                 pieces = [];
+                 saveHistory();
+             }
+        }
+    }
+
+    window.confirmClear = function() {
+        if(pieces.length === 0) return;
+        if(confirm("ほんとうに、すべてけしますか？")) {
+            pieces = [];
+            cameraX = 0; cameraY = 0; // カメラもリセット
+            saveHistory();
+        }
+    }
+
+    window.toggleSnap = function() {
+        isGridSnapEnabled = !isGridSnapEnabled;
+        const btn = document.getElementById('snapBtn');
+        if (isGridSnapEnabled) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+        draw();
+    }
+
+    window.spawnPiece = function(colorType, e) {
+        e.preventDefault(); 
+        saveHistory();
+
+        let clientY;
+        if(e.touches && e.touches.length > 0) {
+            clientY = e.touches[0].clientY;
+        } else {
+            clientY = e.clientY;
+        }
+
+        // カメラ位置を考慮
+        const x = (SIDEBAR_WIDTH + 120) - cameraX;
+        const y = (clientY + 50) - cameraY;
+
+        const newPiece = {
+            x: x,
+            y: y,
+            angle: 0, 
+            scaleX: 1, 
+            targetScaleX: 1,
+            colorType: colorType
+        };
+
+        snap(newPiece); 
+        pieces.push(newPiece);
+        
+        activePiece = null; 
+        draw();
+    }
+
+    function gameLoop() {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+        pieces.forEach(p => {
+            if (p.scaleX !== p.targetScaleX) {
+                const speed = 0.4; 
+                if (p.scaleX < p.targetScaleX) {
+                    p.scaleX = Math.min(p.scaleX + speed, p.targetScaleX);
+                } else {
+                    p.scaleX = Math.max(p.scaleX - speed, p.targetScaleX);
+                }
+            }
+        });
+    }
+
+    function traceTrianglePath(s) {
+        ctx.beginPath();
+        ctx.moveTo(-s/2, -s/2); 
+        ctx.lineTo(-s/2, s/2);  
+        ctx.lineTo(s/2, -s/2);  
+        ctx.closePath();
+    }
+
+    function drawSidebarBackground() {
+        if (isDeleteHover) {
+            ctx.fillStyle = "rgba(255, 235, 238, 0.9)";
+            ctx.fillRect(0, 0, SIDEBAR_WIDTH, canvas.height);
+            
+            ctx.save();
+            ctx.fillStyle = "#d32f2f";
+            ctx.font = "50px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("🗑️", SIDEBAR_WIDTH / 2, canvas.height / 2 - 20);
+            
+            ctx.font = "bold 14px sans-serif";
+            ctx.fillText("ここにすてる", SIDEBAR_WIDTH / 2, canvas.height / 2 + 30);
+            ctx.restore();
+            
+            ctx.strokeStyle = "rgba(255, 0, 0, 0.2)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(SIDEBAR_WIDTH, 0);
+            ctx.lineTo(SIDEBAR_WIDTH, canvas.height);
+            ctx.stroke();
+        } else {
+            ctx.fillStyle = "rgba(240, 240, 240, 0.9)";
+            ctx.fillRect(0, 0, SIDEBAR_WIDTH, canvas.height);
+            
+            ctx.strokeStyle = "#ccc";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(SIDEBAR_WIDTH, 0);
+            ctx.lineTo(SIDEBAR_WIDTH, canvas.height);
+            ctx.stroke();
+        }
+    }
+
+    function drawGrid() {
+        ctx.save();
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.08)"; 
+        ctx.lineWidth = 1;
+        
+        const minX = -cameraX + SIDEBAR_WIDTH;
+        const maxX = -cameraX + canvas.width;
+        const minY = -cameraY;
+        const maxY = -cameraY + canvas.height;
+
+        const firstGridX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+        const firstGridY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+
+        ctx.beginPath();
+        for (let x = firstGridX; x <= maxX; x += GRID_SIZE) {
+            const screenX = x + cameraX;
+            if (screenX < SIDEBAR_WIDTH) continue; 
+            ctx.moveTo(screenX, 0);
+            ctx.lineTo(screenX, canvas.height);
+        }
+        for (let y = firstGridY; y <= maxY; y += GRID_SIZE) {
+            const screenY = y + cameraY;
+            ctx.moveTo(SIDEBAR_WIDTH, screenY);
+            ctx.lineTo(canvas.width, screenY);
+        }
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        drawGrid(); // グリッド描画
+
+        // カメラ位置適用
+        ctx.save();
+        ctx.translate(cameraX, cameraY);
+
+        pieces.forEach(p => drawPiece(p));
+        
+        ctx.restore();
+
+        // サイドバーは最後に描画（上書き）
+        drawSidebarBackground();
+    }
+
+    function drawPiece(p) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle * Math.PI / 180);
+        ctx.scale(p.scaleX, 1); 
+        
+        traceTrianglePath(SIZE);
+        
+        const colors = PRESETS[p.colorType];
+        ctx.fillStyle = (p.scaleX > 0) ? colors.front : colors.back;
+        
+        if (activePiece === p && isDeleteHover) {
+            ctx.globalAlpha = 0.5;
+        }
+
+        ctx.fill();
+        ctx.globalAlpha = 1.0; 
+        
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        if (activePiece === p) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // マグネットONのときだけハンドル表示
+            if (isGridSnapEnabled) {
+                drawRotateHandle();
+            }
+        }
+        ctx.restore();
+    }
+
+    function drawRotateHandle() {
+        const s2 = SIZE / 2;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        [-1, 1].forEach(dir => {
+            ctx.beginPath();
+            if(dir === -1) ctx.arc(-s2, s2, 12, 0, Math.PI*2);
+            else ctx.arc(s2, -s2, 12, 0, Math.PI*2);
+            ctx.fill(); ctx.stroke();
+        });
+    }
+
+    // --- 頂点計算 ---
+    function getSnapPoints(p) {
+        const rad = p.angle * Math.PI / 180;
+        const s2 = SIZE / 2;
+        
+        // ローカル座標でのスナップ点（頂点 + 辺の中点）
+        const localPoints = [ 
+            {x: -s2, y: -s2}, 
+            {x: -s2, y: s2},  
+            {x: s2, y: -s2},  
+            {x: 0, y: 0},     
+            {x: -s2, y: 0},   
+            {x: 0, y: -s2}    
+        ];
+        
+        return localPoints.map(v => {
+            const lx = v.x * (p.scaleX > 0 ? 1 : -1);
+            const ly = v.y;
+            return {
+                x: p.x + (lx * Math.cos(rad) - ly * Math.sin(rad)),
+                y: p.y + (lx * Math.sin(rad) + ly * Math.cos(rad))
+            };
+        });
+    }
+
+    // --- 吸着処理 ---
+    function snap(targetP) {
+        if (!isGridSnapEnabled) return;
+
+        // ★修正：90度刻みチェックを削除し、頂点スナップは常に試行する
+        
+        let snapped = false;
+        let bestDist = SNAP_VERTEX_DIST;
+        let bestSnapX = 0;
+        let bestSnapY = 0;
+        
+        const targetPoints = getSnapPoints(targetP);
+
+        // 1. 頂点スナップ (優先)
+        for (let otherP of pieces) {
+            if (otherP === targetP) continue;
+            const otherPoints = getSnapPoints(otherP);
+            for (let tp of targetPoints) {
+                for (let op of otherPoints) {
+                    const dist = Math.hypot(tp.x - op.x, tp.y - op.y);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        bestSnapX = op.x - tp.x;
+                        bestSnapY = op.y - tp.y;
+                        snapped = true;
+                    }
+                }
+            }
+        }
+
+        if (snapped) {
+            targetP.x += bestSnapX;
+            targetP.y += bestSnapY;
+        } else {
+            // 2. グリッドスナップ（ただし90度刻みのときのみ）
+            const normAngle = (targetP.angle % 360 + 360) % 360;
+            if (normAngle % 90 === 0) {
+                targetP.x = Math.round(targetP.x / GRID_SIZE) * GRID_SIZE;
+                targetP.y = Math.round(targetP.y / GRID_SIZE) * GRID_SIZE;
+            }
+        }
+    }
+
+    function getTouchType(tx, ty, p) {
+        const dx = tx - p.x; 
+        const dy = ty - p.y;
+        const s2 = SIZE / 2;
+        const rad = -p.angle * Math.PI / 180;
+        const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+        const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+        const lx = rx * (p.scaleX > 0 ? 1 : -1);
+        const ly = ry;
+        
+        const corners = [{x: -s2, y: s2}, {x: s2, y: -s2}];
+        for(let c of corners) {
+            if(Math.hypot(lx - c.x, ly - c.y) < 45) return 'rotate';
+        }
+        return 'move';
+    }
+
+    function handleStart(e) {
+        const t = e.touches ? e.touches[0] : e;
+        const tx = t.clientX;
+        const ty = t.clientY;
+
+        if (tx < SIDEBAR_WIDTH) return;
+        if (e.cancelable) e.preventDefault();
+        
+        const now = Date.now();
+
+        // 上にあるピースから判定
+        for (let i = pieces.length - 1; i >= 0; i--) {
+            const p = pieces[i];
+            
+            // カメラ考慮の当たり判定
+            ctx.save(); 
+            ctx.translate(cameraX, cameraY); // カメラ適用
+            ctx.translate(p.x, p.y); 
+            ctx.rotate(p.angle * Math.PI / 180);
+            ctx.scale(p.scaleX, 1); 
+            traceTrianglePath(SIZE);
+            const isHit = ctx.isPointInPath(tx, ty); 
+            ctx.restore();
+
+            if (isHit) {
+                lastTapPiece = p; lastTapTime = now; activePiece = p;
+                
+                pieces.splice(i, 1); 
+                pieces.push(p);
+
+                startPieceX = p.x; startPieceY = p.y;
+                
+                // タッチタイプ判定もワールド座標で行う
+                const worldTx = tx - cameraX;
+                const worldTy = ty - cameraY;
+
+                if (getTouchType(worldTx, worldTy, p) === 'rotate') {
+                    saveHistory(); 
+                    dragMode = 'rotate';
+                    startAngle = Math.atan2(worldTy - p.y, worldTx - p.x);
+                    initialPieceAngle = p.angle;
+                } else {
+                    saveHistory(); 
+                    dragMode = 'move';
+                    startX = tx; 
+                    startY = ty;
+                }
+                draw();
+                return;
+            }
+        }
+        
+        // 何も触っていない -> パン（スクロール）モード
+        activePiece = null; 
+        dragMode = 'pan';
+        startX = tx;
+        startY = ty;
+        startCameraX = cameraX;
+        startCameraY = cameraY;
+        draw();
+    }
+
+    function handleMove(e) {
+        if (e.cancelable) e.preventDefault();
+        const t = e.touches ? e.touches[0] : e;
+        const tx = t.clientX;
+        const ty = t.clientY;
+
+        if (activePiece) {
+            // ピース操作
+            if (dragMode === 'move') {
+                const dx = tx - startX;
+                const dy = ty - startY;
+                activePiece.x = startPieceX + dx;
+                activePiece.y = startPieceY + dy;
+                
+                // 削除判定 (画面上の位置)
+                const screenX = activePiece.x + cameraX;
+                if (screenX < SIDEBAR_WIDTH) {
+                    if (!isDeleteHover) { isDeleteHover = true; draw(); }
+                } else {
+                    if (isDeleteHover) { isDeleteHover = false; draw(); }
+                }
+
+            } else if (dragMode === 'rotate') {
+                const worldTx = tx - cameraX;
+                const worldTy = ty - cameraY;
+                const currentAngle = Math.atan2(worldTy - activePiece.y, worldTx - activePiece.x);
+                let diffDeg = (currentAngle - startAngle) * 180 / Math.PI;
+                
+                // ★修正: マグネットONなら15度刻み
+                if (isGridSnapEnabled) {
+                    let rawAngle = initialPieceAngle + diffDeg;
+                    activePiece.angle = Math.round(rawAngle / 15) * 15;
+                } else {
+                    activePiece.angle = initialPieceAngle + diffDeg;
+                }
+            }
+        } else if (dragMode === 'pan') {
+            // 背景スクロール
+            const dx = tx - startX;
+            const dy = ty - startY;
+            cameraX = startCameraX + dx;
+            cameraY = startCameraY + dy;
+            draw();
+        }
+    }
+
+    function handleEnd() {
+        if (activePiece) {
+            const screenX = activePiece.x + cameraX;
+
+            if (screenX < SIDEBAR_WIDTH) { 
+                pieces.pop(); 
+                activePiece = null;
+                saveHistory();
+            } else {
+                snap(activePiece);
+                saveHistory(); 
+            }
+            
+            if (isDeleteHover) isDeleteHover = false;
+            draw();
+        }
+        activePiece = null; dragMode = null;
+    }
+
+    canvas.addEventListener('touchstart', handleStart, {passive: false});
+    canvas.addEventListener('touchmove', handleMove, {passive: false});
+    canvas.addEventListener('touchend', handleEnd);
+    
+    canvas.addEventListener('mousedown', e => handleStart(e));
+    window.addEventListener('mousemove', e => { 
+        if(activePiece || dragMode === 'pan') handleMove(e); 
+    });
+    window.addEventListener('mouseup', handleEnd);
+
+    init();
+</script>
+</body>
+</html>

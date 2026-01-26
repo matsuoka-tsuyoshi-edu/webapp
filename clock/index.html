@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>なんじ なんふん</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        /* === 全体のスタイル === */
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+        body {
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none; 
+        }
+
+        /* === アプリ全体のレイアウト === */
+        .app-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-evenly; 
+            width: 100%;
+            height: 100%;
+            padding: 2vmin;
+            box-sizing: border-box;
+        }
+
+        /* === 時計ラッパー (左側) === */
+        .clock-wrapper {
+            position: relative;
+            width: 75vh; 
+            height: 75vh;
+            max-width: 45vw;
+            max-height: 45vw;
+            flex-shrink: 0;
+        }
+
+        /* === 時計盤 === */
+        #clock-face {
+            width: 100%;
+            height: 100%;
+            border: 1.3vmin solid #333;
+            border-radius: 50%;
+            background-color: #fff;
+            position: relative;
+            box-shadow: 0 0 18px rgba(0,0,0,0.15);
+        }
+
+        /* === 目盛り === */
+        #markers-container { width: 100%; height: 100%; position: absolute; }
+        .marker-wrapper { position: absolute; width: 100%; height: 100%; }
+        .marker { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 3%; background-color: #000; }
+        .marker-strong { width: 4px; height: 6%; background-color: #000; }
+
+        /* === 数字 === */
+        .number { position: absolute; top: 50%; left: 50%; transform-origin: center; font-size: clamp(27px, 12vh, 60px); font-weight: bold; width: 1.4em; height: 1.4em; display: grid; place-items: center; background-color: white; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); user-select: none; }
+        .number-12 { cursor: pointer; }
+        .number-1 { transform: translate(-50%, -50%) rotate(30deg) translateY(-40vh); } .number-2 { transform: translate(-50%, -50%) rotate(60deg) translateY(-40vh); } .number-3 { transform: translate(-50%, -50%) rotate(90deg) translateY(-40vh); } .number-4 { transform: translate(-50%, -50%) rotate(120deg) translateY(-40vh); } .number-5 { transform: translate(-50%, -50%) rotate(150deg) translateY(-40vh); } .number-6 { transform: translate(-50%, -50%) rotate(180deg) translateY(-40vh); } .number-7 { transform: translate(-50%, -50%) rotate(210deg) translateY(-40vh); } .number-8 { transform: translate(-50%, -50%) rotate(240deg) translateY(-40vh); } .number-9 { transform: translate(-50%, -50%) rotate(270deg) translateY(-40vh); } .number-10 { transform: translate(-50%, -50%) rotate(300deg) translateY(-40vh); } .number-11 { transform: translate(-50%, -50%) rotate(330deg) translateY(-40vh); } .number-12 { transform: translate(-50%, -50%) rotate(0deg) translateY(-40vh); }
+        .number span { display: inline-block; }
+        .number-1 span { transform: rotate(-30deg); } .number-2 span { transform: rotate(-60deg); } .number-3 span { transform: rotate(-90deg); } .number-4 span { transform: rotate(-120deg); } .number-5 span { transform: rotate(-150deg); } .number-6 span { transform: rotate(-180deg); } .number-7 span { transform: rotate(-210deg); } .number-8 span { transform: rotate(-240deg); } .number-9 span { transform: rotate(-270deg); } .number-10 span { transform: rotate(-300deg); } .number-11 span { transform: rotate(-330deg); }
+
+        /* === 中心・針 === */
+        .center-dot { width: 2.4vmin; height: 2.4vmin; max-width: 15px; max-height: 15px; background-color: #333; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; }
+        .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; cursor: grab; transition: transform 0.5s ease-in-out; }
+        .hand.no-transition { transition: none; }
+        #minute-hand { width: 20px; height: 42%; transform: translateX(-50%); border-radius: 10px; background-color: #333; z-index: 9; }
+        #hour-hand { width: 30px; height: 30%; transform: translateX(-50%); border-radius: 10px; background-color: #333; z-index: 8; }
+
+        /* === デジタル表示 === */
+        .digital-clock-container {
+            position: relative;
+            left: 80px;
+        }
+        #time-display { 
+            display: flex; 
+            font-weight: bold; 
+            padding: 15px 25px; 
+            border-radius: 10px; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+            font-size: clamp(24px, 8vw, 70px); 
+            cursor: pointer; 
+            transition: all 0.3s; 
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #time-display.is-hidden { background-color: pink; color: pink; }
+        #time-display:not(.is-hidden) { background-color: #fff; color: #333; }
+        #digital-hour, #digital-minute, #digital-colon { padding: 0 5px; }
+        #time-display:not(.is-hidden) #digital-hour:hover, 
+        #time-display:not(.is-hidden) #digital-minute:hover { background-color: #f0f0f0; border-radius: 5px; }
+        
+        /* === 時刻選択ピッカー === */
+        .picker-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .picker-content { background-color: #fff; border-radius: 10px; max-height: 60vh; overflow-y: scroll; width: 150px; }
+        .picker-content ul { list-style: none; padding: 0; margin: 0; text-align: center; }
+        .picker-content li { padding: 15px; font-size: 2rem; cursor: pointer; }
+        .picker-content li:hover { background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <main class="app-container">
+        <div class="clock-wrapper">
+            <div id="clock-face">
+                <div id="markers-container"></div>
+                <div class="center-dot"></div>
+                <div id="hour-hand" class="hand"></div>
+                <div id="minute-hand" class="hand"></div>
+            </div>
+            <div class="number number-1" id="num-1"><span>1</span></div>
+            <div class="number number-2" id="num-2"><span>2</span></div>
+            <div class="number number-3" id="num-3"><span>3</span></div>
+            <div class="number number-4" id="num-4"><span>4</span></div>
+            <div class="number number-5" id="num-5"><span>5</span></div>
+            <div class="number number-6" id="num-6"><span>6</span></div>
+            <div class="number number-7" id="num-7"><span>7</span></div>
+            <div class="number number-8" id="num-8"><span>8</span></div>
+            <div class="number number-9" id="num-9"><span>9</span></div>
+            <div class="number number-10" id="num-10"><span>10</span></div>
+            <div class="number number-11" id="num-11"><span>11</span></div>
+            <div class="number number-12" id="num-12"><span>12</span></div>
+        </div>
+        
+        <div class="digital-clock-container">
+            <div id="time-display" class="is-hidden">
+                <span id="digital-hour">12</span><span id="digital-colon">:</span><span id="digital-minute">00</span>
+            </div>
+        </div>
+    </main>
+
+    <div id="hour-picker" class="picker-overlay"><div class="picker-content"><ul id="hour-list"></ul></div></div>
+    <div id="minute-picker" class="picker-overlay"><div class="picker-content"><ul id="minute-list"></ul></div></div>
+    
+    <script>
+        // === 要素取得 ===
+        const timeDisplay = document.getElementById('time-display');
+        const digitalHour = document.getElementById('digital-hour');
+        const clockWrapper = document.querySelector('.clock-wrapper');
+        const hourPicker = document.getElementById('hour-picker');
+        const minutePicker = document.getElementById('minute-picker');
+        const hourList = document.getElementById('hour-list');
+        const minuteList = document.getElementById('minute-list');
+        const number12 = document.getElementById('num-12');
+        const markersContainer = document.getElementById('markers-container');
+        const hourHand = document.getElementById('hour-hand');
+        const minuteHand = document.getElementById('minute-hand');
+
+        // === 状態管理変数 ===
+        let isDraggingHour = false, isDraggingMinute = false, totalMinutes = 0;
+        let isMinuteView = false; 
+
+        // === 定数 ===
+        const hourLabels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+        const minuteLabels = ['5', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55', '0'];
+
+        // === イベントリスナー設定 ===
+
+        timeDisplay.addEventListener('click', (e) => {
+            if (timeDisplay.classList.contains('is-hidden')) {
+                timeDisplay.classList.remove('is-hidden');
+            } else {
+                switch(e.target.id) {
+                    case 'digital-hour':
+                        hourPicker.style.display = 'flex';
+                        break;
+                    case 'digital-minute':
+                        minutePicker.style.display = 'flex';
+                        break;
+                    default: 
+                        timeDisplay.classList.add('is-hidden');
+                        break;
+                }
+            }
+        });
+        
+        number12.addEventListener('click', () => { isMinuteView = !isMinuteView; updateNumberDisplay(); });
+        
+        hourPicker.addEventListener('click', () => { hourPicker.style.display = 'none'; });
+        minutePicker.addEventListener('click', () => { minutePicker.style.display = 'none'; });
+
+        clockWrapper.addEventListener('mousedown', handleStart);
+        clockWrapper.addEventListener('touchstart', handleStart, { passive: false });
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+        window.addEventListener('mouseleave', handleEnd);
+        document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+
+        // === 関数定義 ===
+
+        function updateNumberDisplay() {
+            const labels = isMinuteView ? minuteLabels : hourLabels;
+            for (let i = 0; i < 12; i++) {
+                document.getElementById(`num-${i + 1}`).querySelector('span').textContent = labels[i];
+            }
+        }
+
+        function populatePickers() {
+            const createPickerList = (listElem, isHour) => {
+                const items = [];
+                const max = isHour ? 12 : 59;
+                const start = isHour ? 1 : 0;
+                for(let i = start; i <= max; i++) {
+                    items.push(String(i).padStart(2, '0'));
+                }
+                [...items, ...items, ...items].forEach(val => {
+                    const li = document.createElement('li');
+                    li.textContent = val;
+                    li.dataset.value = val;
+                    li.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const newValue = parseInt(e.target.dataset.value);
+                        if (isHour) {
+                            const currentMinutes = totalMinutes % 60;
+                            totalMinutes = (newValue % 12) * 60 + currentMinutes;
+                        } else {
+                            const currentHour = Math.floor(totalMinutes / 60);
+                            totalMinutes = currentHour * 60 + newValue;
+                        }
+                        renderClock();
+                        listElem.parentElement.parentElement.style.display = 'none';
+                    });
+                    listElem.appendChild(li);
+                });
+                const contentElem = listElem.parentElement;
+                contentElem.scrollTop = contentElem.scrollHeight / 3;
+                contentElem.addEventListener('scroll', () => {
+                    const totalHeight = contentElem.scrollHeight;
+                    const sectionHeight = totalHeight / 3;
+                    if (contentElem.scrollTop < sectionHeight * 0.5) {
+                        contentElem.scrollTop += sectionHeight;
+                    } else if (contentElem.scrollTop > sectionHeight * 2.5) {
+                        contentElem.scrollTop -= sectionHeight;
+                    }
+                });
+            };
+            createPickerList(hourList, true);
+            createPickerList(minuteList, false);
+        }
+
+        function createMarkers() {
+            markersContainer.innerHTML = '';
+            for (let i = 0; i < 60; i++) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'marker-wrapper';
+                wrapper.style.transform = `rotate(${i * 6}deg)`;
+                const marker = document.createElement('div');
+                marker.className = 'marker';
+                if (i % 5 === 0) marker.classList.add('marker-strong');
+                wrapper.appendChild(marker);
+                markersContainer.appendChild(wrapper);
+            }
+        }
+        
+        function handleStart(e) {
+            if (e.target.classList.contains('hand')) {
+                e.preventDefault();
+                hourHand.classList.add('no-transition');
+                minuteHand.classList.add('no-transition');
+                
+                // ★改善点: ドラッグ開始時にデジタル表示を隠す機能を削除
+                // timeDisplay.classList.add('is-hidden'); 
+
+                if (e.target.id === 'hour-hand') isDraggingHour = true;
+                else if (e.target.id === 'minute-hand') isDraggingMinute = true;
+            }
+        }
+        
+        function handleMove(e) {
+            if (!isDraggingHour && !isDraggingMinute) return;
+            e.preventDefault();
+            const event = e.touches ? e.touches[0] : e;
+            updateClock(event.clientX, event.clientY);
+        }
+
+        function handleEnd() {
+            if (isDraggingHour || isDraggingMinute) {
+                isDraggingHour = false;
+                isDraggingMinute = false;
+                hourHand.classList.remove('no-transition');
+                minuteHand.classList.remove('no-transition');
+            }
+        }
+        
+        function updateClock(mouseX, mouseY) {
+            const rect = clockWrapper.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            let angle = Math.atan2(mouseY - centerY, mouseX - centerX) * (180 / Math.PI) + 90;
+            if (angle < 0) { angle += 360; }
+
+            if (isDraggingMinute) {
+                const newMinute = Math.round(angle / 6) % 60;
+                let currentHour = Math.floor(totalMinutes / 60);
+                const oldMinute = totalMinutes % 60;
+                 if (oldMinute > 50 && newMinute < 10) { 
+                    currentHour = (currentHour + 1) % 12;
+                } else if (oldMinute < 10 && newMinute > 50) {
+                    currentHour = (currentHour - 1 + 12) % 12;
+                }
+                totalMinutes = currentHour * 60 + newMinute;
+            } else if (isDraggingHour) {
+                totalMinutes = Math.round(angle / 0.5);
+            }
+            totalMinutes = (totalMinutes + 720) % 720;
+            renderClock();
+        }
+
+        function renderClock() {
+            let hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            
+            let displayHour = (hours === 0) ? 12 : hours;
+
+            document.getElementById('digital-hour').textContent = String(displayHour).padStart(2, '0');
+            document.getElementById('digital-minute').textContent = String(minutes).padStart(2, '0');
+            
+            const hourAngle = totalMinutes * 0.5;
+            const minuteAngle = minutes * 6;
+
+            minuteHand.style.transform = `translateX(-50%) rotate(${minuteAngle}deg)`;
+            hourHand.style.transform = `translateX(-50%) rotate(${hourAngle}deg)`;
+        }
+        
+        // --- 初期化処理 ---
+        createMarkers();
+        populatePickers();
+        renderClock();
+    </script>
+</body>
+</html>

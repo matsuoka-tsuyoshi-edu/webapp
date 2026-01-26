@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>かたちづくり 問題②完成版</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f8ff;
+            font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            gap: 20px;
+        }
+
+        button {
+            font-size: 24px;
+            padding: 10px 25px;
+            border: 3px solid #ccc;
+            border-radius: 15px;
+            background: white;
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        button.active {
+            background-color: #FFD700;
+            border-color: #FBC02D;
+            color: #333;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+        }
+        
+        button#resetBtn {
+            position: absolute;
+            right: 20px;
+            font-size: 16px;
+            padding: 8px 15px;
+            border-color: #ef5350;
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        #instruction {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            font-size: 18px;
+            color: #444;
+            pointer-events: none;
+            text-shadow: 1px 1px 0 #fff;
+        }
+
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+<header>
+    <button id="btn1" onclick="setMode(1)" class="active">① もんだい</button>
+    <button id="btn2" onclick="setMode(2)">② もんだい</button>
+    <button id="resetBtn" onclick="resetCurrentPieces()">なおす</button>
+</header>
+
+<div id="instruction">とがったかどで「かいてん」、トントン（2回）で「うらがえし」</div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- 設定 ---
+    const SIZE = 140; // 直角辺の長さ
+    const SNAP_DIST = 30; 
+    
+    // 直角二等辺三角形の計算値
+    const W = SIZE * Math.sqrt(2); // 斜辺
+    const H = W / 2;               // 高さ
+
+    const COLOR_FRONT = '#FFD700'; // 黄色 (O: Omote)
+    const COLOR_BACK  = '#1565C0'; // 青色 (R: Reverse)
+
+    // 状態変数
+    let pieces = [];
+    let currentMode = 1; 
+    let savedStates = {}; 
+
+    // 操作用
+    let activePiece = null;
+    let dragMode = null; 
+    let startX, startY;
+    let startPieceX, startPieceY; 
+    let startAngle = 0;
+    let initialPieceAngle = 0;
+    
+    let lastTapTime = 0;
+    let lastTapPiece = null;
+    
+    function init() {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        currentMode = 1;
+        resetPieces(); 
+        
+        document.getElementById('btn1').className = 'active';
+        document.getElementById('btn2').className = '';
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    // --- マッピング関数 ---
+    function getPieceConfig(code) {
+        const mapping = {
+            // --- 表 (Yellow) ---
+            'OUH': { angle: 0,   scaleX: 1 }, // 左上
+            'LUH': { angle: 0,   scaleX: 1 }, 
+            'OUM': { angle: 90,  scaleX: 1 }, // 右上
+            'LUM': { angle: 90,  scaleX: 1 },
+            'ODM': { angle: 180, scaleX: 1 }, // 右下
+            'LDM': { angle: 180, scaleX: 1 },
+            'ODH': { angle: 270, scaleX: 1 }, // 左下
+            'LDH': { angle: 270, scaleX: 1 },
+            // --- 裏 (Blue) ---
+            'RUM': { angle: 0,   scaleX: -1 }, // 右上
+            'RDM': { angle: 90,  scaleX: -1 }, // 右下 (修正済み)
+            'RDH': { angle: 180, scaleX: -1 }, // 左下
+            'RDG': { angle: 180, scaleX: -1 },
+            'RUH': { angle: 270, scaleX: -1 }  // 左上
+        };
+        return mapping[code] || null;
+    }
+
+    // ★ ピース作成ロジック
+    function resetPieces() {
+        pieces = [];
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2; 
+
+        if (currentMode === 1) {
+            // ① もんだい (AOU構成)
+            pieces.push({ x: cx - W/2, y: cy,     angle: -135, scaleX: 1,  targetScaleX: 1 });  // 左下
+            pieces.push({ x: cx,       y: cy + H, angle: -45,  scaleX: -1, targetScaleX: -1 }); // 中下
+            pieces.push({ x: cx + W/2, y: cy,     angle: -135, scaleX: 1,  targetScaleX: 1 });  // 右下
+            pieces.push({ x: cx + W/2, y: cy,     angle: -45,  scaleX: -1, targetScaleX: -1 }); // 右上
+            
+        } else if (currentMode === 2) {
+            // ② もんだい (大きな三角形構成)
+            // データ定義
+            const gridRows = [
+                ["NNN", "NNN", "NNN", "LDM", "RDH", "NNN", "NNN", "NNN"],
+                ["NNN", "RDM", "ODH", "RUM", "LUH", "RDM", "ODH", "NNN"]
+            ];
+            
+            // ★列の融合ロジック★
+            // 隙間を埋めるため、特定の列を同じX座標に重ねます。
+            // 本来の8列(0-7)に対して、物理的な配置位置(オフセット)を定義します。
+            // 2と3、4と5を重ねることで、三角形を結合します。
+            const colToOffset = {
+                0: -2.5,
+                1: -1.5, // RDM
+                2: -0.5, // ODH (ここを3と重ねる)
+                3: -0.5, // RUM (ここを2と重ねる)
+                4: 0.5,  // LUH (ここを5と重ねる)
+                5: 0.5,  // RDM (ここを4と重ねる)
+                6: 1.5,  // ODH
+                7: 2.5
+            };
+
+            const rowY = [cy - SIZE, cy]; // 上段、下段 (SIZE一つ分ずらす)
+
+            gridRows.forEach((row, rIndex) => {
+                row.forEach((code, cIndex) => {
+                    if (code === "NNN") return;
+                    
+                    const config = getPieceConfig(code);
+                    if (config) {
+                        // 重なりを考慮したX座標を計算
+                        const offsetX = colToOffset[cIndex] * SIZE;
+                        
+                        pieces.push({
+                            x: cx + offsetX,
+                            y: rowY[rIndex] + SIZE/2, // 中心補正
+                            angle: config.angle,
+                            scaleX: config.scaleX,
+                            targetScaleX: config.scaleX
+                        });
+                    }
+                });
+            });
+        }
+    }
+
+    window.resetCurrentPieces = function() {
+        resetPieces();
+        savedStates[currentMode] = JSON.parse(JSON.stringify(pieces));
+    }
+
+    window.setMode = function(m) {
+        saveCurrentState();
+        currentMode = m;
+        document.getElementById('btn1').className = (m === 1 ? 'active' : '');
+        document.getElementById('btn2').className = (m === 2 ? 'active' : '');
+        if (savedStates[m]) {
+            pieces = JSON.parse(JSON.stringify(savedStates[m]));
+        } else {
+            resetPieces();
+        }
+    }
+
+    function saveCurrentState() {
+        if(pieces.length > 0) {
+            savedStates[currentMode] = JSON.parse(JSON.stringify(pieces));
+        }
+    }
+
+    function gameLoop() {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+        pieces.forEach(p => {
+            if (p.scaleX !== p.targetScaleX) {
+                const speed = 0.4; 
+                if (p.scaleX < p.targetScaleX) {
+                    p.scaleX = Math.min(p.scaleX + speed, p.targetScaleX);
+                } else {
+                    p.scaleX = Math.max(p.scaleX - speed, p.targetScaleX);
+                }
+            }
+        });
+    }
+
+    function traceTrianglePath(s) {
+        ctx.beginPath();
+        // 直角頂点を中心(-s/2, -s/2)とする定義
+        ctx.moveTo(-s/2, -s/2); 
+        ctx.lineTo(-s/2, s/2);  
+        ctx.lineTo(s/2, -s/2);  
+        ctx.closePath();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = "#ccc";
+        ctx.fillRect(canvas.width/2 - 2, canvas.height/2 - 2, 4, 4);
+
+        pieces.forEach(p => drawPiece(p));
+    }
+
+    function drawPiece(p) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle * Math.PI / 180);
+        ctx.scale(p.scaleX, 1); 
+        
+        traceTrianglePath(SIZE);
+        
+        ctx.fillStyle = (p.scaleX > 0) ? COLOR_FRONT : COLOR_BACK;
+        ctx.fill();
+        
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#333';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        if (activePiece === p) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            drawRotateHandle();
+        }
+        ctx.restore();
+    }
+
+    function drawRotateHandle() {
+        const s2 = SIZE / 2;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        [-1, 1].forEach(dir => {
+            ctx.beginPath();
+            if(dir === -1) ctx.arc(-s2, s2, 12, 0, Math.PI*2);
+            else ctx.arc(s2, -s2, 12, 0, Math.PI*2);
+            ctx.fill(); ctx.stroke();
+        });
+    }
+
+    function getVertices(p) {
+        const rad = p.angle * Math.PI / 180;
+        const s2 = SIZE / 2;
+        const localVerts = [ {x: -s2, y: -s2}, {x: -s2, y: s2}, {x: s2, y: -s2} ];
+        return localVerts.map(v => {
+            const lx = v.x * (p.scaleX > 0 ? 1 : -1);
+            const ly = v.y;
+            return {
+                x: p.x + (lx * Math.cos(rad) - ly * Math.sin(rad)),
+                y: p.y + (lx * Math.sin(rad) + ly * Math.cos(rad))
+            };
+        });
+    }
+
+    function snap(targetP) {
+        let bestDist = SNAP_DIST;
+        let snapX = null;
+        let snapY = null;
+        const targetVerts = getVertices(targetP);
+
+        for (let otherP of pieces) {
+            if (otherP === targetP) continue;
+            const otherVerts = getVertices(otherP);
+            for (let tv of targetVerts) {
+                for (let ov of otherVerts) {
+                    const dist = Math.hypot(tv.x - ov.x, tv.y - ov.y);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        snapX = ov.x - tv.x;
+                        snapY = ov.y - tv.y;
+                    }
+                }
+            }
+        }
+        if (snapX !== null) {
+            targetP.x += snapX; targetP.y += snapY;
+            return true;
+        }
+        return false;
+    }
+
+    function getTouchType(tx, ty, p) {
+        const dx = tx - p.x; const dy = ty - p.y;
+        const s2 = SIZE / 2;
+        const rad = -p.angle * Math.PI / 180;
+        const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+        const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+        const lx = rx * (p.scaleX > 0 ? 1 : -1);
+        const ly = ry;
+        const corners = [{x: -s2, y: s2}, {x: s2, y: -s2}];
+        for(let c of corners) {
+            if(Math.hypot(lx - c.x, ly - c.y) < 45) return 'rotate';
+        }
+        return 'move';
+    }
+
+    function handleStart(e) {
+        e.preventDefault();
+        const t = e.touches[0]; const tx = t.clientX; const ty = t.clientY;
+        const now = Date.now();
+
+        for (let i = pieces.length - 1; i >= 0; i--) {
+            const p = pieces[i];
+            ctx.save(); ctx.translate(p.x, p.y); 
+            ctx.rotate(p.angle * Math.PI / 180);
+            ctx.scale(p.scaleX, 1); traceTrianglePath(SIZE);
+            const isHit = ctx.isPointInPath(tx, ty); ctx.restore();
+
+            if (isHit) {
+                if (lastTapPiece === p && (now - lastTapTime < 400)) {
+                    p.targetScaleX *= -1; 
+                    lastTapPiece = null; activePiece = null; return;
+                }
+                lastTapPiece = p; lastTapTime = now; activePiece = p;
+                pieces.splice(i, 1); pieces.push(p);
+
+                startPieceX = p.x; startPieceY = p.y;
+                if (getTouchType(tx, ty, p) === 'rotate') {
+                    dragMode = 'rotate';
+                    startAngle = Math.atan2(ty - p.y, tx - p.x);
+                    initialPieceAngle = p.angle;
+                } else {
+                    dragMode = 'move';
+                    startX = tx; startY = ty;
+                }
+                draw();
+                return;
+            }
+        }
+        activePiece = null; draw();
+    }
+
+    function handleMove(e) {
+        if (!activePiece) return;
+        e.preventDefault();
+        const t = e.touches[0]; const tx = t.clientX; const ty = t.clientY;
+        if (dragMode === 'move') {
+            activePiece.x = startPieceX + (tx - startX);
+            activePiece.y = startPieceY + (ty - startY);
+        } else if (dragMode === 'rotate') {
+            const currentAngle = Math.atan2(ty - activePiece.y, tx - activePiece.x);
+            let diffDeg = (currentAngle - startAngle) * 180 / Math.PI;
+            activePiece.angle = initialPieceAngle + diffDeg;
+        }
+    }
+
+    function handleEnd() {
+        if (activePiece) {
+            if (dragMode === 'rotate') {
+                activePiece.angle = Math.round(activePiece.angle / 45) * 45;
+            }
+            snap(activePiece);
+            draw();
+        }
+        activePiece = null; dragMode = null;
+    }
+
+    canvas.addEventListener('touchstart', handleStart, {passive: false});
+    canvas.addEventListener('touchmove', handleMove, {passive: false});
+    canvas.addEventListener('touchend', handleEnd);
+    canvas.addEventListener('mousedown', e => handleStart({preventDefault:()=>{}, touches:[e]}));
+    window.addEventListener('mousemove', e => { if(activePiece) handleMove({preventDefault:()=>{}, touches:[e]}); });
+    window.addEventListener('mouseup', handleEnd);
+
+    init();
+</script>
+</body>
+</html>

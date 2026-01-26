@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>さんすう おはじき (v7)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f4f8;
+            font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #toolbar-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 90px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        canvas {
+            display: block;
+            touch-action: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        button {
+            pointer-events: auto;
+            padding: 10px 20px;
+            font-size: 18px;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            transition: all 0.1s;
+            white-space: nowrap;
+        }
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        .btn-red { background-color: #ff6b6b; color: white; }
+        .btn-blue { background-color: #4d96ff; color: white; }
+        .btn-block { background-color: #ffd93d; color: #444; }
+        .btn-func { background-color: #fff; color: #444; border: 2px solid #ccc; font-size: 16px; padding: 8px 16px;}
+        
+        /* 最初からONなのでactiveスタイルが重要 */
+        .btn-func.active {
+            background-color: #4cd137;
+            color: white;
+            border-color: #4cd137;
+        }
+
+        .btn-reset { background-color: #e0e0e0; color: #444; font-size: 14px; padding: 10px 12px; }
+
+        .ctrl-group {
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .ctrl-label {
+            font-size: 10px;
+            color: #666;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="appCanvas"></canvas>
+
+    <div id="toolbar-container">
+        <button class="btn-red" onclick="addItem('red_circle')">あか</button>
+        <button class="btn-blue" onclick="addItem('blue_circle')">あお</button>
+        <button class="btn-block" onclick="addItem('yellow_rect')">ブロック</button>
+        
+        <div style="width: 10px;"></div>
+
+        <div class="ctrl-group">
+            <span class="ctrl-label">ピタッと</span>
+            <button id="magnetBtn" class="btn-func active" onclick="toggleMagnet()">ON</button>
+        </div>
+
+        <div class="ctrl-group">
+            <span class="ctrl-label">マス目</span>
+            <button id="gridBtn" class="btn-func active" onclick="toggleGrid()">ON</button>
+        </div>
+
+        <div style="width: 5px;"></div>
+        <button class="btn-reset" onclick="resetCanvas()">ぜんぶ<br>けす</button>
+    </div>
+
+<script>
+    const canvas = document.getElementById('appCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const TOOLBAR_HEIGHT = 90;
+    let GRID_SIZE = 100; 
+    let ITEM_SIZE = 90; 
+    
+    let items = [];
+    let isDragging = false;
+    let currentItemIndex = null;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    
+    // 【変更点】初期値を true に設定
+    let isMagnetMode = true;
+    
+    let isShowGrid = true;
+    let isHoveringTrash = false;
+    let lastInteractedPos = null;
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        GRID_SIZE = canvas.width / 10;
+        ITEM_SIZE = GRID_SIZE * 0.9;
+
+        items.forEach(item => {
+            item.w = ITEM_SIZE;
+            item.h = ITEM_SIZE;
+        });
+
+        draw();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function toggleMagnet() {
+        isMagnetMode = !isMagnetMode;
+        const btn = document.getElementById('magnetBtn');
+        if (isMagnetMode) {
+            btn.classList.add('active');
+            btn.innerText = "ON";
+            snapAllItems();
+        } else {
+            btn.classList.remove('active');
+            btn.innerText = "OFF";
+        }
+    }
+
+    function toggleGrid() {
+        isShowGrid = !isShowGrid;
+        const btn = document.getElementById('gridBtn');
+        if (isShowGrid) {
+            btn.classList.add('active');
+            btn.innerText = "ON";
+        } else {
+            btn.classList.remove('active');
+            btn.innerText = "OFF";
+        }
+        draw();
+    }
+
+    function snapAllItems() {
+        items.forEach(item => snapItemToGrid(item));
+        draw();
+    }
+
+    function snapItemToGrid(item) {
+        const safeBottom = canvas.height - TOOLBAR_HEIGHT - GRID_SIZE/2;
+        const halfGrid = GRID_SIZE / 2;
+        
+        let snappedX = Math.round((item.x - halfGrid) / GRID_SIZE) * GRID_SIZE + halfGrid;
+        let snappedY = Math.round((item.y - halfGrid) / GRID_SIZE) * GRID_SIZE + halfGrid;
+
+        snappedX = Math.max(halfGrid, Math.min(canvas.width - halfGrid, snappedX));
+        snappedY = Math.max(halfGrid, Math.min(safeBottom, snappedY));
+
+        item.x = snappedX;
+        item.y = snappedY;
+    }
+
+    function isOccupied(x, y) {
+        const limit = GRID_SIZE * 0.5; 
+        return items.some(item => {
+            const dx = item.x - x;
+            const dy = item.y - y;
+            return (dx*dx + dy*dy < limit * limit);
+        });
+    }
+
+    function addItem(type) {
+        let startX, startY;
+
+        if (!lastInteractedPos) {
+            startX = GRID_SIZE * 1.5;
+            startY = GRID_SIZE * 1.5;
+        } else {
+            startX = lastInteractedPos.x;
+            startY = lastInteractedPos.y;
+        }
+
+        let targetX = startX + GRID_SIZE;
+        let targetY = startY;
+
+        if (isOccupied(targetX, targetY) || targetX > canvas.width) {
+            targetX = startX - GRID_SIZE;
+            targetY = startY;
+        }
+        
+        if (isOccupied(targetX, targetY) || targetX < 0) {
+            targetX = startX;
+            targetY = startY + GRID_SIZE;
+        }
+
+        if (isOccupied(targetX, targetY)) {
+             const padding = GRID_SIZE / 2;
+             targetX = padding + Math.random() * (canvas.width - padding * 2);
+             targetY = GRID_SIZE * 1.5;
+        }
+
+        const safeBottom = canvas.height - TOOLBAR_HEIGHT - GRID_SIZE/2;
+        if (targetY > safeBottom) targetY = GRID_SIZE * 1.5;
+
+        const newItem = {
+            type: type,
+            x: targetX,
+            y: targetY,
+            w: ITEM_SIZE,
+            h: ITEM_SIZE
+        };
+
+        // マグネットON（デフォルト）ならここで吸着
+        if (isMagnetMode) {
+            snapItemToGrid(newItem);
+        } else {
+            // OFFでも最初の配置だけはグリッド基準にしてあげる（使いやすさのため）
+            snapItemToGrid(newItem);
+        }
+        
+        items.push(newItem);
+        
+        lastInteractedPos = { x: newItem.x, y: newItem.y };
+        
+        draw();
+    }
+
+    function resetCanvas() {
+        if(confirm('ぜんぶけしますか？')) {
+            items = [];
+            lastInteractedPos = null;
+            draw();
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (isShowGrid) {
+            drawGrid();
+        }
+
+        drawToolbarBackground();
+
+        items.forEach(item => {
+            ctx.beginPath();
+            if (item.type.includes('circle')) {
+                ctx.arc(item.x, item.y, item.w / 2 - 2, 0, Math.PI * 2);
+                ctx.fillStyle = item.type === 'red_circle' ? 'rgba(255, 107, 107, 0.9)' : 'rgba(77, 150, 255, 0.9)';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            } else {
+                ctx.rect(item.x - item.w/2, item.y - item.h/2, item.w, item.h);
+                ctx.fillStyle = '#ffd93d';
+                ctx.fill();
+                ctx.strokeStyle = '#c5a000';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+            ctx.closePath();
+        });
+    }
+
+    function drawToolbarBackground() {
+        const barY = canvas.height - TOOLBAR_HEIGHT;
+
+        if (isDragging && isHoveringTrash) {
+            ctx.fillStyle = '#ffcccc';
+        } else {
+            ctx.fillStyle = '#ffffff';
+        }
+        
+        ctx.fillRect(0, barY, canvas.width, TOOLBAR_HEIGHT);
+        
+        ctx.beginPath();
+        ctx.moveTo(0, barY);
+        ctx.lineTo(canvas.width, barY);
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if (isDragging && isHoveringTrash) {
+            ctx.fillStyle = '#ff0000';
+            ctx.font = 'bold 60px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText("🗑️", canvas.width / 2, barY + TOOLBAR_HEIGHT / 2 + 5);
+        }
+    }
+
+    function drawGrid() {
+        ctx.strokeStyle = '#ccd6e0';
+        ctx.lineWidth = 2;
+        const drawHeight = canvas.height - TOOLBAR_HEIGHT;
+
+        ctx.beginPath();
+        for (let x = 0; x <= canvas.width; x += GRID_SIZE) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, drawHeight);
+        }
+        for (let y = 0; y <= drawHeight; y += GRID_SIZE) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+        }
+        ctx.stroke();
+
+        const centerX = Math.round(canvas.width / 2);
+        ctx.beginPath();
+        ctx.strokeStyle = '#99aab5';
+        ctx.lineWidth = 4;
+        ctx.moveTo(centerX, 0);
+        ctx.lineTo(centerX, drawHeight);
+        ctx.stroke();
+    }
+
+    function getPointerPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    }
+
+    function handleStart(e) {
+        if (e.touches && e.touches.length > 1) return;
+        if (e.target.tagName === 'BUTTON') return;
+
+        e.preventDefault();
+        const pos = getPointerPos(e);
+        
+        for (let i = items.length - 1; i >= 0; i--) {
+            const item = items[i];
+            const hitDist = item.w / 2 + 10;
+            const dx = pos.x - item.x;
+            const dy = pos.y - item.y;
+            
+            if (dx*dx + dy*dy < hitDist * hitDist) {
+                isDragging = true;
+                currentItemIndex = i;
+                dragOffsetX = dx;
+                dragOffsetY = dy;
+                
+                items.splice(i, 1);
+                items.push(item);
+                currentItemIndex = items.length - 1;
+                
+                draw();
+                return;
+            }
+        }
+    }
+
+    function handleMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        
+        const pos = getPointerPos(e);
+        const item = items[currentItemIndex];
+        
+        item.x = pos.x - dragOffsetX;
+        item.y = pos.y - dragOffsetY;
+
+        const barY = canvas.height - TOOLBAR_HEIGHT;
+        if (pos.y > barY) {
+            isHoveringTrash = true;
+        } else {
+            isHoveringTrash = false;
+        }
+        
+        draw();
+    }
+
+    function handleEnd(e) {
+        if (!isDragging) return;
+
+        if (isHoveringTrash) {
+            items.pop();
+            isHoveringTrash = false;
+        }
+        else {
+            if (isMagnetMode && currentItemIndex !== null) {
+                snapItemToGrid(items[currentItemIndex]);
+            }
+            if (currentItemIndex !== null && items[currentItemIndex]) {
+                lastInteractedPos = { 
+                    x: items[currentItemIndex].x, 
+                    y: items[currentItemIndex].y 
+                };
+            }
+        }
+
+        isDragging = false;
+        currentItemIndex = null;
+        draw();
+    }
+
+    canvas.addEventListener('mousedown', handleStart);
+    canvas.addEventListener('mousemove', handleMove);
+    canvas.addEventListener('mouseup', handleEnd);
+    
+    canvas.addEventListener('touchstart', handleStart, {passive: false});
+    canvas.addEventListener('touchmove', handleMove, {passive: false});
+    canvas.addEventListener('touchend', handleEnd);
+
+</script>
+</body>
+</html>

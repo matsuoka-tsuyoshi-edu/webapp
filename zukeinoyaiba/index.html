@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>図形のヤイバ～むげんふくせいへん～ Ver.31</title>
+    <style>
+        /* --- 基本設定 --- */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #fdfdfd;
+            font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
+
+        /* --- UIパーツ --- */
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            box-sizing: border-box;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            pointer-events: auto;
+        }
+
+        button {
+            background: white;
+            border: 2px solid #ccc;
+            padding: 8px 16px;
+            font-size: 16px;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            font-weight: bold;
+            color: #555;
+            transition: all 0.2s;
+        }
+
+        .main-btn {
+            font-size: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #357abd;
+        }
+
+        /* ハサミボタン */
+        #btn-scissors {
+            margin-left: auto;
+            border-color: #ff9900;
+            color: #ff9900;
+        }
+        #btn-scissors.active {
+            background-color: #ff9900;
+            color: white;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .submenu {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 12px;
+            border-radius: 12px;
+            gap: 8px;
+            pointer-events: auto;
+            width: fit-content;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+        }
+
+        /* 選択時アクションボタン群 */
+        #action-controls {
+            position: absolute;
+            top: 80px; 
+            right: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+            pointer-events: auto;
+            z-index: 110;
+        }
+
+        .action-btn {
+            background: #fff;
+            border: 2px solid #666;
+            color: #333;
+            min-width: 90px;
+            text-align: center;
+            display: none; 
+        }
+        
+        .action-btn.clone {
+            border-color: #9b59b6;
+            color: #9b59b6;
+        }
+        
+        .action-btn.flip {
+            border-color: #2ecc71;
+            color: #2ecc71;
+        }
+
+        .action-btn.delete {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+
+        /* ズームコントロール & 角表示 */
+        #bottom-controls {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+            pointer-events: auto;
+            align-items: flex-end;
+        }
+
+        .zoom-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #ccc;
+            font-size: 24px;
+            color: #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            cursor: pointer;
+        }
+        .zoom-btn:active {
+            background-color: #f0f0f0;
+            transform: scale(0.95);
+        }
+
+        #btn-toggle-angles {
+            background: white;
+            border: 2px solid #666;
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        #btn-toggle-angles.active {
+            background: #666;
+            color: white;
+        }
+
+        /* --- SVG Canvas --- */
+        #grid-container {
+            width: 100vw;
+            height: 100dvh;
+            background-color: #fafafa;
+            overflow: hidden;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+        }
+
+        /* 方眼紙パターン */
+        #grid-pattern path {
+            stroke: #e0e0e0;
+            stroke-width: 1;
+        }
+
+        /* 図形スタイル */
+        .polygon-shape {
+            stroke: #4a90e2;
+            stroke-width: 3;
+            stroke-linejoin: round;
+            cursor: pointer;
+            transition: fill 0.2s;
+        }
+        
+        .polygon-shape.selected {
+            fill: rgba(255, 140, 0, 0.7) !important;
+            stroke: #d35400;
+        }
+
+        /* 頂点スタイル */
+        .vertex {
+            pointer-events: none;
+            fill: #fff;
+            stroke: #4a90e2;
+            stroke-width: 2;
+        }
+        
+        /* 回転ハンドル */
+        .rotate-handle {
+            pointer-events: none;
+            fill: #4cd964; 
+            stroke: #fff;
+            stroke-width: 2;
+        }
+
+        /* 角の扇形 */
+        .angle-sector {
+            pointer-events: none;
+            opacity: 0.8;
+            stroke: none;
+        }
+
+        .vertex-hit {
+            fill: transparent;
+            cursor: grab;
+        }
+
+        /* 切断線 */
+        #cut-line {
+            stroke: #ff4444;
+            stroke-width: 4;
+            stroke-dasharray: 10, 10;
+            opacity: 0;
+            pointer-events: none;
+            stroke-linecap: round;
+        }
+
+        /* スナップポイントマーカー */
+        .snap-marker {
+            fill: #ff4444;
+            stroke: white;
+            stroke-width: 2;
+            cursor: grab;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        /* メッセージボックス */
+        #message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            text-align: center;
+            z-index: 200;
+        }
+
+        /* 切断確認UI */
+        #confirm-ui {
+            position: absolute;
+            display: none;
+            gap: 15px;
+            z-index: 300;
+            background: transparent; 
+            padding: 0;
+            pointer-events: auto;
+        }
+        
+        #confirm-ui button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            border: 2px solid white;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: transform 0.1s;
+        }
+        
+        #confirm-ui button:active {
+            transform: scale(0.9);
+        }
+        
+        #btn-confirm-cut { background-color: #34c759; }
+        #btn-cancel-cut { background-color: #ff3b30; }
+
+    </style>
+</head>
+<body>
+
+    <div id="ui-container">
+        <div class="button-group">
+            <button onclick="setShapeMode('triangle')" id="btn-triangle" class="main-btn active">3</button>
+            <button onclick="setShapeMode('quadrilateral')" id="btn-quadrilateral" class="main-btn">4</button>
+            <button onclick="setShapeMode('pentagon')" id="btn-pentagon" class="main-btn">5</button>
+            <button onclick="setShapeMode('hexagon')" id="btn-hexagon" class="main-btn">6</button>
+            
+            <button onclick="resetCanvas()" style="margin-left: 20px; border-radius: 20px; height: 50px; background-color: #ffcccc; border-color: #ff9999;">元に戻す</button>
+            
+            <button onclick="toggleScissors()" id="btn-scissors" style="border-radius: 20px; height: 50px;">✂️ 切る</button>
+        </div>
+
+        <div class="button-group submenu" id="submenu-triangle">
+            <button onclick="setSubShape('triangle_general')">三角形</button>
+            <button onclick="setSubShape('triangle_regular')">正三角形</button>
+            <button onclick="setSubShape('triangle_isosceles')">二等辺三角形</button>
+            <button onclick="setSubShape('triangle_right')">直角三角形</button>
+        </div>
+
+        <div class="button-group submenu" id="submenu-quadrilateral">
+            <button onclick="setSubShape('quadrilateral_general')">四角形</button>
+            <button onclick="setSubShape('quadrilateral_square')">正方形</button>
+            <button onclick="setSubShape('quadrilateral_rectangle')">長方形</button>
+            <button onclick="setSubShape('quadrilateral_parallelogram')">平行四辺形</button>
+            <button onclick="setSubShape('quadrilateral_trapezoid')">台形</button>
+            <button onclick="setSubShape('quadrilateral_rhombus')">ひし形</button>
+        </div>
+    </div>
+
+    <!-- 選択時アクションボタン -->
+    <div id="action-controls">
+        <button id="btn-clone" class="action-btn clone" onclick="cloneSelectedShape()">＋ ふやす</button>
+        <button id="btn-delete" class="action-btn delete" onclick="deleteSelectedShape()">🗑️ 削除</button>
+        <button id="btn-flip-h" class="action-btn flip" onclick="flipSelectedShape('h')">左右</button>
+        <button id="btn-flip-v" class="action-btn flip" onclick="flipSelectedShape('v')">上下</button>
+    </div>
+
+    <div id="bottom-controls">
+        <button id="btn-toggle-angles" onclick="toggleAngles()">角の表示</button>
+        <button class="zoom-btn" onclick="handleZoom(1)">＋</button>
+        <button class="zoom-btn" onclick="handleZoom(-1)">－</button>
+    </div>
+
+    <div id="confirm-ui">
+        <button id="btn-confirm-cut" onclick="confirmCut()">✔</button>
+        <button id="btn-cancel-cut" onclick="cancelCut()">✕</button>
+    </div>
+
+    <div id="message-box"></div>
+
+    <div id="grid-container">
+        <svg id="main-svg">
+            <defs>
+                <pattern id="grid-pattern" width="50" height="50" patternUnits="userSpaceOnUse">
+                    <path d="M 50 0 L 0 0 0 50" fill="none"/>
+                </pattern>
+            </defs>
+            
+            <g id="world">
+                <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#grid-pattern)" />
+                <g id="shapes-layer"></g>
+                <g id="vertex-layer"></g>
+                <line id="cut-line" x1="0" y1="0" x2="0" y2="0"></line>
+                <circle id="snap-start-marker" class="snap-marker" r="8" style="pointer-events:auto;"></circle>
+                <circle id="snap-end-marker" class="snap-marker" r="8" style="pointer-events:auto;"></circle>
+            </g>
+        </svg>
+    </div>
+
+    <script>
+        // --- 設定 ---
+        const GRID_SIZE = 50; 
+        const COLORS = [
+            'rgba(74, 144, 226, 0.5)',  // 青
+            'rgba(231, 76, 60, 0.5)',   // 赤
+            'rgba(46, 204, 113, 0.5)',  // 緑
+            'rgba(241, 196, 15, 0.5)',  // 黄
+            'rgba(155, 89, 182, 0.5)',  // 紫
+            'rgba(230, 126, 34, 0.5)',  // オレンジ
+            'rgba(26, 188, 156, 0.5)',  // ターコイズ
+            'rgba(52, 73, 94, 0.5)',    // 紺
+            'rgba(149, 165, 166, 0.5)'  // グレー
+        ];
+        
+        const ANGLE_COLORS = ['#FF5252', '#448AFF', '#69F0AE', '#FFD740', '#E040FB', '#00E5FF'];
+
+        // --- 状態管理 ---
+        let shapes = []; 
+        let nextShapeId = 1;
+        let currentMode = 'triangle'; 
+        let currentSubMode = ''; 
+        let isScissorsMode = false;
+        let isAngleVisible = false;
+        
+        let viewState = { x: 0, y: 0, scale: 1 };
+        let selectedShapeId = -1; 
+
+        let interactionState = {
+            mode: null, 
+            targetShapeId: -1,
+            targetVertexIndex: -1,
+            startX: 0, startY: 0, 
+            initialVertices: [], 
+            rotateCenter: {x:0, y:0},
+            startAngle: 0,
+            snapStart: null, 
+            snapEnd: null,
+            panStartX: 0, panStartY: 0,
+            initialViewX: 0, initialViewY: 0
+        };
+
+        const svg = document.getElementById('main-svg');
+        const worldGroup = document.getElementById('world');
+        const shapesLayer = document.getElementById('shapes-layer');
+        const vertexLayer = document.getElementById('vertex-layer');
+        const cutLineElement = document.getElementById('cut-line');
+        const snapStartMarker = document.getElementById('snap-start-marker');
+        const snapEndMarker = document.getElementById('snap-end-marker');
+        const messageBox = document.getElementById('message-box');
+        const confirmUi = document.getElementById('confirm-ui');
+        
+        const submenuTriangle = document.getElementById('submenu-triangle');
+        const submenuQuadrilateral = document.getElementById('submenu-quadrilateral');
+        const btnScissors = document.getElementById('btn-scissors');
+        const btnToggleAngles = document.getElementById('btn-toggle-angles');
+        
+        const btnClone = document.getElementById('btn-clone');
+        const btnDelete = document.getElementById('btn-delete');
+        const btnFlipH = document.getElementById('btn-flip-h');
+        const btnFlipV = document.getElementById('btn-flip-v');
+
+        window.onload = () => {
+            setShapeMode('triangle');
+            svg.addEventListener('pointerdown', handlePointerDown);
+            svg.addEventListener('pointermove', handlePointerMove);
+            svg.addEventListener('pointerup', handlePointerUp);
+            svg.addEventListener('pointercancel', handlePointerUp);
+            document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+        };
+
+        function getSVGPoint(clientX, clientY) {
+            const pt = svg.createSVGPoint();
+            pt.x = clientX;
+            pt.y = clientY;
+            return pt.matrixTransform(worldGroup.getScreenCTM().inverse());
+        }
+
+        function handleZoom(direction) {
+            const factor = direction > 0 ? 1.25 : 0.8;
+            const newScale = viewState.scale * factor;
+            if (newScale < 0.2 || newScale > 5) return;
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+            const pt = getSVGPoint(cx, cy);
+            viewState.x = cx - pt.x * newScale;
+            viewState.y = cy - pt.y * newScale;
+            viewState.scale = newScale;
+            updateTransform();
+        }
+
+        function updateTransform() {
+            worldGroup.setAttribute('transform', `translate(${viewState.x}, ${viewState.y}) scale(${viewState.scale})`);
+            const strokeW = 4 / viewState.scale;
+            cutLineElement.style.strokeWidth = strokeW;
+            const r = 12 / viewState.scale;
+            if (snapStartMarker.style.opacity == 1) snapStartMarker.setAttribute('r', r);
+            if (snapEndMarker.style.opacity == 1) snapEndMarker.setAttribute('r', r);
+            updateViewStyles();
+        }
+
+        function toggleAngles() {
+            isAngleVisible = !isAngleVisible;
+            if (isAngleVisible) {
+                btnToggleAngles.classList.add('active');
+            } else {
+                btnToggleAngles.classList.remove('active');
+            }
+            updateView();
+        }
+
+        function getAnglePath(cx, cy, prevX, prevY, nextX, nextY, radius, isClockwise) {
+            const thetaNext = Math.atan2(nextY - cy, nextX - cx);
+            const thetaPrev = Math.atan2(prevY - cy, prevX - cx);
+            const sx = cx + radius * Math.cos(thetaNext);
+            const sy = cy + radius * Math.sin(thetaNext);
+            const ex = cx + radius * Math.cos(thetaPrev);
+            const ey = cy + radius * Math.sin(thetaPrev);
+            let diff;
+            let sweepFlag;
+            if (isClockwise) {
+                diff = thetaPrev - thetaNext;
+                while (diff < 0) diff += 2 * Math.PI;
+                sweepFlag = 1; 
+            } else {
+                diff = thetaNext - thetaPrev; 
+                while (diff < 0) diff += 2 * Math.PI;
+                sweepFlag = 0; 
+            }
+            const largeArcFlag = diff > Math.PI ? 1 : 0;
+            return `M ${cx},${cy} L ${sx},${sy} A ${radius},${radius} 0 ${largeArcFlag},${sweepFlag} ${ex},${ey} Z`;
+        }
+
+        function getSignedArea(vertices) {
+            let area = 0;
+            for (let i = 0; i < vertices.length; i++) {
+                const j = (i + 1) % vertices.length;
+                area += vertices[i].x * vertices[j].y;
+                area -= vertices[j].x * vertices[i].y;
+            }
+            return area / 2;
+        }
+
+        function findNearestVertexOrMidpoint(x, y) {
+            let nearest = null;
+            let minDist = 45 / viewState.scale; 
+            shapes.forEach(shape => {
+                const vs = shape.vertices;
+                const n = vs.length;
+                for (let i = 0; i < n; i++) {
+                    const p1 = vs[i];
+                    const p2 = vs[(i + 1) % n];
+                    let d = Math.hypot(p1.x - x, p1.y - y);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = { x: p1.x, y: p1.y, type: 'vertex', shapeId: shape.id };
+                    }
+                    const midX = (p1.x + p2.x) / 2;
+                    const midY = (p1.y + p2.y) / 2;
+                    d = Math.hypot(midX - x, midY - y);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = { x: midX, y: midY, type: 'midpoint', shapeId: shape.id };
+                    }
+                }
+            });
+            return nearest;
+        }
+
+        function findNearestGridOrFeature(x, y, onlyGrid = false) {
+            const snappedX = Math.round(x / 25) * 25;
+            const snappedY = Math.round(y / 25) * 25;
+            if (onlyGrid) return { x: snappedX, y: snappedY, type: 'grid' };
+            if (Math.hypot(snappedX - x, snappedY - y) < 20 / viewState.scale) return { x: snappedX, y: snappedY, type: 'grid' };
+            return { x: snappedX, y: snappedY, type: 'grid' };
+        }
+
+        // --- 交差・包含判定 ---
+        function onSegment(p, a, b) {
+            return p.x >= Math.min(a.x, b.x) && p.x <= Math.max(a.x, b.x) &&
+                   p.y >= Math.min(a.y, b.y) && p.y <= Math.max(a.y, b.y);
+        }
+
+        function linesIntersect(a, b, c, d) {
+            const det = (b.x - a.x) * (d.y - c.y) - (d.x - c.x) * (b.y - a.y);
+            if (det === 0) return false;
+            const lambda = ((d.y - c.y) * (d.x - a.x) + (c.x - d.x) * (d.y - a.y)) / det;
+            const gamma = ((a.y - b.y) * (d.x - a.x) + (b.x - a.x) * (d.y - a.y)) / det;
+            return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+        }
+
+        function polygonIntersectsLineSegment(vertices, p1, p2) {
+            for (let i = 0; i < vertices.length; i++) {
+                const v1 = vertices[i];
+                const v2 = vertices[(i + 1) % vertices.length];
+                if (linesIntersect(p1, p2, v1, v2)) return true;
+            }
+            return false;
+        }
+
+        function isPointInPolygon(p, vertices) {
+            let inside = false;
+            for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+                const xi = vertices[i].x, yi = vertices[i].y;
+                const xj = vertices[j].x, yj = vertices[j].y;
+                const intersect = ((yi > p.y) !== (yj > p.y)) &&
+                    (p.x < (xj - xi) * (p.y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function isPointOnPolyEdge(p, vertices) {
+            for (let i = 0; i < vertices.length; i++) {
+                const p1 = vertices[i];
+                const p2 = vertices[(i+1)%vertices.length];
+                const res = getClosestPointOnSegment(p, p1, p2);
+                if (res.dist < 1.0) return true; // Close enough
+            }
+            return false;
+        }
+
+        function getClosestPointOnSegment(p, a, b) {
+            const atob = { x: b.x - a.x, y: b.y - a.y };
+            const atop = { x: p.x - a.x, y: p.y - a.y };
+            const len2 = atob.x * atob.x + atob.y * atob.y;
+            let t = (atop.x * atob.x + atop.y * atob.y) / len2;
+            t = Math.max(0, Math.min(1, t));
+            const closest = { x: a.x + t * atob.x, y: a.y + t * atob.y };
+            const dist = Math.hypot(p.x - closest.x, p.y - closest.y);
+            return { x: closest.x, y: closest.y, dist: dist };
+        }
+
+        // --- イベントハンドラ ---
+        function handlePointerDown(e) {
+            e.preventDefault();
+            const target = e.target;
+            
+            if (interactionState.mode === 'confirm') {
+                if (target.id === 'snap-start-marker') {
+                    interactionState.mode = 'adjust_start';
+                    confirmUi.style.display = 'none';
+                } else if (target.id === 'snap-end-marker') {
+                    interactionState.mode = 'adjust_end';
+                    confirmUi.style.display = 'none';
+                }
+                return;
+            }
+
+            svg.setPointerCapture(e.pointerId);
+            const pt = getSVGPoint(e.clientX, e.clientY);
+
+            if (isScissorsMode) {
+                const snap = findNearestVertexOrMidpoint(pt.x, pt.y);
+                if (snap) startCutInteraction(snap);
+                return;
+            }
+
+            if (e.target === svg || e.target.tagName === 'rect') {
+                if (selectedShapeId !== -1) {
+                    selectedShapeId = -1;
+                    updateView();
+                } else {
+                    interactionState.mode = 'pan';
+                    interactionState.panStartX = e.clientX;
+                    interactionState.panStartY = e.clientY;
+                    interactionState.initialViewX = viewState.x;
+                    interactionState.initialViewY = viewState.y;
+                }
+                return;
+            }
+
+            if (target.classList.contains('vertex-hit')) {
+                const shapeId = parseInt(target.dataset.shapeId);
+                const vIndex = parseInt(target.dataset.vIndex);
+                const shape = shapes.find(s => s.id === shapeId);
+                
+                if (shape.isCut) {
+                    if (shape.canRotate && shapeId === selectedShapeId) {
+                        startRotateInteraction(shape, pt);
+                    }
+                } else {
+                    startInteraction('vertex', shapeId, vIndex, pt);
+                }
+                return;
+            }
+            
+            if (target.classList.contains('polygon-shape')) {
+                const shapeId = parseInt(target.dataset.shapeId);
+                if (selectedShapeId !== shapeId) {
+                    selectedShapeId = shapeId;
+                    updateView(); 
+                }
+                startInteraction('shape', shapeId, -1, pt);
+            }
+        }
+
+        function startInteraction(mode, shapeId, vIndex, pt) {
+            interactionState.mode = mode;
+            interactionState.targetShapeId = shapeId;
+            interactionState.targetVertexIndex = vIndex;
+            interactionState.startX = pt.x;
+            interactionState.startY = pt.y;
+
+            if (mode === 'shape') {
+                const s = shapes.find(sh => sh.id === shapeId);
+                interactionState.initialVertices = JSON.parse(JSON.stringify(s.vertices));
+            }
+        }
+
+        function startRotateInteraction(shape, pt) {
+            interactionState.mode = 'rotate';
+            interactionState.targetShapeId = shape.id;
+            interactionState.initialVertices = JSON.parse(JSON.stringify(shape.vertices));
+            let cx = 0, cy = 0, n = shape.vertices.length;
+            shape.vertices.forEach(v => { cx += v.x; cy += v.y; });
+            interactionState.rotateCenter = { x: cx / n, y: cy / n };
+            interactionState.startAngle = Math.atan2(pt.y - interactionState.rotateCenter.y, pt.x - interactionState.rotateCenter.x);
+        }
+
+        function startCutInteraction(snapPoint) {
+            interactionState.mode = 'cut';
+            interactionState.snapStart = { ...snapPoint };
+            interactionState.snapEnd = { ...snapPoint };
+            confirmUi.style.display = 'none';
+            const r = 12 / viewState.scale;
+            snapStartMarker.setAttribute('cx', snapPoint.x);
+            snapStartMarker.setAttribute('cy', snapPoint.y);
+            snapStartMarker.setAttribute('r', r);
+            snapStartMarker.style.opacity = 1;
+            cutLineElement.setAttribute('x1', snapPoint.x);
+            cutLineElement.setAttribute('y1', snapPoint.y);
+            cutLineElement.setAttribute('x2', snapPoint.x);
+            cutLineElement.setAttribute('y2', snapPoint.y);
+            cutLineElement.style.opacity = 1;
+        }
+
+        function handlePointerMove(e) {
+            if (!interactionState.mode) return;
+            e.preventDefault();
+            const pt = getSVGPoint(e.clientX, e.clientY);
+
+            if (interactionState.mode === 'pan') {
+                const dx = e.clientX - interactionState.panStartX;
+                const dy = e.clientY - interactionState.panStartY;
+                viewState.x = interactionState.initialViewX + dx;
+                viewState.y = interactionState.initialViewY + dy;
+                updateTransform();
+            }
+            else if (interactionState.mode === 'cut') {
+                const snap = findNearestGridOrFeature(pt.x, pt.y);
+                interactionState.snapEnd = snap;
+                const r = 12 / viewState.scale;
+                snapEndMarker.setAttribute('cx', snap.x);
+                snapEndMarker.setAttribute('cy', snap.y);
+                snapEndMarker.setAttribute('r', r);
+                snapEndMarker.style.opacity = 1;
+                cutLineElement.setAttribute('x2', snap.x);
+                cutLineElement.setAttribute('y2', snap.y);
+            }
+            else if (interactionState.mode === 'adjust_start' || interactionState.mode === 'adjust_end') {
+                const snap = findNearestGridOrFeature(pt.x, pt.y, true);
+                if(interactionState.mode === 'adjust_start') {
+                    interactionState.snapStart = snap;
+                    snapStartMarker.setAttribute('cx', snap.x);
+                    snapStartMarker.setAttribute('cy', snap.y);
+                    cutLineElement.setAttribute('x1', snap.x);
+                    cutLineElement.setAttribute('y1', snap.y);
+                } else {
+                    interactionState.snapEnd = snap;
+                    snapEndMarker.setAttribute('cx', snap.x);
+                    snapEndMarker.setAttribute('cy', snap.y);
+                    cutLineElement.setAttribute('x2', snap.x);
+                    cutLineElement.setAttribute('y2', snap.y);
+                }
+            }
+            else if (interactionState.mode === 'vertex') {
+                const nx = snapToGrid(pt.x);
+                const ny = snapToGrid(pt.y);
+                const s = shapes.find(sh => sh.id === interactionState.targetShapeId);
+                if (s) {
+                    const oldV = s.vertices[interactionState.targetVertexIndex];
+                    s.vertices[interactionState.targetVertexIndex] = { ...oldV, x: nx, y: ny };
+                    updateView();
+                }
+            }
+            else if (interactionState.mode === 'shape') {
+                const step = 25;
+                const dx = Math.round((pt.x - interactionState.startX) / step) * step;
+                const dy = Math.round((pt.y - interactionState.startY) / step) * step;
+                const s = shapes.find(sh => sh.id === interactionState.targetShapeId);
+                if (s) {
+                    s.vertices = interactionState.initialVertices.map(v => ({
+                        ...v, 
+                        x: v.x + dx, y: v.y + dy
+                    }));
+                    updateView();
+                }
+            }
+            else if (interactionState.mode === 'rotate') {
+                const currentAngle = Math.atan2(pt.y - interactionState.rotateCenter.y, pt.x - interactionState.rotateCenter.x);
+                const deltaAngle = currentAngle - interactionState.startAngle;
+                const s = shapes.find(sh => sh.id === interactionState.targetShapeId);
+                if (s) {
+                    const cx = interactionState.rotateCenter.x;
+                    const cy = interactionState.rotateCenter.y;
+                    s.vertices = interactionState.initialVertices.map(v => {
+                        const x = v.x - cx;
+                        const y = v.y - cy;
+                        const rx = x * Math.cos(deltaAngle) - y * Math.sin(deltaAngle);
+                        const ry = x * Math.sin(deltaAngle) + y * Math.cos(deltaAngle);
+                        return { ...v, x: rx + cx, y: ry + cy }; 
+                    });
+                    updateView();
+                }
+            }
+        }
+
+        function handlePointerUp(e) {
+            if (!interactionState.mode) return;
+            e.preventDefault();
+            
+            if (interactionState.mode === 'cut' || interactionState.mode.startsWith('adjust_')) {
+                const start = interactionState.snapStart;
+                const end = interactionState.snapEnd;
+                if (Math.hypot(end.x - start.x, end.y - start.y) >= 10) {
+                    updateConfirmUIPosition();
+                    interactionState.mode = 'confirm';
+                } else {
+                    cancelCut();
+                    interactionState.mode = null;
+                }
+            } 
+            else if (interactionState.mode === 'shape' || interactionState.mode === 'rotate') {
+                applyMagnetSnap(interactionState.targetShapeId);
+                interactionState.mode = null;
+            }
+            else {
+                interactionState.mode = null;
+            }
+
+            if(svg.hasPointerCapture && svg.hasPointerCapture(e.pointerId)) {
+                svg.releasePointerCapture(e.pointerId);
+            }
+        }
+
+        function applyMagnetSnap(movingShapeId) {
+            const movingShape = shapes.find(s => s.id === movingShapeId);
+            if (!movingShape) return;
+            let bestMatch = null;
+            let minDistance = 30; 
+
+            shapes.forEach(otherShape => {
+                if (otherShape.id === movingShapeId) return;
+                
+                movingShape.vertices.forEach((mv, mi) => {
+                    const mvNext = movingShape.vertices[(mi + 1) % movingShape.vertices.length];
+                    const mvPrev = movingShape.vertices[(mi - 1 + movingShape.vertices.length) % movingShape.vertices.length];
+
+                    otherShape.vertices.forEach((ov, oi) => {
+                        const dist = Math.hypot(ov.x - mv.x, ov.y - mv.y);
+                        
+                        if (dist < minDistance) {
+                            const ovNext = otherShape.vertices[(oi + 1) % otherShape.vertices.length];
+                            const ovPrev = otherShape.vertices[(oi - 1 + otherShape.vertices.length) % otherShape.vertices.length];
+                            checkAngleMatch(movingShape, mv, mvNext, ov, ovPrev, dist);
+                            checkAngleMatch(movingShape, mv, mvPrev, ov, ovNext, dist);
+                        }
+                    });
+                });
+            });
+
+            function checkAngleMatch(shape, p1, p2, q1, q2, dist) {
+                const angle1 = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                const angle2 = Math.atan2(q2.y - q1.y, q2.x - q1.x);
+                let diff = angle2 - angle1;
+                while (diff <= -Math.PI) diff += 2*Math.PI;
+                while (diff > Math.PI) diff -= 2*Math.PI;
+                const error = Math.abs(Math.abs(diff) - Math.PI);
+                
+                if (error < 0.43) {
+                    if (!bestMatch || dist < bestMatch.dist) {
+                        bestMatch = { shape: shape, pivot: p1, target: q1, rotation: diff + Math.PI, dist: dist };
+                    }
+                }
+            }
+
+            if (bestMatch && movingShape.canRotate) {
+                const s = bestMatch.shape;
+                const cx = bestMatch.pivot.x;
+                const cy = bestMatch.pivot.y;
+                const rot = bestMatch.rotation; 
+                s.vertices = s.vertices.map(v => {
+                    const x = v.x - cx;
+                    const y = v.y - cy;
+                    const rx = x * Math.cos(rot) - y * Math.sin(rot);
+                    const ry = x * Math.sin(rot) + y * Math.cos(rot);
+                    return { ...v, x: rx + cx, y: ry + cy };
+                });
+                const dx = bestMatch.target.x - cx;
+                const dy = bestMatch.target.y - cy;
+                s.vertices = s.vertices.map(v => ({ ...v, x: v.x + dx, y: v.y + dy }));
+                updateView();
+            } else {
+                applySimpleMagnetSnap(movingShapeId);
+            }
+        }
+        
+        function applySimpleMagnetSnap(movingShapeId) {
+            const movingShape = shapes.find(s => s.id === movingShapeId);
+            let bestDx = 0, bestDy = 0, minDistance = 25;
+            shapes.forEach(otherShape => {
+                if (otherShape.id === movingShapeId) return;
+                movingShape.vertices.forEach(mv => {
+                    otherShape.vertices.forEach(ov => {
+                        const dx = ov.x - mv.x;
+                        const dy = ov.y - mv.y;
+                        const dist = Math.hypot(dx, dy);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            bestDx = dx;
+                            bestDy = dy;
+                        }
+                    });
+                });
+            });
+            if (minDistance < 25) {
+                movingShape.vertices = movingShape.vertices.map(v => ({ ...v, x: v.x + bestDx, y: v.y + bestDy }));
+                updateView();
+            }
+        }
+
+        function updateConfirmUIPosition() {
+            const start = interactionState.snapStart;
+            const end = interactionState.snapEnd;
+            const targetX = (start.x + end.x) / 2;
+            const targetY = (start.y + end.y) / 2;
+            
+            const pt = svg.createSVGPoint();
+            pt.x = targetX; pt.y = targetY;
+            const screenPt = pt.matrixTransform(worldGroup.getScreenCTM());
+            
+            confirmUi.style.left = screenPt.x + 'px';
+            confirmUi.style.top = screenPt.y + 'px';
+            confirmUi.style.transform = 'translate(-50%, -60px)';
+            confirmUi.style.display = 'flex';
+        }
+
+        function confirmCut() { executeCut(); confirmUi.style.display = 'none'; interactionState.mode = null; }
+        function cancelCut() {
+            confirmUi.style.display = 'none';
+            interactionState.mode = null;
+            cutLineElement.style.opacity = 0;
+            snapStartMarker.style.opacity = 0;
+            snapEndMarker.style.opacity = 0;
+        }
+
+        function executeCut() {
+            const start = interactionState.snapStart;
+            const end = interactionState.snapEnd;
+            let p1 = { x: start.x, y: start.y };
+            let p2 = { x: end.x, y: end.y };
+            
+            if (Math.abs(p1.y - p2.y) < 5) { p1.y = p2.y = (p1.y + p2.y)/2; }
+            if (Math.abs(p1.x - p2.x) < 5) { p1.x = p2.x = (p1.x + p2.x)/2; }
+
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const EXTEND = 50000;
+            
+            const lineStart = { x: p1.x - dx * EXTEND, y: p1.y - dy * EXTEND };
+            const lineEnd = { x: p2.x + dx * EXTEND, y: p2.y + dy * EXTEND };
+
+            let newShapesList = [];
+            let cutOccurred = false;
+
+            shapes.forEach(shape => {
+                // Check if segment interacts with shape
+                let interact = false;
+                if (polygonIntersectsLineSegment(shape.vertices, p1, p2)) interact = true;
+                else if (isPointInPolygon(p1, shape.vertices) || isPointInPolygon(p2, shape.vertices)) interact = true;
+                else if (isPointOnPolyEdge(p1, shape.vertices) || isPointOnPolyEdge(p2, shape.vertices)) interact = true;
+
+                if (interact) {
+                    const result = splitPolygon(shape.vertices, lineStart, lineEnd);
+                    if (result.length > 1) {
+                        cutOccurred = true;
+                        let areas = result.map(vs => ({ verts: vs, area: calcArea(vs) }));
+                        areas.sort((a,b) => b.area - a.area); 
+                        
+                        areas.forEach((item, idx) => {
+                            let newColor;
+                            let canRot = true;
+                            let canFlip = true;
+                            if (idx === 0) {
+                                newColor = shape.color; 
+                                canRot = shape.isCut ? true : false;
+                            } else {
+                                newColor = getRandomColor(); 
+                                canRot = true;
+                            }
+                            newShapesList.push({ 
+                                id: nextShapeId++, 
+                                vertices: item.verts,
+                                color: newColor,
+                                isCut: true,
+                                canRotate: canRot,
+                                canFlip: true,
+                                isClone: shape.isClone || false
+                            });
+                        });
+                    } else {
+                        newShapesList.push(shape);
+                    }
+                } else {
+                    newShapesList.push(shape);
+                }
+            });
+
+            if (cutOccurred) {
+                shapes = newShapesList;
+                selectedShapeId = -1; 
+                updateView();
+                toggleScissors(); 
+                showMessage("切れました！");
+            } else {
+                showMessage("切断できませんでした");
+                cancelCut();
+            }
+        }
+
+        // --- 複製 & 反転 & 削除 ---
+        function updateActionButtons() {
+            btnClone.style.display = 'none';
+            btnFlipH.style.display = 'none';
+            btnFlipV.style.display = 'none';
+            btnDelete.style.display = 'none';
+
+            if (selectedShapeId === -1 || isScissorsMode) return;
+
+            const shape = shapes.find(s => s.id === selectedShapeId);
+            if (!shape) return;
+
+            btnClone.style.display = 'block';
+
+            if (shape.isCut) {
+                if (shape.canFlip) {
+                    btnFlipH.style.display = 'block';
+                    btnFlipV.style.display = 'block';
+                }
+                if (shape.isClone) {
+                    btnDelete.style.display = 'block';
+                }
+            }
+        }
+
+        function cloneSelectedShape() {
+            if (selectedShapeId === -1) return;
+            const original = shapes.find(s => s.id === selectedShapeId);
+            if (!original) return;
+
+            const offset = 25;
+            const newVerts = original.vertices.map(v => ({ ...v, x: v.x + offset, y: v.y + offset }));
+            
+            shapes.push({
+                id: nextShapeId++,
+                vertices: newVerts,
+                color: getRandomColor(),
+                isCut: true,      
+                canRotate: true,
+                canFlip: true, 
+                isClone: true 
+            });
+            
+            selectedShapeId = -1;
+            updateView();
+            showMessage("複製しました");
+        }
+
+        function flipSelectedShape(axis) {
+            if (selectedShapeId === -1) return;
+            const shape = shapes.find(s => s.id === selectedShapeId);
+            if (!shape) return;
+
+            let cx = 0, cy = 0, n = shape.vertices.length;
+            shape.vertices.forEach(v => { cx += v.x; cy += v.y; });
+            cx /= n; cy /= n;
+
+            shape.vertices = shape.vertices.map(v => {
+                let x = v.x, y = v.y;
+                if (axis === 'h') {
+                    x = cx - (x - cx);
+                } else {
+                    y = cy - (y - cy);
+                }
+                return { ...v, x: x, y: y }; 
+            });
+            
+            updateView();
+        }
+
+        function deleteSelectedShape() {
+            if (selectedShapeId === -1) return;
+            
+            const idx = shapes.findIndex(s => s.id === selectedShapeId);
+            if (idx >= 0 && shapes[idx].isClone) {
+                shapes.splice(idx, 1);
+                selectedShapeId = -1;
+                updateView();
+                showMessage("削除しました");
+            }
+        }
+
+        function updateView() {
+            shapesLayer.innerHTML = '';
+            shapes.forEach(shape => {
+                const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                poly.setAttribute("points", shape.vertices.map(v => `${v.x},${v.y}`).join(' '));
+                poly.setAttribute("class", "polygon-shape");
+                if (shape.id === selectedShapeId) poly.classList.add('selected');
+                poly.setAttribute("fill", shape.color);
+                poly.dataset.shapeId = shape.id;
+                shapesLayer.appendChild(poly);
+            });
+
+            vertexLayer.innerHTML = '';
+            
+            updateActionButtons();
+
+            if (isAngleVisible) {
+                shapes.forEach(shape => {
+                    const signedArea = getSignedArea(shape.vertices);
+                    const isClockwise = signedArea > 0;
+                    const vs = shape.vertices;
+                    const n = vs.length;
+                    
+                    for (let i = 0; i < n; i++) {
+                        const v = vs[i];
+                        if (v.angleColor) {
+                            const prev = vs[(i - 1 + n) % n];
+                            const next = vs[(i + 1) % n];
+                            const radius = 25 / viewState.scale;
+                            
+                            const d = getAnglePath(v.x, v.y, prev.x, prev.y, next.x, next.y, radius, isClockwise);
+                            
+                            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                            path.setAttribute("d", d);
+                            path.setAttribute("fill", v.angleColor);
+                            path.setAttribute("class", "angle-sector");
+                            vertexLayer.appendChild(path);
+                        }
+                    }
+                });
+            }
+
+            if (isScissorsMode) return;
+
+            shapes.forEach(shape => {
+                const isSelected = (shape.id === selectedShapeId);
+                
+                if (!shape.isCut) {
+                    shape.vertices.forEach((v, vIndex) => {
+                        createVertexHandle(v.x, v.y, shape.id, vIndex, false);
+                    });
+                } 
+                else if (isSelected && shape.canRotate) {
+                    shape.vertices.forEach((v, vIndex) => {
+                        createVertexHandle(v.x, v.y, shape.id, vIndex, true);
+                    });
+                }
+            });
+            updateViewStyles();
+        }
+
+        function createVertexHandle(x, y, shapeId, vIndex, isRotate) {
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            g.setAttribute("transform", `translate(${x}, ${y})`);
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("r", 10 / viewState.scale);
+            circle.setAttribute("class", isRotate ? "rotate-handle" : "vertex");
+            circle.setAttribute("stroke-width", 2 / viewState.scale);
+            const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            hit.setAttribute("r", 30 / viewState.scale);
+            hit.setAttribute("class", "vertex-hit");
+            hit.dataset.shapeId = shapeId;
+            hit.dataset.vIndex = vIndex;
+            g.appendChild(circle);
+            g.appendChild(hit);
+            vertexLayer.appendChild(g);
+        }
+        
+        function updateViewStyles() {
+            const circles = vertexLayer.querySelectorAll('circle:not(.vertex-hit):not(.angle-marker)');
+            const hits = vertexLayer.querySelectorAll('.vertex-hit');
+            const r = 10 / viewState.scale;
+            const hitR = 30 / viewState.scale;
+            circles.forEach(c => { c.setAttribute('r', r); c.setAttribute('stroke-width', 2/viewState.scale); });
+            hits.forEach(h => h.setAttribute('r', hitR));
+        }
+
+        function snapToGrid(val, step = GRID_SIZE) { return Math.round(val / step) * step; }
+        
+        function getRandomColor() {
+            return COLORS[Math.floor(Math.random() * COLORS.length)];
+        }
+
+        function showMessage(text) {
+            messageBox.textContent = text;
+            messageBox.style.opacity = 1;
+            setTimeout(() => { messageBox.style.opacity = 0; }, 1500);
+        }
+
+        function toggleScissors() {
+            isScissorsMode = !isScissorsMode;
+            cancelCut();
+            if (isScissorsMode) {
+                btnScissors.classList.add('active');
+                btnScissors.textContent = "✂️ ON";
+                vertexLayer.style.display = 'none';
+                showMessage("辺または頂点をなぞって切る");
+                selectedShapeId = -1;
+                updateView();
+            } else {
+                btnScissors.classList.remove('active');
+                btnScissors.textContent = "✂️ 切る";
+                vertexLayer.style.display = 'block';
+                updateView();
+            }
+        }
+
+        function resetCanvas() { 
+            if (currentSubMode) {
+                setSubShape(currentSubMode);
+            } else {
+                setShapeMode(currentMode); 
+            }
+            viewState = { x: 0, y: 0, scale: 1 };
+            updateTransform();
+            selectedShapeId = -1;
+        }
+
+        function setShapeMode(type) {
+            if(isScissorsMode) toggleScissors();
+            currentMode = type;
+            updateUI(type);
+            viewState = { x: 0, y: 0, scale: 1 };
+            updateTransform();
+            
+            selectedShapeId = -1;
+
+            if (type === 'triangle') setSubShape('triangle_general');
+            else if (type === 'quadrilateral') setSubShape('quadrilateral_general');
+            else if (type === 'pentagon') setSubShape('pentagon');
+            else if (type === 'hexagon') setSubShape('hexagon');
+        }
+
+        function updateUI(activeType) {
+            document.querySelectorAll('#ui-container > .button-group > button.main-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById('btn-' + activeType);
+            if (activeBtn) activeBtn.classList.add('active');
+            submenuTriangle.style.display = 'none';
+            submenuQuadrilateral.style.display = 'none';
+            if (activeType === 'triangle') submenuTriangle.style.display = 'flex';
+            if (activeType === 'quadrilateral') submenuQuadrilateral.style.display = 'flex';
+        }
+
+        function addShape(verts) {
+             shapes.push({ 
+                 id: nextShapeId++, 
+                 vertices: verts, 
+                 color: 'rgba(74, 144, 226, 0.3)',
+                 isCut: false,
+                 canRotate: false,
+                 isClone: false
+             });
+             updateView();
+        }
+
+        function setSubShape(subType) {
+            currentSubMode = subType; 
+            shapes = []; nextShapeId = 1;
+            const vw = window.innerWidth; const vh = window.innerHeight;
+            const cx = snapToGrid(vw / 2); const bottomGridY = snapToGrid(vh) - GRID_SIZE * 2; 
+            let newVertices = [];
+            // ...(形状定義)...
+            const assignColors = (pts) => {
+                return pts.map((pt, i) => ({ ...pt, angleColor: ANGLE_COLORS[i % ANGLE_COLORS.length] }));
+            };
+
+            if (subType.startsWith('triangle')) {
+                const baseY = bottomGridY; const h = GRID_SIZE * 5; const w = GRID_SIZE * 3;
+                let pts = [];
+                if (subType === 'triangle_general') pts = [{x:cx-GRID_SIZE,y:baseY-h}, {x:cx+w+GRID_SIZE,y:baseY}, {x:cx-w,y:baseY}];
+                else if (subType === 'triangle_regular') pts = [{x:cx,y:baseY-h}, {x:cx+w,y:baseY}, {x:cx-w,y:baseY}];
+                else if (subType === 'triangle_isosceles') { const size = GRID_SIZE * 4; pts = [{x:cx,y:baseY-size}, {x:cx+size,y:baseY}, {x:cx-size,y:baseY}]; }
+                else if (subType === 'triangle_right') pts = [{x:cx-w,y:baseY-h}, {x:cx+w,y:baseY}, {x:cx-w,y:baseY}];
+                newVertices = assignColors(pts);
+            } else if (subType.startsWith('quadrilateral')) {
+                const baseY = bottomGridY;
+                let pts = [];
+                if (subType === 'quadrilateral_general') pts = [{x:cx-GRID_SIZE*2,y:baseY-GRID_SIZE*5}, {x:cx+GRID_SIZE*3,y:baseY-GRID_SIZE*4}, {x:cx+GRID_SIZE*4,y:baseY}, {x:cx-GRID_SIZE*3,y:baseY}];
+                else if (subType === 'quadrilateral_square') { const s = GRID_SIZE * 3; pts = [{x:cx-s,y:baseY-s*2}, {x:cx+s,y:baseY-s*2}, {x:cx+s,y:baseY}, {x:cx-s,y:baseY}]; }
+                else if (subType === 'quadrilateral_rectangle') { const w = GRID_SIZE * 4; const h = GRID_SIZE * 3; pts = [{x:cx-w,y:baseY-h*2}, {x:cx+w,y:baseY-h*2}, {x:cx+w,y:baseY}, {x:cx-w,y:baseY}]; }
+                else if (subType === 'quadrilateral_parallelogram') { const w = GRID_SIZE * 3; const h = GRID_SIZE * 4; const shift = GRID_SIZE * 2; pts = [{x:cx-w+shift,y:baseY-h}, {x:cx+w+shift,y:baseY-h}, {x:cx+w,y:baseY}, {x:cx-w,y:baseY}]; }
+                else if (subType === 'quadrilateral_trapezoid') { const topW = GRID_SIZE * 2; const botW = GRID_SIZE * 4; const h = GRID_SIZE * 4; pts = [{x:cx-topW,y:baseY-h}, {x:cx+topW,y:baseY-h}, {x:cx+botW,y:baseY}, {x:cx-botW,y:baseY}]; }
+                else if (subType === 'quadrilateral_rhombus') { const s = GRID_SIZE * 3; const cy = baseY - s; pts = [{x:cx,y:cy-s*1.5}, {x:cx+s,y:cy}, {x:cx,y:cy+s*1.5}, {x:cx-s,y:cy}]; }
+                newVertices = assignColors(pts);
+            } else if (subType === 'pentagon') {
+                const radius = GRID_SIZE * 4; const angleOffset = -Math.PI / 2; let vs = [], maxY = -Infinity;
+                for (let i = 0; i < 5; i++) { const angle = (i * 2 * Math.PI / 5) + angleOffset; let vx = cx + radius * Math.cos(angle), vy = radius * Math.sin(angle); vs.push({x:vx, y:vy}); if(vy>maxY) maxY=vy; }
+                let pts = vs.map(v => ({x:v.x, y:v.y-maxY+bottomGridY}));
+                newVertices = assignColors(pts);
+            } else if (subType === 'hexagon') {
+                const radius = GRID_SIZE * 4; let vs = [], maxY = -Infinity;
+                for (let i = 0; i < 6; i++) { const angle = (i * 60) * (Math.PI / 180); let vx = cx + radius * Math.cos(angle), vy = radius * Math.sin(angle); vs.push({x:vx, y:vy}); if(vy>maxY) maxY=vy; }
+                let pts = vs.map(v => ({x:v.x, y:v.y-maxY+bottomGridY}));
+                newVertices = assignColors(pts);
+            }
+            addShape(newVertices);
+        }
+
+        function splitPolygon(vertices, lineStart, lineEnd) {
+            const A = lineStart.y - lineEnd.y; const B = lineEnd.x - lineStart.x; const C = -A * lineStart.x - B * lineStart.y;
+            function dist(p) { return A * p.x + B * p.y + C; }
+            let poly1 = [], poly2 = []; const EPSILON = 0.001;
+            for (let i = 0; i < vertices.length; i++) {
+                const p1 = vertices[i], p2 = vertices[(i + 1) % vertices.length];
+                const d1 = dist(p1), d2 = dist(p2);
+                if (d1 >= -EPSILON) poly1.push(p1);
+                if (d1 <= EPSILON) poly2.push(p1);
+                if (d1 * d2 < -EPSILON * EPSILON) {
+                    const t = d1 / (d1 - d2);
+                    const intX = p1.x + t * (p2.x - p1.x), intY = p1.y + t * (p2.y - p1.y);
+                    const intersection = {x: intX, y: intY};
+                    // 交点には色をつけない (undefined)
+                    poly1.push(intersection); poly2.push(intersection);
+                }
+            }
+            if (poly1.length < 3 || poly2.length < 3) return [vertices];
+            if (calcArea(poly1) < 100 || calcArea(poly2) < 100) return [vertices];
+            return [poly1, poly2];
+        }
+        function calcArea(verts) {
+            let area = 0; const n = verts.length;
+            for (let i = 0; i < n; i++) { const j = (i + 1) % n; area += verts[i].x * verts[j].y; area -= verts[j].x * verts[i].y; }
+            return Math.abs(area) / 2;
+        }
+
+    </script>
+</body>
+</html>

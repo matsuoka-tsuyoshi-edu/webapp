@@ -1,0 +1,102 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background-color: #f0f0f0;
+    touch-action: none;
+}
+
+canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* 下部メニュー */
+#ui-container {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 12px 20px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    z-index: 10;
+    width: max-content;
+    max-width: 95%;
+}
+
+.ui-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+p {
+    margin: 0 10px 0 0;
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+    white-space: nowrap;
+}
+
+button {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+button:active { transform: scale(0.95); opacity: 0.8; }
+button:disabled { background-color: #ccc !important; opacity: 0.5; cursor: not-allowed; }
+
+/* ボタン色設定 */
+button#create-btn { background-color: #28a745; color: white; }
+button#undo-btn { background-color: #ffc107; color: #333; }
+button#reset-btn, button#reset-view-btn, button#reset-all-btn { background-color: #6c757d; color: white; }
+button#to-cut-btn { background-color: #e83e8c; color: white; }
+button#execute-btn { background-color: #dc3545; color: white; }
+button#connect-btn { background-color: #007bff; color: white; }
+button#cancel-cut-btn, button#restore-btn { background-color: #ffc107; color: #333; }
+
+/* ★左上のトグルボタン */
+#toggle-grid-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 20;
+    background-color: #fff;
+    color: #333;
+    border: 2px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+/* ONの時のスタイル */
+#toggle-grid-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
+
+#debug-window {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 200px;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    border-radius: 6px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    pointer-events: none; 
+    z-index: 100;
+}

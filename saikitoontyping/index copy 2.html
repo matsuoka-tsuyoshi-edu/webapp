@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>さいきとぅーん V18</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.mini.min.js"></script>
+    <style>
+        /* --- 全体設定 --- */
+        body {
+            margin: 0; padding: 0;
+            font-family: "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", sans-serif;
+            background-color: #f0f4c3; color: #333;
+            overflow: hidden; touch-action: manipulation;
+            width: 100vw; height: 100dvh;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column;
+        }
+        .active { display: flex !important; }
+
+        .key-hint {
+            font-size: 0.8rem; color: #fff; background: rgba(0,0,0,0.3);
+            padding: 2px 8px; border-radius: 10px; margin-left: 10px; vertical-align: middle;
+        }
+
+        /* --- 1. タイトル --- */
+        #screen-title { background: #00897b; color: white; align-items: center; justify-content: center; }
+        h1 { font-size: 4rem; margin-bottom: 20px; text-shadow: 2px 2px 0 #004d40; cursor: pointer; }
+        .load-status { font-size: 1.2rem; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 5px 15px; border-radius: 20px; }
+        button.big-btn {
+            background: #ffca28; color: #3e2723; border: none; padding: 15px 50px;
+            font-size: 2rem; border-radius: 50px; cursor: pointer;
+            box-shadow: 0 6px 0 #bf360c; font-weight: bold; transition: transform 0.1s;
+            display: flex; align-items: center; gap: 10px;
+        }
+        button.big-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #bf360c; }
+        .manual-upload { margin-top: 20px; font-size: 0.9rem; opacity: 0.8; }
+        .reset-data { margin-top: 30px; font-size: 0.8rem; color: #b2dfdb; text-decoration: underline; cursor: pointer; }
+
+        /* --- 2. メニュー --- */
+        #screen-menu { background: #e0f2f1; flex-direction: row; }
+        
+        #menu-left {
+            flex: 1; border-right: 2px solid #b2dfdb; padding: 20px; 
+            padding-bottom: 100px;
+            overflow-y: auto; display: flex; flex-direction: column; position: relative;
+        }
+        .menu-header { font-size: 1.5rem; color: #00796b; margin-bottom: 10px; font-weight: bold; border-bottom: 2px solid #00796b; }
+        #area-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        
+        .area-btn {
+            background: white; border: 2px solid #b2dfdb; border-radius: 10px; padding: 10px;
+            cursor: pointer; text-align: center; transition: all 0.2s; min-height: 80px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .area-btn.selected { 
+            background: #00897b; color: white; border-color: #004d40; 
+            transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 10;
+        }
+        .area-name { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; }
+        .badge-container { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+        
+        /* 通常バッジ */
+        .badge { 
+            font-size: 1rem; background: #e0e0e0; border-radius: 50%; width: 28px; height: 28px; 
+            display: flex; align-items: center; justify-content: center; border: 2px solid #bdbdbd;
+        }
+        /* ★ パーフェクトバッジ（金） */
+        .badge.perfect {
+            background: #fff176; border-color: #fbc02d; box-shadow: 0 0 5px #fbc02d;
+            position: relative;
+        }
+        .badge.perfect::after {
+            content: '🏆'; position: absolute; top: -8px; right: -8px; font-size: 0.8rem;
+        }
+
+        #start-match-btn {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #e91e63; color: white; border: none; padding: 15px 30px;
+            font-size: 1.4rem; border-radius: 50px; cursor: pointer; white-space: nowrap;
+            box-shadow: 0 4px 0 #ad1457; opacity: 0.5; pointer-events: none; width: 80%; z-index: 10;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        #start-match-btn.ready { opacity: 1; pointer-events: auto; }
+
+        #menu-right { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+        
+        #data-controls {
+            display: flex; gap: 10px; margin-bottom: 10px; justify-content: flex-end;
+        }
+        .data-btn {
+            background: #fff; border: 2px solid #546e7a; color: #546e7a;
+            padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; gap: 5px;
+            transition: all 0.2s;
+        }
+        .data-btn:hover { background: #eceff1; }
+        .data-btn:active { transform: translateY(2px); }
+
+        #char-list { display: flex; flex-direction: column; gap: 10px; }
+        .char-card {
+            background: white; border: 2px solid #ccc; border-radius: 10px; padding: 10px;
+            display: flex; align-items: center; gap: 15px; cursor: pointer; opacity: 0.6; pointer-events: none;
+        }
+        .char-card.unlocked { opacity: 1; pointer-events: auto; border-color: #81d4fa; }
+        .char-card.selected { background: #e1f5fe; border-color: #0288d1; box-shadow: 0 0 10px rgba(3,169,244,0.5); }
+        .char-icon { width: 50px; height: 50px; background: #eee; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .char-info { flex: 1; }
+        .char-name { font-size: 1.2rem; font-weight: bold; }
+        .char-desc { font-size: 0.8rem; color: #666; }
+        #boss-area-btn {
+            background: linear-gradient(45deg, #212121, #424242); color: #ffeb3b; border: 3px solid #ffeb3b;
+            box-shadow: 0 0 15px #ffeb3b; animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* --- 3. ゲーム画面 --- */
+        #screen-game { background: #333; flex-direction: row; }
+        #field-area { flex: 6; background: #e1f5fe; padding: 10px; display: flex; flex-direction: column; }
+        #field-header { display: flex; justify-content: space-between; height: 40px; align-items: center; margin-bottom: 5px; }
+        #abort-btn { background: #90a4ae; color: white; border: none; padding: 5px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        .score-box { background: rgba(0,0,0,0.1); padding: 5px 15px; border-radius: 20px; font-weight: bold; min-width: 60px; text-align: center; }
+        #game-region-name { font-weight: bold; font-size: 1.2rem; color: #00695c; }
+        #card-grid { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-content: start; overflow-y: auto; }
+        
+        .card { position: relative; height: 60px; background: white; border-radius: 8px; border: 2px solid #ccc; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .card:active { transform: scale(0.98); }
+        .card.target-p { border-color: #039be5; box-shadow: 0 0 10px #039be5; transform: scale(1.02); z-index: 5; }
+        .card.target-e { border-color: #ff7043; }
+        .fill-p { position: absolute; top: 0; left: 0; height: 100%; background: #4fc3f7; width: 0%; transition: width 0.1s; z-index: 1; opacity: 0.6; }
+        .fill-e { position: absolute; top: 0; right: 0; height: 100%; background: #ff8a65; width: 0%; transition: width 0.1s; z-index: 1; opacity: 0.6; }
+        .card-text { position: relative; z-index: 2; font-weight: bold; font-size: 1.1rem; pointer-events: none; }
+        .card.owned-p { background: #0277bd; color: white; border: none; }
+        .card.owned-e { background: #d84315; color: white; border: none; }
+        .card.owned-p .fill-p, .card.owned-e .fill-e { display: none; }
+
+        #cockpit-area { flex: 4; background: #eceff1; border-left: 5px solid #546e7a; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #cockpit-info { text-align: center; margin-bottom: 10px; color: #555; }
+        #romaji-box { background: white; border-radius: 5px; padding: 5px 20px; font-family: monospace; font-size: 1.5rem; height: 40px; display: flex; align-items: center; margin-bottom: 10px; white-space: nowrap; }
+        .typed { color: #ccc; } .current { color: #e91e63; border-bottom: 2px solid; } .untyped { color: #333; }
+        #keyboard { display: flex; flex-direction: column; gap: 4px; transform: scale(0.9); }
+        .kb-row { display: flex; justify-content: center; gap: 4px; }
+        .key { width: 36px; height: 36px; background: white; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 0 #90a4ae; }
+        .key.active { background: #29b6f6; color: white; transform: translateY(2px); box-shadow: none; }
+
+        /* --- 4. 結果 --- */
+        #screen-result { background: rgba(255,255,255,0.95); align-items: center; justify-content: center; z-index: 100; }
+        #res-msg { font-size: 3rem; margin-bottom: 10px; font-weight: bold; }
+        #res-score-detail { font-size: 1.5rem; margin-bottom: 10px; color: #555; }
+        /* スピードメーター */
+        #res-speed { font-size: 1.2rem; color: #0277bd; font-weight: bold; margin-bottom: 20px; background: #e1f5fe; padding: 5px 15px; border-radius: 10px; }
+        
+        #rotate-msg { display: flex; height: 100vh; align-items: center; justify-content: center; background: #333; color: white; }
+        @media screen and (orientation: landscape) { #rotate-msg { display: none; } }
+        @media screen and (orientation: portrait) { .screen { display: none !important; } }
+    </style>
+</head>
+<body>
+    <div id="rotate-msg">iPadを横向きにしてね</div>
+
+    <div id="screen-title" class="screen active">
+        <h1 onclick="debugUnlock()">さいきとぅーん V18</h1>
+        <div class="load-status" id="load-msg">データを準備中...</div>
+        <button class="big-btn" onclick="goToMenu()">
+            スタート <span class="key-hint">Enter</span>
+        </button>
+        <div class="manual-upload">
+            <input type="file" id="excel-file" accept=".xlsx" onchange="manualLoadExcel(this)">
+        </div>
+        <div class="reset-data" onclick="resetSaveData()">セーブデータをリセット</div>
+    </div>
+
+    <div id="screen-menu" class="screen">
+        <div id="menu-left">
+            <div class="menu-header">エリア <small>(矢印キーで選択)</small></div>
+            <div id="area-list"></div>
+            <button id="start-match-btn" onclick="startMatch()">
+                ではじめる！ <span class="key-hint">Enter</span>
+            </button>
+        </div>
+        <div id="menu-right">
+            <div id="data-controls">
+                <button class="data-btn" onclick="exportSaveData()">💾 セーブ</button>
+                <button class="data-btn" onclick="importSaveData()">📂 ロード</button>
+                <input type="file" id="json-loader" style="display:none" accept=".json" onchange="onJsonSelected(this)">
+            </div>
+            <div class="menu-header">ライバル</div>
+            <div id="char-list"></div>
+        </div>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <div id="field-area">
+            <div id="field-header">
+                <button id="abort-btn" onclick="abortGame()">← メニュー</button>
+                <div class="score-box" style="color:#0277bd">あなた: <span id="score-p">0</span></div>
+                <div id="game-region-name">エリア</div>
+                <div class="score-box" style="color:#d84315">相手: <span id="score-e">0</span></div>
+            </div>
+            <div id="card-grid"></div>
+        </div>
+        <div id="cockpit-area">
+            <div id="cockpit-info">カードを選んでタイプしよう！</div>
+            <div id="romaji-box"></div>
+            <div id="keyboard"></div>
+        </div>
+    </div>
+
+    <div id="screen-result" class="screen">
+        <div id="res-msg">WIN!</div>
+        <p id="res-score-detail">あなた 6 - 4 ライバル</p>
+        <div id="res-speed">今回の記録：1分間に 0 文字</div>
+        <button class="big-btn" onclick="backToMenu()">
+            メニューへ <span class="key-hint">Enter</span>
+        </button>
+    </div>
+
+    <script>
+        // --- 辞書データ ---
+        const romanMap = {
+            'あ':['a'], 'い':['i'], 'う':['u'], 'え':['e'], 'お':['o'],
+            'か':['ka'], 'き':['ki'], 'く':['ku'], 'け':['ke'], 'こ':['ko'],
+            'さ':['sa'], 'し':['si','shi'], 'す':['su'], 'せ':['se'], 'そ':['so'],
+            'た':['ta'], 'ち':['ti','chi'], 'つ':['tu','tsu'], 'て':['te'], 'と':['to'],
+            'な':['na'], 'に':['ni'], 'ぬ':['nu'], 'ね':['ne'], 'の':['no'],
+            'は':['ha'], 'ひ':['hi'], 'ふ':['hu','fu'], 'へ':['he'], 'ほ':['ho'],
+            'ま':['ma'], 'み':['mi'], 'む':['mu'], 'め':['me'], 'も':['mo'],
+            'や':['ya'], 'ゆ':['yu'], 'よ':['yo'],
+            'ら':['ra'], 'り':['ri'], 'る':['ru'], 'れ':['re'], 'ろ':['ro'],
+            'わ':['wa'], 'を':['wo'], 'ん':['n','nn'],
+            'が':['ga'], 'ぎ':['gi'], 'ぐ':['gu'], 'げ':['ge'], 'ご':['go'],
+            'ざ':['za'], 'じ':['zi','ji'], 'ず':['zu'], 'ぜ':['ze'], 'ぞ':['zo'],
+            'だ':['da'], 'ぢ':['zi','ji'], 'づ':['zu'], 'で':['de'], 'ど':['do'],
+            'ば':['ba'], 'び':['bi'], 'ぶ':['bu'], 'べ':['be'], 'ぼ':['bo'],
+            'ぱ':['pa'], 'ぴ':['pi'], 'ぷ':['pu'], 'ぺ':['pe'], 'ぽ':['po'],
+            'ぁ':['la','xa'], 'ぃ':['li','xi'], 'ぅ':['lu','xu'], 'ぇ':['le','xe'], 'ぉ':['lo','xo'],
+            'っ':['xtu','ltu'],
+            'ゃ':['lya','xya'], 'ゅ':['lyu','xyu'], 'ょ':['lyo','xyo'],
+            'きゃ':['kya'], 'きゅ':['kyu'], 'きょ':['kyo'],
+            'しゃ':['sya','sha'], 'しゅ':['syu','shu'], 'しょ':['syo','sho'],
+            'ちゃ':['tya','cha'], 'ちゅ':['tyu','chu'], 'ちょ':['tyo','cho'],
+            'にゃ':['nya'], 'にゅ':['nyu'], 'にょ':['nyo'],
+            'ひゃ':['hya'], 'ひゅ':['hyu'], 'ひょ':['hyo'],
+            'みゃ':['mya'], 'みゅ':['myu'], 'みょ':['myo'],
+            'りゃ':['rya'], 'りゅ':['ryu'], 'りょ':['ryo'],
+            'ぎゃ':['gya'], 'ぎゅ':['gyu'], 'ぎょ':['gyo'],
+            'じゃ':['ja','jya','zya'], 'じゅ':['ju','jyu','zyu'], 'じょ':['jo','jyo','zyo'],
+            'ぢゃ':['dya'], 'ぢゅ':['dyu'], 'ぢょ':['dyo'],
+            'びゃ':['bya'], 'びゅ':['byu'], 'びょ':['byo'],
+            'ぴゃ':['pya'], 'ぴゅ':['pyu'], 'ぴょ':['pyo'],
+            'ー':['-']
+        };
+
+        // --- 内蔵データ ---
+        let gameData = {
+            '佐伯': [{ja:'歴史と文学の道', kana:'れきしとぶんがくのみち'}, {ja:'佐伯', kana:'さいき'}, {ja:'城山', kana:'しろやま'}, {ja:'独歩塔', kana:'どっぽとう'}, {ja:'ごまだし', kana:'ごまだし'}, {ja:'佐伯寿司', kana:'さいきずし'}, {ja:'葛港', kana:'かづらみなと'}, {ja:'茶室', kana:'ちゃしつ'}, {ja:'櫓門', kana:'やぐらもん'}, {ja:'平和祈念館', kana:'へいわきねんかん'}],
+            '蒲江': [{ja:'蒲江', kana:'かまえ'}, {ja:'伊勢えび', kana:'いせえび'}, {ja:'マンボウ', kana:'まんぼう'}, {ja:'深島', kana:'ふかしま'}, {ja:'元猿海岸', kana:'もとざるかいがん'}, {ja:'屋形島', kana:'やかたじま'}, {ja:'マリンカルチャー', kana:'まりんかるちゃー'}, {ja:'高平', kana:'たかひら'}, {ja:'ブリカツ', kana:'ぶりかつ'}, {ja:'道の駅かまえ', kana:'みちのえきかまえ'}],
+            '宇目': [{ja:'宇目', kana:'うめ'}, {ja:'ととろ', kana:'ととろ'}, {ja:'唄げんか', kana:'うたげんか'}, {ja:'藤河内渓谷', kana:'ふじがわちけいこく'}, {ja:'北川ダム', kana:'きたがわだむ'}, {ja:'しし鍋', kana:'ししなべ'}, {ja:'木浦鉱山', kana:'きうらこうざん'}, {ja:'三国峠', kana:'みくにとうげ'}, {ja:'宇目の唐揚げ', kana:'うめのからあげ'}, {ja:'唄げんか大橋', kana:'うたげんかおおはし'}],
+            '本匠': [{ja:'本匠', kana:'ほんじょう'}, {ja:'大水車', kana:'だいすいしゃ'}, {ja:'ホタル', kana:'ほたる'}, {ja:'因尾茶', kana:'いんびちゃ'}, {ja:'番匠川', kana:'ばんじょうがわ'}, {ja:'雪割草', kana:'ゆきわりそう'}, {ja:'小半鍾乳洞', kana:'おなからしょうにゅうどう'}, {ja:'剣龍', kana:'けんりゅう'}, {ja:'しいたけ', kana:'しいたけ'}, {ja:'水辺の学校', kana:'みずべのがっこう'}],
+            '直川': [{ja:'直川', kana:'なおかわ'}, {ja:'カブトムシ', kana:'かぶとむし'}, {ja:'鉱泉', kana:'こうせん'}, {ja:'体験公園', kana:'たいけんこうえん'}, {ja:'かぶとむしパン', kana:'かぶとむしぱん'}, {ja:'憩の森', kana:'いこいのもり'}, {ja:'東北部', kana:'とうほくぶ'}, {ja:'愛の里', kana:'あいのさと'}, {ja:'ふるさと市場', kana:'ふるさといちば'}, {ja:'直川駅', kana:'なおかわえき'}],
+            '弥生': [{ja:'弥生', kana:'やよい'}, {ja:'道の駅やよい', kana:'みちのえきやよい'}, {ja:'番匠川', kana:'ばんじょうがわ'}, {ja:'弥生の湯', kana:'やよいのゆ'}, {ja:'古代ロマン', kana:'こだいろまん'}, {ja:'資料館', kana:'しりょうかん'}, {ja:'コスモス', kana:'こすもす'}, {ja:'床木', kana:'ゆかぎ'}, {ja:'大坂本', kana:'おおさかもと'}, {ja:'栂牟礼', kana:'とがむれ'}],
+            '米水津': [{ja:'米水津', kana:'よのうづ'}, {ja:'空の公園', kana:'そらのこうえん'}, {ja:'しらす', kana:'しらす'}, {ja:'丸干し', kana:'まるぼし'}, {ja:'間越', kana:'はざこ'}, {ja:'水の子灯台', kana:'みずのことうだい'}, {ja:'豊後水道', kana:'ぶんごすいどう'}, {ja:'沖黒島', kana:'おきぐろじま'}, {ja:'地黒島', kana:'じぐろじま'}, {ja:'海風', kana:'うみかぜ'}],
+            '鶴見': [{ja:'鶴見', kana:'つるみ'}, {ja:'男の港', kana:'おとこのみなと'}, {ja:'大島', kana:'おおしま'}, {ja:'魚市場', kana:'うおいちば'}, {ja:'マリンレモン', kana:'まりんれもん'}, {ja:'元の関', kana:'もとのせき'}, {ja:'水の子', kana:'みずのこ'}, {ja:'丹賀', kana:'たんが'}, {ja:'ミュージアム', kana:'みゅーじあむ'}, {ja:'鶴御崎', kana:'つるみさき'}],
+            '上浦': [{ja:'上浦', kana:'かみうら'}, {ja:'夫婦岩', kana:'めおといわ'}, {ja:'しおさい', kana:'しおさい'}, {ja:'暁嵐の滝', kana:'ぎょうらんのたき'}, {ja:'瀬会', kana:'ぜあい'}, {ja:'河豚', kana:'ふぐ'}, {ja:'蒲戸', kana:'かまど'}, {ja:'福泊', kana:'ふくどまり'}, {ja:'海浜公園', kana:'かいひんこうえん'}, {ja:'大浜', kana:'おおはま'}]
+        };
+
+        const characters = [
+            { lv:1, name:'のんびりマンボウ', desc:'まだタイピングを覚えたて。', speed:3000, icon:'🐡' }, // アイコン変更
+            { lv:2, name:'わんぱくカブト', desc:'直川の森から来た。', speed:2500, icon:'🪲' },
+            { lv:3, name:'おしゃべりメジロ', desc:'弥生のおしゃべり好き。', speed:2000, icon:'🐦' },
+            { lv:4, name:'とっしんイノシシ', desc:'宇目の山育ち。', speed:1600, icon:'🐗' },
+            { lv:5, name:'きらめきアジ', desc:'ミスをしない堅実派。', speed:1300, icon:'🐟' },
+            { lv:6, name:'職人ごまだし', desc:'長文が得意。', speed:1100, icon:'🍜' },
+            { lv:7, name:'かみつきウツボ', desc:'横取りが得意！', speed:900, icon:'🐍' },
+            { lv:8, name:'将軍ホタル', desc:'目にも止まらぬ速さ！', speed:750, icon:'✨' },
+            { lv:9, name:'さいきドン', desc:'伝説の精霊。', speed:600, icon:'👑' }
+        ];
+
+        // セーブデータ
+        // perfects: { '佐伯': [0, 5] } のように、そのエリアで10-0完封したキャラのインデックスを保存
+        let saveData = { maxClearedLevel: 0, badges: {}, perfects: {} };
+
+        let selectedArea = null;
+        let selectedCharIndex = 0;
+        let currentCards = [];
+        let playerTargetId = -1;
+        let enemyTargetId = -1;
+        let enemyTimer = null;
+        let isGameRunning = false;
+        
+        // 計測用
+        let matchStartTime = 0;
+        let totalTypedChars = 0;
+
+        window.onload = function() {
+            loadSaveData();
+            if (typeof XLSX === 'undefined') {
+                document.getElementById('load-msg').textContent = "標準データで起動";
+                return;
+            }
+            fetch('saikitoondata.xlsx')
+                .then(r => r.ok ? r.arrayBuffer() : Promise.reject())
+                .then(d => {
+                    parseExcelData(d);
+                    document.getElementById('load-msg').textContent = "Excelデータを読み込みました！";
+                    document.getElementById('load-msg').style.background = "#c8e6c9";
+                })
+                .catch(() => document.getElementById('load-msg').textContent = "標準データを使用します");
+        };
+
+        // キー操作
+        document.addEventListener('keydown', (e) => {
+            if (isGameRunning) return;
+            const activeScreen = document.querySelector('.screen.active');
+            if (!activeScreen) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (activeScreen.id === 'screen-title') goToMenu();
+                else if (activeScreen.id === 'screen-menu') {
+                    const btn = document.getElementById('start-match-btn');
+                    if (btn.classList.contains('ready')) startMatch();
+                } else if (activeScreen.id === 'screen-result') backToMenu();
+            }
+            if (activeScreen.id === 'screen-menu') {
+                const areaList = Object.keys(gameData);
+                if (areaList.length === 0) return;
+                let currentIndex = areaList.indexOf(selectedArea);
+                if (currentIndex === -1) currentIndex = 0;
+                let nextIndex = currentIndex;
+                if (e.key === 'ArrowRight') nextIndex++;
+                else if (e.key === 'ArrowLeft') nextIndex--;
+                else if (e.key === 'ArrowDown') nextIndex += 2;
+                else if (e.key === 'ArrowUp') nextIndex -= 2;
+                else return;
+                if (nextIndex < 0) nextIndex = 0;
+                if (nextIndex >= areaList.length) nextIndex = areaList.length - 1;
+                if (nextIndex !== currentIndex || selectedArea === null) {
+                    selectedArea = areaList[nextIndex];
+                    renderMenu();
+                }
+            }
+        });
+
+        // --- データ管理機能 ---
+        function exportSaveData() {
+            const dataStr = JSON.stringify(saveData);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "さいきとぅーんデータ.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importSaveData() {
+            document.getElementById('json-loader').click();
+        }
+
+        function onJsonSelected(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    if (json.maxClearedLevel !== undefined && json.badges) {
+                        saveData = json;
+                        if (!saveData.perfects) saveData.perfects = {}; // 互換性
+                        saveSaveData();
+                        renderMenu();
+                        alert("データを読み込みました！");
+                    } else {
+                        alert("データの形式が正しくありません。");
+                    }
+                } catch(err) {
+                    alert("ファイルを読み込めませんでした。");
+                }
+                input.value = "";
+            };
+            reader.readAsText(file);
+        }
+
+        function loadSaveData() {
+            const json = localStorage.getItem('saikitoon_save');
+            if(json) { try { saveData = JSON.parse(json); } catch(e) { console.error(e); } }
+            if(!saveData.perfects) saveData.perfects = {};
+        }
+        function saveSaveData() { localStorage.setItem('saikitoon_save', JSON.stringify(saveData)); }
+        function resetSaveData() {
+            if(confirm("本当にリセットしますか？")) {
+                localStorage.removeItem('saikitoon_save');
+                location.reload();
+            }
+        }
+
+        let debugClick = 0;
+        function debugUnlock() {
+            debugClick++;
+            if(debugClick >= 5) {
+                alert("デバッグ：全開放");
+                saveData.maxClearedLevel = 8;
+                Object.keys(gameData).forEach(a => { saveData.badges[a] = [0,1,2,3,4,5,6,7]; saveData.perfects[a] = [0,1,2,3,4,5,6,7]; });
+                saveSaveData(); renderMenu();
+            }
+        }
+
+        function manualLoadExcel(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => { parseExcelData(new Uint8Array(e.target.result)); alert('更新しました！'); };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseExcelData(data) {
+            const wb = XLSX.read(data, {type: 'array'});
+            let newData = {};
+            wb.SheetNames.forEach(name => {
+                const ws = wb.Sheets[name];
+                const json = XLSX.utils.sheet_to_json(ws, {header: 1});
+                const words = [];
+                for(let i=1; i<json.length; i++) {
+                    const r = json[i];
+                    if(r[0] && r[1]) words.push({ ja: r[0], kana: r[1] });
+                }
+                if(words.length>0) newData[name] = words;
+            });
+            if(Object.keys(newData).length>0) gameData = newData;
+        }
+
+        function goToMenu() { switchScreen('screen-menu'); renderMenu(); }
+
+        function renderMenu() {
+            const areaList = Object.keys(gameData);
+            if (selectedArea === null && areaList.length > 0) selectedArea = areaList[0];
+            const al = document.getElementById('area-list'); al.innerHTML = "";
+            let allBadgesCount = 0;
+            let totalPossibleBadges = areaList.length * 8; 
+
+            areaList.forEach(a => {
+                const b = document.createElement('div');
+                b.className = 'area-btn' + (selectedArea === a ? ' selected' : '');
+                let badgeHtml = "";
+                const areaBadges = saveData.badges[a] || [];
+                const areaPerfects = saveData.perfects[a] || [];
+                
+                allBadgesCount += areaBadges.length;
+                areaBadges.forEach(idx => { 
+                    // ★ V18: パーフェクトなら金バッジクラスを追加
+                    const isPerfect = areaPerfects.includes(idx);
+                    const cls = isPerfect ? 'badge perfect' : 'badge';
+                    badgeHtml += `<div class="${cls}">${characters[idx].icon}</div>`; 
+                });
+                b.innerHTML = `<div class="area-name">${a}</div><div class="badge-container">${badgeHtml}</div>`;
+                b.onclick = () => { selectedArea = a; renderMenu(); };
+                al.appendChild(b);
+            });
+
+            const isBossUnlocked = (allBadgesCount >= totalPossibleBadges);
+
+            const cl = document.getElementById('char-list'); cl.innerHTML = "";
+            characters.forEach((c, i) => {
+                if(c.lv === 9 && !isBossUnlocked) return;
+                const unlocked = (i <= saveData.maxClearedLevel);
+                const d = document.createElement('div');
+                d.className = 'char-card' + (unlocked ? ' unlocked' : '') + (selectedCharIndex === i ? ' selected' : '');
+                if (c.lv === 9) d.id = 'boss-area-btn'; 
+                d.innerHTML = `<div class="char-icon">${c.icon}</div>
+                               <div class="char-info"><div class="char-name">Lv.${c.lv} ${c.name}</div>
+                               <div class="char-desc">${unlocked ? c.desc : '？？？？？'}</div></div>`;
+                if(unlocked) d.onclick = () => { selectedCharIndex = i; renderMenu(); };
+                cl.appendChild(d);
+            });
+
+            const btn = document.getElementById('start-match-btn');
+            if(selectedArea && selectedCharIndex !== -1) {
+                btn.classList.add('ready'); btn.innerHTML = `「${selectedArea}」ではじめる！ <span class="key-hint">Enter</span>`;
+            } else {
+                btn.classList.remove('ready'); btn.textContent = 'エリアとライバルをえらんでね';
+            }
+        }
+
+        function startMatch() {
+            if(!selectedArea || selectedCharIndex === -1) return;
+            switchScreen('screen-game');
+            const enemy = characters[selectedCharIndex];
+            document.getElementById('game-region-name').textContent = `${selectedArea} vs ${enemy.name}`;
+
+            let raw = gameData[selectedArea];
+            let playCandidates = [...raw];
+            while(playCandidates.length < 10) playCandidates = playCandidates.concat(raw);
+            shuffleArray(playCandidates);
+            let play = playCandidates.slice(0, 10);
+
+            currentCards = play.map((w, i) => {
+                const split = splitKana(w.kana);
+                return {
+                    id: i, ja: w.ja, kana: w.kana, split: split, patterns: generatePatterns(split),
+                    owner: null, pIdx: 0, eIdx: 0, pBuf: ""
+                };
+            });
+
+            playerTargetId = -1; enemyTargetId = -1; isGameRunning = true;
+            matchStartTime = Date.now(); // ★ 計測開始
+            totalTypedChars = 0;
+            
+            renderField(); initKeyboard();
+            autoSelectTarget(0);
+
+            if(enemyTimer) clearInterval(enemyTimer);
+            enemyTimer = setInterval(enemyTurn, enemy.speed);
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function abortGame() { isGameRunning = false; clearInterval(enemyTimer); backToMenu(); }
+
+        function splitKana(str) {
+            let res = [], i = 0;
+            while(i < str.length) {
+                let c = str[i], n = str[i+1];
+                if(n && 'ぁぃぅぇぉゃゅょ'.includes(n)) { res.push(c+n); i+=2; }
+                else { res.push(c); i++; }
+            }
+            return res;
+        }
+
+        function generatePatterns(split) {
+            return split.map((char, index) => {
+                let basePatterns = [...(romanMap[char] || [])];
+                if (char === 'っ' && split[index + 1]) {
+                    const nextChar = split[index + 1];
+                    const nextRomanList = romanMap[nextChar];
+                    if (nextRomanList) {
+                        nextRomanList.forEach(roma => {
+                            const firstChar = roma[0]; 
+                            if (firstChar.match(/[a-z]/) && !basePatterns.includes(firstChar)) {
+                                basePatterns.push(firstChar);
+                            }
+                        });
+                    }
+                }
+                return basePatterns;
+            });
+        }
+
+        document.addEventListener('keydown', e => {
+            if(!isGameRunning || playerTargetId === -1) return;
+            const k = e.key.toLowerCase(); if(!/^[a-z\-]$/.test(k)) return;
+            const c = currentCards[playerTargetId];
+            let validPatterns = c.patterns[c.pIdx];
+            if(!validPatterns) return;
+            let nb = c.pBuf + k;
+            if(validPatterns.some(v => v.startsWith(nb))) {
+                c.pBuf = nb;
+                totalTypedChars++; // ★ 正打数カウント
+                if(validPatterns.includes(c.pBuf)) {
+                    c.pIdx++; c.pBuf = "";
+                    if(c.pIdx >= c.split.length) { c.owner = 'p'; autoSelectTarget(); }
+                }
+                renderField(); updateCockpit(); highlightKey(k);
+            }
+        });
+
+        function renderField() {
+            const g = document.getElementById('card-grid'); g.innerHTML = "";
+            let ps=0, es=0;
+            currentCards.forEach(c => {
+                if(c.owner === 'p') ps++; if(c.owner === 'e') es++;
+                const el = document.createElement('div');
+                el.className = 'card';
+                if(c.owner === 'p') el.classList.add('owned-p');
+                if(c.owner === 'e') el.classList.add('owned-e');
+                if(playerTargetId === c.id) el.classList.add('target-p');
+                if(enemyTargetId === c.id) el.classList.add('target-e');
+                el.innerHTML = `<div class="fill-p" style="width:${(c.pIdx/c.split.length)*100}%"></div>
+                                <div class="fill-e" style="width:${(c.eIdx/c.split.length)*100}%"></div>
+                                <div class="card-text">${c.ja}</div>`;
+                el.onclick = () => { if(isGameRunning && !c.owner) { playerTargetId = c.id; c.pBuf=""; renderField(); updateCockpit(); } };
+                g.appendChild(el);
+            });
+            document.getElementById('score-p').textContent = ps;
+            document.getElementById('score-e').textContent = es;
+            if(ps+es === currentCards.length) endGame(ps, es);
+        }
+
+        function updateCockpit() {
+            const b = document.getElementById('romaji-box');
+            if(playerTargetId === -1) { b.innerHTML = "◀ カードを選んで！"; return; }
+            const c = currentCards[playerTargetId];
+            let html = "";
+            for(let i=0; i<c.pIdx; i++) html += `<span class="typed">${romanMap[c.split[i]][0]}</span>`;
+            let valids = c.patterns[c.pIdx];
+            let m = valids.find(v=>v.startsWith(c.pBuf));
+            if(m) html += `<span class="current">${c.pBuf}</span><span class="untyped">${m.substring(c.pBuf.length)}</span>`;
+            else html += `<span class="current">${c.pBuf}</span>`;
+            for(let i=c.pIdx+1; i<c.split.length; i++) html += `<span class="untyped">${romanMap[c.split[i]][0]}</span>`;
+            b.innerHTML = html;
+        }
+
+        function autoSelectTarget(forceIndex = -1) {
+            if (!isGameRunning) return;
+            if (forceIndex !== -1 && !currentCards[forceIndex].owner) {
+                playerTargetId = currentCards[forceIndex].id;
+            } else {
+                const cands = currentCards.filter(c => c.owner === null);
+                if (cands.length > 0) playerTargetId = cands[Math.floor(Math.random() * cands.length)].id;
+                else playerTargetId = -1;
+            }
+            if (playerTargetId !== -1) { currentCards[playerTargetId].pBuf = ""; renderField(); updateCockpit(); }
+        }
+
+        function enemyTurn() {
+            if(!isGameRunning) return;
+            if(enemyTargetId === -1 || currentCards[enemyTargetId].owner) {
+                const cands = currentCards.filter(c => !c.owner);
+                if(cands.length === 0) return;
+                enemyTargetId = cands[Math.floor(Math.random()*cands.length)].id;
+            }
+            const c = currentCards[enemyTargetId];
+            c.eIdx++;
+            if(c.eIdx >= c.split.length) {
+                c.owner = 'e'; enemyTargetId = -1;
+                if(playerTargetId === c.id) autoSelectTarget();
+            }
+            renderField();
+        }
+
+        function endGame(p, e) {
+            isGameRunning = false; clearInterval(enemyTimer);
+            switchScreen('screen-result');
+            const msg = document.getElementById('res-msg');
+            const currentChar = characters[selectedCharIndex];
+            
+            // ★ スピード計算
+            const durationSec = (Date.now() - matchStartTime) / 1000;
+            const cpm = Math.round((totalTypedChars / durationSec) * 60);
+            document.getElementById('res-speed').textContent = `今回の記録：1分間に ${cpm} 文字`;
+
+            if(p > e) {
+                msg.textContent = "勝利！🏆"; msg.style.color = "#00897b";
+                
+                // バッジ登録
+                if(!saveData.badges[selectedArea]) saveData.badges[selectedArea] = [];
+                if(!saveData.badges[selectedArea].includes(selectedCharIndex)) {
+                    saveData.badges[selectedArea].push(selectedCharIndex);
+                    saveData.badges[selectedArea].sort((a,b)=>a-b);
+                }
+
+                // ★ パーフェクト判定 (10-0)
+                if (e === 0) {
+                    if(!saveData.perfects[selectedArea]) saveData.perfects[selectedArea] = [];
+                    if(!saveData.perfects[selectedArea].includes(selectedCharIndex)) {
+                        saveData.perfects[selectedArea].push(selectedCharIndex);
+                        msg.textContent += " (完封！)";
+                    }
+                }
+
+                // レベル開放
+                if(selectedCharIndex === saveData.maxClearedLevel) {
+                    saveData.maxClearedLevel++; if(saveData.maxClearedLevel > 8) saveData.maxClearedLevel = 8;
+                    if(selectedCharIndex < 8) selectedCharIndex++;
+                }
+                saveSaveData();
+            } else {
+                msg.textContent = "敗北...👾"; msg.style.color = "#d84315";
+            }
+            document.getElementById('res-score-detail').textContent = `あなた ${p} - ${e} ${currentChar.name}`;
+        }
+
+        function backToMenu() { goToMenu(); }
+        function switchScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        function initKeyboard() { const kb=document.getElementById('keyboard'); kb.innerHTML=""; ['qwertyuiop','asdfghjkl','zxcvbnm-'].forEach(r=>{ const d=document.createElement('div'); d.className='kb-row'; d.innerHTML=r.split('').map(k=>`<div class="key" id="key-${k}">${k.toUpperCase()}</div>`).join(''); kb.appendChild(d); }); }
+        function highlightKey(k) { const el=document.getElementById('key-'+k); if(el){ el.classList.add('active'); setTimeout(()=>el.classList.remove('active'), 100); } }
+    </script>
+</body>
+</html>

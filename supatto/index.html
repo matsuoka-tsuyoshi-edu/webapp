@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>解決！スパット！</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "three-bvh-csg": "https://esm.sh/three-bvh-csg@0.0.16"
+            }
+        }
+    </script>
+</head>
+<body>
+    <button id="toggle-grid-btn" style="display: none;">📏 高さを表示</button>
+
+    <div id="ui-container">
+        <div id="ui-create" class="ui-group">
+            <button id="undo-btn">↶ 1つ戻る</button>
+            <button id="create-btn">決定：立体にする</button>
+            <button id="reset-btn">最初から</button>
+        </div>
+
+        <div id="ui-view" class="ui-group" style="display:none;">
+            <p>上面ドラッグで高さ調整</p>
+            <button id="to-cut-btn">✂️ 切断モードへ</button>
+            <button id="reset-view-btn">最初から</button>
+        </div>
+
+        <div id="ui-cutting" class="ui-group" style="display:none;">
+            <p>辺をタップ(3点)</p>
+            <button id="connect-btn" disabled>つなぐ</button>
+            <button id="execute-btn" disabled>切断！</button>
+            <button id="cancel-cut-btn">戻る</button>
+        </div>
+
+        <div id="ui-result" class="ui-group" style="display:none;">
+            <button id="restore-btn">元に戻す</button>
+            <button id="reset-all-btn">最初から</button>
+        </div>
+    </div>
+
+    <div id="debug-window">
+        <div id="debug-content">System Ready</div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

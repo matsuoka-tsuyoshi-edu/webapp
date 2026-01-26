@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>いろいた パズル V24</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f8ff;
+            font-family: sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px; /* 少し高く */
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            z-index: 50;
+            gap: 15px; /* ボタン間隔広め */
+            overflow-x: auto;
+        }
+
+        button {
+            font-size: 24px; /* 文字大きく */
+            padding: 5px 20px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            background: white;
+            font-weight: bold;
+            color: #555;
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+        }
+        button.active {
+            background-color: #ffd700;
+            border-color: #e6b800;
+            color: #333;
+            transform: scale(1.1); /* 選んでいる感じを強調 */
+        }
+        button#resetBtn {
+            font-size: 14px; /* リセットは間違わないよう小さめ */
+            margin-left: auto;
+            margin-right: 20px;
+            border-color: #ff9999;
+            color: #d32f2f;
+            padding: 10px;
+        }
+
+        #status { display: none; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+<header>
+    <button onclick="setMode(0)" class="active">じゆう</button>
+    <button onclick="setMode(1)">①</button>
+    <button onclick="setMode(2)">②</button>
+    <button onclick="setMode(3)">③</button>
+    <button onclick="setMode(4)">④</button>
+    <button onclick="setMode(5)">⑤</button>
+    <button id="resetBtn" onclick="resetCurrentPieces()">なおす</button>
+</header>
+
+<div id="status"></div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- 設定 ---
+    const SIZE = 160; 
+    const SNAP_DIST = 40; 
+    
+    const COLOR_FRONT = '#FFD700'; // 黄
+    const COLOR_BACK = '#D32F2F';  // 赤
+
+    // 状態変数
+    let pieces = [];
+    let currentMode = 0;
+    
+    // ★保存用データ（各モードのピース配置を記憶）
+    let savedStates = {};
+
+    // 操作用
+    let activePiece = null;
+    let dragMode = null; 
+    let startX, startY;
+    let startPieceX, startPieceY; 
+    let startAngle = 0;
+    let initialPieceAngle = 0;
+    let lastTapTime = 0;
+    let lastTapPiece = null;
+    
+    function init() {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        // 初回のみリセット
+        resetPieces(); 
+        requestAnimationFrame(gameLoop);
+    }
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    // ピースを初期配置に戻す（現在のモード用）
+    function resetPieces() {
+        pieces = [];
+        const startX_pos = 120; 
+        const H = (SIZE * Math.sqrt(2)) / 2; 
+        const startY_pos = 120 + H; // ヘッダー広げた分少し下げ
+
+        for (let i = 0; i < 4; i++) {
+            const isYellow = (i % 2 === 0);
+            pieces.push({
+                id: i,
+                x: startX_pos,
+                y: startY_pos + (i * H), 
+                angle: isYellow ? 45 : -45, 
+                scaleX: isYellow ? 1 : -1, 
+                targetScaleX: isYellow ? 1 : -1
+            });
+        }
+    }
+
+    // リセットボタン用（現在のモードの状態をクリアして初期化）
+    window.resetCurrentPieces = function() {
+        resetPieces();
+        // 保存データも更新
+        saveCurrentState(); 
+    }
+
+    // --- 状態保存・復元ロジック ---
+    function saveCurrentState() {
+        // オブジェクトのコピーを作成して保存
+        savedStates[currentMode] = JSON.parse(JSON.stringify(pieces));
+    }
+
+    window.setMode = function(m) {
+        // 1. 移動する前に、今の状態を保存
+        saveCurrentState();
+
+        // 2. モード切替
+        currentMode = m;
+
+        // 3. ボタンの見た目更新
+        document.querySelectorAll('header button').forEach((b, i) => {
+           if(i < 6) { // リセットボタン以外
+               if(i === m) b.classList.add('active'); 
+               else b.classList.remove('active'); 
+           }
+        });
+
+        // 4. 以前の状態があれば復元、なければ初期化
+        if (savedStates[m]) {
+            pieces = JSON.parse(JSON.stringify(savedStates[m]));
+        } else {
+            resetPieces();
+        }
+    }
+
+    function gameLoop() {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+        pieces.forEach(p => {
+            if (p.scaleX !== p.targetScaleX) {
+                const speed = 0.3; 
+                if (p.scaleX < p.targetScaleX) p.scaleX = Math.min(p.scaleX + speed, p.targetScaleX);
+                else p.scaleX = Math.max(p.scaleX - speed, p.targetScaleX);
+            }
+        });
+    }
+
+    function traceTrianglePath(s) {
+        ctx.beginPath();
+        ctx.moveTo(-s/2, -s/2); 
+        ctx.lineTo(-s/2, s/2);  
+        ctx.lineTo(s/2, -s/2);  
+        ctx.closePath();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGuideAndSlots(currentMode, false);
+        pieces.forEach(p => drawPiece(p));
+    }
+
+    function drawPiece(p) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle * Math.PI / 180);
+        ctx.scale(p.scaleX, 1); 
+        traceTrianglePath(SIZE);
+        ctx.fillStyle = (p.scaleX > 0) ? COLOR_FRONT : COLOR_BACK;
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#444'; 
+        ctx.stroke();
+        if (activePiece === p) {
+            ctx.lineWidth = 6;
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    function getVertices(p) {
+        const rad = p.angle * Math.PI / 180;
+        const s2 = SIZE / 2;
+        const localVerts = [ {x: -s2, y: -s2}, {x: -s2, y: s2}, {x: s2, y: -s2} ];
+        return localVerts.map(v => {
+            const lx = v.x * (p.scaleX > 0 ? 1 : -1);
+            const ly = v.y;
+            return {
+                x: p.x + (lx * Math.cos(rad) - ly * Math.sin(rad)),
+                y: p.y + (lx * Math.sin(rad) + ly * Math.cos(rad))
+            };
+        });
+    }
+
+    function drawGuideAndSlots(mode, onlyGetSlots) {
+        if (mode === 0) return [];
+        
+        const cx = canvas.width / 2 + 100;
+        const cy = canvas.height / 2;
+        const S = SIZE;
+        const H = (S * Math.sqrt(2)) / 2;
+        
+        let targets = []; 
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        
+        if (!onlyGetSlots) {
+            ctx.strokeStyle = '#999'; ctx.lineWidth = 4; 
+            ctx.lineJoin = 'round'; ctx.setLineDash([10, 8]);
+        }
+
+        function addTarget(lx, ly, type) {
+            targets.push({ x: cx + lx, y: cy + ly, type: type });
+        }
+
+        if (mode === 1) { // ①ましかく
+            const halfSide = H;
+            if (!onlyGetSlots) {
+                ctx.strokeRect(-halfSide, -halfSide, halfSide*2, halfSide*2);
+                ctx.save(); ctx.lineWidth=2; ctx.setLineDash([5,5]);
+                ctx.beginPath();
+                ctx.moveTo(-halfSide, -halfSide); ctx.lineTo(halfSide, halfSide);
+                ctx.moveTo(halfSide, -halfSide); ctx.lineTo(-halfSide, halfSide);
+                ctx.stroke(); ctx.restore();
+            }
+            addTarget(0, 0, 'vertex'); 
+            addTarget(-halfSide, -halfSide, 'vertex');
+            addTarget(halfSide, -halfSide, 'vertex');
+            addTarget(halfSide, halfSide, 'vertex');
+            addTarget(-halfSide, halfSide, 'vertex');
+            const offset = H; 
+            addTarget(0, -offset, 'pivot'); addTarget(0, offset, 'pivot');
+            addTarget(-offset, 0, 'pivot'); addTarget(offset, 0, 'pivot');
+        }
+        else if (mode === 2) { // ②ながしかく
+            if(!onlyGetSlots) {
+                ctx.strokeRect(-S, -S/2, S, S); 
+                ctx.save(); ctx.lineWidth=2; ctx.setLineDash([5,5]);
+                ctx.beginPath();
+                ctx.moveTo(-S, -S/2); ctx.lineTo(0, S/2); ctx.stroke(); ctx.restore();
+                ctx.strokeRect(0, -S/2, S, S);
+                ctx.save(); ctx.lineWidth=2; ctx.setLineDash([5,5]);
+                ctx.beginPath();
+                ctx.moveTo(0, S/2); ctx.lineTo(S, -S/2); ctx.stroke(); ctx.restore();
+            }
+            addTarget(-S/2, 0, 'pivot'); 
+            addTarget(S/2, 0, 'pivot');
+            addTarget(0, 0, 'vertex');
+            addTarget(-S, -S/2, 'vertex'); addTarget(0, -S/2, 'vertex'); addTarget(S, -S/2, 'vertex');
+            addTarget(-S, S/2, 'vertex'); addTarget(0, S/2, 'vertex'); addTarget(S, S/2, 'vertex');
+        }
+        else if (mode === 3) { // ③大さんかく
+            if(!onlyGetSlots) {
+                ctx.setLineDash([]); 
+                ctx.beginPath();
+                ctx.moveTo(-S, S); ctx.lineTo(S, S); ctx.lineTo(S, -S);    
+                ctx.closePath(); ctx.stroke();
+            }
+            addTarget(-S, S, 'vertex'); addTarget(S, S, 'vertex'); addTarget(S, -S, 'vertex');
+            addTarget(0, 0, 'vertex');
+        }
+        else if (mode === 4) { // ④だいけい
+            if(!onlyGetSlots) {
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.moveTo(-S/2, -S/2); ctx.lineTo(S/2, -S/2);  
+                ctx.lineTo(S*1.5, S/2); ctx.lineTo(-S*1.5, S/2);
+                ctx.closePath(); ctx.stroke();
+            }
+            addTarget(0, 0, 'vertex'); 
+        }
+        else if (mode === 5) { // ⑤や
+            if(!onlyGetSlots) {
+                 ctx.setLineDash([]);
+                 // 外枠のみ描画
+                 ctx.beginPath();
+                 ctx.moveTo(-S, -S); // 左上
+                 ctx.lineTo(0, -S);
+                 ctx.lineTo(S, 0);   // 右端
+                 ctx.lineTo(0, 0);   // 中央右
+                 ctx.lineTo(0, S);   // 下端
+                 ctx.lineTo(-S, 0);  // 左下
+                 ctx.lineTo(-S, -S); // 戻る
+                 ctx.stroke();
+
+                 // ★修正: 内部の点線描画コードを削除しました
+            }
+            
+            // 吸着ポイントは維持（正解判定のため）
+            addTarget(-S/2, -S/2, 'pivot');
+            addTarget(S/2, -S/2, 'pivot');
+            addTarget(-S/2, S/2, 'pivot');
+            addTarget(-S, -S, 'vertex');
+            addTarget(0, -S, 'vertex');
+            addTarget(0, 0, 'vertex');
+            addTarget(-S, 0, 'vertex');
+            addTarget(S, 0, 'vertex');
+            addTarget(0, S, 'vertex');
+        }
+        
+        ctx.restore();
+        return targets;
+    }
+
+    function snap(targetP) {
+        let bestDist = SNAP_DIST;
+        let snapX = null;
+        let snapY = null;
+
+        const targets = drawGuideAndSlots(currentMode, true);
+        const targetVerts = getVertices(targetP); 
+
+        for(let t of targets) {
+            if (t.type === 'pivot') {
+                const dist = Math.hypot(targetP.x - t.x, targetP.y - t.y);
+                if(dist < SNAP_DIST * 1.5) {
+                    snapX = t.x - targetP.x;
+                    snapY = t.y - targetP.y;
+                    bestDist = dist; 
+                }
+            } else if (t.type === 'vertex') {
+                for (let v of targetVerts) {
+                    const dist = Math.hypot(v.x - t.x, v.y - t.y);
+                    if (dist < SNAP_DIST * 1.5 && dist < bestDist) {
+                        bestDist = dist;
+                        snapX = t.x - v.x; 
+                        snapY = t.y - v.y;
+                    }
+                }
+            }
+        }
+        
+        if (snapX !== null) {
+            targetP.x += snapX;
+            targetP.y += snapY;
+            return true;
+        }
+
+        bestDist = SNAP_DIST;
+        snapX = null; snapY = null;
+        
+        for (let otherP of pieces) {
+            if (otherP === targetP) continue;
+            const otherVerts = getVertices(otherP);
+            for (let tv of targetVerts) {
+                for (let ov of otherVerts) {
+                    const dist = Math.hypot(tv.x - ov.x, tv.y - ov.y);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        snapX = ov.x - tv.x; 
+                        snapY = ov.y - tv.y;
+                    }
+                }
+            }
+        }
+
+        if (snapX !== null) {
+            const ox = targetP.x; const oy = targetP.y;
+            targetP.x += snapX; targetP.y += snapY;
+            if (checkOverlap(targetP)) {
+                targetP.x = ox; targetP.y = oy;
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    function checkOverlap(targetP) {
+        const threshold = SIZE * 0.2; 
+        for (let otherP of pieces) {
+            if (otherP === targetP) continue;
+            const dist = Math.hypot(targetP.x - otherP.x, targetP.y - otherP.y);
+            if (dist < threshold) {
+                const ang1 = (targetP.angle % 360 + 360) % 360;
+                const ang2 = (otherP.angle % 360 + 360) % 360;
+                let diff = Math.abs(ang1 - ang2);
+                if (diff > 180) diff = 360 - diff; 
+                if (diff < 20) return true; 
+            }
+        }
+        return false;
+    }
+
+    canvas.addEventListener('touchstart', handleStart, {passive: false});
+    canvas.addEventListener('touchmove', handleMove, {passive: false});
+    canvas.addEventListener('touchend', handleEnd);
+    canvas.addEventListener('mousedown', e => handleStart({preventDefault:()=>{}, touches:[e]}));
+    window.addEventListener('mousemove', e => {
+        if(activePiece) handleMove({preventDefault:()=>{}, touches:[e]});
+    });
+    window.addEventListener('mouseup', handleEnd);
+
+    function getTouchInfo(tx, ty, p) {
+        const dx = tx - p.x; const dy = ty - p.y;
+        const s2 = SIZE / 2;
+        const rad = -p.angle * Math.PI / 180;
+        const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+        const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+        const lx = rx * (p.scaleX > 0 ? 1 : -1);
+        const ly = ry;
+        const corners = [{id:'sharp',x:-s2,y:s2},{id:'sharp',x:s2,y:-s2},{id:'right',x:-s2,y:-s2}];
+        for(let c of corners) if(Math.hypot(lx-c.x, ly-c.y)<50) return c.id;
+        return 'body';
+    }
+
+    function handleStart(e) {
+        e.preventDefault();
+        const t = e.touches[0]; const tx = t.clientX; const ty = t.clientY;
+        const now = Date.now();
+        for (let i = pieces.length - 1; i >= 0; i--) {
+            const p = pieces[i];
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle * Math.PI / 180);
+            ctx.scale(p.scaleX, 1); traceTrianglePath(SIZE);
+            const isHit = ctx.isPointInPath(tx, ty); ctx.restore();
+            if (isHit) {
+                if (lastTapPiece === p && (now - lastTapTime < 400)) {
+                    p.targetScaleX *= -1; 
+                    if (p.targetScaleX < 0) p.angle += 90; else p.angle -= 90;
+                    lastTapPiece = null; activePiece = null; return;
+                }
+                lastTapPiece = p; lastTapTime = now; activePiece = p;
+                pieces.splice(i, 1); pieces.push(p);
+                startPieceX = p.x; startPieceY = p.y;
+                const touchType = getTouchInfo(tx, ty, p);
+                if (touchType === 'sharp') {
+                    dragMode = 'rotate'; startAngle = Math.atan2(ty - p.y, tx - p.x);
+                    initialPieceAngle = p.angle;
+                } else {
+                    dragMode = 'move'; startX = tx; startY = ty;
+                }
+                return;
+            }
+        }
+    }
+
+    function handleMove(e) {
+        if (!activePiece) return;
+        e.preventDefault();
+        const t = e.touches[0]; const tx = t.clientX; const ty = t.clientY;
+        if (dragMode === 'move') {
+            activePiece.x = startPieceX + (tx - startX);
+            activePiece.y = startPieceY + (ty - startY);
+        } else if (dragMode === 'rotate') {
+            const currentAngle = Math.atan2(ty - activePiece.y, tx - activePiece.x);
+            const diffDeg = (currentAngle - startAngle) * 180 / Math.PI;
+            activePiece.angle = initialPieceAngle + diffDeg;
+        }
+    }
+
+    function handleEnd() {
+        if (activePiece) {
+            if (dragMode === 'rotate') {
+                activePiece.angle = Math.round(activePiece.angle / 45) * 45;
+            }
+            snap(activePiece);
+        }
+        activePiece = null; dragMode = null;
+    }
+
+    init();
+</script>
+</body>
+</html>

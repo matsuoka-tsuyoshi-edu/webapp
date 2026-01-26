@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>タイマーアプリ V8 (Final Polish)</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style>
+        /* 画面全体の基本設定 */
+        html, body {
+            height: 100%; margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #1c1c1e;
+            color: white;
+            overflow: hidden;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ★文字のフラッシュエフェクト */
+        @keyframes textFlashEffect {
+            0% { 
+                color: #ffd60a; 
+                text-shadow: 0 0 30px rgba(255, 214, 10, 0.8); /* 発光表現 */
+                transform: scale(1.02); /* ほんの少し拡大 */
+            } 
+            100% { 
+                color: inherit; 
+                text-shadow: none;
+                transform: scale(1);
+            }
+        }
+        .flash-text {
+            animation: textFlashEffect 0.5s ease-out;
+        }
+
+        /* タイマーエリア */
+        #timer-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding-top: 5vh;
+            position: relative;
+        }
+
+        /* タイマーの数字 */
+        #timer {
+            font-size: 38vw;
+            font-weight: 600;
+            line-height: 1;
+            letter-spacing: -0.04em;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            font-variant-numeric: tabular-nums;
+            transition: color 0.3s ease;
+            white-space: nowrap;
+        }
+
+        /* 文字色の状態クラス */
+        .color-warning { color: #ffd60a !important; }
+        .color-danger { color: #ff453a !important; }
+
+        /* タップ領域 (コロンは削除) */
+        #minutes, #seconds { cursor: pointer; }
+        #colon { cursor: default; } /* コロンは反応なし */
+
+        /* 開始前カウントダウン (左下) */
+        #pre-countdown {
+            position: fixed;
+            bottom: 40px;
+            left: 30px;
+            font-size: 15vw;
+            font-weight: 700;
+            color: #0a84ff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            z-index: 50;
+            font-variant-numeric: tabular-nums;
+            pointer-events: none;
+        }
+
+        /* ▼▼▼ コントロールエリア ▼▼▼ */
+        #controls-container {
+            width: 100%;
+            padding: 0 30px 40px 30px; /* 左右に余白 */
+            box-sizing: border-box;
+            display: flex;
+            justify-content: flex-end; /* 右寄せ */
+            align-items: flex-end;     /* 下揃え */
+            gap: 20px;
+        }
+
+        /* リセットボタン周り（チェックボックス含む） */
+        #reset-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px; /* ボタンとチェックボックスの間隔 */
+        }
+
+        /* チェックボックスのデザイン */
+        .checkbox-label {
+            font-size: 14px;
+            color: #aeaeb2;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .checkbox-label input {
+            transform: scale(1.3);
+            accent-color: #0a84ff; /* 青色アクセント */
+        }
+        .checkbox-label input:checked + span {
+            color: white;
+        }
+
+        .circle-btn {
+            border-radius: 50%;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.1s, opacity 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .circle-btn:active {
+            opacity: 0.8;
+            transform: scale(0.95);
+        }
+
+        /* リセットボタン */
+        #btn-reset {
+            width: 80px; height: 80px; font-size: 16px;
+            background-color: #3a3a3c; color: #ebebf5;
+        }
+
+        /* スタート/ストップボタン */
+        #btn-start-stop {
+            width: 160px; height: 160px; font-size: 32px;
+        }
+        #btn-start-stop.start-mode {
+            background-color: #30d158; color: #1c1c1e;
+        }
+        #btn-start-stop.stop-mode {
+            background-color: #ff453a; color: white;
+        }
+
+        /* 終了時の反転スタイル */
+        body.timer-inverted { background-color: white; }
+        body.timer-inverted #timer { color: #1c1c1e !important; }
+
+        /* ピッカーウィンドウ */
+        #picker-window {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #3a3a3c; border-radius: 14px;
+            width: 80%; max-width: 300px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            color: white; overflow: hidden; z-index: 100;
+        }
+        #picker-window h2 {
+            margin: 0; padding: 15px; font-weight: 600;
+            text-align: center; background-color: #4a4a4c; font-size: 1.2em;
+        }
+        #picker-container {
+            height: 300px; overflow-y: scroll; -webkit-overflow-scrolling: touch; 
+        }
+        .picker-item {
+            padding: 15px; text-align: center; font-size: 1.5em;
+            cursor: pointer; border-bottom: 1px solid #4a4a4c;
+        }
+        .picker-item:last-child { border-bottom: none; }
+        .picker-item:active { background-color: #007aff; }
+        #cancel-btn {
+            width: 100%; padding: 15px; font-size: 1.2em;
+            font-weight: 600; color: #007aff; background-color: #3a3a3c;
+            border: none; border-top: 1px solid #4a4a4c; cursor: pointer;
+        }
+        #cancel-btn:active { background-color: #555; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="timer-container">
+        <div id="timer">
+            <span id="minutes">03</span><span id="colon">:</span><span id="seconds">00</span>
+        </div>
+    </div>
+
+    <div id="pre-countdown" class="hidden"></div>
+
+    <div id="controls-container">
+        
+        <div id="reset-group">
+            <button id="btn-reset" class="circle-btn">リセット</button>
+            
+            <label class="checkbox-label">
+                <input type="checkbox" id="check-countdown" checked>
+                <span>Count</span>
+            </label>
+        </div>
+
+        <button id="btn-start-stop" class="circle-btn start-mode">開始</button>
+    </div>
+
+    <div id="picker-window" class="hidden">
+        <h2 id="picker-title"></h2>
+        <div id="picker-container"></div>
+        <button id="cancel-btn">キャンセル</button>
+    </div>
+
+    <script>
+        // --- 音声ファイルの準備 ---
+        const soundCountdown = new Audio('dat/countdown.mp3');
+        const soundBell = new Audio('dat/bell.mp3');
+
+        // 音声再生ヘルパー
+        function playSound(audio) {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log('Audio play failed:', e));
+        }
+
+        // ★重要: iOSなどで音が鳴らない問題への対策 (プライミング)
+        // ユーザー操作の瞬間に、音声を一瞬だけ再生・停止して「許可」を得る
+        function primeAudio(audio) {
+            audio.play().then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+            }).catch(e => {
+                // 自動再生ポリシーなどで失敗してもログだけ出して続行
+                console.log('Audio prime failed (safe to ignore if silent):', e);
+            });
+        }
+
+        // --- DOM要素 ---
+        const minutesDisplay = document.getElementById('minutes');
+        const secondsDisplay = document.getElementById('seconds');
+        // colonDisplayは取得するがイベントはつけない
+        const timerElement = document.getElementById('timer');
+        const bodyElement = document.body;
+        const btnStartStop = document.getElementById('btn-start-stop');
+        const btnReset = document.getElementById('btn-reset');
+        const preCountdownDisplay = document.getElementById('pre-countdown');
+        const checkCountdown = document.getElementById('check-countdown'); // チェックボックス
+
+        const pickerWindow = document.getElementById('picker-window');
+        const pickerTitle = document.getElementById('picker-title');
+        const pickerContainer = document.getElementById('picker-container');
+        const cancelBtn = document.getElementById('cancel-btn');
+
+        // --- 設定 ---
+        const defaultSeconds = 180; 
+        let totalSeconds = defaultSeconds;
+        let timerInterval = null;
+        let isRunning = false;
+        
+        // カウントダウン用
+        let isPreCounting = false;
+        let preCountValue = 5;
+        let preCountInterval = null;
+
+        let currentPickerMode = 'seconds';
+
+        // --- 初期化 ---
+        updateDisplay();
+        updateButtonState();
+
+        // --- イベント ---
+        // ★コロンのイベントリスナーは削除しました
+        
+        btnStartStop.addEventListener('click', handleStartStopAction);
+        btnReset.addEventListener('click', resetTimer);
+        minutesDisplay.addEventListener('click', () => openPicker('minutes'));
+        secondsDisplay.addEventListener('click', () => openPicker('seconds'));
+        cancelBtn.addEventListener('click', closePicker);
+
+        // --- ロジック ---
+
+        function handleStartStopAction() {
+            if (isPreCounting) {
+                cancelPreCountdown();
+            } else if (isRunning) {
+                stopTimer();
+            } else {
+                // --- 開始処理 ---
+                
+                // ★ここで「終了音」の再生許可を取っておく (プライミング)
+                primeAudio(soundBell);
+
+                if (bodyElement.classList.contains('timer-inverted')) {
+                    bodyElement.classList.remove('timer-inverted');
+                }
+
+                if (totalSeconds > 0) {
+                    // チェックボックスの状態を確認
+                    const isCountdownOn = checkCountdown.checked;
+
+                    if (isCountdownOn) {
+                        startPreCountdownSequence();
+                    } else {
+                        // カウントダウンなし: 即スタート
+                        updateButtonStateForRun();
+                        triggerTextFlash(); // ★文字光らせる
+                        startTimer();
+                    }
+                }
+            }
+        }
+
+        function startPreCountdownSequence() {
+            isPreCounting = true;
+            preCountValue = 5; 
+            
+            updateButtonState();
+
+            playSound(soundCountdown);
+
+            preCountdownDisplay.textContent = preCountValue;
+            preCountdownDisplay.classList.remove('hidden');
+
+            preCountInterval = setInterval(() => {
+                preCountValue--;
+                if (preCountValue > 0) {
+                    preCountdownDisplay.textContent = preCountValue;
+                }
+                if (preCountValue <= 0) {
+                    clearInterval(preCountInterval);
+                    preCountdownDisplay.classList.add('hidden');
+                    isPreCounting = false;
+                    
+                    triggerTextFlash(); // ★文字光らせる
+                    startTimer(); 
+                }
+            }, 1000);
+        }
+
+        // ★文字を光らせるエフェクト
+        function triggerTextFlash() {
+            timerElement.classList.remove('flash-text');
+            void timerElement.offsetWidth; // リフロー強制
+            timerElement.classList.add('flash-text');
+            
+            // アニメーション時間に合わせてクラス削除
+            setTimeout(() => {
+                timerElement.classList.remove('flash-text');
+            }, 500);
+        }
+
+        function cancelPreCountdown() {
+            clearInterval(preCountInterval);
+            soundCountdown.pause(); 
+            soundCountdown.currentTime = 0;
+            preCountdownDisplay.classList.add('hidden');
+            isPreCounting = false;
+            updateButtonState();
+        }
+
+        function startTimer() {
+            if(!isRunning){
+                isRunning = true;
+                timerInterval = setInterval(tick, 1000);
+                updateButtonState();
+            }
+        }
+
+        function stopTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            timerInterval = null;
+            updateButtonState();
+        }
+
+        function tick() {
+            if (totalSeconds > 0) {
+                totalSeconds--;
+                updateDisplay();
+            } else {
+                stopTimer();
+                finishAction();
+            }
+        }
+
+        function finishAction() {
+            timerElement.classList.remove('color-warning', 'color-danger');
+            bodyElement.classList.add('timer-inverted');
+            
+            // プライミング済みなので、ここでの再生がブロックされにくくなる
+            playSound(soundBell);
+        }
+
+        function resetTimer() {
+            if (isPreCounting) cancelPreCountdown();
+            stopTimer();
+            totalSeconds = defaultSeconds;
+            updateDisplay();
+            bodyElement.classList.remove('timer-inverted');
+            updateButtonState();
+        }
+
+        function updateButtonStateForRun() {
+             btnStartStop.textContent = "停止";
+             btnStartStop.classList.remove('start-mode');
+             btnStartStop.classList.add('stop-mode');
+        }
+
+        function updateButtonState() {
+            if (isRunning || isPreCounting) {
+                btnStartStop.textContent = "停止";
+                btnStartStop.classList.remove('start-mode');
+                btnStartStop.classList.add('stop-mode');
+            } else {
+                btnStartStop.textContent = "開始";
+                btnStartStop.classList.remove('stop-mode');
+                btnStartStop.classList.add('start-mode');
+            }
+        }
+
+        function updateDisplay() {
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = totalSeconds % 60;
+            minutesDisplay.textContent = String(mins).padStart(2, '0');
+            secondsDisplay.textContent = String(secs).padStart(2, '0');
+
+            timerElement.classList.remove('color-warning', 'color-danger');
+            if (totalSeconds > 0 && totalSeconds <= 5) {
+                timerElement.classList.add('color-danger'); 
+            } else if (totalSeconds > 5 && totalSeconds <= 10) {
+                timerElement.classList.add('color-warning');
+            }
+        }
+
+        // --- ピッカー ---
+        function openPicker(mode) {
+            if (isRunning || isPreCounting) return; 
+            currentPickerMode = mode;
+            pickerContainer.innerHTML = '';
+            let max = 59;
+            let title = (mode === 'minutes') ? '分 (0-59)' : '秒 (0-59)';
+            pickerTitle.textContent = title;
+
+            for (let i = 0; i <= max; i++) {
+                const item = document.createElement('div');
+                item.textContent = String(i).padStart(2, '0');
+                item.classList.add('picker-item');
+                item.addEventListener('click', () => { setTimeFromPicker(i); });
+                pickerContainer.appendChild(item);
+            }
+            pickerWindow.classList.remove('hidden');
+        }
+
+        function setTimeFromPicker(value) {
+            if (currentPickerMode === 'minutes') {
+                const currentSecs = totalSeconds % 60;
+                totalSeconds = (value * 60) + currentSecs;
+            } else {
+                const currentMins = Math.floor(totalSeconds / 60);
+                totalSeconds = (currentMins * 60) + value;
+            }
+            updateDisplay();
+            closePicker();
+        }
+
+        function closePicker() {
+            pickerWindow.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

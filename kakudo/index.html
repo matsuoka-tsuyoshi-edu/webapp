@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>角度インベーダー V22</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            touch-action: none;
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* --- 左側エリア --- */
+        #leftSide {
+            width: 70%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-right: 3px solid #444;
+            box-sizing: border-box;
+        }
+
+        #gameArea {
+            flex: 1; 
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
+            width: 100%;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* コンソールエリア */
+        #consoleArea {
+            height: 200px;
+            background-color: #001100;
+            border-top: 2px solid #00ff00;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #00ff00;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .log-line {
+            margin: 0;
+            white-space: nowrap;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.1);
+        }
+        .log-alert { color: #ff3333; font-weight: bold; }
+
+        /* --- 右側エリア --- */
+        #controlArea {
+            width: 30%;
+            height: 100%;
+            background-color: #222;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        #angleDisplay {
+            background: #000;
+            border: 2px solid #00aaff;
+            color: #00aaff;
+            font-size: 6vmin;
+            padding: 5px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            font-weight: bold;
+            height: 10%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            height: 80%;
+            padding-bottom: 10px;
+        }
+        .btn {
+            background: #333;
+            border: 1px solid #666;
+            color: white;
+            font-size: 5vmin;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 0 #000;
+            transition: all 0.1s;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #000; background: #555; }
+        .btn-fire { background: #d32f2f; grid-column: span 3; font-weight: bold; font-size: 5vmin; height: 85%; align-self: flex-start; }
+        .btn-fire:active { background: #b71c1c; }
+        .btn-clear { background: #555; font-size: 4vmin; }
+
+        /* --- メニュー・オーバーレイ --- */
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+        h1 { margin-bottom: 10px; color: #00aaff; font-size: 5vmin; text-align: center; }
+        p#subText { 
+            font-size: 2.2vmin; margin-bottom: 10px; text-align: center; padding: 0 40px; line-height: 1.6;
+        }
+        
+        #levelSelect {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            width: 90%;
+            max-width: 800px;
+        }
+        button.lvl-btn {
+            font-size: 2.2vmin; padding: 5px;
+            background: #00aaff; border: 2px solid #fff; border-radius: 10px; color: white;
+            cursor: pointer; transition: 0.2s; height: 90px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        button.lvl-btn:hover { background: #0088cc; transform: scale(1.05); }
+        
+        button.lvl-btn.locked {
+            background: #333; border-color: #555; color: #888; cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        button.menu-btn {
+            font-size: 3vmin; padding: 10px 20px; margin-top: 20px;
+            background: #555; border: none; border-radius: 8px; color: white; cursor: pointer;
+        }
+
+        #reviewList {
+            max-height: 40vh; overflow-y: auto; text-align: left; margin-top: 10px;
+            border: 1px solid #555; padding: 15px; width: 70%;
+            background: rgba(255,255,255,0.1); border-radius: 10px; font-size: 2vmin;
+            display: none;
+        }
+        ul { padding-left: 15px; margin: 0; }
+        li { margin-bottom: 4px; }
+        
+        #messageArea {
+            position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 4vmin; color: #ffff00; text-shadow: 2px 2px #000;
+            pointer-events: none; text-align: center; width: 100%; z-index: 15;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        
+        .hard-mode { background: #cc0000 !important; border-color: #ffff00 !important; font-weight: bold; }
+        button.lvl-btn.locked.hard-mode { background: #333 !important; border-color: #555 !important; color: #888; }
+
+    </style>
+</head>
+<body>
+
+    <div id="leftSide">
+        <div id="gameArea">
+            <div id="messageArea"></div>
+            <canvas id="gameCanvas"></canvas>
+            
+            <div id="overlay">
+                <h1 id="titleText">角度インベーダー</h1>
+                <p id="subText">
+                    観光宇宙人が <b>小惑星(しょうわくせい)サイズ</b>で やってきた！<br>
+                    悪気はないけど、ぶつかると地球がこわれちゃう。<br>
+                    レーザーで「お帰りください」しよう！
+                </p>
+                
+                <div id="levelSelect">
+                    <button id="btnLv1" class="lvl-btn" onclick="startGame(1)">Lv.1<br><small>数字あり</small></button>
+                    <button id="btnLv2" class="lvl-btn locked" onclick="startGame(2)">Lv.2<br><small>数字なし</small></button>
+                    <button id="btnLv3" class="lvl-btn locked" onclick="startGame(3)">Lv.3<br><small>左から<br>数字あり</small></button>
+                    <button id="btnLv4" class="lvl-btn locked" onclick="startGame(4)">Lv.4<br><small>左から<br>数字なし</small></button>
+                    <button id="btnLv5" class="lvl-btn locked" onclick="startGame(5)">Lv.5<br><small>２体！<br>数字あり</small></button>
+                    <button id="btnLv6" class="lvl-btn locked" onclick="startGame(6)">Lv.6<br><small>２体！<br>数字なし</small></button>
+                    <button id="btnLv7" class="lvl-btn locked" onclick="startGame(7)">Lv.7<br><small>２体！<br>左・数字なし</small></button>
+                    <button id="btnLv8" class="lvl-btn locked hard-mode" onclick="startGame(8)">Lv.8<br><small>観光シーズン<br>(激ムズ)</small></button>
+                </div>
+
+                <div id="reviewList"></div>
+                <button id="backToMenuBtn" class="menu-btn" style="display:none;" onclick="showMenu()">メニューにもどる</button>
+            </div>
+        </div>
+        
+        <div id="consoleArea">
+            <div class="log-line">> システム きどう中...</div>
+            <div class="log-line">> しじを まっています</div>
+        </div>
+    </div>
+
+    <div id="controlArea">
+        <div id="angleDisplay">0°</div>
+        <div id="numpad">
+            <div class="btn" onclick="inputNum(7)">7</div>
+            <div class="btn" onclick="inputNum(8)">8</div>
+            <div class="btn" onclick="inputNum(9)">9</div>
+            <div class="btn" onclick="inputNum(4)">4</div>
+            <div class="btn" onclick="inputNum(5)">5</div>
+            <div class="btn" onclick="inputNum(6)">6</div>
+            <div class="btn" onclick="inputNum(1)">1</div>
+            <div class="btn" onclick="inputNum(2)">2</div>
+            <div class="btn" onclick="inputNum(3)">3</div>
+            <div class="btn btn-clear" onclick="clearNum()">C</div>
+            <div class="btn" onclick="inputNum(0)">0</div>
+            <div class="btn btn-clear" onclick="backspace()">←</div>
+            <div class="btn btn-fire" onclick="fireBeam()">はっしゃ！</div>
+        </div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameArea = document.getElementById('gameArea');
+    const consoleArea = document.getElementById('consoleArea');
+    
+    let gameState = 'MENU';
+    let currentLevel = 1;
+    let unlockedLevel = 1; 
+    
+    let width, height, centerX, centerY, earthRadius;
+    let currentInput = "";
+    
+    let aliens = [];
+    let beam = null;  
+    let reviewData = []; 
+    let stars = [];
+    
+    let totalAliensInLevel = 10;
+    let spawnedCount = 0;
+    let defeatedCount = 0;
+    let spawnDelay = 0; 
+
+    const levelConfig = {
+        1: { isLeft: false, showNum: true,  simultaneous: 1 },
+        2: { isLeft: false, showNum: false, simultaneous: 1 },
+        3: { isLeft: true,  showNum: true,  simultaneous: 1 },
+        4: { isLeft: true,  showNum: false, simultaneous: 1 },
+        5: { isLeft: false, showNum: true,  simultaneous: 2 },
+        6: { isLeft: false, showNum: false, simultaneous: 2 },
+        7: { isLeft: true,  showNum: false, simultaneous: 2 },
+        8: { isLeft: false, showNum: false, simultaneous: 4 }
+    };
+
+    const hitTalks = ["おやおや", "あらあら", "道をまちがえました", "しつれいします", "それではまた", "お元気で〜"];
+    const crashTalks = ["あれ？意外と小さい", "ここどこ？", "観光マップとちがう", "おじゃまします〜"];
+    const spaceTalks = [
+        "これが木星かぁ", "土星の親せき元気？", "めい王星よりあたたかい", 
+        "銀河のはてから来ました", "地球ってここ？", "おみやげ どこで売ってる？",
+        "あれ？太陽はどっち？", "ブラックホールじゃないの？"
+    ];
+
+    function resize() {
+        width = gameArea.clientWidth;
+        height = gameArea.clientHeight;
+        canvas.width = width;
+        canvas.height = height;
+        centerX = width / 2;
+        centerY = height; 
+        earthRadius = Math.min(width, height) * 0.13; 
+        initStars();
+        if(gameState === 'MENU') drawMenuBg();
+    }
+    window.addEventListener('resize', resize);
+
+    function initStars() {
+        stars = [];
+        for(let i=0; i<50; i++) {
+            stars.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                size: Math.random() * 2 + 1,
+                speed: Math.random() * 0.5 + 0.2
+            });
+        }
+    }
+
+    function showMenu() {
+        gameState = 'MENU';
+        document.getElementById('overlay').style.display = 'flex';
+        document.getElementById('titleText').innerHTML = "角度インベーダー";
+        document.getElementById('subText').innerHTML = `
+            観光宇宙人が <b>小惑星(しょうわくせい)サイズ</b>で やってきた！<br>
+            悪気はないけど、ぶつかると地球がこわれちゃう。<br>
+            レーザーで「お帰りください」しよう！
+        `;
+        document.getElementById('levelSelect').style.display = 'grid';
+        document.getElementById('reviewList').style.display = 'none';
+        document.getElementById('backToMenuBtn').style.display = 'none';
+        
+        for(let i=1; i<=8; i++) {
+            const btn = document.getElementById(`btnLv${i}`);
+            if (i <= unlockedLevel) {
+                btn.classList.remove('locked');
+            } else {
+                btn.classList.add('locked');
+            }
+        }
+        
+        consoleArea.innerHTML = "";
+        logToConsole(">> 待機中...");
+        requestAnimationFrame(menuLoop);
+    }
+
+    function menuLoop() {
+        if(gameState !== 'MENU') return;
+        ctx.fillStyle = '#000022'; 
+        ctx.fillRect(0, 0, width, height);
+        drawStars();
+        drawEarthAndProtractor(levelConfig[1]);
+        requestAnimationFrame(menuLoop);
+    }
+
+    function startGame(level) {
+        if (level > unlockedLevel) return;
+
+        currentLevel = level;
+        gameState = 'PLAYING';
+        aliens = [];
+        spawnedCount = 0;
+        defeatedCount = 0;
+        reviewData = [];
+        currentInput = "";
+        spawnDelay = 0;
+        
+        updateDisplay();
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('levelSelect').style.display = 'none';
+        
+        consoleArea.innerHTML = "";
+        logToConsole("--------------------");
+        logToConsole(`レベル${currentLevel} スタート！`);
+
+        const conf = levelConfig[currentLevel];
+
+        if (currentLevel === 8) {
+            logToConsole("かんこうシーズン とうらい！！", true);
+            logToConsole("さい大級の けいかいを 求む！！", true);
+        } else if (!conf.showNum) {
+            logToConsole("きんきゅうじたい はっせい！！", true);
+            logToConsole("かんしシステムに いじょうあり。", true);
+            if(conf.isLeft) {
+                logToConsole(">> 【左がわ】から そくていせよ", true);
+            } else {
+                logToConsole(">> 【右がわ】から そくていせよ", true);
+            }
+        } else {
+            logToConsole("システム オールグリーン。");
+        }
+        
+        resize();
+        loop(); 
+    }
+
+    function spawnAlien() {
+        if (spawnedCount >= totalAliensInLevel) return;
+
+        const conf = levelConfig[currentLevel];
+        if (aliens.length >= conf.simultaneous) return;
+
+        const angle = Math.floor(Math.random() * 17 + 1) * 10 + (Math.random() > 0.7 ? 5 : 0);
+        const adjustedAngle = Math.max(5, Math.min(175, angle)); 
+
+        let baseSpeed = 0.3 + (spawnedCount * 0.05); 
+        if (!conf.showNum) {
+            baseSpeed *= 0.8;
+        }
+
+        const rad = -adjustedAngle * (Math.PI / 180);
+        const safeMargin = 80; 
+        
+        let limitY = (height - safeMargin) / Math.sin(-rad); 
+        let limitX = (centerX - safeMargin) / Math.abs(Math.cos(rad));
+        let maxDist = Math.min(limitY, limitX);
+        
+        let minDist = earthRadius * 2.8 + 100; 
+
+        if (maxDist < minDist) maxDist = minDist + 50;
+
+        let spawnDist = minDist + Math.random() * (maxDist - minDist);
+
+        let startMessage = spaceTalks[Math.floor(Math.random() * spaceTalks.length)];
+
+        let waitTime = 120;
+        if (adjustedAngle <= 30 || adjustedAngle >= 150) {
+            waitTime = 180; 
+        }
+        
+        for(let a of aliens) {
+            if (Math.abs(a.angle - adjustedAngle) < 15) return;
+        }
+
+        spawnedCount++;
+        
+        aliens.push({
+            id: spawnedCount,
+            angle: adjustedAngle,
+            distance: spawnDist, 
+            speed: baseSpeed,
+            text: "👾", 
+            message: startMessage,
+            messageTimer: 100, 
+            isHit: false,
+            opacity: 1.0,
+            scale: 0.1, 
+            targetScale: 1.0,
+            waitTimer: waitTime,
+            rotation: 0 
+        });
+        
+        logToConsole(`⚠️ インベーダー #${spawnedCount} が あらわれた！`);
+    }
+
+    function loop() {
+        if (gameState !== 'PLAYING') return;
+
+        ctx.fillStyle = '#000022'; 
+        ctx.fillRect(0, 0, width, height);
+        drawStars();
+        drawEarthAndProtractor(levelConfig[currentLevel]);
+        
+        if (spawnDelay > 0) {
+            spawnDelay--;
+        } else {
+            spawnAlien();
+            if (currentLevel === 8) spawnDelay = 30;
+            else spawnDelay = 60;
+        }
+
+        for (let i = aliens.length - 1; i >= 0; i--) {
+            let a = aliens[i];
+            
+            if (a.scale < a.targetScale && !a.isHit) {
+                a.scale += 0.1;
+                if (a.scale > a.targetScale) a.scale = a.targetScale;
+            }
+
+            if (a.isHit) {
+                a.distance += a.speed * 8; 
+                a.scale -= 0.02;
+                a.rotation += 0.4; 
+                a.text = "🚀"; 
+
+                if (a.distance > Math.max(width, height) * 2 || a.scale <= 0) {
+                    aliens.splice(i, 1);
+                    defeatedCount++;
+                    checkClear();
+                    continue;
+                }
+            } else {
+                if (a.waitTimer > 0) {
+                    a.waitTimer--;
+                    a.messageTimer = 2; 
+                } else {
+                    a.distance -= a.speed;
+                }
+            }
+
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, a.opacity);
+            const rad = -a.angle * (Math.PI / 180);
+            const ax = centerX + a.distance * Math.cos(rad);
+            const ay = centerY + a.distance * Math.sin(rad);
+
+            ctx.translate(ax, ay);
+            ctx.scale(a.scale, a.scale);
+            ctx.rotate(a.rotation); 
+            
+            ctx.font = "40px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(a.text, 0, 0);
+
+            if (!a.isHit && a.messageTimer > 0 && a.opacity > 0.5) {
+                ctx.rotate(-a.rotation); 
+                a.messageTimer--;
+                ctx.fillStyle = "white";
+                ctx.font = "bold 18px Arial";
+                ctx.shadowColor = "black"; ctx.shadowBlur = 4;
+                ctx.fillText(a.message, 0, -40);
+                ctx.shadowBlur = 0;
+            }
+            ctx.restore();
+
+            if (!a.isHit && a.distance < earthRadius + 30) { 
+                a.message = crashTalks[Math.floor(Math.random() * crashTalks.length)];
+                gameState = 'GAMEOVER_ANIM';
+                logToConsole("🚨 ぶつかった！ 地球があぶない！", true);
+                
+                let targetDisplay = a.angle;
+                if (levelConfig[currentLevel].isLeft) {
+                    targetDisplay = 180 - a.angle;
+                }
+
+                reviewData.push({ 
+                    target: targetDisplay, 
+                    input: "なし", 
+                    result: "×" 
+                });
+                
+                setTimeout(() => endGame(false), 2000);
+                return; 
+            }
+        }
+
+        if (beam) updateBeam();
+        requestAnimationFrame(loop);
+    }
+
+    function checkClear() {
+        if (defeatedCount >= totalAliensInLevel) {
+            endGame(true);
+        }
+    }
+
+    function drawMenuBg() {
+        if(gameState !== 'MENU') return;
+        ctx.fillStyle = '#000022'; 
+        ctx.fillRect(0, 0, width, height);
+        drawStars();
+        drawEarthAndProtractor(levelConfig[1]);
+    }
+
+    function drawStars() {
+        ctx.fillStyle = 'white';
+        stars.forEach(star => {
+            ctx.fillRect(star.x, star.y, star.size, star.size);
+            star.y += star.speed;
+            if (star.y > height) star.y = 0;
+        });
+    }
+
+    function drawEarthAndProtractor(conf) {
+        const protractorRadius = earthRadius * 2.8 + 20; 
+        
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, protractorRadius, Math.PI, 0);
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.05)';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, earthRadius, Math.PI, 0); 
+        ctx.fillStyle = '#2266cc'; ctx.fill();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, earthRadius * 0.8, Math.PI, 0); 
+        ctx.fillStyle = '#33aa33'; ctx.fill();
+        ctx.strokeStyle = '#115511'; ctx.lineWidth = 2; ctx.stroke();
+
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, protractorRadius, Math.PI, 0); 
+        ctx.stroke();
+
+        ctx.strokeStyle = '#ff3333';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        if (conf.isLeft) {
+             ctx.lineTo(centerX - protractorRadius, centerY);
+        } else {
+             ctx.lineTo(centerX + protractorRadius, centerY);
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 2;
+        ctx.fillStyle = '#00ffff';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "bold 16px Arial";
+
+        for (let i = 0; i <= 180; i += 5) {
+            const isTen = (i % 10 === 0);
+            const len = isTen ? 20 : 10;
+            const rad = -i * (Math.PI / 180);
+            
+            const x1 = centerX + protractorRadius * Math.cos(rad);
+            const y1 = centerY + protractorRadius * Math.sin(rad);
+            const x2 = centerX + (protractorRadius - len) * Math.cos(rad);
+            const y2 = centerY + (protractorRadius - len) * Math.sin(rad);
+
+            if (i === 90) {
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 4;
+            } else {
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 2;
+            }
+
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+
+            if (conf.showNum && isTen) {
+                const tx = centerX + (protractorRadius - 35) * Math.cos(rad);
+                const ty = centerY + (protractorRadius - 35) * Math.sin(rad);
+                
+                let displayNum = i;
+                if (conf.isLeft) {
+                    displayNum = 180 - i;
+                }
+                ctx.fillText(displayNum, tx, ty);
+            }
+        }
+        
+        ctx.fillStyle = "#ff3333";
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 8, 0, Math.PI*2);
+        ctx.fill();
+
+        if (beam) {
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            let startRad = conf.isLeft ? -Math.PI : 0;
+            let currentBeamRad = -beam.currentSwipeAngle * (Math.PI / 180);
+            ctx.arc(centerX, centerY, protractorRadius, startRad, currentBeamRad, !conf.isLeft);
+            ctx.lineTo(centerX, centerY);
+            ctx.fillStyle = 'rgba(255, 50, 50, 0.4)'; 
+            ctx.fill();
+        }
+    }
+
+    function fireBeam() {
+        if (currentInput === "" || gameState !== 'PLAYING') return;
+        let inputAngle = parseInt(currentInput);
+        
+        if (inputAngle < 0 || inputAngle > 180) {
+            popMessage("エラー: 0〜180°で 入力してね");
+            clearNum(); return;
+        }
+
+        let physicalAngle = inputAngle;
+        const conf = levelConfig[currentLevel];
+        if (conf.isLeft) {
+            physicalAngle = 180 - inputAngle;
+        }
+
+        logToConsole(`📡 ビームはっしゃ: ${inputAngle}°`);
+
+        beam = {
+            targetPhysicalAngle: physicalAngle, 
+            displayAngle: inputAngle,
+            currentSwipeAngle: conf.isLeft ? 180 : 0, 
+            length: 0, 
+            maxLength: Math.max(width, height) * 1.5,
+            state: 'SWEEPING', 
+            active: true,
+            holdTimer: 0,
+            waitTimer: 20 
+        };
+    }
+
+    function updateBeam() {
+        if (!beam || !beam.active) return;
+
+        const conf = levelConfig[currentLevel];
+
+        if (beam.state === 'SWEEPING') {
+            let speed = 8; 
+            
+            if (conf.isLeft) {
+                if (beam.currentSwipeAngle > beam.targetPhysicalAngle) {
+                    beam.currentSwipeAngle -= speed;
+                    if(beam.currentSwipeAngle < beam.targetPhysicalAngle) beam.currentSwipeAngle = beam.targetPhysicalAngle;
+                } else {
+                    beam.state = 'PRE_FIRE'; 
+                }
+            } else {
+                if (beam.currentSwipeAngle < beam.targetPhysicalAngle) {
+                    beam.currentSwipeAngle += speed;
+                    if(beam.currentSwipeAngle > beam.targetPhysicalAngle) beam.currentSwipeAngle = beam.targetPhysicalAngle;
+                } else {
+                    beam.state = 'PRE_FIRE'; 
+                }
+            }
+            return; 
+        }
+
+        if (beam.state === 'PRE_FIRE') {
+            beam.waitTimer--;
+            if (beam.waitTimer <= 0) {
+                beam.state = 'FIRING';
+            }
+            return;
+        }
+
+        if (beam.state === 'HOLDING') {
+            beam.holdTimer--;
+            if (beam.holdTimer <= 0) {
+                beam.active = false;
+                beam = null;
+                return;
+            }
+        }
+
+        if (beam.state === 'FIRING') {
+            beam.length += 20; 
+        }
+        
+        const rad = -beam.targetPhysicalAngle * (Math.PI / 180);
+        const bx = centerX + beam.length * Math.cos(rad);
+        const by = centerY + beam.length * Math.sin(rad);
+
+        ctx.strokeStyle = '#ff5555';
+        ctx.lineWidth = 8;
+        ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY); 
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        if (beam.state !== 'FIRING') return;
+
+        let hitAny = false;
+        
+        for(let a of aliens) {
+            if (a.isHit) continue; 
+
+            const angleDiff = Math.abs(beam.targetPhysicalAngle - a.angle);
+            // ★修正: 完全一致のみ許可
+            const hitAngle = (angleDiff === 0); 
+            const hitDistance = (beam.length >= a.distance - 30);
+
+            if (hitAngle && hitDistance) {
+                const recordedInput = beam.displayAngle;
+
+                beam.state = 'HOLDING';
+                beam.holdTimer = 100; 
+                
+                a.isHit = true; 
+                a.message = hitTalks[Math.floor(Math.random() * hitTalks.length)];
+                
+                logToConsole(`✨ 命中！ お帰りいただきました`);
+                
+                let targetDisplay = a.angle;
+                if (levelConfig[currentLevel].isLeft) {
+                    targetDisplay = 180 - a.angle;
+                }
+
+                reviewData.push({ target: targetDisplay, input: recordedInput, result: "〇" });
+                clearNum();
+                hitAny = true;
+                break; 
+            }
+        }
+
+        if (!hitAny && beam.state === 'FIRING') {
+            if (beam.length > beam.maxLength) {
+                const recordedInput = beam.displayAngle; 
+                
+                beam.state = 'HOLDING';
+                beam.holdTimer = 60; 
+
+                let closest = aliens[0]; 
+                let targetAng = "?";
+                if (closest) {
+                     targetAng = levelConfig[currentLevel].isLeft ? (180 - closest.angle) : closest.angle;
+                }
+                
+                reviewData.push({ target: targetAng, input: recordedInput, result: "×" });
+                logToConsole(`❌ ミス！ 当たりません`);
+                popMessage("はずれた！");
+                clearNum();
+            }
+        }
+    }
+
+    function endGame(isClear) {
+        gameState = isClear ? 'CLEAR' : 'GAMEOVER';
+        document.getElementById('overlay').style.display = 'flex';
+        document.getElementById('reviewList').style.display = 'block';
+        document.getElementById('backToMenuBtn').style.display = 'block'; 
+        document.getElementById('levelSelect').style.display = 'none'; 
+        
+        const title = document.getElementById('titleText');
+        const sub = document.getElementById('subText');
+        
+        if (isClear) {
+            if (currentLevel === unlockedLevel && unlockedLevel < 8) {
+                unlockedLevel++;
+            }
+
+            title.innerHTML = "🎉 レベル クリア！ 🎉";
+            title.style.color = "#ffff00";
+            sub.innerHTML = `すべての かんこううちゅう人は さっていった。<br>さすがだ！`;
+            logToConsole(`ミッション かんりょう！`);
+        } else {
+            title.innerHTML = "💥 ミッション しっぱい 💥";
+            title.style.color = "#ff4444";
+            sub.innerHTML = `セーフティネットで 最悪のじたいは まぬがれた。<br>次は まけないぞ！`;
+            logToConsole("ミッション しっぱい...");
+        }
+
+        let html = "<h3>📝 ふりかえり</h3><ul>";
+        if(reviewData.length === 0) html += "<li>データなし</li>";
+        reviewData.forEach((data) => {
+            const color = (data.result === "〇") ? "#4f4" : "#f44";
+            const inputStr = (data.input === "なし") ? "なし" : data.input + "°";
+            html += `<li style="color:${color}">
+                せいかい: <b>${data.target}°</b> → 入力: <b>${inputStr}</b> ... ${data.result}
+            </li>`;
+        });
+        html += "</ul>";
+        document.getElementById('reviewList').innerHTML = html;
+    }
+
+    function inputNum(n) {
+        if (currentInput.length >= 3) return;
+        currentInput += n;
+        updateDisplay();
+    }
+    function clearNum() {
+        currentInput = "";
+        updateDisplay();
+    }
+    function backspace() {
+        currentInput = currentInput.slice(0, -1);
+        updateDisplay();
+    }
+    function updateDisplay() {
+        document.getElementById('angleDisplay').innerText = currentInput ? currentInput + "°" : "0°";
+    }
+    
+    function popMessage(text) {
+        const el = document.getElementById('messageArea');
+        el.innerText = text;
+        el.style.opacity = 1;
+        setTimeout(() => { el.style.opacity = 0; }, 2000);
+    }
+
+    function logToConsole(text, isAlert = false) {
+        const div = document.createElement('div');
+        div.className = 'log-line';
+        if(isAlert) div.classList.add('log-alert');
+        div.innerText = `> ${text}`;
+        consoleArea.prepend(div);
+        while(consoleArea.children.length > 7) {
+            consoleArea.removeChild(consoleArea.lastChild);
+        }
+    }
+
+    showMenu();
+    resize();
+</script>
+</body>
+</html>

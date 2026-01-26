@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>はいぜんのてつ人２５ごう</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app-container">
+    <div id="palette" class="panel">
+        <div class="instruction-text">ブロックを ひっぱってね</div>
+        
+        <div class="block block-move" data-type="move">
+            つくえ１つ分<br>まえに すすむ
+        </div>
+        
+        <div class="block block-left" data-type="left">
+            ひだりを むく
+        </div>
+        
+        <div class="block block-right" data-type="right">
+            みぎを むく
+        </div>
+        
+        <div class="block block-loop" data-type="loop" id="palette-loop">
+            <div class="loop-line-1">まえの うごきを</div>
+            <div class="loop-line-2">
+                <select class="loop-count">
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                </select>
+                かい くりかえす
+            </div>
+        </div>
+
+        <div id="mode-switch-area">
+            <label>
+                <input type="checkbox" id="chk-enclosure-mode">
+                くりかえしブロックを<br>かこみにする
+            </label>
+        </div>
+    </div>
+
+    <div id="workspace" class="panel">
+        <div class="snap-indicator" id="snap-indicator"></div>
+        <div class="workspace-guide">
+            「はじまり」のしたに<br>つなげてね
+        </div>
+        <div class="block block-start workspace-block static-start" data-type="start" style="top: 80px; left: 50px;">
+            🏴 はじまり
+        </div>
+    </div>
+
+    <div id="stage-container" class="panel">
+        <div id="stage-info">
+            <div id="message-area">せんせいの ちゅうもん...</div>
+            <div id="controls">
+                <button id="btn-run">▶ スタート</button>
+                <button id="btn-reset">↺ リセット</button>
+            </div>
+        </div>
+        <div id="classroom"></div>
+        
+        <div id="debug-window">
+            ロボ座標: 未取得
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>

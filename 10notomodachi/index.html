@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>10のともだち</title>
+    <style>
+        /* === 基本設定 === */
+        * { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            font-family: "Hiragino Maru Gothic Pro", "M-PLUS Rounded 1c", sans-serif;
+            background-color: #87CEEB; height: 100svh; width: 100vw;
+            overscroll-behavior: none;
+        }
+        button, .num-btn, #start-btn { touch-action: manipulation; cursor: pointer; }
+
+        #game-container { width: 100%; height: 100%; display: none; flex-direction: column; }
+        /* overflow: hidden を外すと、突き抜けたブロックが画面外まで描画されますが、
+           ここでは画面端で切れるように hidden のままにします（見た目上は突き抜けます） */
+        #stage-area { flex: 1; position: relative; overflow: hidden; width: 100%; }
+
+        /* --- 川とガイド線 --- */
+        #river-water {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 80%;
+            background: linear-gradient(to bottom, #5D9CEC, #4A89DC); z-index: 1; opacity: 0.8; pointer-events: none;
+        }
+        #guide-line-5 {
+            position: absolute; left: 0; width: 100%; height: 4px;
+            background-color: rgba(255, 80, 80, 0.7); z-index: 10; bottom: 40%; pointer-events: none;
+        }
+
+        /* 橋のコンテナ */
+        #bridge-container {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            width: 100%; height: 80%; position: absolute; bottom: 0; left: 0;
+            padding: 0 2px; box-sizing: border-box; z-index: 5; pointer-events: none;
+        }
+
+        /* 各列 */
+        .column {
+            flex: 1; 
+            height: 100%; 
+            margin: 0 1px;
+            display: flex; 
+            flex-direction: column-reverse; /* 下から積む */
+            justify-content: flex-start; /* column-reverseなのでstartが底辺 */
+            position: relative;
+        }
+
+        /* ブロック共通設定 */
+        .block {
+            width: 100%; 
+            /* 親要素の高さ(橋の高さ)の10% = 1個分 */
+            /* これを height: 10% と指定しつつ、flex-shrink: 0 をつけることで
+               親要素からはみ出しても縮まずに突き抜けるようになります */
+            height: 10%; 
+            flex-shrink: 0; /* 重要：はみ出しても縮まない！ */
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+
+        /* 石ブロック */
+        .block.stone { border: 2px solid #333; }
+        .block.stone.existing { background-color: #8D7B68; box-shadow: inset 0 0 5px rgba(0,0,0,0.2); }
+        .block.stone.added { background-color: #C0C0C0; animation: dropIn 0.3s ease-out; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.4); }
+        
+        /* 土ブロック */
+        .block.soil { background-color: #C07040; border: 2px solid #5D3010; }
+
+        /* アシストブロック */
+        .block.assist {
+            background-color: rgba(0, 100, 0, 0.2);
+            border: 4px solid #006400; 
+        }
+
+        /* 間違いブロック（赤・警告色） */
+        .block.wrong {
+            background-color: #FFB6C1; 
+            border: 2px solid #DC143C; 
+            animation: shake 0.5s;
+            z-index: 100; /* 手前に表示 */
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            50% { transform: translateX(2px); }
+            75% { transform: translateX(-2px); }
+            100% { transform: translateX(0); }
+        }
+
+        @keyframes dropIn { from { transform: translateY(-300%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* --- 橋のプレートと手すり（公共の橋デザイン：グレー＆緑） --- */
+        .bridge-plate-container {
+            position: absolute; bottom: 100%; left: -4px; right: -4px; height: 25px; z-index: 15; opacity: 0;
+            transition: opacity 0.5s ease-in 0.3s; pointer-events: none;
+        }
+        .column.land .bridge-plate-container { opacity: 1; transition: none; }
+        .bridge-plate-container.built { opacity: 1; }
+
+        /* 板：コンクリート風グレー */
+        .bridge-plate {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 12px; 
+            background-color: #D3D3D3; /* LightGray */
+            border: 2px solid #696969; /* DimGray */
+            border-radius: 4px; box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+        /* 柱：濃いグレー */
+        .handrail {
+            position: absolute; bottom: 10px; width: 6px; height: 18px;
+            background-color: #A9A9A9; /* DarkGray */
+            border: 2px solid #696969; 
+            border-radius: 3px; z-index: 2;
+        }
+        /* 擬宝珠：緑色の丸 */
+        .handrail::after {
+            content: ''; position: absolute; top: -6px; left: -3px; width: 8px; height: 8px; border-radius: 50%;
+            background-color: #2E8B57; /* SeaGreen */
+            border: 1px solid #006400;
+        }
+        .handrail.left { left: 4px; }
+        .handrail.right { right: 4px; }
+        .handrail.center { left: 50%; transform: translateX(-50%); }
+        /* 横棒：グレー */
+        .handrail-bar {
+            position: absolute; bottom: 22px; left: 4px; right: 4px; height: 4px; 
+            background-color: #A9A9A9;
+            border: 1px solid #696969; border-radius: 2px; z-index: 1;
+        }
+
+        /* キャラクター */
+        .character {
+            width: 6vh; height: 6vh; position: absolute;
+            transition: left 0.5s linear, bottom 0.5s ease-out;
+            z-index: 20; filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.3)); pointer-events: none;
+        }
+        #kame { background: url('https://api.iconify.design/noto:turtle.svg') no-repeat center/contain; }
+        #robot { background: url('https://api.iconify.design/noto:robot.svg') no-repeat center/contain; }
+
+        /* 吹き出し */
+        .bubble {
+            position: absolute; background: white; padding: 5px 10px; border-radius: 15px; 
+            font-weight: bold; display: none; font-size: 1.1rem; white-space: nowrap; z-index: 30;
+            border: 2px solid #333; pointer-events: none;
+        }
+        #kame-msg { transform: translateY(-120%); }
+        #kame-msg::after {
+            content: ''; position: absolute; left: 10px; bottom: -8px;
+            border-style: solid; border-width: 8px 8px 0; border-color: #333 transparent; display: block; width: 0;
+        }
+        #robot-msg { background-color: #E0FFFF; transform: translate(110%, -50%); }
+        #robot-msg::after {
+            content: ''; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
+            border-style: solid; border-width: 8px 10px 8px 0; border-color: transparent #333 transparent transparent; display: block; width: 0;
+        }
+
+        /* === 操作エリア === */
+        #ui-area {
+            height: 140px; min-height: 140px; background-color: #FFF8DC;
+            display: flex; flex-direction: row; justify-content: center; align-items: center;
+            padding: 10px 5px calc(20px + env(safe-area-inset-bottom)) 5px;
+            box-shadow: 0 -5px 10px rgba(0,0,0,0.1); z-index: 50;
+        }
+        .num-btn {
+            flex: 1; height: 80px; margin: 0 3px;
+            background: linear-gradient(to bottom, #FFF, #EEE);
+            border: 2px solid #FF8C00; border-bottom-width: 6px; border-radius: 12px;
+            font-size: 2.5rem; font-family: "Arial Rounded MT Bold", sans-serif;
+            color: #333; cursor: pointer; display: flex; justify-content: center; align-items: center;
+            transition: all 0.1s; -webkit-touch-callout: none;
+        }
+        .num-btn:active { transform: translateY(4px); border-bottom-width: 2px; background: #FFD700; }
+        .num-btn.disabled { opacity: 0.6; pointer-events: none; filter: grayscale(50%); }
+
+        /* === タイトル画面 === */
+        #title-screen {
+            display: flex; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #87CEEB; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 300; text-align: center;
+            background: linear-gradient(to bottom, #87CEEB 60%, #4169E1 100%);
+        }
+        #title-text { font-size: 4rem; color: #FFF; text-shadow: 3px 3px 0 #333; margin-bottom: 20px; font-weight: bold; }
+        .char-intro-container { display: flex; justify-content: center; gap: 50px; margin-bottom: 30px; }
+        .char-intro { display: flex; flex-direction: column; align-items: center; }
+        .intro-img { width: 100px; height: 100px; margin-bottom: 10px; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3)); }
+        .intro-name { font-size: 1.5rem; font-weight: bold; color: #333; background: rgba(255,255,255,0.8); padding: 5px 15px; border-radius: 20px; }
+        .story-text {
+            width: 80%; background: rgba(255,255,255,0.9); padding: 20px; border-radius: 15px;
+            font-size: 1.2rem; line-height: 1.6; border: 3px solid #333; margin-bottom: 30px; font-weight: bold;
+        }
+        #start-btn {
+            padding: 15px 60px; font-size: 2.5rem; font-weight: bold; background: #FFD700; color: #333;
+            border: 4px solid #FFF; border-radius: 50px; cursor: pointer; box-shadow: 0 6px 0 #b8860b; animation: pulse 1.5s infinite;
+        }
+        #start-btn:active { transform: translateY(6px); box-shadow: none; animation: none; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* === 結果画面 === */
+        #result-screen {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,80,0.9); color: white; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 200; font-size: 1.8rem; backdrop-filter: blur(5px);
+        }
+        #result-screen h1 { font-size: 3.5rem; margin-bottom: 20px; text-shadow: 0 0 10px #FFD700; }
+        #restart-btn {
+            margin-top: 40px; padding: 15px 40px; font-size: 1.8rem; font-weight: bold;
+            background: #FFD700; color: #333; border: 4px solid #FFF; border-radius: 50px; cursor: pointer; box-shadow: 0 5px 0 #b8860b;
+        }
+        #restart-btn:active { transform: translateY(5px); box-shadow: none; }
+    </style>
+</head>
+<body>
+
+<div id="title-screen">
+    <div id="title-text">１０のともだち</div>
+    <div class="char-intro-container">
+        <div class="char-intro">
+            <img src="https://api.iconify.design/noto:turtle.svg" class="intro-img" alt="カメさん">
+            <div class="intro-name">カメさん</div>
+        </div>
+        <div class="char-intro">
+            <img src="https://api.iconify.design/noto:robot.svg" class="intro-img" alt="ツミアゲさん">
+            <div class="intro-name">ツミアゲさん</div>
+        </div>
+    </div>
+    <div class="story-text">
+        おおあめが ふった つぎの ひ。カメさんが こまっています。<br>
+        おともだちの おうちに いくのに、はしが こわれていて、わたれません。<br>
+        ツミアゲさんを つかって たすけてあげてください。(この カメさんは、およげないのです)
+    </div>
+    <button id="start-btn" onclick="startGame()">スタート！</button>
+</div>
+
+<div id="game-container">
+    <div id="stage-area">
+        <div id="river-water"></div>
+        <div id="guide-line-5"></div>
+        <div id="bridge-container"></div>
+        <div id="kame" class="character"></div>
+        <div id="robot" class="character"></div>
+        <div id="kame-msg" class="bubble"></div>
+        <div id="robot-msg" class="bubble"></div>
+    </div>
+    <div id="ui-area">
+        <div class="num-btn" onclick="checkAnswer(1)">1</div>
+        <div class="num-btn" onclick="checkAnswer(2)">2</div>
+        <div class="num-btn" onclick="checkAnswer(3)">3</div>
+        <div class="num-btn" onclick="checkAnswer(4)">4</div>
+        <div class="num-btn" onclick="checkAnswer(5)">5</div>
+        <div class="num-btn" onclick="checkAnswer(6)">6</div>
+        <div class="num-btn" onclick="checkAnswer(7)">7</div>
+        <div class="num-btn" onclick="checkAnswer(8)">8</div>
+        <div class="num-btn" onclick="checkAnswer(9)">9</div>
+    </div>
+</div>
+
+<div id="result-screen">
+    <h1>✨ ごーる！ ✨</h1>
+    <p>かかったじかん: <span id="final-time">0</span> びょう</p>
+    <p>まちがい: <span id="final-errors">0</span> かい</p>
+    <h2 id="final-rank" style="color: #FFD700; font-size: 2.5rem; margin: 20px 0;"></h2>
+    <button id="restart-btn" onclick="initGame()">もういちど やる</button>
+</div>
+
+<script>
+    document.addEventListener('dblclick', function(event) { event.preventDefault(); }, { passive: false });
+
+    const TOTAL_QUESTIONS = 10;
+    const TOTAL_COLUMNS = TOTAL_QUESTIONS + 2; 
+    let currentQuestionIndex = 0;
+    let bridgeHeights = [];
+    let startTime;
+    let errorCount = 0;
+    let isGameRunning = false;
+    let isProcessing = false; 
+
+    const robotSuccessWords = ["ヨシキタ", "キタコレ", "コレデイイノダ", "ツミツミ", "ガッテンダ"];
+    const kameSuccessWords = ["すごい！", "ありがとう", "てんさいだね", "そのちょうし", "やったね"];
+    const kameFailWords = ["あれ？", "ちがうみたい", "もういちど！", "おしい！"];
+
+    function startGame() {
+        document.getElementById('title-screen').style.display = 'none';
+        document.getElementById('game-container').style.display = 'flex';
+        initGame();
+    }
+
+    function initGame() {
+        isGameRunning = true;
+        isProcessing = false;
+        currentQuestionIndex = 0;
+        errorCount = 0;
+        document.getElementById('result-screen').style.display = 'none';
+        
+        toggleButtons(true);
+        generateBridge();
+        updateCharacterPositions(0); 
+        
+        showBubble('kame-msg', 'さぁ、なおそう！', 2500);
+        setTimeout(() => { showBubble('robot-msg', 'イクツ、イル？', 2000); }, 800);
+        startTime = Date.now();
+    }
+
+    function generateBridge() {
+        const container = document.getElementById('bridge-container');
+        container.innerHTML = '';
+        bridgeHeights = [];
+        createLandColumn(container);
+
+        let answersPool = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        answersPool.push(Math.floor(Math.random() * 9) + 1);
+        for (let i = answersPool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [answersPool[i], answersPool[j]] = [answersPool[j], answersPool[i]];
+        }
+
+        for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+            const correctAdd = answersPool[i];
+            const existingBlocks = 10 - correctAdd;
+            bridgeHeights.push(existingBlocks);
+
+            const colDiv = document.createElement('div');
+            colDiv.className = 'column';
+            colDiv.id = `question-${i}`;
+            for (let b = 0; b < existingBlocks; b++) {
+                const block = document.createElement('div');
+                block.className = 'block stone existing';
+                colDiv.appendChild(block);
+            }
+            addBridgePlate(colDiv, false);
+            container.appendChild(colDiv);
+        }
+        createLandColumn(container);
+    }
+
+    function createLandColumn(container) {
+        const colDiv = document.createElement('div');
+        colDiv.className = 'column land';
+        for(let i=0; i<10; i++){
+            const block = document.createElement('div');
+            block.className = 'block soil';
+            colDiv.appendChild(block);
+        }
+        addBridgePlate(colDiv, true);
+        container.appendChild(colDiv);
+    }
+    
+    function addBridgePlate(colDiv, isVisible) {
+        const plateContainer = document.createElement('div');
+        plateContainer.className = 'bridge-plate-container' + (isVisible ? ' built' : '');
+        plateContainer.id = 'plate-' + colDiv.id;
+        plateContainer.innerHTML = `
+            <div class="handrail left"></div><div class="handrail center"></div><div class="handrail right"></div><div class="handrail-bar"></div><div class="bridge-plate"></div>
+        `;
+        colDiv.appendChild(plateContainer);
+    }
+
+    function checkAnswer(inputNum) {
+        if (!isGameRunning || isProcessing) return;
+        
+        if (currentQuestionIndex >= TOTAL_QUESTIONS) return;
+        const currentHeight = bridgeHeights[currentQuestionIndex];
+        const correctNum = 10 - currentHeight;
+        
+        if (inputNum === correctNum) {
+            handleSuccess(inputNum);
+        } else {
+            handleError(correctNum, inputNum);
+        }
+    }
+
+    function handleSuccess(addNum) {
+        const colId = `question-${currentQuestionIndex}`;
+        const colDiv = document.getElementById(colId);
+        
+        const assists = colDiv.querySelectorAll('.block.assist');
+        assists.forEach(el => el.remove());
+
+        for (let i = 0; i < addNum; i++) {
+            const block = document.createElement('div');
+            block.className = 'block stone added';
+            colDiv.appendChild(block);
+        }
+        
+        setTimeout(() => {
+            const plate = document.getElementById('plate-' + colId);
+            if(plate) plate.classList.add('built');
+        }, 300);
+
+        const rWord = robotSuccessWords[Math.floor(Math.random() * robotSuccessWords.length)];
+        const kWord = kameSuccessWords[Math.floor(Math.random() * kameSuccessWords.length)];
+        showBubble('robot-msg', rWord, 1000);
+        showBubble('kame-msg', kWord, 1000);
+
+        currentQuestionIndex++;
+        setTimeout(() => { updateCharacterPositions(currentQuestionIndex); }, 500);
+
+        if (currentQuestionIndex >= TOTAL_QUESTIONS) {
+            setTimeout(() => { updateCharacterPositions(TOTAL_QUESTIONS + 1); }, 1500);
+            setTimeout(gameClear, 2500);
+        }
+    }
+
+    function handleError(missingNum, inputNum) {
+        errorCount++;
+        isProcessing = true;
+        toggleButtons(false);
+
+        const kWord = kameFailWords[Math.floor(Math.random() * kameFailWords.length)];
+        showBubble('kame-msg', kWord, 1000);
+
+        const colDiv = document.getElementById(`question-${currentQuestionIndex}`);
+        const wrongBlocks = [];
+        const existingAssists = colDiv.querySelectorAll('.block.assist');
+        existingAssists.forEach(el => el.remove());
+
+        for(let i=0; i<inputNum; i++){
+            const b = document.createElement('div');
+            b.className = 'block wrong';
+            colDiv.appendChild(b);
+            wrongBlocks.push(b);
+        }
+
+        setTimeout(() => {
+            wrongBlocks.forEach(b => b.remove());
+            showBubble('kame-msg', 'ここ、いくつ、いる？', 3000);
+            showAssistBlocks(missingNum);
+            isProcessing = false;
+            toggleButtons(true);
+        }, 1500);
+    }
+
+    function showAssistBlocks(missingNum) {
+        const colDiv = document.getElementById(`question-${currentQuestionIndex}`);
+        if(colDiv.querySelector('.block.assist')) return;
+        for(let i=0; i < missingNum; i++) {
+            const assistBlock = document.createElement('div');
+            assistBlock.className = 'block assist';
+            colDiv.appendChild(assistBlock);
+        }
+    }
+
+    function toggleButtons(enable) {
+        const btns = document.querySelectorAll('.num-btn');
+        btns.forEach(btn => {
+            if(enable) btn.classList.remove('disabled');
+            else btn.classList.add('disabled');
+        });
+    }
+
+    function updateCharacterPositions(columnIndex) {
+        const container = document.getElementById('bridge-container');
+        const containerRect = container.getBoundingClientRect();
+        const colWidth = containerRect.width / TOTAL_COLUMNS;
+        const startX = container.offsetLeft; 
+        const targetX = startX + (columnIndex * colWidth);
+        const containerHeight = containerRect.height;
+        const targetBottom = containerHeight + 12;
+
+        const kame = document.getElementById('kame');
+        kame.style.left = (targetX + colWidth * 0.1) + 'px';
+        kame.style.bottom = targetBottom + 'px';
+
+        const robot = document.getElementById('robot');
+        robot.style.left = (targetX + colWidth * 0.4) + 'px';
+        robot.style.bottom = targetBottom + 'px';
+        
+        updateBubblePosition('kame-msg', kame);
+        updateBubblePosition('robot-msg', robot);
+    }
+    
+    function updateBubblePosition(bubbleId, charElement) {
+        const bubble = document.getElementById(bubbleId);
+        bubble.style.left = charElement.style.left;
+        bubble.style.bottom = charElement.style.bottom;
+    }
+
+    function showBubble(id, text, duration) {
+        const el = document.getElementById(id);
+        el.innerText = text;
+        el.style.display = 'block';
+        if(id === 'kame-msg') updateBubblePosition(id, document.getElementById('kame'));
+        if(id === 'robot-msg') updateBubblePosition(id, document.getElementById('robot'));
+        setTimeout(() => { el.style.display = 'none'; }, duration);
+    }
+
+    function gameClear() {
+        isGameRunning = false;
+        const duration = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById('final-time').innerText = duration;
+        document.getElementById('final-errors').innerText = errorCount;
+        let rank = "がんばったね！";
+        if (errorCount === 0 && duration < 30) rank = "💎 だいやもんど きゅう 💎";
+        else if (errorCount === 0) rank = "🥇 きんめだる きゅう 🥇";
+        else if (errorCount <= 3) rank = "🥈 ぎんめだる きゅう 🥈";
+        document.getElementById('final-rank').innerText = rank;
+        document.getElementById('result-screen').style.display = 'flex';
+    }
+
+    window.onresize = () => {
+        let posIndex = currentQuestionIndex; 
+        if(!isGameRunning && errorCount === 0 && currentQuestionIndex === 0) posIndex = 0;
+        else if(!isGameRunning) posIndex = TOTAL_COLUMNS - 1;
+        updateCharacterPositions(posIndex);
+    };
+</script>
+</body>
+</html>
