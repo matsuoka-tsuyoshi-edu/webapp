@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>りずむッチ♫</title>
+<style>
+  /* 全体の設定 */
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "NoTo Sans JP", sans-serif;
+    text-align: center;
+    background-color: #f0f8ff;
+    user-select: none;
+    margin: 0;
+    padding: 0;
+    
+    /* 画面固定（スクロール防止） */
+    position: fixed; 
+    top: 0; left: 0; width: 100%; height: 100%;
+    overflow: hidden; 
+    
+    /* 上部余白 */
+    padding-top: max(10px, env(safe-area-inset-top));
+    
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+
+  /* --- 上部ツールバー --- */
+  .toolbar {
+    background-color: #333;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 4px 5px rgba(0,0,0,0.2);
+    height: 60px;
+    border-radius: 0 0 10px 10px;
+    margin: 0 10px 5px 10px;
+    justify-content: space-between;
+    flex-shrink: 0;
+    position: relative; 
+    z-index: 2000; 
+  }
+
+  .toolbar-left { 
+    display: flex; gap: 5px; align-items: center; 
+    flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    max-width: 85%;
+  }
+  .toolbar-left::-webkit-scrollbar { display: none; }
+
+  .tool-btn {
+    background-color: #fff;
+    border: none;
+    border-radius: 8px;
+    width: 40px; height: 40px; font-size: 20px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+    pointer-events: auto; touch-action: manipulation;
+  }
+  .tool-btn:active { transform: scale(0.95); background-color: #ddd; }
+  
+  .btn-rewind { background-color: #70a1ff; color: white; }
+  .btn-play { background-color: #2ed573; color: white; width: 50px; font-size: 24px; }
+  .btn-stop { background-color: #ff6b81; color: white; width: 50px; font-size: 22px; }
+  .btn-save { background-color: #f1c40f; color: #333; }
+  .btn-load { background-color: #9b59b6; color: white; }
+  .btn-settings { background-color: #95a5a6; color: white; }
+  .btn-mode { background-color: #34495e; color: white; }
+  .btn-mode.active-mode { background-color: #e67e22; border: 2px solid #fff; }
+  .btn-del-all { background-color: #ff4757; color: white; margin-left: auto; }
+
+  /* デバッグウィンドウ (デフォルト非表示) */
+  #debug-window {
+    position: absolute; top: 70px; right: 10px; width: 200px; height: 100px;
+    background-color: rgba(0, 0, 0, 0.8); border: 1px solid #fff; color: #0f0;
+    font-family: monospace; font-size: 10px; text-align: left; padding: 5px;
+    overflow-y: auto; z-index: 3000; pointer-events: none;
+    display: none; /* ★ここを block に変えると表示されます */
+  }
+
+  /* --- 楽譜エリア --- */
+  #score-container {
+    flex-grow: 1; width: 100%;
+    background-color: #fff; border-top: 5px solid #333; border-bottom: 5px solid #333;
+    position: relative; z-index: 10;
+    overflow-x: auto; overflow-y: hidden;
+    display: flex; align-items: center; padding: 0 20px; 
+    touch-action: pan-x; scroll-behavior: smooth;
+  }
+
+  #center-line {
+    position: absolute; top: 50%; left: 0; width: 10000px; height: 4px;
+    background-color: #999; z-index: 0; transform: translateY(-50%);
+  }
+
+  .note-wrapper {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    margin: 0 1px; z-index: 2; flex-shrink: 0; cursor: pointer; height: 100%;
+  }
+  
+  .note-display {
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; color: white; z-index: 5; margin-bottom: 5px; box-sizing: border-box;
+  }
+
+  /* ●モード */
+  .style-circle { border: 4px solid #fff; box-shadow: 2px 2px 4px rgba(0,0,0,0.3); overflow: hidden; }
+  .len-2 .style-circle { width: 170px; height: 80px; border-radius: 40px; font-size: 35px; }
+  .len-4 .style-circle { width: 80px; height: 80px; border-radius: 50%; font-size: 35px; }
+  .len-8 .style-circle { width: 40px; height: 80px; border-radius: 40px 0 0 40px; font-size: 25px; }
+  .len-16 .style-circle { width: 20px; height: 80px; border-radius: 20px 0 0 20px; font-size: 0; }
+  
+  /* ♪モード */
+  .style-music-note { width: 60px; height: 100px; background: transparent; border: none; box-shadow: none; }
+  .style-music-note svg {
+    width: 100%; height: 100%; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2));
+    transform: translateY(10px); overflow: visible; 
+  }
+
+  .len-2 { width: 180px; } .len-4 { width: 90px; } .len-8 { width: 50px; } .len-16 { width: 30px; }
+
+  .note-text { font-size: 14px; font-weight: bold; color: #333; height: 20px; z-index: 5; white-space: nowrap; }
+
+  .delete-btn-under {
+    position: absolute; bottom: 40px;
+    background-color: #ff4757; color: white; font-size: 17px; font-weight: bold;
+    padding: 6px 14px; border-radius: 20px; white-space: nowrap; z-index: 100;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid white; cursor: pointer;
+  }
+
+  .caret {
+    width: 6px; height: 110px; background-color: rgba(255, 0, 0, 0.4); 
+    border-radius: 3px; z-index: 1; pointer-events: none;
+  }
+  .note-wrapper .caret { position: absolute; top: 50%; left: 50%; transform: translate(-50%, calc(-50% - 10px)); }
+  .caret-start { margin-right: 5px; }
+
+  .playing { transform: scale(1.1); filter: brightness(1.2); }
+
+  /* 色設定 */
+  .type-don .style-circle { background-color: #ff4757; border-color: #333; }
+  .type-ka .style-circle { background-color: #1e90ff; border-color: #333; }
+  .type-pachi .style-circle { background-color: #ffd700; color: #333; border-color: #333; }
+  .type-un .style-circle { background-color: #bdc3c7; color: #333; border-color: #7f8c8d; }
+
+  .type-don .note-head { fill: #ff4757; stroke: #ff4757; } 
+  .type-don .note-stem { fill: #ff4757; stroke: #ff4757; }
+  .type-don .note-head.hollow { fill: transparent; stroke: #ff4757; stroke-width: 5px; } 
+
+  .type-ka .note-head { fill: #1e90ff; stroke: #1e90ff; }
+  .type-ka .note-stem { fill: #1e90ff; stroke: #1e90ff; }
+  .type-ka .note-head.hollow { fill: transparent; stroke: #1e90ff; stroke-width: 5px; }
+
+  .type-pachi .note-head { fill: #ffd700; stroke: #ffd700; }
+  .type-pachi .note-stem { fill: #ffd700; stroke: #ffd700; }
+  .type-pachi .note-head.hollow { fill: transparent; stroke: #ffd700; stroke-width: 5px; }
+
+  .type-un .note-head { fill: #bdc3c7; stroke: #bdc3c7; }
+  .type-un .note-rest { stroke: #95a5a6; stroke-width: 6px; fill: none; }
+  .type-un .note-rest-fill { fill: #95a5a6; stroke: none; }
+
+  /* --- 入力エリア --- */
+  .input-container {
+    display: flex; flex-direction: row; justify-content: space-between; align-items: center; 
+    padding: 5px 10px 15px 10px; background-color: #e6e6e6; width: 100%; box-sizing: border-box;
+    flex-shrink: 0; position: relative; z-index: 50;
+  }
+  .input-buttons {
+    display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: space-around; flex-grow: 1; gap: 3px; margin-right: 5px;
+  }
+  .circle-btn {
+    width: 22vw; height: 22vw; max-width: 150px; max-height: 150px; min-width: 50px; min-height: 50px;
+    border-radius: 50%; border: 4px solid #fff; cursor: pointer; font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    outline: none; touch-action: manipulation; flex: 1; aspect-ratio: 1 / 1;
+  }
+  .circle-btn:active { transform: scale(0.95); }
+  .circle-btn span.text { font-size: clamp(10px, 4vw, 22px); margin-bottom: 2px; }
+  .circle-btn span.emoji { font-size: clamp(24px, 10vw, 65px); line-height: 1; }
+  .btn-in-don { background: #ff4757; color: white; }
+  .btn-in-ka { background: #1e90ff; color: white; }
+  .btn-in-pachi { background: #ffd700; color: #333; }
+  .btn-in-un { background: #bdc3c7; color: #333; }
+  
+  .duration-selector {
+    display: flex; flex-direction: column; gap: 5px; background: #ccc; padding: 5px; border-radius: 12px; flex-shrink: 0;
+  }
+  .dur-btn {
+    width: 55px; height: 50px; background: #fff; border: 3px solid transparent; border-radius: 8px;
+    font-size: 14px; font-weight: bold; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; color: #555; opacity: 0.6; touch-action: manipulation;
+  }
+  .dur-btn.active { border-color: #ff4757; opacity: 1; color: #000; box-shadow: 0 0 6px rgba(255, 71, 87, 0.5); }
+  
+  .icon-circle { background: #333; border-radius: 50%; display: inline-block; margin-bottom: 2px; }
+  .dur-2 .icon-circle { width: 30px; height: 14px; border-radius: 10px; border: 2px solid #333; background: transparent; }
+  .dur-4 .icon-circle { width: 14px; height: 14px; }
+  .dur-8 .icon-circle { width: 7px; height: 14px; border-radius: 7px 0 0 7px; }
+  .dur-16 .icon-circle { width: 4px; height: 14px; border-radius: 3px 0 0 3px; }
+
+  /* --- モーダル (共通) --- */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center; z-index: 5000;
+  }
+  .modal-box {
+    background: white; padding: 20px; border-radius: 20px; text-align: center;
+    width: 85%; max-width: 380px; border: 5px solid #ff4757; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  }
+  .modal-box h2 { color: #333; font-size: 20px; margin-bottom: 15px; }
+  .modal-btns { display: flex; justify-content: center; gap: 15px; margin-top: 20px;}
+  .btn-yes, .btn-no { padding: 10px 20px; border-radius: 50px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; color: white; min-width: 100px; }
+  .btn-yes { background: #ff4757; }
+  .btn-no { background: #70a1ff; }
+  #save-filename {
+    font-size: 20px; padding: 10px; border-radius: 10px; border: 2px solid #ccc; width: 90%; text-align: center; font-weight: bold; color: #333; box-sizing: border-box;
+  }
+
+  /* --- テンポ設定 --- */
+  .tempo-display { font-size: 30px; font-weight: bold; margin-bottom: 15px; color: #333; }
+  .tempo-slider-container { margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 10px;}
+  input[type=range] { width: 200px; cursor: pointer; }
+  .preset-list { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .preset-btn {
+    background-color: #f1f2f6; border: 2px solid #ccc; border-radius: 10px; padding: 8px 12px;
+    font-size: 14px; font-weight: bold; color: #333; cursor: pointer; flex-grow: 1; min-width: 80px;
+  }
+  .preset-btn:active { background-color: #ddd; transform: scale(0.98); }
+
+</style>
+</head>
+<body>
+
+  <div id="debug-window">
+    <div>Debug Log Started...</div>
+  </div>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button class="tool-btn btn-rewind" onclick="logDebug('Rewind'); moveCursorToStart()">⏪️</button>
+      <button class="tool-btn btn-save" onclick="logDebug('Save'); showSaveModal()">💾</button>
+      <button class="tool-btn btn-load" onclick="logDebug('Load'); openFileSelect()">📂</button>
+      <button class="tool-btn btn-settings" onclick="logDebug('Settings'); showSettingsModal()">⚙</button>
+      <button class="tool-btn btn-mode" id="btn-mode-toggle" onclick="logDebug('Mode'); toggleNotationMode()">♪</button>
+      <button class="tool-btn btn-play" id="btn-play-toggle" onclick="logDebug('Play'); togglePlay()">▶</button>
+    </div>
+    
+    <button class="tool-btn btn-del-all" onclick="logDebug('Reset'); showResetModal()">🗑️</button>
+  </div>
+
+  <div id="score-container">
+    <div id="center-line"></div>
+  </div>
+
+  <div class="input-container">
+    <div class="input-buttons">
+      <button class="circle-btn btn-in-don" onclick="insertNote('don')">
+        <span class="text" id="lbl-don">どん</span>
+        <span class="emoji">🥁</span>
+      </button>
+      <button class="circle-btn btn-in-ka" onclick="insertNote('ka')">
+        <span class="text" id="lbl-ka">かん</span>
+        <span class="emoji">⚡</span>
+      </button>
+      <button class="circle-btn btn-in-pachi" onclick="insertNote('pachi')">
+        <span class="text" id="lbl-pachi">ぱち</span>
+        <span class="emoji">👏</span>
+      </button>
+      <button class="circle-btn btn-in-un" onclick="insertNote('un')">
+        <span class="text" id="lbl-un">うん</span>
+        <span class="emoji">🤫</span>
+      </button>
+    </div>
+
+    <div class="duration-selector">
+      <div class="dur-btn dur-2" onclick="setDuration(2)">
+        <span class="icon-circle"></span>
+        <span>2</span>
+      </div>
+      <div class="dur-btn dur-4 active" onclick="setDuration(1)">
+        <span class="icon-circle"></span>
+        <span>4</span>
+      </div>
+      <div class="dur-btn dur-8" onclick="setDuration(0.5)">
+        <span class="icon-circle"></span>
+        <span>8</span>
+      </div>
+      <div class="dur-btn dur-16" onclick="setDuration(0.25)">
+        <span class="icon-circle"></span>
+        <span>16</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-reset" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <h2>ぜんぶ けしちゃう？</h2>
+      <div class="modal-btns">
+        <button class="btn-no" onclick="closeModal('modal-reset')">やだ！</button>
+        <button class="btn-yes" onclick="execReset()">いいよ</button>
+      </div>
+    </div>
+  </div>
+  <div id="modal-save" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <h2>なまえを つけてね</h2>
+      <input type="text" id="save-filename" value="">
+      <div class="modal-btns">
+        <button class="btn-no" onclick="closeModal('modal-save')">やめる</button>
+        <button class="btn-yes" onclick="execSave()">ほぞん</button>
+      </div>
+    </div>
+  </div>
+  <div id="modal-load-confirm" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <h2>すべてきえるけど<br>よい？</h2>
+      <div class="modal-btns">
+        <button class="btn-no" onclick="cancelLoad()">だめだよ</button>
+        <button class="btn-yes" onclick="execPendingLoad()">いいよ</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="modal-settings" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <h2>はやさを かえる</h2>
+      <div class="tempo-display">♪ = <span id="tempo-value">100</span></div>
+      <div class="tempo-slider-container">
+        <span>おそい</span>
+        <input type="range" id="tempo-range" min="40" max="200" step="1" value="100" oninput="updateTempoFromSlider(this.value)">
+        <span>はやい</span>
+      </div>
+      <div class="preset-list">
+        <button class="preset-btn" onclick="setTempo(60)">🐌 ゆったり</button>
+        <button class="preset-btn" onclick="setTempo(80)">🚶 あるくはやさ</button>
+        <button class="preset-btn" onclick="setTempo(100)">🎵 ふつう</button>
+        <button class="preset-btn" onclick="setTempo(120)">🏃 元気よく</button>
+        <button class="preset-btn" onclick="setTempo(160)">🏎️ めっちゃはやい</button>
+      </div>
+      <div class="modal-btns">
+        <button class="btn-yes" onclick="closeModal('modal-settings')">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="file-input" style="display: none;" accept=".json" onchange="onFileSelected(this)">
+
+<script>
+  // --- 初期設定 (変数をここに移動) ---
+  const DEBUG = false; // ★ここを true にするとデバッグモードになります
+  let isPlaying = false; 
+  let scoreData = [];
+  let cursorIndex = 0; 
+  let selectedIndex = null; 
+  let currentDuration = 1.0; 
+  let playTimer = null; 
+  let pendingLoadFile = null;
+  let isNotationMode = false;
+  let tempoBpm = 100; 
+
+  // --- デバッグ機能 ---
+  function logDebug(msg) {
+    if(!DEBUG) return;
+    const win = document.getElementById('debug-window');
+    // windowが表示されてなければ表示
+    if (win.style.display === 'none') win.style.display = 'block';
+    
+    const line = document.createElement('div');
+    const t = new Date().toLocaleTimeString().split(' ')[0];
+    line.textContent = `[${t}] ${msg}`;
+    win.appendChild(line);
+    win.scrollTop = win.scrollHeight;
+    console.log(msg);
+  }
+  
+  window.onerror = function(msg, url, line) {
+    logDebug(`ERROR: ${msg} (line ${line})`);
+  };
+
+  // --- SVG 定義 ---
+  const SVG_NOTE = {
+    note2: `<svg viewBox="0 0 100 200"><ellipse cx="50" cy="100" rx="30" ry="25" class="note-head hollow" transform="rotate(-20 50 100)"/><rect x="70" y="0" width="8" height="100" class="note-stem"/></svg>`,
+    note4: `<svg viewBox="0 0 100 200"><ellipse cx="50" cy="100" rx="30" ry="25" class="note-head" transform="rotate(-20 50 100)"/><rect x="70" y="0" width="8" height="100" class="note-stem"/></svg>`,
+    note8_flag: `<svg viewBox="0 0 100 200"><ellipse cx="50" cy="100" rx="30" ry="25" class="note-head" transform="rotate(-20 50 100)"/><rect x="70" y="0" width="8" height="100" class="note-stem"/><path d="M78 0 Q 110 40 110 80" fill="none" stroke-width="8" class="note-stem"/></svg>`,
+    note8_beam_start: `<svg viewBox="0 0 100 200"><ellipse cx="50" cy="100" rx="30" ry="25" class="note-head" transform="rotate(-20 50 100)"/><rect x="70" y="0" width="8" height="100" class="note-stem"/><rect x="70" y="0" width="40" height="20" class="note-stem"/></svg>`,
+    note8_beam_mid:   `<svg viewBox="0 0 100 200"><ellipse cx="50" cy="100" rx="30" ry="25" class="note-head" transform="rotate(-20 50 100)"/><rect x="70" y="0" width="8" height="100" class="note-stem"/><rect x="-5" y="0" width="115" height="20" class="note-stem"/></svg>`,
+    note8_beam_end:   `<svg viewBox="0 0 100 200"><ellipse cx="50" cy="100" rx="30" ry="25" class="note-head" transform="rotate(-20 50 100)"/><rect x="70" y="0" width="8" height="100" class="note-stem"/><rect x="-5" y="0" width="83" height="20" class="note-stem"/></svg>`,
+    note16_flag: `<svg viewBox="0 0 100 200"><ellipse cx="50" cy="100" rx="30" ry="25" class="note-head" transform="rotate(-20 50 100)"/><rect x="70" y="0" width="8" height="100" class="note-stem"/><path d="M78 0 Q 110 30 110 60 M78 30 Q 110 60 110 90" fill="none" stroke-width="8" class="note-stem"/></svg>`,
+    note16_beam_start: `<svg viewBox="0 0 100 200"><ellipse cx="50" cy="100" rx="30" ry="25" class="note-head" transform="rotate(-20 50 100)"/><rect x="70" y="0" width="8" height="100" class="note-stem"/><rect x="70" y="0" width="40" height="18" class="note-stem"/><rect x="70" y="28" width="40" height="18" class="note-stem"/></svg>`,
+    note16_beam_mid:   `<svg viewBox="0 0 100 200"><ellipse cx="50" cy="100" rx="30" ry="25" class="note-head" transform="rotate(-20 50 100)"/><rect x="70" y="0" width="8" height="100" class="note-stem"/><rect x="-5" y="0" width="115" height="18" class="note-stem"/><rect x="-5" y="28" width="115" height="18" class="note-stem"/></svg>`,
+    note16_beam_end:   `<svg viewBox="0 0 100 200"><ellipse cx="50" cy="100" rx="30" ry="25" class="note-head" transform="rotate(-20 50 100)"/><rect x="70" y="0" width="8" height="100" class="note-stem"/><rect x="-5" y="0" width="83" height="18" class="note-stem"/><rect x="-5" y="28" width="83" height="18" class="note-stem"/></svg>`,
+    rest2: `<svg viewBox="0 0 100 200"><rect x="35" y="85" width="30" height="15" class="note-rest-fill"/><line x1="20" y1="100" x2="80" y2="100" stroke="#95a5a6" stroke-width="4" /></svg>`,
+    rest4: `<svg viewBox="0 0 100 200"><path d="M50 40 L70 60 L40 90 L60 110 Q50 130 50 150" class="note-rest"/></svg>`,
+    rest8: `<svg viewBox="0 0 100 200"><circle cx="40" cy="60" r="10" class="note-rest-fill"/><path d="M45 60 Q 60 70 50 100 L 30 140" class="note-rest"/></svg>`,
+    rest16: `<svg viewBox="0 0 100 200"><circle cx="40" cy="50" r="8" class="note-rest-fill"/><path d="M45 50 Q 60 60 50 80 L 40 100" class="note-rest"/><circle cx="40" cy="90" r="8" class="note-rest-fill"/><path d="M45 90 Q 60 100 50 120 L 30 150" class="note-rest"/></svg>`
+  };
+
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = new AudioContext();
+
+  function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (type === 'un') return;
+    try {
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      if (type === 'don') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.3);
+        gainNode.gain.setValueAtTime(1, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+      } else if (type === 'ka') {
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.1);
+        gainNode.gain.setValueAtTime(0.8, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+      } else if (type === 'pachi') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.08);
+        gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc.start(now); osc.stop(now + 0.1);
+      }
+    } catch (e) { logDebug("Sound Error: " + e.message); }
+  }
+
+  function setDuration(val) {
+    currentDuration = val;
+    document.querySelectorAll('.dur-btn').forEach(btn => btn.classList.remove('active'));
+    if(val === 2) document.querySelector('.dur-2').classList.add('active');
+    if(val === 1) document.querySelector('.dur-4').classList.add('active');
+    if(val === 0.5) document.querySelector('.dur-8').classList.add('active');
+    if(val === 0.25) document.querySelector('.dur-16').classList.add('active');
+    updateLabels(val);
+    logDebug(`Duration set: ${val}`);
+  }
+
+  function updateLabels(val) {
+    const map = {
+        2:    { don: 'どーん', ka: 'かーん', pachi: 'ぱーち', un: 'うーん' },
+        1:    { don: 'どん', ka: 'かん', pachi: 'ぱち', un: 'うん' },
+        0.5:  { don: 'ど',   ka: 'か',   pachi: 'ぱ',   un: 'う' },
+        0.25: { don: 'どっ', ka: 'かっ', pachi: 'ぱっ', un: 'うっ' }
+    };
+    const texts = map[val];
+    document.getElementById('lbl-don').textContent = texts.don;
+    document.getElementById('lbl-ka').textContent = texts.ka;
+    document.getElementById('lbl-pachi').textContent = texts.pachi;
+    document.getElementById('lbl-un').textContent = texts.un;
+  }
+  
+  function toggleNotationMode() {
+      isNotationMode = !isNotationMode;
+      const btn = document.getElementById('btn-mode-toggle');
+      if(isNotationMode) btn.classList.add('active-mode'); else btn.classList.remove('active-mode');
+      renderScore();
+  }
+
+  function getBeamType(index, len) {
+      if (scoreData[index].type === 'un') return 'single';
+      const prev = scoreData[index - 1];
+      const next = scoreData[index + 1];
+      const isPrevConn = prev && prev.len === len && prev.type !== 'un';
+      const isNextConn = next && next.len === len && next.type !== 'un';
+      if (isPrevConn && isNextConn) return 'mid';
+      if (!isPrevConn && isNextConn) return 'start';
+      if (isPrevConn && !isNextConn) return 'end';
+      return 'single';
+  }
+
+  function renderScore(shouldScroll = false) {
+    const container = document.getElementById('score-container');
+    const line = document.getElementById('center-line');
+    container.innerHTML = ''; container.appendChild(line);
+    const createCaret = (isStart) => {
+        const caret = document.createElement('div'); caret.className = 'caret' + (isStart ? ' caret-start' : ''); return caret;
+    };
+    if (cursorIndex === 0) container.appendChild(createCaret(true));
+
+    for (let i = 0; i < scoreData.length; i++) {
+      const note = scoreData[i];
+      const wrapper = document.createElement('div');
+      
+      let lenClass = 'len-4';
+      if (note.len === 2) lenClass = 'len-2';
+      if (note.len === 0.5) lenClass = 'len-8';
+      if (note.len === 0.25) lenClass = 'len-16';
+
+      wrapper.className = `note-wrapper type-${note.type} ${lenClass}`;
+      wrapper.id = `note-${i}`;
+      
+      wrapper.onclick = (e) => {
+        e.stopPropagation();
+        if (selectedIndex === i) selectedIndex = null; else { selectedIndex = i; cursorIndex = i + 1; }
+        renderScore();
+        logDebug(`Selected: ${i}`);
+      };
+
+      const displayEl = document.createElement('div');
+      const text = document.createElement('div');
+      text.className = 'note-text';
+
+      if (isNotationMode) {
+          displayEl.className = 'note-display style-music-note';
+          if (note.type === 'un') {
+              if (note.len === 2) displayEl.innerHTML = SVG_NOTE.rest2;
+              else if (note.len === 1) displayEl.innerHTML = SVG_NOTE.rest4;
+              else if (note.len === 0.5) displayEl.innerHTML = SVG_NOTE.rest8;
+              else displayEl.innerHTML = SVG_NOTE.rest16;
+          } else {
+              if (note.len === 2) displayEl.innerHTML = SVG_NOTE.note2;
+              else if (note.len === 1) displayEl.innerHTML = SVG_NOTE.note4;
+              else {
+                  const beam = getBeamType(i, note.len);
+                  if (note.len === 0.5) {
+                      if (beam === 'start') displayEl.innerHTML = SVG_NOTE.note8_beam_start;
+                      else if (beam === 'mid') displayEl.innerHTML = SVG_NOTE.note8_beam_mid;
+                      else if (beam === 'end') displayEl.innerHTML = SVG_NOTE.note8_beam_end;
+                      else displayEl.innerHTML = SVG_NOTE.note8_flag;
+                  } else {
+                      if (beam === 'start') displayEl.innerHTML = SVG_NOTE.note16_beam_start;
+                      else if (beam === 'mid') displayEl.innerHTML = SVG_NOTE.note16_beam_mid;
+                      else if (beam === 'end') displayEl.innerHTML = SVG_NOTE.note16_beam_end;
+                      else displayEl.innerHTML = SVG_NOTE.note16_flag;
+                  }
+              }
+          }
+      } else {
+          displayEl.className = 'note-display style-circle';
+          let displayChar = '';
+          if(note.type === 'don') displayChar = '🥁';
+          if(note.type === 'ka') displayChar = '⚡';
+          if(note.type === 'pachi') displayChar = '👏';
+          if(note.type === 'un') displayChar = '🤫';
+          displayEl.textContent = displayChar;
+      }
+      
+      let bottomText = '';
+      if(note.type==='don') { if(note.len==2) bottomText='どーん'; else if(note.len==1) bottomText='どん'; else if(note.len==0.5) bottomText='ど'; else bottomText='どっ'; }
+      if(note.type==='ka') { if(note.len==2) bottomText='かーん'; else if(note.len==1) bottomText='かん'; else if(note.len==0.5) bottomText='か'; else bottomText='かっ'; }
+      if(note.type==='pachi') { if(note.len==2) bottomText='ぱーち'; else if(note.len==1) bottomText='ぱち'; else if(note.len==0.5) bottomText='ぱ'; else bottomText='ぱっ'; }
+      if(note.type==='un') { if(note.len==2) bottomText='うーん'; else if(note.len==1) bottomText='うん'; else if(note.len==0.5) bottomText='う'; else bottomText='うっ'; }
+
+      text.textContent = bottomText;
+      wrapper.appendChild(displayEl);
+      wrapper.appendChild(text);
+
+      if (cursorIndex === i + 1) {
+          const caret = createCaret(false); wrapper.appendChild(caret); 
+          if (shouldScroll) setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', inline: 'center' }), 0);
+      }
+      if (selectedIndex === i) {
+          const delBtn = document.createElement('div'); delBtn.className = 'delete-btn-under'; delBtn.textContent = 'けす';
+          delBtn.onclick = (e) => { 
+              e.stopPropagation(); 
+              deleteSpecificNote(i); 
+              logDebug(`Del Note: ${i}`);
+          };
+          wrapper.appendChild(delBtn);
+      }
+      container.appendChild(wrapper);
+    }
+    container.onclick = (e) => {
+        if (e.target === container || e.target === line) { selectedIndex = null; renderScore(); }
+    }
+  }
+
+  function insertNote(type) {
+    playSound(type); scoreData.splice(cursorIndex, 0, { type: type, len: currentDuration }); cursorIndex++; selectedIndex = null; renderScore(true);
+    logDebug(`Insert: ${type}`);
+  }
+  function deleteSpecificNote(index) { scoreData.splice(index, 1); if (cursorIndex > index) cursorIndex--; selectedIndex = null; renderScore(true); }
+  function moveCursorToStart() { stopPlay(); cursorIndex = 0; selectedIndex = null; renderScore(); document.getElementById('score-container').scrollLeft = 0; }
+  
+  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+  function showResetModal() { stopPlay(); document.getElementById('modal-reset').style.display = 'flex'; }
+  function execReset() { scoreData = []; cursorIndex = 0; selectedIndex = null; renderScore(); closeModal('modal-reset'); logDebug("All Reset"); }
+
+  function showSaveModal() {
+    stopPlay();
+    const now = new Date();
+    const y = now.getFullYear(); const m = ('0' + (now.getMonth() + 1)).slice(-2); const d = ('0' + now.getDate()).slice(-2);
+    const H = ('0' + now.getHours()).slice(-2); const M = ('0' + now.getMinutes()).slice(-2);
+    document.getElementById('save-filename').value = `りずむ-${y}${m}${d}-${H}${M}`;
+    document.getElementById('modal-save').style.display = 'flex';
+  }
+  function execSave() {
+    const filename = document.getElementById('save-filename').value || 'rhythm';
+    const json = JSON.stringify(scoreData);
+    const blob = new Blob([json], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); closeModal('modal-save');
+    logDebug("Saved");
+  }
+
+  function openFileSelect() { stopPlay(); document.getElementById('file-input').value = ''; document.getElementById('file-input').click(); }
+  function onFileSelected(input) { if (!input.files || !input.files[0]) return; pendingLoadFile = input.files[0]; document.getElementById('modal-load-confirm').style.display = 'flex'; }
+  function cancelLoad() { pendingLoadFile = null; document.getElementById('file-input').value = ''; closeModal('modal-load-confirm'); }
+  function execPendingLoad() {
+    if (!pendingLoadFile) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const loadedData = JSON.parse(e.target.result);
+        if (Array.isArray(loadedData)) { scoreData = loadedData; moveCursorToStart(); logDebug("Loaded"); } else { alert('ファイルがおかしいみたい？'); }
+      } catch (err) { alert('よみこめなかったよ'); }
+      pendingLoadFile = null; document.getElementById('file-input').value = ''; closeModal('modal-load-confirm');
+    };
+    reader.readAsText(pendingLoadFile);
+  }
+
+  function showSettingsModal() {
+    stopPlay();
+    document.getElementById('tempo-range').value = tempoBpm; document.getElementById('tempo-value').textContent = tempoBpm;
+    document.getElementById('modal-settings').style.display = 'flex';
+  }
+  function updateTempoFromSlider(val) { tempoBpm = parseInt(val); document.getElementById('tempo-value').textContent = tempoBpm; }
+  function setTempo(val) { tempoBpm = val; document.getElementById('tempo-range').value = val; document.getElementById('tempo-value').textContent = val; }
+
+  function togglePlay() { if (isPlaying) stopPlay(); else playScore(); }
+  function stopPlay() {
+    if (!isPlaying) return;
+    isPlaying = false; if (playTimer) clearTimeout(playTimer); playTimer = null;
+    const btn = document.getElementById('btn-play-toggle'); btn.textContent = '▶'; btn.classList.remove('btn-stop'); btn.classList.add('btn-play');
+    logDebug("Stop");
+  }
+  function playScore() {
+    if (scoreData.length === 0) return;
+    isPlaying = true; selectedIndex = null;
+    const btn = document.getElementById('btn-play-toggle'); btn.textContent = '■'; btn.classList.remove('btn-play'); btn.classList.add('btn-stop');
+    cursorIndex = 0; renderScore(); document.getElementById('score-container').scrollLeft = 0;
+    let playIndex = 0; const baseTempo = 60000 / tempoBpm; 
+    logDebug("Play Start");
+
+    function nextSound() {
+      if (!isPlaying) return;
+      if (playIndex >= scoreData.length) { stopPlay(); cursorIndex = scoreData.length; renderScore(true); return; }
+      
+      const note = scoreData[playIndex];
+      cursorIndex = playIndex + 1; renderScore(true); 
+      playSound(note.type);
+      const el = document.getElementById(`note-${playIndex}`);
+      if (el) { el.classList.add('playing'); setTimeout(() => el.classList.remove('playing'), 200); }
+      playIndex++;
+      let waitTime = baseTempo * note.len;
+      playTimer = setTimeout(nextSound, waitTime);
+    }
+    playTimer = setTimeout(nextSound, 100);
+  }
+
+  renderScore();
+  logDebug("System Ready");
+</script>
+</body>
+</html>

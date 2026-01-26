@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シン・学習アプリ＋１０</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        /* --- デザイン設定 --- */
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333; display: flex; flex-direction: column; height: 100vh; }
+        header { background-color: #4a90e2; color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
+        header h1 { margin: 0; font-size: 1.4rem; font-weight: bold; }
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 240px; background-color: #fff; border-right: 1px solid #ddd; overflow-y: auto; padding: 20px; flex-shrink: 0; }
+        .sidebar h3 { font-size: 0.85rem; color: #999; margin-top: 25px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; font-weight: bold; }
+        .sidebar h3:first-child { margin-top: 0; }
+        .sidebar ul { list-style: none; padding: 0; margin: 0; }
+        .sidebar li { margin-bottom: 4px; }
+        .filter-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; color: #555; transition: all 0.2s; }
+        .filter-btn:hover { background-color: #f5f5f5; }
+        .filter-btn.active { background-color: #e6f0fa; color: #4a90e2; font-weight: bold; }
+        .filter-btn.active .count { background-color: #bad6f5; color: #335e8a; }
+        .count { font-size: 0.75rem; background: #eee; padding: 2px 8px; border-radius: 12px; color: #777; }
+        .content-area { flex: 1; padding: 30px; overflow-y: auto; background-color: #f4f7f6; }
+        .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
+        .app-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #eaeaea; display: flex; flex-direction: column; height: 100%; }
+        .app-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .card-img-area { height: 150px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; border-bottom: 1px solid #f0f0f0; position: relative; }
+        .card-img-area img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; z-index: 2; }
+        .app-card:hover .card-img-area img { transform: scale(1.05); }
+        .default-icon { font-size: 4rem; color: #d1d5db; display: none; z-index: 1; }
+        .card-body { padding: 18px; flex-grow: 1; display: flex; flex-direction: column; }
+        .card-meta { font-size: 0.75rem; margin-bottom: 10px; display: flex; gap: 4px; flex-wrap: wrap; }
+        .tag { background-color: #f0f2f5; color: #555; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem; border: 1px solid #e0e0e0; }
+        .tag.subject { background-color: #e1effe; color: #1e429f; border-color: #c3ddfd; }
+        .card-title { margin: 0 0 8px; font-size: 1.15rem; line-height: 1.4; color: #333; font-weight: bold; }
+        .card-desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; line-height: 1.6; flex-grow: 1; }
+        .card-link { display: block; text-align: center; background-color: #4a90e2; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-size: 0.95rem; font-weight: bold; transition: background 0.2s; }
+        .card-link:hover { background-color: #357abd; }
+        #error-msg { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; padding: 20px; margin: 20px; border: 1px solid transparent; border-radius: .25rem; display: none; }
+        @media (max-width: 768px) { .main-container { flex-direction: column; } .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #ddd; padding: 10px; } .sidebar h3 { margin-top: 10px; display: inline-block; margin-right: 10px; border: none; } .sidebar ul { display: inline; } .filter-btn { display: inline-flex; width: auto; padding: 5px 10px; } .content-area { padding: 15px; } }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>シン・学習アプリ＋１０</h1>
+</header>
+
+<div id="error-msg"></div>
+
+<div class="main-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+        <div class="app-grid" id="appGrid">Loading...</div>
+    </main>
+</div>
+
+<script>
+    let appData = [];
+    let finalSubjectList = [];
+
+    const IMG_DIR = "./img/"; 
+    const DEFAULT_EXT = ".png"; // 基本はpngとして扱う（失敗したらjpgを試す）
+
+    const STANDARD_SUBJECTS = [
+        "算数",
+        "数学",
+        "国語",
+        "理科",
+        "社会",
+        "英語",
+        "音楽",
+        "体育",
+        "道徳"
+    ];
+
+    // 学年の定義（ここに tokushi があるか確認してください）
+    const GRADE_MAP = {
+        'grades1': '小1', 'grades2': '小2', 'grades3': '小3',
+        'grades4': '小4', 'grades5': '小5', 'grades6': '小6',
+        'gradejh1': '中1', 'gradejh2': '中2', 'gradejh3': '中3',
+        'tokushi': '特別支援' // ← これがサイドバー表示用
+    };
+
+    // 並び順の重み付け
+    const GRADE_ORDER = {
+        '小1': 1, '小2': 2, '小3': 3, '小4': 4, '小5': 5, '小6': 6,
+        '中1': 7, '中2': 8, '中3': 9,
+        '特別支援': 10
+    };
+
+    async function loadExcelData() {
+        try {
+            const response = await fetch('./list.xlsx?' + new Date().getTime());
+            if (!response.ok) throw new Error(`list.xlsx が見つかりません`);
+
+            const arrayBuffer = await response.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer);
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+            
+            appData = jsonData.map((row, index) => {
+                let rawPath = row.path ? String(row.path).trim() : "";
+                let folderName = "";
+                let finalPath = "#";
+
+                if (rawPath) {
+                    if (rawPath.startsWith('./') && rawPath.endsWith('.html')) {
+                        finalPath = rawPath;
+                        const parts = rawPath.split('/');
+                        folderName = parts[parts.length - 1].replace('.html', '');
+                    } else {
+                        finalPath = `./${rawPath}/index.html`;
+                        folderName = rawPath;
+                    }
+                }
+
+                let finalImage = "";
+                if (row.image) {
+                    // Excelで指定があればそれを使う
+                    finalImage = row.image.startsWith('./') ? row.image : IMG_DIR + row.image;
+                } else {
+                    // 指定がなければ一旦 .png とする（ロード失敗時に onerror で .jpg を試す）
+                    finalImage = IMG_DIR + folderName + DEFAULT_EXT;
+                }
+
+                const myGrades = [];
+                for (const [colKey, label] of Object.entries(GRADE_MAP)) {
+                    if (row[colKey]) myGrades.push(label);
+                }
+
+                return {
+                    id: index,
+                    title: row.title || "No Title",
+                    path: finalPath,
+                    image: finalImage,
+                    desc: row.desc || "",
+                    gradeList: myGrades, 
+                    subject: row.subject ? row.subject.trim() : "その他" 
+                };
+            });
+
+            const allSubjectsInData = [...new Set(appData.map(d => d.subject))];
+            
+            const extraSubjects = allSubjectsInData.filter(s => 
+                !STANDARD_SUBJECTS.includes(s) && s !== "その他"
+            ).sort(); 
+
+            finalSubjectList = [...STANDARD_SUBJECTS, ...extraSubjects, "その他"];
+
+            renderSidebar();
+            filterBy('all', null, document.querySelector('.filter-btn')); 
+
+        } catch (error) {
+            console.error(error);
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `<strong>エラー</strong><br>${error.message}`;
+        }
+    }
+
+    function renderGrid(data) {
+        const grid = document.getElementById('appGrid');
+        grid.innerHTML = ''; 
+        if(data.length === 0) { grid.innerHTML = '<p style="color:#666;">該当する教材はありません。</p>'; return; }
+
+        data.forEach(item => {
+            // ★ここが画像切り替えのミソです
+            // 1. まず指定された画像(通常は.png)を読み込む
+            // 2. エラーなら、もし.pngだったら.jpgに書き換えて再トライ
+            // 3. それでもダメなら非表示にしてアイコンを出す
+            const imgTag = `<img src="${item.image}" alt="${item.title}" 
+                            onerror="if(this.src.endsWith('.png')){ this.src = this.src.replace('.png', '.jpg'); } else { this.style.display='none'; this.nextElementSibling.style.display='block'; }">`;
+            
+            const defaultIcon = `<div class="default-icon">📱</div>`;
+            const gradeTags = item.gradeList.map(g => `<span class="tag">${g}</span>`).join('');
+            const subjectTag = `<span class="tag subject">${item.subject}</span>`;
+
+            grid.innerHTML += `
+                <div class="app-card">
+                    <div class="card-img-area">${imgTag}${defaultIcon}</div>
+                    <div class="card-body">
+                        <div class="card-meta">${subjectTag}${gradeTags}</div>
+                        <h2 class="card-title">${item.title}</h2>
+                        <p class="card-desc">${item.desc}</p>
+                        <a href="${item.path}" class="card-link">アプリを開く</a>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function renderSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const gradeCounts = {};
+        for (const label of Object.values(GRADE_MAP)) { gradeCounts[label] = 0; }
+        const subjectCounts = {};
+
+        appData.forEach(item => {
+            item.gradeList.forEach(g => { if (gradeCounts[g] !== undefined) gradeCounts[g]++; });
+            subjectCounts[item.subject] = (subjectCounts[item.subject] || 0) + 1;
+        });
+
+        let html = `<ul><li><button class="filter-btn active" onclick="filterBy('all', null, this)">すべて表示 <span class="count">${appData.length}</span></button></li></ul>`;
+        
+        html += `<h3>学年</h3><ul>`;
+        // 定義順（小1...特別支援）に表示
+        Object.values(GRADE_MAP).forEach(label => {
+            html += `<li><button class="filter-btn" onclick="filterBy('grade', '${label}', this)">${label} <span class="count">${gradeCounts[label]}</span></button></li>`;
+        });
+        html += `</ul>`;
+
+        html += `<h3>教科</h3><ul>`;
+        finalSubjectList.forEach(s => {
+            if (subjectCounts[s]) {
+                html += `<li><button class="filter-btn" onclick="filterBy('subject', '${s}', this)">${s} <span class="count">${subjectCounts[s]}</span></button></li>`;
+            }
+        });
+        html += `</ul>`;
+
+        sidebar.innerHTML = html;
+    }
+
+    function getMinGradeValue(app) {
+        if (!app.gradeList || app.gradeList.length === 0) return 99;
+        const values = app.gradeList.map(g => GRADE_ORDER[g] || 99);
+        return Math.min(...values);
+    }
+
+    function getSubjectWeight(subject) {
+        const index = finalSubjectList.indexOf(subject);
+        return index === -1 ? 999 : index;
+    }
+
+    window.filterBy = function(type, value, btnElement) {
+        if (btnElement) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+        }
+
+        let filtered = [];
+        if (type === 'all') {
+            filtered = [...appData]; 
+        } else if (type === 'grade') {
+            filtered = appData.filter(item => item.gradeList.includes(value));
+        } else { 
+            filtered = appData.filter(item => item[type] === value);
+        }
+
+        if (type === 'subject' || type === 'all') {
+            filtered.sort((a, b) => {
+                const gradeDiff = getMinGradeValue(a) - getMinGradeValue(b);
+                if (gradeDiff !== 0) return gradeDiff;
+                return getSubjectWeight(a.subject) - getSubjectWeight(b.subject);
+            });
+        } else if (type === 'grade') {
+            filtered.sort((a, b) => {
+                return getSubjectWeight(a.subject) - getSubjectWeight(b.subject);
+            });
+        }
+
+        renderGrid(filtered);
+    };
+
+    loadExcelData();
+</script>
+
+</body>
+</html>
