@@ -1,0 +1,29 @@
+# --- システムファイル（OSが勝手に作るもの） ---
+.DS_Store       # macOS
+Thumbs.db       # Windows
+ehthumbs.db     # Windows
+
+# --- 依存関係のフォルダ（容量が大きいので除外） ---
+node_modules/   # Node.js
+vendor/         # PHP (Composer)
+__pycache__/    # Python
+*.venv/         # Python仮想環境
+
+# --- ビルド/コンパイルの成果物 ---
+dist/
+build/
+bin/
+*.exe
+*.o
+
+# --- 秘密情報（絶対にアップロードしてはいけない！） ---
+.env            # APIキーなどを書く環境変数ファイル
+*.pem           # 証明書など
+id_rsa          # SSH鍵
+secrets.yaml
+
+# --- ログファイルなど ---
+*.log
+npm-debug.log*
+
+gitup.ps1
