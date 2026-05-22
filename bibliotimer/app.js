@@ -244,7 +244,10 @@ function playHorn(count = 1) {
  * @param {string} soundType 再生する音色の種類（指定がなければ現在の設定値）
  */
 function playBell(count = 1, soundType = state.soundType) {
-    initAudio();
+    // すでに初期化されている場合はタッチイベント外での再レジュームを避ける（iOS自動再生ブロック対策）
+    if (!audioCtx) {
+        initAudio();
+    }
     if (!audioCtx) return;
 
     switch (soundType) {
@@ -392,7 +395,7 @@ function handlePhaseTransition() {
         // 終了チャイムの再生中（余韻）を考慮し、1.2秒後に自動的にタイマーを開始
         setTimeout(() => {
             if (!state.isRunning) {
-                startTimer();
+                startTimer(true); // 自動起動フラグを true に指定して呼び出す（iOSブロック対策）
             }
         }, 1200);
     }
@@ -431,9 +434,12 @@ function syncCurrentPhaseToPresetUI() {
 
 /**
  * タイマーを開始する
+ * @param {boolean} isAutoStart 自動起動（タッチイベント外）かどうか
  */
-function startTimer() {
-    initAudio();
+function startTimer(isAutoStart = false) {
+    if (!isAutoStart) {
+        initAudio();
+    }
     if (state.isRunning) return;
     
     // すでに0秒の場合は、設定された時間に自動リセットして開始
