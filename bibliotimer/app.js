@@ -13,6 +13,7 @@ const state = {
     // 設定パラメータ
     suffixType: 'none', // 'phase' | 'none'
     bellEnabled: true,          // ベル（チャイム）の有無
+    soundType: 'bell-standard', // 'bell-standard' | 'bell-high' | 'buzzer' | 'horn'
     currentModeLabel: '発表',   // 現在のモード表示名
     theme: 'light',             // 'light' | 'dark'
     
@@ -54,6 +55,7 @@ const elements = {
     customSeconds: document.getElementById('custom-seconds'),
     suffixRadios: document.getElementsByName('suffix-type'),
     bellEnabledCheckbox: document.getElementById('bell-enabled'),
+    soundTypeRadios: document.getElementsByName('sound-type'),
     themeRadios: document.getElementsByName('theme')
 };
 
@@ -76,16 +78,14 @@ function initAudio() {
  * 澄んだ電子鐘（チーン）の音を合成・再生する
  * @param {number} count ベルを鳴らす回数
  */
-function playBell(count = 1) {
-    initAudio();
-    if (!audioCtx) return;
-
+/**
+ * 従来の標準的な電子鐘（チーン）を再生する
+ */
+function playStandardBell(count = 1) {
     const playSingleBell = (delay) => {
         const now = audioCtx.currentTime + delay;
-        const duration = 2.5; // ベルの余韻（秒）
+        const duration = 2.5;
 
-        // メタルベル独特の非調和倍音の周波数比率
-        // C5 (基音: 約 523.25Hz) または A5 (基音: 880Hz) をベースに設定
         const baseFreq = 880; // A5 澄んだ高い音
         const partials = [
             { freq: baseFreq, gain: 0.5, decayScale: 1.0 },
@@ -95,38 +95,169 @@ function playBell(count = 1) {
             { freq: baseFreq * 3.0, gain: 0.05, decayScale: 0.3 }
         ];
 
-        // 全体を包むメインのゲインノード
         const masterGain = audioCtx.createGain();
         masterGain.gain.setValueAtTime(0, now);
-        // アタック: 瞬間的に立ち上がる
         masterGain.gain.linearRampToValueAtTime(0.4, now + 0.005);
-        // ディケイ: 指数関数的に減衰する
         masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
         masterGain.connect(audioCtx.destination);
 
-        // 各倍音のオシレーターを生成してブレンドする
         partials.forEach(p => {
             const osc = audioCtx.createOscillator();
             const oscGain = audioCtx.createGain();
-
-            osc.type = 'sine'; // 澄んだベルにはサイン波を使用
+            osc.type = 'sine';
             osc.frequency.setValueAtTime(p.freq, now);
-
-            // 倍音ごとに個別の減衰を設定
             oscGain.gain.setValueAtTime(p.gain, now);
             oscGain.gain.exponentialRampToValueAtTime(0.0001, now + duration * p.decayScale);
-
             osc.connect(oscGain);
             oscGain.connect(masterGain);
-
             osc.start(now);
             osc.stop(now + duration);
         });
     };
 
-    // 指定回数分、一定の間隔でベルを鳴らす
     for (let i = 0; i < count; i++) {
-        playSingleBell(i * 0.8); // 0.8秒間隔
+        playSingleBell(i * 0.8);
+    }
+}
+
+/**
+ * 高音の澄んだベル（フロントベル風）を再生する
+ */
+function playHighBell(count = 1) {
+    const playSingleBell = (delay) => {
+        const now = audioCtx.currentTime + delay;
+        const duration = 1.2; // 少し余韻を短く
+
+        const baseFreq = 1600; // 高音のチンッという響き
+        const partials = [
+            { freq: baseFreq, gain: 0.4, decayScale: 1.0 },
+            { freq: baseFreq * 1.5, gain: 0.2, decayScale: 0.6 },
+            { freq: baseFreq * 2.0, gain: 0.1, decayScale: 0.4 },
+            { freq: baseFreq * 2.5, gain: 0.05, decayScale: 0.2 }
+        ];
+
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(0, now);
+        masterGain.gain.linearRampToValueAtTime(0.3, now + 0.003); // アタックを非常に鋭く
+        masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        masterGain.connect(audioCtx.destination);
+
+        partials.forEach(p => {
+            const osc = audioCtx.createOscillator();
+            const oscGain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(p.freq, now);
+            oscGain.gain.setValueAtTime(p.gain, now);
+            oscGain.gain.exponentialRampToValueAtTime(0.0001, now + duration * p.decayScale);
+            osc.connect(oscGain);
+            oscGain.connect(masterGain);
+            osc.start(now);
+            osc.stop(now + duration);
+        });
+    };
+
+    for (let i = 0; i < count; i++) {
+        playSingleBell(i * 0.5); // 高テンポで鳴らす
+    }
+}
+
+/**
+ * 電子警告ブザー音（プー、プー、プー）を再生する
+ */
+function playBuzzer(count = 1) {
+    const playSingleBuzzer = (delay) => {
+        const now = audioCtx.currentTime + delay;
+        const duration = 0.25; // 歯切れの良い電子警告音
+
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        osc.type = 'square'; // 矩形波で無機質なブザー感を出す
+        osc.frequency.setValueAtTime(480, now); // ピッピーというピッチ
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.15, now + 0.01);
+        gainNode.gain.setValueAtTime(0.15, now + duration - 0.02);
+        gainNode.gain.linearRampToValueAtTime(0, now + duration); // ポップノイズ防止
+
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + duration);
+    };
+
+    for (let i = 0; i < count; i++) {
+        playSingleBuzzer(i * 0.4);
+    }
+}
+
+/**
+ * 重厚なアリーナホーン（ブォーー）を再生する
+ */
+function playHorn(count = 1) {
+    const playSingleHorn = (delay) => {
+        const now = audioCtx.currentTime + delay;
+        const duration = 0.8; // 長めの豪快なホーン
+
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        osc1.type = 'sawtooth'; // 鋸歯状波で太く
+        osc2.type = 'sawtooth';
+
+        osc1.frequency.setValueAtTime(120, now); // 低音
+        osc2.frequency.setValueAtTime(121.5, now); // わずかにデチューンして厚みを出す
+
+        filter.type = 'lowpass'; // 耳に痛い高域をカット
+        filter.frequency.setValueAtTime(800, now);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.25, now + 0.05); // 立ち上がりを少し粘る
+        gainNode.gain.setValueAtTime(0.25, now + duration - 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + duration);
+        osc2.stop(now + duration);
+    };
+
+    for (let i = 0; i < count; i++) {
+        playSingleHorn(i * 1.0);
+    }
+}
+
+/**
+ * 選択された音色でチャイムを再生するメイン関数
+ * @param {number} count 再生する回数
+ * @param {string} soundType 再生する音色の種類（指定がなければ現在の設定値）
+ */
+function playBell(count = 1, soundType = state.soundType) {
+    initAudio();
+    if (!audioCtx) return;
+
+    switch (soundType) {
+        case 'bell-high':
+            playHighBell(count);
+            break;
+        case 'buzzer':
+            playBuzzer(count);
+            break;
+        case 'horn':
+            playHorn(count);
+            break;
+        case 'bell-standard':
+        default:
+            playStandardBell(count);
+            break;
     }
 }
 
@@ -292,6 +423,7 @@ function loadSettings() {
             state.timeLeft = state.totalDuration;
             state.suffixType = config.suffixType === 'centiseconds' ? 'none' : (config.suffixType || 'none');
             state.bellEnabled = config.bellEnabled !== undefined ? config.bellEnabled : true;
+            state.soundType = config.soundType || 'bell-standard';
             state.currentModeLabel = config.currentModeLabel || '発表';
             state.theme = config.theme || 'light';
             state.customMinutes = config.customMinutes || 5;
@@ -342,6 +474,14 @@ function saveSettings() {
     // ベル音設定の取得
     state.bellEnabled = elements.bellEnabledCheckbox.checked;
     
+    // 効果音種別設定の取得
+    for (const radio of elements.soundTypeRadios) {
+        if (radio.checked) {
+            state.soundType = radio.value;
+            break;
+        }
+    }
+    
     // テーマ設定の取得
     for (const radio of elements.themeRadios) {
         if (radio.checked) {
@@ -355,6 +495,7 @@ function saveSettings() {
         totalDuration: state.totalDuration,
         suffixType: state.suffixType,
         bellEnabled: state.bellEnabled,
+        soundType: state.soundType,
         currentModeLabel: state.currentModeLabel,
         theme: state.theme,
         customMinutes: state.customMinutes,
@@ -406,6 +547,11 @@ function syncSettingsToForm() {
     
     // 3. ベルチェックボックスの復元
     elements.bellEnabledCheckbox.checked = state.bellEnabled;
+    
+    // 3.5 効果音種別の復元
+    for (const radio of elements.soundTypeRadios) {
+        radio.checked = (radio.value === state.soundType);
+    }
     
     // 4. テーマの復元
     for (const radio of elements.themeRadios) {
@@ -480,7 +626,25 @@ function initEventListeners() {
     elements.soundTestBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         initAudio();
-        playBell(1); // 1回鳴動テスト
+        
+        let selectedType = 'bell-standard';
+        for (const radio of elements.soundTypeRadios) {
+            if (radio.checked) {
+                selectedType = radio.value;
+                break;
+            }
+        }
+        playBell(1, selectedType); // 選択中の音色で1回テスト再生
+    });
+
+    // 効果音ラジオボタンの切替時にプレビュー再生
+    elements.soundTypeRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (radio.checked) {
+                initAudio();
+                playBell(1, radio.value);
+            }
+        });
     });
 }
 
