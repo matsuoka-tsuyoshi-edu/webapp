@@ -14,6 +14,8 @@ const state = {
     suffixType: 'none', // 'phase' | 'none'
     bellEnabled: true,          // ベル（チャイム）の有無
     soundType: 'bell-standard', // 'bell-standard' | 'bell-high' | 'buzzer' | 'horn'
+    autoBatonMode: 'off',       // 'off' | 'manual' | 'auto'
+    battlePhase: 'presentation',// 'presentation' | 'discussion' | 'transition'
     currentModeLabel: '発表',   // 現在のモード表示名
     theme: 'light',             // 'light' | 'dark'
     
@@ -56,6 +58,7 @@ const elements = {
     suffixRadios: document.getElementsByName('suffix-type'),
     bellEnabledCheckbox: document.getElementById('bell-enabled'),
     soundTypeRadios: document.getElementsByName('sound-type'),
+    autoBatonRadios: document.getElementsByName('auto-baton'),
     themeRadios: document.getElementsByName('theme')
 };
 
@@ -334,11 +337,96 @@ function timerLoop(now) {
         showPlayIcon(true);
         elements.settingsToggle.classList.remove('dimmed');
         updateDisplay();
+        
+        // ビブリオバトル進行遷移処理を実行
+        handlePhaseTransition();
         return;
     }
     
     updateDisplay();
     state.animationFrameId = requestAnimationFrame(timerLoop);
+}
+
+/**
+ * ビブリオバトルのフェーズ（発表➔ディスカッション➔移動）を自動で切り替える
+ */
+function handlePhaseTransition() {
+    if (state.autoBatonMode === 'off') return;
+    
+    let nextPhase = 'presentation';
+    let nextDuration = 300000; // 5分
+    let nextLabel = '発表';
+    
+    if (state.battlePhase === 'presentation') {
+        nextPhase = 'discussion';
+        nextDuration = 180000; // 3分
+        nextLabel = 'ディスカッション';
+    } else if (state.battlePhase === 'discussion') {
+        nextPhase = 'transition';
+        nextDuration = 15000; // 15秒 (ミリ秒単位)
+        nextLabel = '移動準備';
+    } else if (state.battlePhase === 'transition') {
+        nextPhase = 'presentation';
+        nextDuration = 300000; // 5分
+        nextLabel = '発表';
+    }
+    
+    // 状態の移行
+    state.battlePhase = nextPhase;
+    state.totalDuration = nextDuration;
+    state.timeLeft = nextDuration;
+    state.currentModeLabel = nextLabel;
+    
+    // 各フェーズでの終了フラグなどのリセット
+    state.rung1Min = false;
+    state.rungEnd = false;
+    
+    // 画面表示更新
+    updateDisplay();
+    
+    // 設定画面のプリセット選択状態も同期
+    syncCurrentPhaseToPresetUI();
+    
+    if (state.autoBatonMode === 'auto') {
+        // オート連続モードの場合:
+        // 終了チャイムの再生中（余韻）を考慮し、1.2秒後に自動的にタイマーを開始
+        setTimeout(() => {
+            if (!state.isRunning) {
+                startTimer();
+            }
+        }, 1200);
+    }
+}
+
+/**
+ * 現在のバトルフェーズに対応する設定画面のプリセットをアクティブにする
+ */
+function syncCurrentPhaseToPresetUI() {
+    elements.presetBtns.forEach(btn => btn.classList.remove('active'));
+    
+    let currentSec = state.totalDuration / 1000;
+    let matched = false;
+    
+    elements.presetBtns.forEach(btn => {
+        const btnTime = btn.getAttribute('data-time');
+        if (btnTime !== 'custom' && parseInt(btnTime) === currentSec) {
+            btn.classList.add('active');
+            matched = true;
+        }
+    });
+    
+    if (!matched) {
+        const customBtn = Array.from(elements.presetBtns).find(btn => btn.getAttribute('data-time') === 'custom');
+        if (customBtn) customBtn.classList.add('active');
+        
+        const min = Math.floor(currentSec / 60);
+        const sec = currentSec % 60;
+        elements.customMinutes.value = min;
+        elements.customSeconds.value = sec;
+        elements.customTimeInputs.classList.remove('hidden');
+    } else {
+        elements.customTimeInputs.classList.add('hidden');
+    }
 }
 
 /**
@@ -424,10 +512,23 @@ function loadSettings() {
             state.suffixType = config.suffixType === 'centiseconds' ? 'none' : (config.suffixType || 'none');
             state.bellEnabled = config.bellEnabled !== undefined ? config.bellEnabled : true;
             state.soundType = config.soundType || 'bell-standard';
+            state.autoBatonMode = config.autoBatonMode || 'off';
             state.currentModeLabel = config.currentModeLabel || '発表';
             state.theme = config.theme || 'light';
             state.customMinutes = config.customMinutes || 5;
             state.customSeconds = config.customSeconds || 0;
+            
+            // 読み込んだ時間から現在のバトルフェーズを割り出して同期
+            const currentSec = state.totalDuration / 1000;
+            if (currentSec === 300) {
+                state.battlePhase = 'presentation';
+            } else if (currentSec === 180) {
+                state.battlePhase = 'discussion';
+            } else if (currentSec === 15) {
+                state.battlePhase = 'transition';
+            } else {
+                state.battlePhase = 'presentation';
+            }
             
             // テーマの反映
             elements.body.setAttribute('data-theme', state.theme);
@@ -463,6 +564,17 @@ function saveSettings() {
     state.totalDuration = duration;
     state.currentModeLabel = label;
     
+    // 保存した設定時間から現在のフェーズを同期
+    if (duration === 300000) {
+        state.battlePhase = 'presentation';
+    } else if (duration === 180000) {
+        state.battlePhase = 'discussion';
+    } else if (duration === 15000) {
+        state.battlePhase = 'transition';
+    } else {
+        state.battlePhase = 'presentation';
+    }
+    
     // サフィックス設定の取得
     for (const radio of elements.suffixRadios) {
         if (radio.checked) {
@@ -482,6 +594,14 @@ function saveSettings() {
         }
     }
     
+    // 自動進行バトンモード設定の取得
+    for (const radio of elements.autoBatonRadios) {
+        if (radio.checked) {
+            state.autoBatonMode = radio.value;
+            break;
+        }
+    }
+    
     // テーマ設定の取得
     for (const radio of elements.themeRadios) {
         if (radio.checked) {
@@ -496,6 +616,7 @@ function saveSettings() {
         suffixType: state.suffixType,
         bellEnabled: state.bellEnabled,
         soundType: state.soundType,
+        autoBatonMode: state.autoBatonMode,
         currentModeLabel: state.currentModeLabel,
         theme: state.theme,
         customMinutes: state.customMinutes,
@@ -551,6 +672,11 @@ function syncSettingsToForm() {
     // 3.5 効果音種別の復元
     for (const radio of elements.soundTypeRadios) {
         radio.checked = (radio.value === state.soundType);
+    }
+    
+    // 3.8 自動バトン設定の復元
+    for (const radio of elements.autoBatonRadios) {
+        radio.checked = (radio.value === state.autoBatonMode);
     }
     
     // 4. テーマの復元

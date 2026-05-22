@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=20260522">
+    <link rel="stylesheet" href="styles.css?v=20260522_2">
 </head>
 <body>
     <!-- Orientation Warning Screen for Portrait mode on iPad/Tablets -->
@@ -84,8 +84,8 @@
                     <label class="setting-label">モード（制限時間）</label>
                     <div class="preset-buttons">
                         <button class="preset-btn active" data-time="300" data-label="発表">発表 (5分)</button>
-                        <button class="preset-btn" data-time="180" data-label="質疑">ディスカッション (3分)</button>
-                        <button class="preset-btn" data-time="60" data-label="練習">練習用 (1分)</button>
+                        <button class="preset-btn" data-time="180" data-label="ディスカッション">ディスカッション (3分)</button>
+                        <button class="preset-btn" data-time="15" data-label="移動準備">移動準備 (15秒)</button>
                         <button class="preset-btn" data-time="custom">カスタム</button>
                     </div>
                     <!-- Custom Time Input -->
@@ -155,6 +155,26 @@
                     <p class="setting-tip" style="margin-top: 0.8rem;">※ 残り1分で1回、終了時に3回、選択した効果音が鳴ります。</p>
                 </div>
 
+                <!-- Bibliobattle Flow Settings -->
+                <div class="setting-group">
+                    <label class="setting-label">進行モード（連続自動遷移）</label>
+                    <div class="toggle-options">
+                        <label class="toggle-option">
+                            <input type="radio" name="auto-baton" value="off" checked>
+                            <span>なし（通常の単発タイマー）</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="auto-baton" value="manual">
+                            <span>マニュアル連続（自動フェーズ切り替え＋手動スタート）</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="auto-baton" value="auto">
+                            <span>オート連続（全自動切り替え＋自動スタート）</span>
+                        </label>
+                    </div>
+                    <p class="setting-tip">※ 発表(5分) ➔ ディスカッション(3分) ➔ 移動準備(15秒) の順に自動で切り替わります。</p>
+                </div>
+
                 <!-- Theme (White by default, with option for dark) -->
                 <div class="setting-group">
                     <label class="setting-label">テーマ</label>
@@ -176,6 +196,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260522"></script>
+    <script src="app.js?v=20260522_2"></script>
 </body>
 </html>
