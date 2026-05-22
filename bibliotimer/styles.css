@@ -1,0 +1,630 @@
+/* ==========================================================================
+   ビブリオバトル・タイマー デザインシステム & スタイル
+   ========================================================================== */
+
+:root {
+    /* ライトテーマ (標準) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --text-normal: #0f172a;      /* 深いチャコール */
+    --text-muted: #64748b;
+    
+    /* タイマー状態の色 (白背景でのコントラストを確保) */
+    --timer-normal: #0f172a;
+    --timer-warn: #d97706;        /* 視認性の高いダークイエロー（アンバー） */
+    --timer-alert: #dc2626;       /* 鮮やかな赤 */
+    
+    /* アクセント色 */
+    --primary: #2563eb;           /* 信頼感のあるブルー */
+    --primary-hover: #1d4ed8;
+    --primary-light: #eff6ff;
+    
+    /* ガラスエフェクト */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(15, 23, 42, 0.08);
+    --glass-shadow: rgba(0, 0, 0, 0.06);
+    --btn-secondary-bg: rgba(15, 23, 42, 0.04);
+    
+    /* モーダルバックドロップ */
+    --modal-overlay: rgba(15, 23, 42, 0.3);
+}
+
+/* ダークテーマ用変数 (設定から有効化可能) */
+[data-theme="dark"] {
+    --bg-primary: #0f172a;        /* 濃いネイビー/黒 */
+    --bg-secondary: #1e293b;
+    --text-normal: #f8fafc;
+    --text-muted: #94a3b8;
+    
+    --timer-normal: #f8fafc;
+    --timer-warn: #fbbf24;        /* ダークモードでは明るい黄色 */
+    --timer-alert: #ef4444;       /* 明るい赤 */
+    
+    --primary: #3b82f6;
+    --primary-hover: #60a5fa;
+    --primary-light: #1e293b;
+    
+    --glass-bg: rgba(30, 41, 59, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: rgba(0, 0, 0, 0.3);
+    --btn-secondary-bg: rgba(255, 255, 255, 0.06);
+    
+    --modal-overlay: rgba(0, 0, 0, 0.6);
+}
+
+/* 基本リセット & 設定 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background-color: var(--bg-primary);
+    color: var(--text-normal);
+    font-family: 'M PLUS Rounded 1c', 'Outfit', sans-serif;
+    transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* ==========================================================================
+   1. 画面回転警告 (縦画面ロック)
+   ========================================================================== */
+.orientation-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-primary);
+    z-index: 9999;
+    display: none; /* JSまたはメディアクエリで切り替え */
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+}
+
+/* ポートレート（縦画面）時に警告を表示 */
+@media (orientation: portrait) {
+    .orientation-warning {
+        display: flex;
+    }
+}
+
+.warning-content {
+    max-width: 400px;
+}
+
+.warning-icon {
+    width: 80px;
+    height: 80px;
+    color: var(--primary);
+    margin-bottom: 1.5rem;
+}
+
+.arrow-rotate {
+    transform-origin: center;
+    animation: rotate-phone 2s infinite ease-in-out;
+}
+
+@keyframes rotate-phone {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(-90deg); }
+    100% { transform: rotate(0deg); }
+}
+
+.warning-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--text-normal);
+}
+
+.warning-subtext {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   2. メインレイアウト
+   ========================================================================== */
+.app-container {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: 2rem;
+    position: relative;
+}
+
+/* モードバッジ */
+.mode-badge {
+    justify-self: center;
+    align-self: start;
+    background-color: var(--primary-light);
+    color: var(--primary);
+    padding: 0.75rem 2rem;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: calc(1.2rem + 10pt);
+    box-shadow: 0 2px 8px var(--glass-shadow);
+    letter-spacing: 0.1em;
+    border: 1px solid var(--glass-border);
+}
+
+/* ==========================================================================
+   3. タイマー表示エリア (iPad横向きでの最大化)
+   ========================================================================== */
+#timer-display-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+}
+
+#timer-display {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    /* 等幅フォントを指定し、数字がカウント時に左右にブレるのを防ぐ */
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    
+    /* 画面幅・高さに追従するレスポンシブ極大フォント */
+    font-size: calc(min(28vw, 48vh) + 10pt);
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    
+    /* 色変化用のスムーズなトランジション */
+    transition: color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* タイマー状態カラークラス */
+.timer-color-normal {
+    color: var(--timer-normal);
+}
+
+.timer-color-warn {
+    color: var(--timer-warn);
+}
+
+.timer-color-alert {
+    color: var(--timer-alert);
+}
+
+/* メインの「分：秒」部分 */
+#time-main {
+    font-weight: 900;
+}
+
+/* 区切りスペース */
+#time-separator {
+    display: inline-block;
+    width: 0.15em;
+}
+
+/* ミリ秒、またはフェーズ名の表示部分 */
+#time-sub {
+    font-weight: 700;
+    font-size: 0.55em; /* メイン文字より小さく */
+    opacity: 0.85;
+    
+    /* 日本語（モード名）が入る場合も考慮 */
+    font-family: 'M PLUS Rounded 1c', 'Outfit', sans-serif;
+}
+
+/* ==========================================================================
+   4. コントロールボタン (下部中央)
+   ========================================================================== */
+.controls-container {
+    justify-self: center;
+    align-self: end;
+    display: flex;
+    gap: 1.5rem;
+    padding-bottom: calc(1rem + 10px);
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 10;
+}
+
+/* ガラス風ボタンスタイル */
+.glass-btn {
+    border: 1px solid var(--glass-border);
+    border-radius: 40px;
+    padding: 1.2rem 2.5rem;
+    font-family: inherit;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-normal);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 8px 32px var(--glass-shadow);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.btn-icon {
+    width: 28px;
+    height: 28px;
+}
+
+/* ボタン種別 */
+.primary-btn {
+    background-color: var(--primary);
+    color: #ffffff;
+    border-color: transparent;
+    padding: 1.2rem 3.5rem; /* スタートボタンを少し長めに */
+}
+
+.primary-btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 36px rgba(37, 99, 235, 0.25);
+}
+
+.primary-btn:active {
+    transform: translateY(1px) scale(0.98);
+}
+
+.secondary-btn {
+    background-color: var(--glass-bg);
+}
+
+.secondary-btn:hover {
+    background-color: var(--btn-secondary-bg);
+    transform: translateY(-3px);
+}
+
+.secondary-btn:active {
+    transform: translateY(1px);
+}
+
+/* ボタン内テキストとアイコンの制御 */
+.btn-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ==========================================================================
+   5. 設定ボタン (右上フローティング)
+   ========================================================================== */
+.icon-btn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border);
+    background-color: var(--glass-bg);
+    color: var(--text-normal);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 16px var(--glass-shadow);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    z-index: 100;
+}
+
+.icon-btn svg {
+    width: 24px;
+    height: 24px;
+    transition: transform 0.6s ease;
+}
+
+.icon-btn:hover {
+    transform: scale(1.1);
+    background-color: var(--bg-secondary);
+}
+
+.icon-btn:hover svg {
+    transform: rotate(45deg);
+}
+
+/* タイマー動作時は設定ボタンを半透明にし非アクティブ化 */
+.icon-btn.dimmed {
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   6. 設定モーダル画面
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--modal-overlay);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: none; /* JSで表示 */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+
+.modal-window {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--glass-border);
+    width: 90%;
+    max-width: 600px;
+    border-radius: 24px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    transform: translateY(30px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-overlay.active .modal-window {
+    transform: translateY(0);
+}
+
+/* モーダルヘッダー */
+.modal-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close-btn:hover {
+    color: var(--text-normal);
+}
+
+/* モーダルボディ */
+.modal-body {
+    padding: 2rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.setting-group {
+    margin-bottom: 2rem;
+}
+
+.setting-group:last-child {
+    margin-bottom: 0;
+}
+
+.setting-label {
+    display: block;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.8rem;
+    color: var(--text-normal);
+}
+
+/* モード切替ボタングループ */
+.preset-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+}
+
+.preset-btn {
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.9rem;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-normal);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.preset-btn:hover {
+    border-color: var(--text-muted);
+    background-color: var(--glass-bg);
+}
+
+.preset-btn.active {
+    background-color: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* カスタム時間入力 */
+.custom-time-inputs {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.input-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-field input {
+    width: 80px;
+    height: 48px;
+    border-radius: 10px;
+    border: 2px solid var(--glass-border);
+    background-color: var(--bg-primary);
+    color: var(--text-normal);
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.input-field input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.input-field span {
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+/* トグルオプション（ラジオボタン） */
+.toggle-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.toggle-option {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    font-weight: 700;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.toggle-option:hover {
+    background-color: var(--bg-secondary);
+}
+
+.toggle-option input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary);
+}
+
+/* ベルサウンド設定 */
+.bell-settings {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--primary);
+}
+
+.test-btn {
+    background-color: var(--glass-bg);
+    border: 1.5px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.6rem 1.2rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-normal);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 8px var(--glass-shadow);
+    transition: all 0.2s ease;
+}
+
+.test-btn:hover {
+    background-color: var(--btn-secondary-bg);
+    transform: translateY(-1px);
+}
+
+.setting-tip {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.6rem;
+    line-height: 1.4;
+}
+
+/* モーダルフッター */
+.modal-footer {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--glass-border);
+    background-color: var(--bg-secondary);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.save-btn {
+    background-color: var(--primary);
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    padding: 0.8rem 2rem;
+    font-family: inherit;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    transition: all 0.2s ease;
+}
+
+.save-btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+}
+
+.save-btn:active {
+    transform: translateY(1px);
+}

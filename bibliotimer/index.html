@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ビブリオバトル・タイマー</title>
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Orientation Warning Screen for Portrait mode on iPad/Tablets -->
+    <div id="orientation-warning" class="orientation-warning">
+        <div class="warning-content">
+            <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                <path d="M12 18h.01" />
+                <path class="arrow-rotate" d="M17 9l4-4-4-4M21 5H9a5 5 0 0 0-5 5v2" />
+            </svg>
+            <p class="warning-text">画面を横向き（ランドスケープ）にしてください</p>
+            <p class="warning-subtext">ビブリオバトル・タイマーは横画面での使用に最適化されています。</p>
+        </div>
+    </div>
+
+    <!-- Floating Settings Button (Top Right) -->
+    <button id="settings-toggle" class="icon-btn" aria-label="設定を開く">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </button>
+
+    <!-- Main Container -->
+    <main class="app-container">
+        <!-- Status Badge (Optional top label for current mode) -->
+        <div id="mode-badge" class="mode-badge">発表</div>
+
+        <!-- Timer Display Area -->
+        <div id="timer-display-container">
+            <div id="timer-display" class="timer-color-normal">
+                <span id="time-main">05:00</span><span id="time-separator">&nbsp;</span><span id="time-sub">00</span>
+            </div>
+        </div>
+
+        <!-- Controls Area (Bottom Center) -->
+        <div class="controls-container">
+            <button id="reset-btn" class="glass-btn secondary-btn" aria-label="リセット">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                <span>リセット</span>
+            </button>
+            
+            <button id="start-stop-btn" class="glass-btn primary-btn" aria-label="スタート">
+                <span class="btn-content play-content">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="btn-icon">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span>スタート</span>
+                </span>
+                <span class="btn-content pause-content hidden">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="btn-icon">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                    <span>一時停止</span>
+                </span>
+            </button>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h2>タイマーの設定</h2>
+                <button id="settings-close" class="close-btn" aria-label="閉じる">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Preset Selection -->
+                <div class="setting-group">
+                    <label class="setting-label">モード（制限時間）</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn active" data-time="300" data-label="発表">発表 (5分)</button>
+                        <button class="preset-btn" data-time="180" data-label="質疑">ディスカッション (3分)</button>
+                        <button class="preset-btn" data-time="60" data-label="練習">練習用 (1分)</button>
+                        <button class="preset-btn" data-time="custom">カスタム</button>
+                    </div>
+                    <!-- Custom Time Input -->
+                    <div id="custom-time-inputs" class="custom-time-inputs hidden">
+                        <div class="input-field">
+                            <input type="number" id="custom-minutes" min="0" max="99" value="5">
+                            <span>分</span>
+                        </div>
+                        <div class="input-field">
+                            <input type="number" id="custom-seconds" min="0" max="59" value="0">
+                            <span>秒</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Display Suffix Configuration -->
+                <div class="setting-group">
+                    <label class="setting-label">右端の表示 (〇〇：〇〇 [ここ])</label>
+                    <div class="toggle-options">
+                        <label class="toggle-option">
+                            <input type="radio" name="suffix-type" value="none" checked>
+                            <span>非表示 (例: 05:00)</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="suffix-type" value="phase">
+                            <span>モード名 (例: 発表)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Bell Sound Settings -->
+                <div class="setting-group">
+                    <label class="setting-label">終了ベル・効果音</label>
+                    <div class="bell-settings">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="bell-enabled" checked>
+                            <span>ベルの音を鳴らす</span>
+                        </label>
+                        <button id="sound-test-btn" class="test-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+                                <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                            </svg>
+                            音量テスト
+                        </button>
+                    </div>
+                    <p class="setting-tip">※ 残り1分で1回、終了時に3回、電子鐘（チーン）が鳴ります。</p>
+                </div>
+
+                <!-- Theme (White by default, with option for dark) -->
+                <div class="setting-group">
+                    <label class="setting-label">テーマ</label>
+                    <div class="toggle-options">
+                        <label class="toggle-option">
+                            <input type="radio" name="theme" value="light" checked>
+                            <span>明るい（白背景）</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="theme" value="dark">
+                            <span>暗い（黒背景）</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="settings-save" class="save-btn">設定を保存する</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
