@@ -603,28 +603,6 @@ body {
     background-color: var(--bg-secondary);
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
-    align-items: center;
-}
-
-.reset-default-btn {
-    background-color: transparent;
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    color: var(--text-muted);
-    padding: 0.8rem 1.5rem;
-    font-family: inherit;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    margin-right: auto; /* 左寄せにする */
-    transition: all 0.2s ease;
-}
-
-.reset-default-btn:hover {
-    background-color: var(--btn-secondary-bg);
-    color: var(--text-normal);
-    border-color: var(--text-muted);
 }
 
 .save-btn {
@@ -650,4 +628,3 @@ body {
 .save-btn:active {
     transform: translateY(1px);
 }
-

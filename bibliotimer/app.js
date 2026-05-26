@@ -25,17 +25,6 @@ const state = {
     customSeconds: 0
 };
 
-// デフォルト設定定数 (初期状態へ戻すリセット用)
-const DEFAULT_SETTINGS = {
-    totalDuration: 300000,
-    suffixType: 'none',
-    bellEnabled: true,
-    currentModeLabel: '発表',
-    theme: 'light',
-    customMinutes: 5,
-    customSeconds: 0
-};
-
 // --- DOM 要素の取得 ---
 const elements = {
     body: document.body,
@@ -51,7 +40,6 @@ const elements = {
     settingsToggle: document.getElementById('settings-toggle'),
     settingsClose: document.getElementById('settings-close'),
     settingsSave: document.getElementById('settings-save'),
-    settingsReset: document.getElementById('settings-reset'),
     soundTestBtn: document.getElementById('sound-test-btn'),
     
     // 構造要素
@@ -466,25 +454,6 @@ function initEventListeners() {
     });
     elements.settingsClose.addEventListener('click', closeSettingsModal);
     elements.settingsSave.addEventListener('click', saveSettings);
-    
-    // 初期設定に戻すリセット処理
-    elements.settingsReset.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (confirm('設定をすべて初期状態（デフォルト）に戻しますか？')) {
-            // ストレージの保存データをクリア
-            localStorage.removeItem('bibliotimer_settings');
-            
-            // stateをデフォルト値に更新
-            Object.assign(state, DEFAULT_SETTINGS);
-            state.timeLeft = state.totalDuration;
-            
-            // UI表示とテーマを反映
-            elements.body.setAttribute('data-theme', state.theme);
-            resetTimer();
-            
-            closeSettingsModal();
-        }
-    });
     
     // モーダルの外側をクリックして閉じる
     elements.settingsModal.addEventListener('click', (e) => {
