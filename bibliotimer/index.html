@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20260526_4">
 </head>
 <body>
     <!-- Orientation Warning Screen for Portrait mode on iPad/Tablets -->
@@ -79,60 +79,114 @@
                 <button id="settings-close" class="close-btn" aria-label="閉じる">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- Preset Selection -->
+                <!-- Phase Time Settings (Individual Customization) -->
                 <div class="setting-group">
-                    <label class="setting-label">モード（制限時間）</label>
-                    <div class="preset-buttons">
-                        <button class="preset-btn active" data-time="300" data-label="発表">発表 (5分)</button>
-                        <button class="preset-btn" data-time="180" data-label="質疑">ディスカッション (3分)</button>
-                        <button class="preset-btn" data-time="60" data-label="練習">練習用 (1分)</button>
-                        <button class="preset-btn" data-time="custom">カスタム</button>
-                    </div>
-                    <!-- Custom Time Input -->
-                    <div id="custom-time-inputs" class="custom-time-inputs hidden">
-                        <div class="input-field">
-                            <input type="number" id="custom-minutes" min="0" max="99" value="5">
-                            <span>分</span>
+                    <label class="setting-label">各フェーズの時間設定</label>
+                    <div class="phase-time-inputs" style="display: flex; flex-direction: column; gap: 0.8rem;">
+                        <!-- Presentation Time -->
+                        <div class="phase-time-row" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <span class="setting-label" style="margin-bottom: 0; font-size: 1.05rem;">① 発表の時間</span>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <div class="input-field">
+                                    <select id="time-pres-min" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>分</span>
+                                </div>
+                                <div class="input-field">
+                                    <select id="time-pres-sec" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>秒</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="input-field">
-                            <input type="number" id="custom-seconds" min="0" max="59" value="0">
-                            <span>秒</span>
+                        
+                        <!-- Discussion Time -->
+                        <div class="phase-time-row" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <span class="setting-label" style="margin-bottom: 0; font-size: 1.05rem;">② ディスカッションの時間</span>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <div class="input-field">
+                                    <select id="time-disc-min" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>分</span>
+                                </div>
+                                <div class="input-field">
+                                    <select id="time-disc-sec" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>秒</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Display Suffix Configuration -->
-                <div class="setting-group">
-                    <label class="setting-label">右端の表示 (〇〇：〇〇 [ここ])</label>
-                    <div class="toggle-options">
-                        <label class="toggle-option">
-                            <input type="radio" name="suffix-type" value="none" checked>
-                            <span>非表示 (例: 05:00)</span>
-                        </label>
-                        <label class="toggle-option">
-                            <input type="radio" name="suffix-type" value="phase">
-                            <span>モード名 (例: 発表)</span>
-                        </label>
+                        
+                        <!-- Transition Time -->
+                        <div class="phase-time-row" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <span class="setting-label" style="margin-bottom: 0; font-size: 1.05rem;">③ 移動準備の時間</span>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <div class="input-field">
+                                    <select id="time-tran-min" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>分</span>
+                                </div>
+                                <div class="input-field">
+                                    <select id="time-tran-sec" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>秒</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Bell Sound Settings -->
                 <div class="setting-group">
                     <label class="setting-label">終了ベル・効果音</label>
-                    <div class="bell-settings">
+                    <div class="bell-settings" style="margin-bottom: 0.8rem;">
                         <label class="checkbox-label">
                             <input type="checkbox" id="bell-enabled" checked>
-                            <span>ベルの音を鳴らす</span>
+                            <span>効果音を鳴らす</span>
                         </label>
                         <button id="sound-test-btn" class="test-btn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
                                 <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
                                 <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
                             </svg>
-                            音量テスト
+                            試聴する
                         </button>
                     </div>
-                    <p class="setting-tip">※ 残り1分で1回、終了時に3回、電子鐘（チーン）が鳴ります。</p>
+                    <!-- Sound Type Options -->
+                    <div id="sound-type-container" class="toggle-options" style="margin-top: 0.8rem; border-top: 1px dashed var(--glass-border); padding-top: 0.8rem;">
+                        <span class="setting-label" style="font-size: 0.95rem; margin-bottom: 0.4rem;">音色の種類</span>
+                        <label class="toggle-option">
+                            <input type="radio" name="sound-type" value="bell-standard" checked>
+                            <span>標準のベル (チーン)</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="sound-type" value="bell-high">
+                            <span>高めのベル (フロントベル風)</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="sound-type" value="buzzer">
+                            <span>ブザー (プー)</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="sound-type" value="horn">
+                            <span>アリーナホーン (ブォー)</span>
+                        </label>
+                    </div>
+                    <p class="setting-tip" style="margin-top: 0.8rem;">※ 残り1分で1回、終了時に3回、選択した効果音が鳴ります。</p>
+                </div>
+
+                <!-- Bibliobattle Flow Settings -->
+                <div class="setting-group">
+                    <label class="setting-label">進行モード（連続自動遷移）</label>
+                    <div class="toggle-options">
+                        <label class="toggle-option">
+                            <input type="radio" name="auto-baton" value="off">
+                            <span>なし（通常の単発タイマー）</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="auto-baton" value="manual">
+                            <span>マニュアル連続（自動フェーズ切り替え＋手動スタート）</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="auto-baton" value="auto" checked>
+                            <span>オート連続（全自動切り替え＋自動スタート）</span>
+                        </label>
+                    </div>
+                    <p class="setting-tip">※ 発表(5分) ➔ ディスカッション(3分) ➔ 移動準備(15秒) の順に自動で切り替わります。</p>
                 </div>
 
                 <!-- Theme (White by default, with option for dark) -->
@@ -150,13 +204,18 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button id="settings-reset" class="reset-default-btn">デフォルトに戻す</button>
+            <div class="modal-footer" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+                <button id="settings-reset" class="test-btn" style="background-color: rgba(220, 38, 38, 0.06); color: #dc2626; border-color: rgba(220, 38, 38, 0.15);" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="btn-icon" style="width: 18px; height: 18px;">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                    </svg>
+                    デフォルトに戻す
+                </button>
                 <button id="settings-save" class="save-btn">設定を保存する</button>
             </div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=20260526_4"></script>
 </body>
 </html>
