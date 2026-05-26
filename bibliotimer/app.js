@@ -10,11 +10,14 @@ const state = {
     lastTime: 0,           // 直近のフレーム時刻 (performance.now())
     animationFrameId: null,// アニメーションフレームID
     
-    // 設定パラメータ
-    suffixType: 'none', // 'phase' | 'none'
+    // 3フェーズ個別の設定時間 (ミリ秒)
+    durationPres: 300000,       // 発表 (5分)
+    durationDisc: 180000,       // ディスカッション (3分)
+    durationTran: 15000,        // 移動準備 (15秒)
+    
     bellEnabled: true,          // ベル（チャイム）の有無
     soundType: 'bell-standard', // 'bell-standard' | 'bell-high' | 'buzzer' | 'horn'
-    autoBatonMode: 'off',       // 'off' | 'manual' | 'auto'
+    autoBatonMode: 'auto',      // 'off' | 'manual' | 'auto' (デフォルト: auto)
     battlePhase: 'presentation',// 'presentation' | 'discussion' | 'transition'
     currentModeLabel: '発表',   // 現在のモード表示名
     theme: 'light',             // 'light' | 'dark'
@@ -51,11 +54,12 @@ const elements = {
     settingsModal: document.getElementById('settings-modal'),
     
     // 設定フォーム要素
-    presetBtns: document.querySelectorAll('.preset-btn'),
-    customTimeInputs: document.getElementById('custom-time-inputs'),
-    customMinutes: document.getElementById('custom-minutes'),
-    customSeconds: document.getElementById('custom-seconds'),
-    suffixRadios: document.getElementsByName('suffix-type'),
+    timePresMin: document.getElementById('time-pres-min'),
+    timePresSec: document.getElementById('time-pres-sec'),
+    timeDiscMin: document.getElementById('time-disc-min'),
+    timeDiscSec: document.getElementById('time-disc-sec'),
+    timeTranMin: document.getElementById('time-tran-min'),
+    timeTranSec: document.getElementById('time-tran-sec'),
     bellEnabledCheckbox: document.getElementById('bell-enabled'),
     soundTypeRadios: document.getElementsByName('sound-type'),
     autoBatonRadios: document.getElementsByName('auto-baton'),
@@ -129,19 +133,19 @@ function playStandardBell(count = 1) {
 function playHighBell(count = 1) {
     const playSingleBell = (delay) => {
         const now = audioCtx.currentTime + delay;
-        const duration = 1.2; // 少し余韻を短く
+        const duration = 1.8; // 余韻を少し長めにして美しい残響にする
 
-        const baseFreq = 1600; // 高音のチンッという響き
+        const baseFreq = 2500; // 超高音のキーンとした突き抜けるピッチ (約2.5kHz)
         const partials = [
-            { freq: baseFreq, gain: 0.4, decayScale: 1.0 },
-            { freq: baseFreq * 1.5, gain: 0.2, decayScale: 0.6 },
-            { freq: baseFreq * 2.0, gain: 0.1, decayScale: 0.4 },
-            { freq: baseFreq * 2.5, gain: 0.05, decayScale: 0.2 }
+            { freq: baseFreq, gain: 0.45, decayScale: 1.0 },
+            { freq: baseFreq * 1.503, gain: 0.2, decayScale: 0.7 },
+            { freq: baseFreq * 2.001, gain: 0.1, decayScale: 0.5 },
+            { freq: baseFreq * 2.42, gain: 0.05, decayScale: 0.3 }
         ];
 
         const masterGain = audioCtx.createGain();
         masterGain.gain.setValueAtTime(0, now);
-        masterGain.gain.linearRampToValueAtTime(0.3, now + 0.003); // アタックを非常に鋭く
+        masterGain.gain.linearRampToValueAtTime(0.35, now + 0.002); // 超鋭い瞬時のアタック
         masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
         masterGain.connect(audioCtx.destination);
 
@@ -160,7 +164,7 @@ function playHighBell(count = 1) {
     };
 
     for (let i = 0; i < count; i++) {
-        playSingleBell(i * 0.5); // 高テンポで鳴らす
+        playSingleBell(i * 0.6); // 高音ベルはテンポよく0.6秒間隔
     }
 }
 
@@ -283,14 +287,9 @@ function updateDisplay() {
     
     elements.timeMain.textContent = `${minutesStr}:${secondsStr}`;
     
-    // 2. 右側（サブ）表示の切り替え
-    if (state.suffixType === 'phase') {
-        elements.timeSub.textContent = state.currentModeLabel;
-        elements.timeSeparator.innerHTML = '&nbsp;';
-    } else {
-        elements.timeSub.textContent = '';
-        elements.timeSeparator.innerHTML = '';
-    }
+    // 2. 右側（サブ）表示は不要になったため常に非表示
+    elements.timeSub.textContent = '';
+    elements.timeSeparator.innerHTML = '';
     
     // 3. 残り時間による文字色変化
     // 30秒以下: 黄色(アンバー) / 10秒以下: 赤 / それ以上: 通常
@@ -357,20 +356,20 @@ function handlePhaseTransition() {
     if (state.autoBatonMode === 'off') return;
     
     let nextPhase = 'presentation';
-    let nextDuration = 300000; // 5分
+    let nextDuration = state.durationPres;
     let nextLabel = '発表';
     
     if (state.battlePhase === 'presentation') {
         nextPhase = 'discussion';
-        nextDuration = 180000; // 3分
+        nextDuration = state.durationDisc;
         nextLabel = 'ディスカッション';
     } else if (state.battlePhase === 'discussion') {
         nextPhase = 'transition';
-        nextDuration = 15000; // 15秒 (ミリ秒単位)
+        nextDuration = state.durationTran;
         nextLabel = '移動準備';
     } else if (state.battlePhase === 'transition') {
         nextPhase = 'presentation';
-        nextDuration = 300000; // 5分
+        nextDuration = state.durationPres;
         nextLabel = '発表';
     }
     
@@ -387,9 +386,6 @@ function handlePhaseTransition() {
     // 画面表示更新
     updateDisplay();
     
-    // 設定画面のプリセット選択状態も同期
-    syncCurrentPhaseToPresetUI();
-    
     if (state.autoBatonMode === 'auto') {
         // オート連続モードの場合:
         // 終了チャイムの再生中（余韻）を考慮し、1.2秒後に自動的にタイマーを開始
@@ -398,37 +394,6 @@ function handlePhaseTransition() {
                 startTimer(true); // 自動起動フラグを true に指定して呼び出す（iOSブロック対策）
             }
         }, 1200);
-    }
-}
-
-/**
- * 現在のバトルフェーズに対応する設定画面のプリセットをアクティブにする
- */
-function syncCurrentPhaseToPresetUI() {
-    elements.presetBtns.forEach(btn => btn.classList.remove('active'));
-    
-    let currentSec = state.totalDuration / 1000;
-    let matched = false;
-    
-    elements.presetBtns.forEach(btn => {
-        const btnTime = btn.getAttribute('data-time');
-        if (btnTime !== 'custom' && parseInt(btnTime) === currentSec) {
-            btn.classList.add('active');
-            matched = true;
-        }
-    });
-    
-    if (!matched) {
-        const customBtn = Array.from(elements.presetBtns).find(btn => btn.getAttribute('data-time') === 'custom');
-        if (customBtn) customBtn.classList.add('active');
-        
-        const min = Math.floor(currentSec / 60);
-        const sec = currentSec % 60;
-        elements.customMinutes.value = min;
-        elements.customSeconds.value = sec;
-        elements.customTimeInputs.classList.remove('hidden');
-    } else {
-        elements.customTimeInputs.classList.add('hidden');
     }
 }
 
@@ -513,24 +478,22 @@ function loadSettings() {
     if (saved) {
         try {
             const config = JSON.parse(saved);
-            state.totalDuration = config.totalDuration || 300000;
-            state.timeLeft = state.totalDuration;
-            state.suffixType = config.suffixType === 'centiseconds' ? 'none' : (config.suffixType || 'none');
+            state.durationPres = config.durationPres || 300000;
+            state.durationDisc = config.durationDisc || 180000;
+            state.durationTran = config.durationTran || 15000;
+            state.autoBatonMode = config.autoBatonMode || 'auto'; // デフォルト: オート連続
             state.bellEnabled = config.bellEnabled !== undefined ? config.bellEnabled : true;
             state.soundType = config.soundType || 'bell-standard';
-            state.autoBatonMode = config.autoBatonMode || 'off';
             state.currentModeLabel = config.currentModeLabel || '発表';
             state.theme = config.theme || 'light';
-            state.customMinutes = config.customMinutes || 5;
-            state.customSeconds = config.customSeconds || 0;
             
-            // 読み込んだ時間から現在のバトルフェーズを割り出して同期
-            const currentSec = state.totalDuration / 1000;
-            if (currentSec === 300) {
-                state.battlePhase = 'presentation';
-            } else if (currentSec === 180) {
+            state.totalDuration = config.totalDuration || state.durationPres;
+            state.timeLeft = state.totalDuration;
+            
+            // 読み込んだトータル時間と個別設定時間を比較して現在のバトルフェーズを同期
+            if (state.totalDuration === state.durationDisc) {
                 state.battlePhase = 'discussion';
-            } else if (currentSec === 15) {
+            } else if (state.totalDuration === state.durationTran) {
                 state.battlePhase = 'transition';
             } else {
                 state.battlePhase = 'presentation';
@@ -549,44 +512,32 @@ function loadSettings() {
  * 設定をローカルストレージに保存し反映する
  */
 function saveSettings() {
-    // 選択されたプリセットの判定
-    const activePresetBtn = document.querySelector('.preset-btn.active');
-    const timeValue = activePresetBtn.getAttribute('data-time');
-    let label = activePresetBtn.getAttribute('data-label') || '発表';
-    let duration = 300000;
+    // 各個別時間の読み取り
+    const presMin = parseInt(elements.timePresMin.value) || 0;
+    const presSec = parseInt(elements.timePresSec.value) || 0;
+    state.durationPres = (presMin * 60 + presSec) * 1000;
     
-    if (timeValue === 'custom') {
-        const min = parseInt(elements.customMinutes.value) || 0;
-        const sec = parseInt(elements.customSeconds.value) || 0;
-        duration = (min * 60 + sec) * 1000;
-        label = 'カスタム';
-        
-        state.customMinutes = min;
-        state.customSeconds = sec;
+    const discMin = parseInt(elements.timeDiscMin.value) || 0;
+    const discSec = parseInt(elements.timeDiscSec.value) || 0;
+    state.durationDisc = (discMin * 60 + discSec) * 1000;
+    
+    const tranMin = parseInt(elements.timeTranMin.value) || 0;
+    const tranSec = parseInt(elements.timeTranSec.value) || 0;
+    state.durationTran = (tranMin * 60 + tranSec) * 1000;
+    
+    // 現在アクティブなフェーズに合わせてトータルデュレーションを設定
+    if (state.battlePhase === 'presentation') {
+        state.totalDuration = state.durationPres;
+        state.currentModeLabel = '発表';
+    } else if (state.battlePhase === 'discussion') {
+        state.totalDuration = state.durationDisc;
+        state.currentModeLabel = 'ディスカッション';
+    } else if (state.battlePhase === 'transition') {
+        state.totalDuration = state.durationTran;
+        state.currentModeLabel = '移動準備';
     } else {
-        duration = parseInt(timeValue) * 1000;
-    }
-    
-    state.totalDuration = duration;
-    state.currentModeLabel = label;
-    
-    // 保存した設定時間から現在のフェーズを同期
-    if (duration === 300000) {
-        state.battlePhase = 'presentation';
-    } else if (duration === 180000) {
-        state.battlePhase = 'discussion';
-    } else if (duration === 15000) {
-        state.battlePhase = 'transition';
-    } else {
-        state.battlePhase = 'presentation';
-    }
-    
-    // サフィックス設定の取得
-    for (const radio of elements.suffixRadios) {
-        if (radio.checked) {
-            state.suffixType = radio.value;
-            break;
-        }
+        state.totalDuration = state.durationPres;
+        state.currentModeLabel = '発表';
     }
     
     // ベル音設定の取得
@@ -618,15 +569,15 @@ function saveSettings() {
     
     // ストレージへ保存
     const configToSave = {
+        durationPres: state.durationPres,
+        durationDisc: state.durationDisc,
+        durationTran: state.durationTran,
         totalDuration: state.totalDuration,
-        suffixType: state.suffixType,
         bellEnabled: state.bellEnabled,
         soundType: state.soundType,
         autoBatonMode: state.autoBatonMode,
         currentModeLabel: state.currentModeLabel,
-        theme: state.theme,
-        customMinutes: state.customMinutes,
-        customSeconds: state.customSeconds
+        theme: state.theme
     };
     localStorage.setItem('bibliotimer_settings', JSON.stringify(configToSave));
     
@@ -641,36 +592,15 @@ function saveSettings() {
  * 設定フォームに現在の状態を初期セットする
  */
 function syncSettingsToForm() {
-    // 1. プリセットボタンの選択状態を復元
-    elements.presetBtns.forEach(btn => btn.classList.remove('active'));
+    // 1. 各個別時間の分秒の復元
+    elements.timePresMin.value = Math.floor(state.durationPres / 60000);
+    elements.timePresSec.value = Math.floor((state.durationPres % 60000) / 1000);
     
-    let matchedPreset = false;
-    const currentSec = state.totalDuration / 1000;
+    elements.timeDiscMin.value = Math.floor(state.durationDisc / 60000);
+    elements.timeDiscSec.value = Math.floor((state.durationDisc % 60000) / 1000);
     
-    elements.presetBtns.forEach(btn => {
-        const btnTime = btn.getAttribute('data-time');
-        if (btnTime !== 'custom' && parseInt(btnTime) === currentSec) {
-            btn.classList.add('active');
-            matchedPreset = true;
-        }
-    });
-    
-    if (!matchedPreset) {
-        // カスタム判定
-        const customBtn = Array.from(elements.presetBtns).find(btn => btn.getAttribute('data-time') === 'custom');
-        if (customBtn) customBtn.classList.add('active');
-        elements.customTimeInputs.classList.remove('hidden');
-    } else {
-        elements.customTimeInputs.classList.add('hidden');
-    }
-    
-    elements.customMinutes.value = state.customMinutes;
-    elements.customSeconds.value = state.customSeconds;
-    
-    // 2. 右側表示のラジオボタンの復元
-    for (const radio of elements.suffixRadios) {
-        radio.checked = (radio.value === state.suffixType);
-    }
+    elements.timeTranMin.value = Math.floor(state.durationTran / 60000);
+    elements.timeTranSec.value = Math.floor((state.durationTran % 60000) / 1000);
     
     // 3. ベルチェックボックスの復元
     elements.bellEnabledCheckbox.checked = state.bellEnabled;
@@ -740,19 +670,7 @@ function initEventListeners() {
         }
     });
 
-    // プリセットボタンの切替イベント
-    elements.presetBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            elements.presetBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            if (btn.getAttribute('data-time') === 'custom') {
-                elements.customTimeInputs.classList.remove('hidden');
-            } else {
-                elements.customTimeInputs.classList.add('hidden');
-            }
-        });
-    });
+    // (プリセット選択廃止に伴い切り替えイベントは削除)
 
     // 音量テストボタン
     elements.soundTestBtn.addEventListener('click', (e) => {
@@ -780,8 +698,40 @@ function initEventListeners() {
     });
 }
 
+/**
+ * 設定画面の分・秒セレクトボックスの選択肢を動的に生成する
+ */
+function populateSelectOptions() {
+    const selectElements = [
+        { el: elements.timePresMin, max: 99, defaultVal: 5 },
+        { el: elements.timePresSec, max: 59, defaultVal: 0 },
+        { el: elements.timeDiscMin, max: 99, defaultVal: 3 },
+        { el: elements.timeDiscSec, max: 59, defaultVal: 0 },
+        { el: elements.timeTranMin, max: 99, defaultVal: 0 },
+        { el: elements.timeTranSec, max: 59, defaultVal: 15 }
+    ];
+    
+    selectElements.forEach(item => {
+        if (!item.el) return;
+        
+        // 既存の選択肢をクリア
+        item.el.innerHTML = '';
+        
+        for (let i = 0; i <= item.max; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = String(i).padStart(2, '0');
+            item.el.appendChild(opt);
+        }
+        
+        // 初期デフォルト値のセット
+        item.el.value = item.defaultVal;
+    });
+}
+
 // --- アプリケーション起動 ---
 window.addEventListener('DOMContentLoaded', () => {
+    populateSelectOptions(); // セレクトボックスの選択肢を動的に生成
     loadSettings();
     initEventListeners();
     updateDisplay();

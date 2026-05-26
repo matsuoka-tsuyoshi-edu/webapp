@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=20260522_3">
+    <link rel="stylesheet" href="styles.css?v=20260526_3">
 </head>
 <body>
     <!-- Orientation Warning Screen for Portrait mode on iPad/Tablets -->
@@ -79,40 +79,54 @@
                 <button id="settings-close" class="close-btn" aria-label="閉じる">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- Preset Selection -->
+                <!-- Phase Time Settings (Individual Customization) -->
                 <div class="setting-group">
-                    <label class="setting-label">モード（制限時間）</label>
-                    <div class="preset-buttons">
-                        <button class="preset-btn active" data-time="300" data-label="発表">発表 (5分)</button>
-                        <button class="preset-btn" data-time="180" data-label="ディスカッション">ディスカッション (3分)</button>
-                        <button class="preset-btn" data-time="15" data-label="移動準備">移動準備 (15秒)</button>
-                        <button class="preset-btn" data-time="custom">カスタム</button>
-                    </div>
-                    <!-- Custom Time Input -->
-                    <div id="custom-time-inputs" class="custom-time-inputs hidden">
-                        <div class="input-field">
-                            <input type="number" id="custom-minutes" min="0" max="99" value="5">
-                            <span>分</span>
+                    <label class="setting-label">各フェーズの時間設定</label>
+                    <div class="phase-time-inputs" style="display: flex; flex-direction: column; gap: 0.8rem;">
+                        <!-- Presentation Time -->
+                        <div class="phase-time-row" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <span class="setting-label" style="margin-bottom: 0; font-size: 1.05rem;">① 発表の時間</span>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <div class="input-field">
+                                    <select id="time-pres-min" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>分</span>
+                                </div>
+                                <div class="input-field">
+                                    <select id="time-pres-sec" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>秒</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="input-field">
-                            <input type="number" id="custom-seconds" min="0" max="59" value="0">
-                            <span>秒</span>
+                        
+                        <!-- Discussion Time -->
+                        <div class="phase-time-row" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <span class="setting-label" style="margin-bottom: 0; font-size: 1.05rem;">② ディスカッションの時間</span>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <div class="input-field">
+                                    <select id="time-disc-min" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>分</span>
+                                </div>
+                                <div class="input-field">
+                                    <select id="time-disc-sec" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>秒</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Display Suffix Configuration -->
-                <div class="setting-group">
-                    <label class="setting-label">右端の表示 (〇〇：〇〇 [ここ])</label>
-                    <div class="toggle-options">
-                        <label class="toggle-option">
-                            <input type="radio" name="suffix-type" value="none" checked>
-                            <span>非表示 (例: 05:00)</span>
-                        </label>
-                        <label class="toggle-option">
-                            <input type="radio" name="suffix-type" value="phase">
-                            <span>モード名 (例: 発表)</span>
-                        </label>
+                        
+                        <!-- Transition Time -->
+                        <div class="phase-time-row" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <span class="setting-label" style="margin-bottom: 0; font-size: 1.05rem;">③ 移動準備の時間</span>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <div class="input-field">
+                                    <select id="time-tran-min" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>分</span>
+                                </div>
+                                <div class="input-field">
+                                    <select id="time-tran-sec" style="width: 80px; height: 44px; font-size: 1.1rem; border-radius: 10px; border: 2px solid var(--glass-border); text-align: center; font-weight: 700; background: var(--bg-primary); color: var(--text-normal); cursor: pointer; padding-left: 0.5rem;"></select>
+                                    <span>秒</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -160,7 +174,7 @@
                     <label class="setting-label">進行モード（連続自動遷移）</label>
                     <div class="toggle-options">
                         <label class="toggle-option">
-                            <input type="radio" name="auto-baton" value="off" checked>
+                            <input type="radio" name="auto-baton" value="off">
                             <span>なし（通常の単発タイマー）</span>
                         </label>
                         <label class="toggle-option">
@@ -168,7 +182,7 @@
                             <span>マニュアル連続（自動フェーズ切り替え＋手動スタート）</span>
                         </label>
                         <label class="toggle-option">
-                            <input type="radio" name="auto-baton" value="auto">
+                            <input type="radio" name="auto-baton" value="auto" checked>
                             <span>オート連続（全自動切り替え＋自動スタート）</span>
                         </label>
                     </div>
@@ -196,6 +210,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260522_3"></script>
+    <script src="app.js?v=20260526_3"></script>
 </body>
 </html>
