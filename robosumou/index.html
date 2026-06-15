@@ -39,6 +39,7 @@
         display: flex;
         flex-direction: column;
         height: 100vh;
+        height: 100dvh;
         width: 100vw;
         overflow: hidden;
     }
@@ -704,7 +705,7 @@
     }
 
     /* iPad用のレスポンシブ微調整 */
-    @media (max-height: 768px) {
+    @media (max-height: 850px) {
         header { height: 60px; padding: 5px 20px; }
         .step-view { padding: 10px 20px; }
         .panel { padding: 16px; }
@@ -802,16 +803,16 @@
                                     <div class="param-bar-bg"><div id="bar-weight" class="param-bar-fill" style="width: 50%; background: var(--accent-green);"></div></div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- 試合ルール説明 -->
-                        <div class="settings-card" style="margin-top: 15px; padding: 12px; font-size: 0.8rem; line-height: 1.4; border-color: rgba(255, 0, 127, 0.3);">
-                            <div class="settings-title" style="font-size: 0.85rem; color: var(--accent-magenta); margin-bottom: 6px;">📜 試合ルール</div>
-                            <ul style="margin: 0; padding-left: 18px; color: var(--accent-cyan); text-align: left;">
-                                <li style="margin-bottom: 4px;"><strong>勝利条件</strong>: 相手ロボットを土俵（青い線の円）の外に押し出す。</li>
-                                <li style="margin-bottom: 4px;"><strong>反則負け</strong>: 移動や旋回を行わず、位置も向きも完全に<strong>3秒以上停止</strong>した場合は「反則負け」になります（両者動かない場合は両者反則負け）。</li>
-                                <li><strong>引き分け</strong>: 30秒経過しても決着がつかない場合は引き分けです。</li>
-                            </ul>
+                            <!-- 試合ルール説明 -->
+                            <div class="settings-card" style="margin-top: 15px; padding: 12px; font-size: 0.8rem; line-height: 1.4; border-color: rgba(255, 0, 127, 0.3);">
+                                <div class="settings-title" style="font-size: 0.85rem; color: var(--accent-magenta); margin-bottom: 6px;">📜 試合ルール</div>
+                                <ul style="margin: 0; padding-left: 18px; color: var(--accent-cyan); text-align: left;">
+                                    <li style="margin-bottom: 4px;"><strong>勝利条件</strong>: 相手ロボットを土俵（青い線の円）の外に押し出す。</li>
+                                    <li style="margin-bottom: 4px;"><strong>反則負け</strong>: 移動や旋回を行わず、位置も向きも完全に<strong>3秒以上停止</strong>した場合は「反則負け」になります（両者動かない場合は両者反則負け）。</li>
+                                    <li><strong>引き分け</strong>: 30秒経過しても決着がつかない場合は引き分けです。</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
 
