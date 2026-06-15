@@ -1,0 +1,2764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ロボ相撲 - 試合会場</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@500;700;900&family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg-color: #060913;
+        --panel-bg: rgba(13, 20, 38, 0.7);
+        --panel-border: rgba(0, 243, 255, 0.25);
+        --accent-cyan: #00f3ff;
+        --accent-magenta: #ff007f;
+        --accent-green: #39ff14;
+        --accent-yellow: #ffff00;
+        --text-color: #f1f5f9;
+        --text-muted: #64748b;
+        --font-sf: 'Orbitron', 'M PLUS Rounded 1c', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: var(--font-sf);
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        background-image: 
+            radial-gradient(at 10% 10%, rgba(0, 243, 255, 0.12) 0px, transparent 40%),
+            radial-gradient(at 90% 90%, rgba(255, 0, 127, 0.1) 0px, transparent 40%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        overflow: hidden; /* スライド遷移のため画面全体をスクロール禁止にする */
+    }
+
+    /* アプリ全体のコンテナ */
+    #app-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+    }
+
+    /* ヘッダー */
+    header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 30px;
+        background: rgba(6, 9, 19, 0.85);
+        border-bottom: 1px solid var(--panel-border);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        height: 70px;
+    }
+    header h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 900;
+        letter-spacing: 2px;
+        background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+    }
+    .subtitle {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        letter-spacing: 1px;
+    }
+
+    /* ステップインジケーター */
+    .stepper {
+        display: flex;
+        gap: 30px;
+    }
+    .step-indicator {
+        font-size: 0.9rem;
+        font-weight: bold;
+        color: var(--text-muted);
+        position: relative;
+        cursor: pointer;
+        transition: color 0.3s;
+    }
+    .step-indicator.active {
+        color: var(--accent-cyan);
+        text-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+    }
+    .step-indicator.active::after {
+        content: '';
+        position: absolute;
+        bottom: -8px; left: 0; width: 100%; height: 2px;
+        background: var(--accent-cyan);
+        box-shadow: 0 0 8px var(--accent-cyan);
+    }
+
+    /* 横スライド用のラッパー */
+    #step-slider-container {
+        flex-grow: 1;
+        width: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+    #step-slider {
+        display: flex;
+        width: 300%; /* 3ステップ分 */
+        height: 100%;
+        transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    /* 各ステップの共通スタイル */
+    .step-view {
+        width: 33.3333%;
+        height: 100%;
+        padding: 20px 30px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* パネル共通 */
+    .panel {
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        padding: 24px;
+        backdrop-filter: blur(15px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 12px;
+    }
+    .panel-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--accent-cyan);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* === STEP 1: 機体選択のスタイル === */
+    .step1-content {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 30px;
+        height: 100%;
+        align-items: center;
+    }
+    .robot-selector-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    .type-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        transition: all 0.3s ease;
+    }
+    .type-card:hover {
+        background: rgba(0, 243, 255, 0.04);
+        border-color: rgba(0, 243, 255, 0.4);
+        transform: translateX(5px);
+    }
+    .type-card.active {
+        background: rgba(0, 243, 255, 0.12);
+        border-color: var(--accent-cyan);
+        box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+    }
+    .type-card .type-icon {
+        font-size: 3rem;
+    }
+    .type-card-text {
+        text-align: left;
+    }
+    .type-card-text h3 {
+        margin: 0 0 5px 0;
+        font-size: 1.2rem;
+        font-weight: 800;
+    }
+    .type-card-text p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    /* ステータスビジュアル */
+    .step1-stats-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .stat-gauge-group {
+        background: rgba(0, 0, 0, 0.25);
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .param-row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+    .param-row:last-child { margin-bottom: 0; }
+    .param-label-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        font-weight: bold;
+    }
+    .param-bar-bg {
+        width: 100%;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.07);
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .param-bar-fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .robot-name-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .cyber-input {
+        background: rgba(0,0,0,0.3);
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        padding: 12px 15px;
+        color: white;
+        font-family: var(--font-sf);
+        font-size: 1rem;
+        width: 100%;
+        transition: all 0.3s;
+    }
+    .cyber-input:focus {
+        border-color: var(--accent-cyan);
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+        outline: none;
+    }
+
+    /* === STEP 2: プログラミングのスタイル === */
+    .step2-layout {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 20px;
+        flex-grow: 1;
+        overflow: hidden;
+    }
+    #toolbox {
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 16px;
+        padding: 15px;
+        padding-right: 120px; /* 右側に120pxの広いスクロール用スワイプ余白を確保 */
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        align-items: flex-start;
+    }
+    #workspace {
+        background: rgba(255, 255, 255, 0.01);
+        border: 2px dashed rgba(0, 243, 255, 0.2);
+        border-radius: 16px;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        position: relative;
+    }
+    #workspace:empty::after {
+        content: "ここにブロックをドラッグ＆ドロップしてね！\A（上からじゅんばんにうごくよ）";
+        white-space: pre-wrap;
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        color: var(--text-muted);
+        text-align: center;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        pointer-events: none;
+    }
+
+    /* ブロックのデザイン */
+    .block {
+        padding: 8px 10px;
+        background: #1e3a8a;
+        color: white;
+        border-radius: 8px;
+        cursor: grab;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 5px;
+        border-left: 5px solid var(--accent-cyan);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+        user-select: none;
+        touch-action: none;
+        width: 210px;
+        margin-bottom: 4px;
+    }
+    .block.conditional {
+        background: #7c2d12;
+        border-left-color: #f97316;
+    }
+    .block.action {
+        background: #111827;
+        border-left-color: var(--accent-magenta);
+    }
+    .block.projectile-action {
+        background: #475569;
+        border-left-color: var(--accent-yellow);
+    }
+    .block input[type="text"] {
+        width: 45px;
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 5px;
+        color: white;
+        text-align: center;
+        font-family: var(--font-sf);
+        font-size: 0.78rem;
+        padding: 1px 3px;
+        cursor: pointer;
+    }
+    .block.dragging {
+        position: fixed;
+        opacity: 0.9;
+        z-index: 9999;
+        pointer-events: none;
+        box-shadow: 0 12px 24px rgba(0, 243, 255, 0.4);
+    }
+    .block.is-dragging-source { opacity: 0.35; }
+
+    /* ネストスロット */
+    .droppable-slot {
+        background: rgba(0,0,0,0.35);
+        border: 1px dashed rgba(255,255,255,0.18);
+        border-radius: 8px;
+        padding: 8px;
+        margin-top: 6px;
+        min-height: 45px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* プレースホルダー */
+    .placeholder {
+        height: 42px;
+        background: rgba(0, 243, 255, 0.15);
+        border: 1px dashed var(--accent-cyan);
+        border-radius: 10px;
+    }
+
+    /* アイコンボタン群 */
+    .icon-toolbar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+    .icon-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: var(--text-color);
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        transition: all 0.2s;
+    }
+    .icon-btn:hover {
+        background: rgba(0, 243, 255, 0.1);
+        border-color: var(--accent-cyan);
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    }
+    .icon-btn::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: -35px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.85);
+        color: white;
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        border: 1px solid var(--panel-border);
+        font-family: var(--font-sf);
+    }
+    .icon-btn:hover::after {
+        opacity: 1;
+    }
+
+    /* セーブ・ロードのドロップダウンメニュー */
+    .menu-container {
+        position: relative;
+    }
+    .dropdown-menu {
+        position: absolute;
+        top: 50px;
+        right: 0;
+        z-index: 10000;
+        background: #0d1426;
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        width: 250px;
+        display: none;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+        padding: 6px 0;
+    }
+    .menu-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background 0.2s;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .menu-item:last-child { border-bottom: none; }
+    .menu-item:hover {
+        background: rgba(0, 243, 255, 0.1);
+    }
+
+    /* === STEP 3: 試合会場のスタイル === */
+    .step3-layout {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 20px;
+        height: 100%;
+        overflow: hidden;
+    }
+    #canvas-outer-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle, #101b33 0%, #060913 100%);
+        border-radius: 20px;
+        border: 1px solid var(--panel-border);
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+    }
+    #canvas-container {
+        position: relative;
+        width: 90%;
+        height: 90%;
+        max-width: 580px;
+        max-height: 580px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        box-shadow: 0 0 40px rgba(0, 243, 255, 0.25);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #arena-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+    .hud-overlay {
+        position: absolute;
+        top: 20px;
+        left: 20px; right: 20px;
+        display: flex;
+        justify-content: space-between;
+        pointer-events: none;
+        z-index: 10;
+    }
+    .hud-box {
+        background: rgba(6, 9, 19, 0.8);
+        padding: 8px 16px;
+        border-radius: 12px;
+        border: 1px solid var(--accent-cyan);
+        color: var(--accent-cyan);
+        font-size: 0.9rem;
+        font-weight: bold;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 120px;
+        text-shadow: 0 0 5px rgba(0, 243, 255, 0.4);
+    }
+    .hud-box.opponent {
+        border-color: var(--accent-magenta);
+        color: var(--accent-magenta);
+        align-items: flex-end;
+        text-shadow: 0 0 5px rgba(255, 0, 127, 0.4);
+    }
+    .hud-box .hud-sub {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    #hud-timer-container {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(6, 9, 19, 0.85);
+        padding: 10px 24px;
+        border-radius: 24px;
+        border: 1px solid var(--accent-magenta);
+        color: var(--accent-magenta);
+        font-size: 1.4rem;
+        font-weight: 900;
+        z-index: 10;
+        text-shadow: 0 0 10px rgba(255,0,127,0.5);
+    }
+
+    /* アリーナ設定パネル（右側） */
+    .arena-side-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        height: 100%;
+        overflow-y: auto;
+    }
+    .settings-card {
+        background: rgba(0,0,0,0.25);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 16px;
+    }
+    .settings-title {
+        font-size: 0.9rem;
+        font-weight: bold;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+        letter-spacing: 1px;
+    }
+
+    /* === 共通ボタン === */
+    .btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--text-color);
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-family: var(--font-sf);
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 700;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .btn:hover {
+        background: rgba(255, 255, 255, 0.09);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+    .btn.primary {
+        background: linear-gradient(135deg, #0284c7, #0ea5e9);
+        border-color: #38bdf8;
+        color: white;
+    }
+    .btn.primary:hover {
+        box-shadow: 0 0 15px rgba(14, 165, 233, 0.45);
+        transform: translateY(-1px);
+    }
+    .btn.danger {
+        background: linear-gradient(135deg, #b91c1c, #dc2626);
+        border-color: #ef4444;
+    }
+    .btn.back-btn {
+        border-color: var(--panel-border);
+        color: var(--accent-cyan);
+    }
+
+    /* フッターアクションバー */
+    .view-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: auto;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* テンキー・保存等モーダル */
+    .modal {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(4, 6, 12, 0.88);
+        display: none;
+        align-items: center; justify-content: center;
+        z-index: 100000;
+        backdrop-filter: blur(10px);
+    }
+    .keypad-container {
+        background: #0a0f1d;
+        border: 2px solid var(--accent-cyan);
+        border-radius: 20px;
+        padding: 24px;
+        width: 300px;
+        box-shadow: 0 0 35px rgba(0, 243, 255, 0.25);
+    }
+    .keypad-header {
+        font-size: 1rem;
+        margin-bottom: 15px;
+        text-align: center;
+        color: var(--accent-cyan);
+        font-weight: 800;
+    }
+    .keypad-display {
+        font-size: 2rem;
+        background: rgba(0,0,0,0.4);
+        border-radius: 10px;
+        padding: 12px;
+        text-align: right;
+        margin-bottom: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        min-height: 58px;
+        font-weight: 800;
+    }
+    .keypad-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+    .keypad-grid button {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: white;
+        font-size: 1.4rem;
+        font-family: var(--font-sf);
+        padding: 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.1s;
+    }
+    .keypad-grid button:active {
+        background: var(--accent-cyan);
+        color: black;
+    }
+
+    /* マイロボ一覧モーダル */
+    .saved-list-container {
+        background: #0a0f1d;
+        border: 2px solid var(--accent-cyan);
+        border-radius: 20px;
+        padding: 24px;
+        width: 360px;
+        max-height: 480px;
+        box-shadow: 0 0 35px rgba(0, 243, 255, 0.25);
+        display: flex;
+        flex-direction: column;
+    }
+    .saved-list-content {
+        overflow-y: auto;
+        margin-bottom: 20px;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 8px;
+        background: rgba(0,0,0,0.2);
+    }
+    .saved-list-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .saved-list-item:hover {
+        background: rgba(0, 243, 255, 0.08);
+    }
+
+    /* iPad用のレスポンシブ微調整 */
+    @media (max-height: 768px) {
+        header { height: 60px; padding: 5px 20px; }
+        .step-view { padding: 10px 20px; }
+        .panel { padding: 16px; }
+        #canvas-container { max-width: 440px; max-height: 440px; }
+    }
+</style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- ヘッダー -->
+    <header>
+        <div>
+            <h1>ROBO SUMO</h1>
+            <div class="subtitle">CYBER STAGE</div>
+        </div>
+        
+        <!-- ステップナビゲーター -->
+        <div class="stepper">
+            <div id="ind-step-1" class="step-indicator active" onclick="goToStep(1)">1. 機体カスタマイズ</div>
+            <div id="ind-step-2" class="step-indicator" onclick="goToStep(2)">2. プログラミング</div>
+            <div id="ind-step-3" class="step-indicator" onclick="goToStep(3)">3. 試合会場</div>
+        </div>
+
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: right;">
+            <div>機体タイプ: <span id="header-robot-type" style="color: var(--accent-green)">NORMAL</span></div>
+            <div>ロボ名: <span id="header-robot-name" style="color: var(--accent-cyan)">マイロボ1</span></div>
+        </div>
+    </header>
+
+    <!-- 画面スライダー -->
+    <div id="step-slider-container">
+        <div id="step-slider">
+            
+            <!-- STEP 1: 機体選択 -->
+            <div id="step-1" class="step-view">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">🤖 STEP 1. ロボットカスタマイズ</div>
+                    </div>
+                    
+                    <div class="step1-content">
+                        <!-- カード選択 -->
+                        <div class="robot-selector-grid">
+                            <div class="type-card active" data-type="normal">
+                                <div class="type-icon">🟢</div>
+                                <div class="type-card-text">
+                                    <h3>ノーマル</h3>
+                                    <p>平均的な能力をもつバランスタイプ</p>
+                                </div>
+                            </div>
+                            <div class="type-card" data-type="speed">
+                                <div class="type-icon">🔵</div>
+                                <div class="type-card-text">
+                                    <h3>スピード</h3>
+                                    <p>速度は早いが、軽いので押し出されやすい</p>
+                                </div>
+                            </div>
+                            <div class="type-card" data-type="power">
+                                <div class="type-icon">🔴</div>
+                                <div class="type-card-text">
+                                    <h3>パワー</h3>
+                                    <p>重量級で押す力は強いが、動きが遅い</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- パラメータゲージ -->
+                        <div class="step1-stats-panel">
+                            <div class="robot-name-input-group">
+                                <label style="font-size: 0.9rem; font-weight: bold; color: var(--accent-cyan)">ロボットの名前</label>
+                                <input type="text" id="robot-name-input" class="cyber-input" value="マイロボ1" placeholder="なまえを入力してね">
+                            </div>
+
+                            <div class="stat-gauge-group">
+                                <div class="param-row">
+                                    <div class="param-label-row">
+                                        <span>移動スピード</span>
+                                        <span id="txt-speed" style="color: var(--accent-cyan)">6.0</span>
+                                    </div>
+                                    <div class="param-bar-bg"><div id="bar-speed" class="param-bar-fill" style="width: 60%; background: var(--accent-cyan);"></div></div>
+                                </div>
+                                <div class="param-row">
+                                    <div class="param-label-row">
+                                        <span>ぶつかり強さ (押し出し力)</span>
+                                        <span id="txt-force" style="color: var(--accent-magenta)">1.0</span>
+                                    </div>
+                                    <div class="param-bar-bg"><div id="bar-force" class="param-bar-fill" style="width: 50%; background: var(--accent-magenta);"></div></div>
+                                </div>
+                                <div class="param-row">
+                                    <div class="param-label-row">
+                                        <span>おもさ (おされにくさ)</span>
+                                        <span id="txt-weight" style="color: var(--accent-green)">1.0</span>
+                                    </div>
+                                    <div class="param-bar-bg"><div id="bar-weight" class="param-bar-fill" style="width: 50%; background: var(--accent-green);"></div></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 試合ルール説明 -->
+                        <div class="settings-card" style="margin-top: 15px; padding: 12px; font-size: 0.8rem; line-height: 1.4; border-color: rgba(255, 0, 127, 0.3);">
+                            <div class="settings-title" style="font-size: 0.85rem; color: var(--accent-magenta); margin-bottom: 6px;">📜 試合ルール</div>
+                            <ul style="margin: 0; padding-left: 18px; color: var(--accent-cyan); text-align: left;">
+                                <li style="margin-bottom: 4px;"><strong>勝利条件</strong>: 相手ロボットを土俵（青い線の円）の外に押し出す。</li>
+                                <li style="margin-bottom: 4px;"><strong>反則負け</strong>: 移動や旋回を行わず、位置も向きも完全に<strong>3秒以上停止</strong>した場合は「反則負け」になります（両者動かない場合は両者反則負け）。</li>
+                                <li><strong>引き分け</strong>: 30秒経過しても決着がつかない場合は引き分けです。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="view-actions">
+                        <div style="flex-grow: 1;"></div>
+                        <button class="btn primary" onclick="goToStep(2)">作戦（プログラム）へ進む ➔</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: プログラミング -->
+            <div id="step-2" class="step-view">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">🧩 STEP 2. プログラミング</div>
+                        
+                        <!-- アイコンツールバー -->
+                        <div class="icon-toolbar">
+                            <div class="menu-container">
+                                <button id="menu-save-btn" class="icon-btn" data-tooltip="マイロボをセーブ">💾</button>
+                                <div id="save-menu" class="dropdown-menu">
+                                    <div class="menu-item" id="save-local-opt">ブラウザに保存 (マイロボリスト)</div>
+                                    <div class="menu-item" id="save-file-opt">JSONファイルとしてダウンロード</div>
+                                </div>
+                            </div>
+                            <div class="menu-container">
+                                <button id="menu-load-btn" class="icon-btn" data-tooltip="マイロボをロード">📂</button>
+                                <div id="load-menu" class="dropdown-menu">
+                                    <div class="menu-item" id="load-local-opt">ブラウザから読み込み (マイロボリスト)</div>
+                                    <div class="menu-item" id="load-file-opt">JSONファイルから読み込み</div>
+                                </div>
+                            </div>
+                            <button id="clear-workspace-btn" class="icon-btn" data-tooltip="全部けす" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #ef4444;">🗑️</button>
+                            <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                        </div>
+                    </div>
+
+                    <div class="step2-layout">
+                        <!-- ブロックパレット -->
+                        <div id="toolbox">
+                            <div class="block" data-command="forward">まえに <input type="text" value="80" readonly> すすむ</div>
+                            <div class="block" data-command="backward">うしろに <input type="text" value="60" readonly> すすむ</div>
+                            <div class="block" data-command="turnRight">みぎに <input type="text" value="90" readonly> まわる</div>
+                            <div class="block" data-command="turnLeft">ひだりに <input type="text" value="90" readonly> まわる</div>
+                            <div class="block" data-command="turnToEnemy">あいての ほうこうを むく</div>
+                            <div class="block action" data-command="dash">フルパワーで 突撃する</div>
+                            <div class="block projectile-action" data-command="shoot">たまを 撃つ ☄️</div>
+                            
+                            <div class="block conditional" data-command="ifCollision">
+                                もし ぶつかったら
+                                <div class="droppable-slot" data-slot="then"></div>
+                                そうでなければ
+                                <div class="droppable-slot" data-slot="else"></div>
+                            </div>
+
+                            <div class="block conditional" data-command="ifEnemyAhead">
+                                もし まえに敵がいたら
+                                <div class="droppable-slot" data-slot="then"></div>
+                                そうでなければ
+                                <div class="droppable-slot" data-slot="else"></div>
+                            </div>
+
+                            <div class="block conditional" data-command="ifNearEdge">
+                                もし 土俵の はしなら
+                                <div class="droppable-slot" data-slot="then"></div>
+                                そうでなければ
+                                <div class="droppable-slot" data-slot="else"></div>
+                            </div>
+                        </div>
+
+                        <!-- ワークスペース -->
+                        <div id="workspace"></div>
+                    </div>
+
+                    <div class="view-actions">
+                        <button class="btn back-btn" onclick="goToStep(1)">↩ 戻る</button>
+                        <button class="btn primary" onclick="goToStep(3)">試合会場へ進む ➔</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3: 試合会場 -->
+            <div id="step-3" class="step-view">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">🏟️ STEP 3. 試合会場</div>
+                        
+                        <!-- 試合会場用のセーブ・ロードツールバー -->
+                        <div class="icon-toolbar">
+                            <div class="menu-container">
+                                <button id="menu-save-btn-step3" class="icon-btn" data-tooltip="マイロボをセーブ">💾</button>
+                                <div id="save-menu-step3" class="dropdown-menu">
+                                    <div class="menu-item" id="save-local-opt-step3">ブラウザに保存 (マイロボリスト)</div>
+                                    <div class="menu-item" id="save-file-opt-step3">JSONファイルとしてダウンロード</div>
+                                </div>
+                            </div>
+                            <div class="menu-container">
+                                <button id="menu-load-btn-step3" class="icon-btn" data-tooltip="マイロボをロード">📂</button>
+                                <div id="load-menu-step3" class="dropdown-menu">
+                                    <div class="menu-item" id="load-local-opt-step3">ブラウザから読み込み (マイロボリスト)</div>
+                                    <div class="menu-item" id="load-file-opt-step3">JSONファイルから読み込み</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step3-layout">
+                        <!-- Canvas 土俵 -->
+                        <div id="canvas-outer-container">
+                            <div id="hud-timer-container">30.0s</div>
+                            <div class="hud-overlay">
+                                <div id="hud-my-status" class="hud-box">
+                                    <span class="hud-name">自分</span>
+                                    <span class="hud-sub">NORMAL</span>
+                                </div>
+                                <div id="hud-opp-status" class="hud-box opponent">
+                                    <span class="hud-name">相手</span>
+                                    <span class="hud-sub">NORMAL</span>
+                                </div>
+                            </div>
+                            <div id="canvas-container">
+                                <canvas id="arena-canvas" width="800" height="800"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 右側コントローラー -->
+                        <div class="arena-side-controls">
+                            <!-- 設定カード -->
+                            <div class="settings-card">
+                                <div class="settings-title">対戦相手の設定</div>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div>
+                                        <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">対戦モデルを選ぶ</label>
+                                        <select id="opponent-select" class="cyber-input" style="padding: 8px 12px; font-size: 0.85rem;">
+                                            <option value="ai-easy">初号機 (スピードタイプ)</option>
+                                            <option value="ai-normal" selected>弐号機 (ノーマルタイプ)</option>
+                                            <option value="ai-hard">参号機 (パワータイプ)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">または、マイロボットと戦う</label>
+                                        <select id="opponent-saved-select" class="cyber-input" style="padding: 8px 12px; font-size: 0.85rem; width: 100%;">
+                                            <option value="">-- マイロボットから選択 --</option>
+                                        </select>
+                                    </div>
+                                    <div style="margin-top: 4px;">
+                                        <button id="import-opponent-btn" class="btn" style="padding: 6px 12px; font-size: 0.75rem; width: 100%; border-color: rgba(0, 243, 255, 0.4); background: rgba(0, 243, 255, 0.05); color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; gap: 4px;">📁 JSONファイルから相手をロード</button>
+                                        <input type="file" id="import-opponent-file-input" accept=".json" style="display: none;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 試合開始コントロール -->
+                            <div style="display: flex; gap: 8px;">
+                                <button id="start-battle-btn" class="btn primary" style="flex: 2; padding: 12px; font-size: 1.1rem; font-weight: 800; white-space: nowrap;">🔥 のこった！</button>
+                                <button id="reset-battle-btn" class="btn" style="flex: 1.2; padding: 12px; font-size: 0.85rem; white-space: nowrap;">🔄 リセット</button>
+                            </div>
+
+                            <!-- 実況コンソール -->
+                            <div class="settings-card" style="margin-top: 2px; flex-grow: 1; min-height: 130px; display: flex; flex-direction: column; padding: 10px;">
+                                <div class="settings-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.8rem;">
+                                    <span>🎙️ 試合実況中継</span>
+                                    <span id="clear-debug-btn" style="cursor: pointer; font-size: 0.75rem; color: var(--accent-cyan); text-decoration: underline;">履歴クリア</span>
+                                </div>
+                                <div id="debug-console" style="background: rgba(0,0,0,0.65); border: 1px solid var(--accent-green); border-radius: 8px; padding: 8px; font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 0.75rem; color: var(--accent-green); overflow-y: auto; flex-grow: 1; max-height: 110px; line-height: 1.4; white-space: pre-wrap; word-break: break-all; text-align: left;"></div>
+                            </div>
+
+                            <!-- バトルメッセージ (勝ち負け表示) -->
+                            <div id="battle-status-msg" style="margin-top: 10px; font-size: 1.5rem; font-weight: 900; text-align: center; min-height: 40px; text-shadow: 0 0 10px currentColor;"></div>
+                        </div>
+                    </div>
+
+                    <div class="view-actions">
+                        <button class="btn back-btn" onclick="goToStep(2)">↩ プログラミングへ戻る</button>
+                        <div style="flex-grow: 1;"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- キーパッドモーダル -->
+<div id="keypad-modal" class="modal">
+    <div class="keypad-container">
+        <div class="keypad-header" id="keypad-title">すうじをにゅうりょく</div>
+        <div class="keypad-display" id="keypad-display"></div>
+        <div class="keypad-grid">
+            <button>1</button><button>2</button><button>3</button>
+            <button>4</button><button>5</button><button>6</button>
+            <button>7</button><button>8</button><button>9</button>
+            <button>C</button><button>0</button><button style="background: var(--accent-magenta); font-weight: bold; color: white;">✔</button>
+        </div>
+    </div>
+</div>
+
+<!-- ブラウザ保存ロボットリスト選択モーダル -->
+<div id="saved-list-modal" class="modal">
+    <div class="saved-list-container">
+        <h3 style="color: var(--accent-cyan); text-align: center; margin-top: 0;">📂 マイロボリスト</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-bottom: 15px;">読み込みたいロボットを選んでください。</p>
+        <div class="saved-list-content" id="saved-list-items-container">
+            <!-- 動的追加 -->
+        </div>
+        <div class="modal-btn-row" style="display: flex; justify-content: flex-end;">
+            <button id="saved-list-cancel-btn" class="btn">とじる</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 1. 基本設定と定数定義
+    // ==========================================
+    const LOCAL_STORAGE_KEY = 'robosumou_my_robots';
+    
+    const ROBOT_TEMPLATES = {
+        normal: {
+            type: 'normal',
+            speed: 6.0,
+            force: 1.0,
+            weight: 1.0,
+            color: '#39ff14', // ネオングリーン
+            icon: '🟢',
+            label: 'ノーマル'
+        },
+        speed: {
+            type: 'speed',
+            speed: 9.0,
+            force: 0.7,
+            weight: 0.6,
+            color: '#00f3ff', // ネオンシアン
+            icon: '🔵',
+            label: 'スピード'
+        },
+        power: {
+            type: 'power',
+            speed: 4.0,
+            force: 1.6,
+            weight: 1.7,
+            color: '#ff007f', // ネオンレッド
+            icon: '🔴',
+            label: 'パワー'
+        }
+    };
+
+    let currentRobotType = 'normal';
+    let robotName = 'マイロボ1';
+
+    // UI要素
+    const toolbox = document.getElementById('toolbox');
+    const workspace = document.getElementById('workspace');
+    const keypadModal = document.getElementById('keypad-modal');
+    const savedListModal = document.getElementById('saved-list-modal');
+    const canvas = document.getElementById('arena-canvas');
+    const ctx = canvas.getContext('2d');
+    const startBattleBtn = document.getElementById('start-battle-btn');
+    const resetBattleBtn = document.getElementById('reset-battle-btn');
+    const battleStatusMsg = document.getElementById('battle-status-msg');
+    
+    // 実況ログ・システムログの初期化
+    const debugConsole = document.getElementById('debug-console');
+    function logDebug(msg, isError = false) {
+        if (!debugConsole) return;
+        
+        const line = document.createElement('div');
+        line.style.marginBottom = '6px';
+        line.style.lineHeight = '1.4';
+        
+        if (isError) {
+            line.style.color = '#ff0055';
+            line.style.fontWeight = 'bold';
+            line.textContent = `🚨 [エラー] ${msg}`;
+        } else if (msg.startsWith('実況:')) {
+            line.style.color = 'var(--accent-green)';
+            line.style.fontWeight = '800';
+            line.style.fontSize = '0.78rem';
+            line.textContent = msg.replace('実況:', '').trim();
+        } else {
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            line.style.color = 'var(--accent-cyan)';
+            line.style.opacity = '0.6';
+            line.style.fontSize = '0.68rem';
+            line.textContent = `⚙️ [システム] [${timeStr}] ${msg}`;
+        }
+        
+        debugConsole.appendChild(line);
+        debugConsole.scrollTop = debugConsole.scrollHeight;
+    }
+
+    // グローバルエラー監視
+    window.addEventListener('error', (e) => {
+        logDebug(`${e.message} (${e.filename}:${e.lineno})`, true);
+    });
+
+    document.getElementById('clear-debug-btn').addEventListener('click', () => {
+        debugConsole.innerHTML = '';
+        logDebug('実況中継の履歴をクリアしました。');
+    });
+
+    logDebug('ロボ相撲 試合システムが起動しました。');
+
+    // ==========================================
+    // 2. ステップ遷移ロジック
+    // ==========================================
+    function goToStep(stepNum) {
+        logDebug(`ステップ${stepNum}へ切り替えます。`);
+        // スライダーを動かす
+        const slider = document.getElementById('step-slider');
+        const offset = -(stepNum - 1) * 33.3333;
+        slider.style.transform = `translateX(${offset}%)`;
+
+        // インジケーターの更新
+        document.querySelectorAll('.step-indicator').forEach((ind, idx) => {
+            ind.classList.toggle('active', idx + 1 === stepNum);
+        });
+
+        // 機体名同期
+        robotName = document.getElementById('robot-name-input').value.trim() || 'マイロボ1';
+        document.getElementById('header-robot-name').textContent = robotName;
+
+        // アリーナ用リセット
+        if (stepNum === 3) {
+            resetSimulation();
+        } else {
+            // アリーナ離脱時はゲームループを止める
+            stopSimulation();
+        }
+    }
+
+    // ==========================================
+    // 3. 機体パラメータ更新UI
+    // ==========================================
+    function updateRobotTypeDisplay(type) {
+        currentRobotType = type;
+        document.querySelectorAll('.type-card').forEach(card => {
+            card.classList.toggle('active', card.dataset.type === type);
+        });
+
+        const template = ROBOT_TEMPLATES[type] || ROBOT_TEMPLATES.normal;
+        
+        // パラメータバーの更新
+        const speedPercent = Math.min((template.speed / 10) * 100, 100);
+        const forcePercent = Math.min((template.force / 2) * 100, 100);
+        const weightPercent = Math.min((template.weight / 2) * 100, 100);
+
+        document.getElementById('bar-speed').style.width = speedPercent + '%';
+        document.getElementById('bar-force').style.width = forcePercent + '%';
+        document.getElementById('bar-weight').style.width = weightPercent + '%';
+
+        document.getElementById('txt-speed').textContent = template.speed;
+        document.getElementById('txt-force').textContent = template.force;
+        document.getElementById('txt-weight').textContent = template.weight;
+
+        document.getElementById('header-robot-type').textContent = template.label.toUpperCase();
+        document.getElementById('header-robot-type').style.color = template.color;
+    }
+
+    document.querySelectorAll('.type-card').forEach(card => {
+        card.addEventListener('click', () => {
+            updateRobotTypeDisplay(card.dataset.type);
+        });
+    });
+
+    // ==========================================
+    // 4. PointerEvents を使ったドラッグ＆ドロップ実装
+    // ==========================================
+    let draggedElement = null;
+    let dragSource = null;
+    let touchOffsetX = 0;
+    let touchOffsetY = 0;
+    let isDraggingFromToolbox = false;
+
+    document.addEventListener('pointerdown', (e) => {
+        const block = e.target.closest('.block');
+        if (!block || e.target.closest('input[type="text"]')) return;
+        
+        dragSource = block.parentElement;
+        isDraggingFromToolbox = toolbox.contains(block);
+
+        e.preventDefault();
+        
+        if (isDraggingFromToolbox) {
+            draggedElement = block.cloneNode(true);
+            toolbox.style.overflowY = 'hidden';
+        } else {
+            draggedElement = block;
+            block.classList.add('is-dragging-source');
+        }
+
+        const rect = block.getBoundingClientRect();
+        touchOffsetX = e.clientX - rect.left;
+        touchOffsetY = e.clientY - rect.top;
+
+        draggedElement.style.width = rect.width + 'px';
+        draggedElement.classList.add('dragging');
+        draggedElement.style.left = (e.clientX - touchOffsetX) + 'px';
+        draggedElement.style.top = (e.clientY - touchOffsetY) + 'px';
+        
+        document.body.appendChild(draggedElement);
+        
+        try {
+            draggedElement.setPointerCapture(e.pointerId);
+        } catch(err) {}
+
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+        document.addEventListener('pointercancel', onPointerCancel);
+        
+        updatePlaceholder(e.clientX, e.clientY);
+    });
+
+    function onPointerMove(e) {
+        if (!draggedElement) return;
+        draggedElement.style.left = (e.clientX - touchOffsetX) + 'px';
+        draggedElement.style.top = (e.clientY - touchOffsetY) + 'px';
+        updatePlaceholder(e.clientX, e.clientY);
+    }
+
+    function onPointerUp(e) {
+        if (!draggedElement) return;
+        
+        try {
+            draggedElement.releasePointerCapture(e.pointerId);
+        } catch(err) {}
+        
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+        document.removeEventListener('pointercancel', onPointerCancel);
+
+        removePlaceholder();
+        toolbox.style.overflowY = 'auto';
+
+        const x = e.clientX;
+        const y = e.clientY;
+        
+        const elementUnderPointer = document.elementFromPoint(x, y);
+        let dropTarget = elementUnderPointer ? elementUnderPointer.closest('.droppable-slot, #workspace') : null;
+        if (dropTarget && toolbox.contains(dropTarget)) {
+            dropTarget = null;
+        }
+        
+        const isFromToolbox = isDraggingFromToolbox;
+
+        if (dropTarget) {
+            const referenceNode = getReferenceNode(dropTarget, y);
+            const finalBlock = isFromToolbox ? draggedElement.cloneNode(true) : draggedElement;
+            
+            finalBlock.classList.remove('dragging');
+            finalBlock.classList.remove('is-dragging-source');
+            finalBlock.style.position = '';
+            finalBlock.style.left = '';
+            finalBlock.style.top = '';
+            finalBlock.style.width = '';
+
+            dropTarget.insertBefore(finalBlock, referenceNode);
+        } else {
+            draggedElement.remove();
+        }
+
+        if (draggedElement && draggedElement.parentElement === document.body) {
+            draggedElement.remove();
+        }
+        
+        if (dragSource && !toolbox.contains(dragSource) && dragSource.contains(draggedElement)) {
+            draggedElement.classList.remove('is-dragging-source');
+        }
+
+        draggedElement = null;
+        dragSource = null;
+    }
+
+    function onPointerCancel(e) {
+        if (!draggedElement) return;
+
+        try {
+            draggedElement.releasePointerCapture(e.pointerId);
+        } catch(err) {}
+
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+        document.removeEventListener('pointercancel', onPointerCancel);
+
+        removePlaceholder();
+        toolbox.style.overflowY = 'auto';
+
+        if (isDraggingFromToolbox) {
+            draggedElement.remove();
+        } else {
+            if (dragSource && draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement.classList.remove('is-dragging-source');
+                draggedElement.style.position = '';
+                draggedElement.style.left = '';
+                draggedElement.style.top = '';
+                draggedElement.style.width = '';
+                dragSource.appendChild(draggedElement);
+            }
+        }
+
+        if (draggedElement && draggedElement.parentElement === document.body) {
+            draggedElement.remove();
+        }
+
+        if (dragSource && !toolbox.contains(dragSource) && dragSource.contains(draggedElement)) {
+            draggedElement.classList.remove('is-dragging-source');
+        }
+
+        draggedElement = null;
+        dragSource = null;
+    }
+
+    function updatePlaceholder(x, y) {
+        removePlaceholder();
+        const elementUnderPointer = document.elementFromPoint(x, y);
+        let dropTarget = elementUnderPointer ? elementUnderPointer.closest('.droppable-slot, #workspace') : null;
+        if (dropTarget && toolbox.contains(dropTarget)) {
+            dropTarget = null;
+        }
+        if (dropTarget) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'placeholder';
+            const referenceNode = getReferenceNode(dropTarget, y);
+            dropTarget.insertBefore(placeholder, referenceNode);
+        }
+    }
+
+    function removePlaceholder() {
+        const placeholder = document.querySelector('.placeholder');
+        if (placeholder) placeholder.remove();
+    }
+
+    function getReferenceNode(container, y) {
+        const otherBlocks = [...container.children].filter(child => child !== draggedElement && child.classList.contains('block'));
+        for (const child of otherBlocks) {
+            const box = child.getBoundingClientRect();
+            if (y < box.top + box.height / 2) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    // ==========================================
+    // 5. テンキー入力モーダル
+    // ==========================================
+    let activeInputEl = null;
+
+    document.addEventListener('click', (e) => {
+        const input = e.target.closest('input[readonly]');
+        if (input && input.closest('.block')) {
+            activeInputEl = input;
+            const display = document.getElementById('keypad-display');
+            display.textContent = input.value;
+            document.getElementById('keypad-title').textContent = `${input.previousSibling?.textContent.trim() || 'すうじ'}をにゅうりょく`;
+            keypadModal.style.display = 'flex';
+        }
+    });
+
+    document.querySelector('.keypad-grid').addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON' || !activeInputEl) return;
+        const key = e.target.textContent;
+        const display = document.getElementById('keypad-display');
+        
+        if (key === '✔') {
+            activeInputEl.value = display.textContent || '0';
+            keypadModal.style.display = 'none';
+            activeInputEl = null;
+        } else if (key === 'C') {
+            display.textContent = '';
+        } else {
+            if (display.textContent.length < 4) {
+                display.textContent += key;
+            }
+        }
+    });
+
+    window.addEventListener('click', (e) => {
+        if (e.target === keypadModal) {
+            keypadModal.style.display = 'none';
+            activeInputEl = null;
+        }
+    });
+
+    // ==========================================
+    // 6. プログラムのシリアライズ＆構築
+    // ==========================================
+    function serializeProgram(container) {
+        if (!container) return [];
+        const blocks = Array.from(container.children).filter(el => el.classList.contains('block'));
+        return blocks.map(block => {
+            const command = block.dataset.command;
+            const hasSlot = block.classList.contains('conditional');
+            if (hasSlot) {
+                return {
+                    command: command,
+                    then: serializeProgram(block.querySelector('[data-slot="then"]')),
+                    else: serializeProgram(block.querySelector('[data-slot="else"]'))
+                };
+            } else {
+                const input = block.querySelector('input');
+                let parsed = input ? parseInt(input.value, 10) : null;
+                return {
+                    command: command,
+                    value: (parsed !== null && isNaN(parsed)) ? 0 : parsed
+                };
+            }
+        });
+    }
+
+    function buildWorkspace(program, container) {
+        if (!container) return;
+        container.innerHTML = '';
+        if (!program || !Array.isArray(program)) return;
+        program.forEach(p => {
+            const templateBlock = toolbox.querySelector(`.block[data-command="${p.command}"]`);
+            if (templateBlock) {
+                const newBlock = templateBlock.cloneNode(true);
+                if (newBlock.classList.contains('conditional')) {
+                    const thenSlot = newBlock.querySelector('[data-slot="then"]');
+                    const elseSlot = newBlock.querySelector('[data-slot="else"]');
+                    buildWorkspace(p.then || [], thenSlot);
+                    buildWorkspace(p.else || [], elseSlot);
+                } else {
+                    const input = newBlock.querySelector('input');
+                    if (input) {
+                        let val = p.value;
+                        if (val === undefined || val === null || isNaN(parseInt(val, 10))) {
+                            val = parseInt(templateBlock.querySelector('input').value, 10) || 0;
+                        }
+                        input.value = val;
+                    }
+                }
+                container.appendChild(newBlock);
+            }
+        });
+    }
+
+    document.getElementById('clear-workspace-btn').addEventListener('click', () => {
+        if (confirm('ワークスペースのブロックをすべて削除しますか？')) {
+            workspace.innerHTML = '';
+            logDebug('ワークスペースをすべてクリアしました。');
+        }
+    });
+
+    // ==========================================
+    // 7. 保存・読み込み機能のアイコンメニュー対応
+    // ==========================================
+    const menuSaveBtn = document.getElementById('menu-save-btn');
+    const menuLoadBtn = document.getElementById('menu-load-btn');
+    const saveMenu = document.getElementById('save-menu');
+    const loadMenu = document.getElementById('load-menu');
+
+    const menuSaveBtn3 = document.getElementById('menu-save-btn-step3');
+    const menuLoadBtn3 = document.getElementById('menu-load-btn-step3');
+    const saveMenu3 = document.getElementById('save-menu-step3');
+    const loadMenu3 = document.getElementById('load-menu-step3');
+
+    const opponentSavedSelect = document.getElementById('opponent-saved-select');
+
+    // トグル制御 (STEP 2)
+    menuSaveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const active = saveMenu.style.display === 'block';
+        closeAllMenus();
+        if (!active) saveMenu.style.display = 'block';
+    });
+
+    menuLoadBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const active = loadMenu.style.display === 'block';
+        closeAllMenus();
+        if (!active) loadMenu.style.display = 'block';
+    });
+
+    // トグル制御 (STEP 3)
+    menuSaveBtn3.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const active = saveMenu3.style.display === 'block';
+        closeAllMenus();
+        if (!active) saveMenu3.style.display = 'block';
+    });
+
+    menuLoadBtn3.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const active = loadMenu3.style.display === 'block';
+        closeAllMenus();
+        if (!active) loadMenu3.style.display = 'block';
+    });
+
+    document.addEventListener('click', () => {
+        closeAllMenus();
+    });
+
+    function closeAllMenus() {
+        saveMenu.style.display = 'none';
+        loadMenu.style.display = 'none';
+        saveMenu3.style.display = 'none';
+        loadMenu3.style.display = 'none';
+    }
+
+    function getSavedRobots() {
+        try {
+            return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || {};
+        } catch {
+            return {};
+        }
+    }
+
+    function saveSavedRobots(robots) {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(robots));
+        updateSavedRobotDropdowns();
+    }
+
+    function performSaveLocal() {
+        const program = serializeProgram(workspace);
+        logDebug(`ブラウザ保存処理を開始: ロボ名「${robotName}」(タイプ: ${currentRobotType}, ブロック数: ${program.length})`);
+        if (program.length === 0) {
+            logDebug('警告: 保存するプログラムが空です！', true);
+            alert('保存するプログラムがありません！');
+            return;
+        }
+        
+        const robots = getSavedRobots();
+        robots[robotName] = {
+            type: currentRobotType,
+            program: program
+        };
+        saveSavedRobots(robots);
+        logDebug('ブラウザへの保存に成功しました。');
+        alert(`「${robotName}」をブラウザに保存しました！`);
+    }
+
+    function performSaveFile() {
+        const program = serializeProgram(workspace);
+        logDebug(`ファイル書き出し処理を開始: ロボ名「${robotName}」(タイプ: ${currentRobotType}, ブロック数: ${program.length})`);
+        if (program.length === 0) {
+            logDebug('警告: 保存するプログラムが空です！', true);
+            alert('保存するプログラムがありません。');
+            return;
+        }
+        const data = {
+            name: robotName,
+            type: currentRobotType,
+            program: program
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sumo-robot-${robotName}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        logDebug('JSONファイルのダウンロードダイアログを表示しました。');
+    }
+
+    function performLoadLocal() {
+        logDebug('ブラウザ保存済みのマイロボリストを開きます。');
+        const robots = getSavedRobots();
+        const container = document.getElementById('saved-list-items-container');
+        container.innerHTML = '';
+
+        if (Object.keys(robots).length === 0) {
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">保存されたロボットがありません</div>';
+        } else {
+            Object.keys(robots).forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'saved-list-item';
+                
+                const label = document.createElement('span');
+                const template = ROBOT_TEMPLATES[robots[name].type] || ROBOT_TEMPLATES.normal;
+                label.textContent = `${template.icon} ${name}`;
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-saved-btn';
+                deleteBtn.textContent = '❌';
+                deleteBtn.style.background = 'none';
+                deleteBtn.style.border = 'none';
+                deleteBtn.style.color = '#ef4444';
+                deleteBtn.style.cursor = 'pointer';
+                
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm(`「${name}」を削除しますか？`)) {
+                        delete robots[name];
+                        saveSavedRobots(robots);
+                        savedListModal.style.display = 'none';
+                        logDebug(`ロボ「${name}」をブラウザ保存リストから削除しました。`);
+                    }
+                });
+
+                item.appendChild(label);
+                item.appendChild(deleteBtn);
+
+                item.addEventListener('click', () => {
+                    const data = robots[name];
+                    logDebug(`マイロボ「${name}」をロード中... (タイプ: ${data.type}, ブロック数: ${data.program ? data.program.length : 0})`);
+                    document.getElementById('robot-name-input').value = name;
+                    robotName = name;
+                    updateRobotTypeDisplay(data.type);
+                    buildWorkspace(data.program, workspace);
+                    savedListModal.style.display = 'none';
+                    logDebug(`マイロボ「${name}」のロードとワークスペース再構築が完了しました。`);
+                    alert(`「${name}」を読み込みました！`);
+                    resetSimulation();
+                });
+
+                container.appendChild(item);
+            });
+        }
+
+        savedListModal.style.display = 'flex';
+    }
+
+    function performLoadFile() {
+        logDebug('JSONファイル選択ダイアログを開きます。');
+        fileInput.click();
+    }
+
+    // モーダルキャンセルボタンのイベント登録
+    document.getElementById('saved-list-cancel-btn').addEventListener('click', () => {
+        savedListModal.style.display = 'none';
+        logDebug('マイロボリストの読込をキャンセルしました。');
+    });
+
+    // STEP 2 オプションのイベント登録
+    document.getElementById('save-local-opt').addEventListener('click', performSaveLocal);
+    document.getElementById('save-file-opt').addEventListener('click', performSaveFile);
+    document.getElementById('load-local-opt').addEventListener('click', performLoadLocal);
+    document.getElementById('load-file-opt').addEventListener('click', performLoadFile);
+
+    // STEP 3 オプションのイベント登録
+    document.getElementById('save-local-opt-step3').addEventListener('click', performSaveLocal);
+    document.getElementById('save-file-opt-step3').addEventListener('click', performSaveFile);
+    document.getElementById('load-local-opt-step3').addEventListener('click', performLoadLocal);
+    document.getElementById('load-file-opt-step3').addEventListener('click', performLoadFile);
+
+    // ファイルから読み込み (JSONファイルアップロード)
+    const fileInput = document.getElementById('import-file-input');
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        logDebug(`JSONファイル読込中... ファイル名: ${file.name}`);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                if (data.type && Array.isArray(data.program)) {
+                    const loadedName = data.name || 'ロードロボ';
+                    logDebug(`JSON解析成功: ロボ名「${loadedName}」(タイプ: ${data.type}, ブロック数: ${data.program.length})`);
+                    document.getElementById('robot-name-input').value = loadedName;
+                    robotName = loadedName;
+                    updateRobotTypeDisplay(data.type);
+                    buildWorkspace(data.program, workspace);
+                    logDebug(`ワークスペースの再構築が完了しました。`);
+                    alert(`「${loadedName}」のプログラムを読み込みました！`);
+                    resetSimulation();
+                } else {
+                    logDebug('警告: 読み込んだJSONのデータフォーマットが正しくありません。', true);
+                    alert('正しいロボ相撲のデータファイルではありません。');
+                }
+            } catch (err) {
+                logDebug(`エラー: ファイル解析中に例外が発生しました - ${err.message}`, true);
+                alert('ファイルの読み込みに失敗しました。');
+            }
+        };
+        reader.readAsText(file);
+        fileInput.value = '';
+    });
+
+    // 対戦相手としてファイルから読み込み (JSONファイルアップロード)
+    const importOpponentBtn = document.getElementById('import-opponent-btn');
+    const importOpponentFileInput = document.getElementById('import-opponent-file-input');
+
+    importOpponentBtn.addEventListener('click', () => {
+        importOpponentFileInput.click();
+    });
+
+    importOpponentFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        logDebug(`対戦相手JSONファイル読込中... ファイル名: ${file.name}`);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                if (data.type && Array.isArray(data.program)) {
+                    const loadedName = data.name || 'ファイルロボ';
+                    
+                    fileOpponent = {
+                        name: loadedName,
+                        type: data.type || 'normal',
+                        program: data.program
+                    };
+                    
+                    logDebug(`対戦相手ファイル解析成功: 「${loadedName}」`);
+                    
+                    // 選択肢を追加してドロップダウンを更新
+                    opponentSavedSelect.value = '';
+                    updateSavedRobotDropdowns();
+                    opponentSavedSelect.value = '__file__';
+                    document.getElementById('opponent-select').value = '';
+                    
+                    resetSimulation();
+                    alert(`対戦相手として「${loadedName}」を読み込みました！`);
+                } else {
+                    logDebug('警告: 対戦相手JSONのデータフォーマットが正しくありません。', true);
+                    alert('正しいロボ相撲のデータファイルではありません。');
+                }
+            } catch (err) {
+                logDebug(`エラー: 対戦相手ファイル解析中に例外が発生しました - ${err.message}`, true);
+                alert('ファイルの読み込みに失敗しました。');
+            }
+        };
+        reader.readAsText(file);
+        importOpponentFileInput.value = '';
+    });
+
+    // マイロボットドロップダウンの同期
+    function updateSavedRobotDropdowns() {
+        const robots = getSavedRobots();
+        const currentOppSelection = opponentSavedSelect.value;
+        opponentSavedSelect.innerHTML = '<option value="">-- マイロボットから選択 --</option>';
+        Object.keys(robots).forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = `マイロボ: ${name}`;
+            opponentSavedSelect.appendChild(opt);
+        });
+
+        // ファイルから読み込んだ対戦相手の復元
+        if (fileOpponent) {
+            const opt = document.createElement('option');
+            opt.value = '__file__';
+            opt.textContent = `📁 ${fileOpponent.name} (読込ファイル)`;
+            opponentSavedSelect.appendChild(opt);
+        }
+
+        opponentSavedSelect.value = currentOppSelection;
+    }
+
+    // ==========================================
+    // 8. 試合会場・物理エンジン・試合ループ
+    // ==========================================
+    let simInterval = null;
+    let particles = [];
+    let projectiles = [];
+    let fileOpponent = null;
+    
+    let state = {
+        timer: 30.0,
+        isRunning: false,
+        players: []
+    };
+
+    const CANVAS_CENTER = { x: 400, y: 400 };
+    const DOHYO_RADIUS = 340;
+
+    // AIのプリセットプログラム
+    const AI_PROGRAMS = {
+        easy: [
+            { command: 'turnToEnemy' },
+            { command: 'forward', value: 80 }
+        ],
+        normal: [
+            {
+                command: 'ifNearEdge',
+                then: [
+                    { command: 'backward', value: 120 },
+                    { command: 'turnRight', value: 120 }
+                ],
+                else: [
+                    {
+                        command: 'ifCollision',
+                        then: [
+                            { command: 'turnRight', value: 90 },
+                            { command: 'forward', value: 10 }
+                        ],
+                        else: [
+                            { command: 'turnToEnemy' },
+                            {
+                                command: 'ifEnemyAhead',
+                                then: [
+                                    { command: 'shoot' },
+                                    { command: 'dash' },
+                                    { command: 'forward', value: 150 }
+                                ],
+                                else: [
+                                    { command: 'forward', value: 60 }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        hard: [
+            {
+                command: 'ifNearEdge',
+                then: [
+                    { command: 'backward', value: 150 },
+                    { command: 'turnRight', value: 150 }
+                ],
+                else: [
+                    { command: 'turnToEnemy' },
+                    {
+                        command: 'ifEnemyAhead',
+                        then: [
+                            { command: 'shoot' },
+                            { command: 'dash' },
+                            { command: 'forward', value: 200 }
+                        ],
+                        else: [
+                            { command: 'shoot' },
+                            { command: 'forward', value: 80 }
+                        ]
+                    }
+                ]
+            }
+        ]
+    };
+
+    function resetSimulation() {
+        logDebug('シミュレーションをリセットします。');
+        stopSimulation();
+        
+        state.timer = 30.0;
+        state.isRunning = false;
+        state.lastEdgeWarningTime = 0;
+        state.lastLowTimeWarning = false;
+        state.lastCollisionTime = Date.now();
+        state.lastNiramiTime = Date.now();
+        state.lastDistance = undefined;
+        state.lastDistSaveTime = 0;
+        state.lastTurnTime = { player: 0, opponent: 0 };
+        particles = [];
+        projectiles = [];
+        
+        document.getElementById('hud-timer-container').textContent = '30.0s';
+        document.getElementById('hud-timer-container').style.color = 'var(--accent-magenta)';
+        battleStatusMsg.textContent = '';
+
+        // 自分
+        let myTemplate = ROBOT_TEMPLATES[currentRobotType];
+        if (!myTemplate) {
+            logDebug(`警告: 機体タイプ「${currentRobotType}」が見つからないため、normalタイプにフォールバックします。`, true);
+            myTemplate = ROBOT_TEMPLATES.normal;
+            currentRobotType = 'normal';
+        }
+        const p1Prog = serializeProgram(workspace);
+        logDebug(`自分の機体設定: 名「${robotName}」(タイプ: ${currentRobotType}, 速度: ${myTemplate.speed}, ブロック数: ${p1Prog ? p1Prog.length : 0})`);
+        
+        const player1 = {
+            id: 'player',
+            name: robotName,
+            type: myTemplate.type,
+            x: 250,
+            y: 400,
+            angle: 0,
+            radius: 32, // 少し大きく描画
+            speed: myTemplate.speed,
+            force: myTemplate.force,
+            weight: myTemplate.weight,
+            color: myTemplate.color,
+            isColliding: false,
+            
+            // ブロック実行エンジンのステート
+            program: (p1Prog && Array.isArray(p1Prog)) ? JSON.parse(JSON.stringify(p1Prog)) : [],
+            executionStack: [],
+            currentProgram: null,
+            ip: 0,
+            currentAction: null,
+            isDashing: 0,
+            shootCooldown: 0, // 弾発射クールダウン（フレーム数）
+            
+            vx: 0,
+            vy: 0
+        };
+        player1.currentProgram = player1.program;
+
+        // 相手
+        let oppName = '相手';
+        let oppType = 'normal';
+        let oppProgram = AI_PROGRAMS.normal;
+        
+        const opponentType = document.getElementById('opponent-select').value;
+        const savedOpponentName = opponentSavedSelect.value;
+        
+        if (savedOpponentName) {
+            let saved;
+            if (savedOpponentName === '__file__') {
+                saved = fileOpponent;
+            } else {
+                saved = getSavedRobots()[savedOpponentName];
+            }
+            if (saved && saved.program && Array.isArray(saved.program)) {
+                oppName = saved.name || savedOpponentName;
+                oppType = saved.type || 'normal';
+                oppProgram = saved.program;
+                logDebug(`対戦相手にマイロボ「${oppName}」を設定しました。(タイプ: ${oppType}, ブロック数: ${oppProgram.length})`);
+            } else {
+                logDebug(`警告: 選択されたマイロボ「${savedOpponentName}」のデータが不正です。弐号機にフォールバックします。`, true);
+                oppProgram = AI_PROGRAMS.normal;
+            }
+        } else {
+            if (opponentType === 'ai-easy') {
+                oppName = '初号機';
+                oppType = 'speed';
+                oppProgram = AI_PROGRAMS.easy;
+            } else if (opponentType === 'ai-normal') {
+                oppName = '弐号機';
+                oppType = 'normal';
+                oppProgram = AI_PROGRAMS.normal;
+            } else if (opponentType === 'ai-hard') {
+                oppName = '参号機';
+                oppType = 'power';
+                oppProgram = AI_PROGRAMS.hard;
+            }
+            logDebug(`対戦相手に「${oppName}」を設定しました。(タイプ: ${oppType}, ブロック数: ${oppProgram ? oppProgram.length : 0})`);
+        }
+
+        const oppTemplate = ROBOT_TEMPLATES[oppType] || ROBOT_TEMPLATES.normal;
+        const player2 = {
+            id: 'opponent',
+            name: oppName,
+            type: oppTemplate.type,
+            x: 550,
+            y: 400,
+            angle: 180, // 左向き
+            radius: 32,
+            speed: oppTemplate.speed,
+            force: oppTemplate.force,
+            weight: oppTemplate.weight,
+            color: oppTemplate.color,
+            isColliding: false,
+            
+            program: (oppProgram && Array.isArray(oppProgram)) ? JSON.parse(JSON.stringify(oppProgram)) : [],
+            executionStack: [],
+            currentProgram: null,
+            ip: 0,
+            currentAction: null,
+            isDashing: 0,
+            shootCooldown: 0,
+            
+            vx: 0,
+            vy: 0
+        };
+        player2.currentProgram = player2.program;
+
+        state.players = [player1, player2];
+
+        // HUD更新
+        document.getElementById('hud-my-status').querySelector('.hud-name').textContent = robotName;
+        document.getElementById('hud-my-status').querySelector('.hud-sub').textContent = myTemplate.label.toUpperCase();
+        document.getElementById('hud-my-status').style.borderColor = myTemplate.color;
+        document.getElementById('hud-my-status').style.color = myTemplate.color;
+
+        document.getElementById('hud-opp-status').querySelector('.hud-name').textContent = oppName;
+        document.getElementById('hud-opp-status').querySelector('.hud-sub').textContent = oppTemplate.label.toUpperCase();
+        document.getElementById('hud-opp-status').style.borderColor = oppTemplate.color;
+        document.getElementById('hud-opp-status').style.color = oppTemplate.color;
+
+        drawArena();
+        
+        // 試合前の実況アナウンス
+        const now = new Date();
+        const timeStr = now.getHours() + '時' + String(now.getMinutes()).padStart(2, '0') + '分';
+        logDebug(`実況: 📢【試合予告】${timeStr}、いよいよ試合が始まります！`);
+        logDebug(`実況: 左（東）は「${player1.name}」(${myTemplate.label})、右（西）は「${player2.name}」(${oppTemplate.label})！`);
+    }
+
+    opponentSavedSelect.addEventListener('change', () => {
+        if (opponentSavedSelect.value) {
+            document.getElementById('opponent-select').value = '';
+        } else {
+            document.getElementById('opponent-select').value = 'ai-normal';
+        }
+        resetSimulation();
+    });
+    document.getElementById('opponent-select').addEventListener('change', () => {
+        if (document.getElementById('opponent-select').value) {
+            opponentSavedSelect.value = '';
+        }
+        resetSimulation();
+    });
+
+    // ==========================================
+    // 9. ロボット制御エンジンと飛び道具の処理
+    // ==========================================
+    function executeRobotBrain(player, opponent) {
+        if (player.isDashing > 0) player.isDashing--;
+        if (player.shootCooldown > 0) player.shootCooldown--;
+
+        if (player.currentAction) {
+            progressAction(player);
+            return;
+        }
+
+        let steps = 0;
+        const maxSteps = 100;
+
+        while (steps < maxSteps) {
+            steps++;
+
+            if (!player.currentProgram || player.currentProgram.length === 0) {
+                if (player.executionStack.length > 0) {
+                    const parent = player.executionStack.pop();
+                    player.currentProgram = parent.program;
+                    player.ip = parent.ip;
+                    continue;
+                }
+                break;
+            }
+
+            if (player.ip >= player.currentProgram.length) {
+                if (player.executionStack.length > 0) {
+                    const parent = player.executionStack.pop();
+                    player.currentProgram = parent.program;
+                    player.ip = parent.ip;
+                } else {
+                    player.ip = 0;
+                }
+                continue;
+            }
+
+            const instruction = player.currentProgram[player.ip];
+            if (!instruction) {
+                break;
+            }
+
+            const cmd = instruction.command;
+            const value = instruction.value || 0;
+
+            if (cmd === 'shoot') {
+                player.ip++;
+                if (player.shootCooldown === 0) {
+                    fireProjectile(player);
+                }
+                continue;
+            }
+            else if (cmd === 'turnToEnemy') {
+                player.ip++;
+                const diff = getAngleToOpponent(player, opponent);
+                if (Math.abs(diff) >= 2) {
+                    const turnCmd = diff > 0 ? 'turnRight' : 'turnLeft';
+                    player.currentAction = { command: turnCmd, progress: 0, total: Math.round(Math.abs(diff)) };
+                    break;
+                }
+                continue;
+            }
+            else if (cmd === 'forward' || cmd === 'backward' || cmd === 'turnRight' || cmd === 'turnLeft' || cmd === 'dash') {
+                player.ip++; 
+
+                if (cmd === 'forward') {
+                    player.currentAction = { command: 'forward', progress: 0, total: value };
+                } else if (cmd === 'backward') {
+                    player.currentAction = { command: 'backward', progress: 0, total: value };
+                } else if (cmd === 'turnRight') {
+                    player.currentAction = { command: 'turnRight', progress: 0, total: value };
+                } else if (cmd === 'turnLeft') {
+                    player.currentAction = { command: 'turnLeft', progress: 0, total: value };
+                } else if (cmd === 'dash') {
+                    player.isDashing = 60;
+                    player.currentAction = { command: 'dash', progress: 0, total: 20 };
+                }
+                break;
+            } 
+            else if (cmd === 'ifCollision' || cmd === 'ifEnemyAhead' || cmd === 'ifNearEdge') {
+                let conditionMet = false;
+                if (cmd === 'ifCollision') {
+                    conditionMet = player.isColliding;
+                } else if (cmd === 'ifEnemyAhead') {
+                    const angleToOpp = getAngleToOpponent(player, opponent);
+                    const dist = getDistance(player.x, player.y, opponent.x, opponent.y);
+                    conditionMet = dist < 300 && Math.abs(angleToOpp) < 30;
+                } else if (cmd === 'ifNearEdge') {
+                    const distFromCenter = getDistance(player.x, player.y, CANVAS_CENTER.x, CANVAS_CENTER.y);
+                    conditionMet = distFromCenter > 280;
+                }
+
+                const subProg = conditionMet ? instruction.then : instruction.else;
+                player.ip++;
+
+                if (subProg && subProg.length > 0) {
+                    player.executionStack.push({
+                        program: player.currentProgram,
+                        ip: player.ip
+                    });
+                    player.currentProgram = subProg;
+                    player.ip = 0;
+                }
+                continue;
+            } else {
+                player.ip++;
+                continue;
+            }
+        }
+    }
+
+    function progressAction(player) {
+        const act = player.currentAction;
+        let speedMultiplier = player.isDashing > 0 ? 1.6 : 1.0;
+        const currentSpeed = player.speed * speedMultiplier;
+
+        if (act.command === 'forward') {
+            const step = Math.min(currentSpeed, act.total - act.progress);
+            const rad = player.angle * Math.PI / 180;
+            player.x += Math.cos(rad) * step;
+            player.y += Math.sin(rad) * step;
+            act.progress += step;
+            if (act.progress >= act.total) player.currentAction = null;
+        } else if (act.command === 'backward') {
+            const step = Math.min(currentSpeed, act.total - act.progress);
+            const rad = player.angle * Math.PI / 180;
+            player.x -= Math.cos(rad) * step;
+            player.y -= Math.sin(rad) * step;
+            act.progress += step;
+            if (act.progress >= act.total) player.currentAction = null;
+        } else if (act.command === 'turnRight') {
+            const step = Math.min(4, act.total - act.progress);
+            player.angle = (player.angle + step) % 360;
+            act.progress += step;
+            if (act.progress >= act.total) player.currentAction = null;
+        } else if (act.command === 'turnLeft') {
+            const step = Math.min(4, act.total - act.progress);
+            player.angle = (player.angle - step + 360) % 360;
+            act.progress += step;
+            if (act.progress >= act.total) player.currentAction = null;
+        } else if (act.command === 'dash') {
+            const step = currentSpeed;
+            const rad = player.angle * Math.PI / 180;
+            player.x += Math.cos(rad) * step;
+            player.y += Math.sin(rad) * step;
+            act.progress += 1;
+            if (act.progress >= act.total) player.currentAction = null;
+        }
+    }
+
+    function fireProjectile(player) {
+        const rad = player.angle * Math.PI / 180;
+        const startX = player.x + Math.cos(rad) * (player.radius + 10);
+        const startY = player.y + Math.sin(rad) * (player.radius + 10);
+        
+        projectiles.push({
+            x: startX,
+            y: startY,
+            vx: Math.cos(rad) * 11,
+            vy: Math.sin(rad) * 11,
+            radius: 6,
+            color: player.color,
+            ownerId: player.id,
+            life: 80,
+            history: []
+        });
+        
+        player.shootCooldown = 45;
+    }
+
+    function getAngleToOpponent(player, opponent) {
+        const dx = opponent.x - player.x;
+        const dy = opponent.y - player.y;
+        let angleToOpp = Math.atan2(dy, dx) * 180 / Math.PI;
+        let diff = angleToOpp - player.angle;
+        while (diff < -180) diff += 360;
+        while (diff > 180) diff -= 360;
+        return diff;
+    }
+
+    function getDistance(x1, y1, x2, y2) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        return Math.sqrt(dx*dx + dy*dy);
+    }
+
+    // ==========================================
+    // 10. 試合会場ゲームループ＆物理判定
+    // ==========================================
+    function startSimulation() {
+        logDebug('シミュレーション開始を要求します。');
+        if (state.isRunning) {
+            logDebug('シミュレーションはすでに実行中です。');
+            return;
+        }
+        resetSimulation();
+        
+        if (state.players[0].program.length === 0) {
+            logDebug('エラー: プログラムブロック数が0です。シミュレーションを開始できません。', true);
+            alert('プログラミングエリアにブロックをおいてから試合をしてね！');
+            goToStep(2); // 自動でステップ2に戻す
+            return;
+        }
+
+        state.isRunning = true;
+        logDebug('シミュレーションを開始しました。');
+        logDebug('実況: 🟢 さぁ、はっけよい、のこった！！');
+        let lastTime = performance.now();
+
+        function loop(timestamp) {
+            if (!state.isRunning) return;
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            updatePhysics();
+            drawArena();
+            updateTimer(dt);
+
+            if (state.isRunning) {
+                simInterval = requestAnimationFrame(loop);
+            }
+        }
+        simInterval = requestAnimationFrame(loop);
+    }
+
+    function stopSimulation() {
+        if (state.isRunning) {
+            logDebug('シミュレーションを停止します。');
+        }
+        state.isRunning = false;
+        if (simInterval) {
+            cancelAnimationFrame(simInterval);
+            simInterval = null;
+        }
+    }
+
+    function updateTimer(dt) {
+        if (!state.isRunning) return;
+        state.timer -= dt;
+        if (state.timer <= 0) {
+            state.timer = 0;
+            logDebug('実況: ⌛ 30秒経過！時間切れ、引き分け！！');
+            endBattle('引き分け！ (時間切れ)', 'var(--accent-magenta)');
+        }
+        document.getElementById('hud-timer-container').textContent = state.timer.toFixed(1) + 's';
+        if (state.timer < 5) {
+            document.getElementById('hud-timer-container').style.color = '#ff0055';
+            if (!state.lastLowTimeWarning) {
+                logDebug('実況: ⌛ 残り時間わずか！両者いそげ！');
+                state.lastLowTimeWarning = true;
+            }
+        }
+    }
+
+    function updatePhysics() {
+        const [p1, p2] = state.players;
+
+        executeRobotBrain(p1, p2);
+        executeRobotBrain(p2, p1);
+
+        p1.x += p1.vx; p1.y += p1.vy;
+        p2.x += p2.vx; p2.y += p2.vy;
+        
+        p1.vx *= 0.85; p1.vy *= 0.85;
+        p2.vx *= 0.85; p2.vy *= 0.85;
+
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+            const bullet = projectiles[i];
+            
+            bullet.history.push({ x: bullet.x, y: bullet.y });
+            if (bullet.history.length > 5) bullet.history.shift();
+
+            bullet.x += bullet.vx;
+            bullet.y += bullet.vy;
+            bullet.life--;
+
+            const target = (bullet.ownerId === 'player') ? p2 : p1;
+            const dist = getDistance(bullet.x, bullet.y, target.x, target.y);
+            
+            if (dist < bullet.radius + target.radius) {
+                createHitSparks(bullet.x, bullet.y, bullet.color);
+
+                const impulse = 12.0 / target.weight;
+                const rad = Math.atan2(bullet.vy, bullet.vx);
+                target.vx += Math.cos(rad) * impulse;
+                target.vy += Math.sin(rad) * impulse;
+
+                target.currentAction = null;
+
+                // 弾の直撃実況
+                logDebug(`実況: 🎯「${target.name}」に飛び道具が直撃！ノックバック！`);
+
+                projectiles.splice(i, 1);
+                continue;
+            }
+
+            const distFromCenter = getDistance(bullet.x, bullet.y, CANVAS_CENTER.x, CANVAS_CENTER.y);
+            if (bullet.life <= 0 || distFromCenter > DOHYO_RADIUS + 20) {
+                projectiles.splice(i, 1);
+            }
+        }
+
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        const minDist = p1.radius + p2.radius;
+
+        const wasColliding = p1.isColliding || p2.isColliding;
+
+        if (distance < minDist) {
+            if (!wasColliding) {
+                const p1Dashing = p1.isDashing > 0;
+                const p2Dashing = p2.isDashing > 0;
+                if (p1Dashing && p2Dashing) {
+                    logDebug(`実況: 💥 おおっと！両者フルパワーで正面衝突！すさまじい火花が飛び散る！`);
+                } else if (p1Dashing) {
+                    logDebug(`実況: 💥「${p1.name}」が怒涛の突撃！「${p2.name}」に激しくぶつかった！`);
+                } else if (p2Dashing) {
+                    logDebug(`実況: 💥「${p2.name}」がダッシュで突撃！「${p1.name}」ががっちり受け止める！`);
+                } else {
+                    logDebug(`実況: 💥 おおっと、はげしいぶつかり合いだ！`);
+                }
+            }
+
+            p1.isColliding = true;
+            p2.isColliding = true;
+
+            // 土俵際警告の判定 (衝突中で、どちらかが土俵の端にいる場合)
+            const dist1 = getDistance(p1.x, p1.y, CANVAS_CENTER.x, CANVAS_CENTER.y);
+            const dist2 = getDistance(p2.x, p2.y, CANVAS_CENTER.x, CANVAS_CENTER.y);
+            
+            if (!state.lastEdgeWarningTime) state.lastEdgeWarningTime = 0;
+            const nowTime = Date.now();
+            if (nowTime - state.lastEdgeWarningTime > 2500) { // 2.5秒の間隔
+                if (dist1 > DOHYO_RADIUS - 60) {
+                    logDebug(`実況: ⚠️ あぶない！「${p1.name}」が土俵際まで追い詰められた！こらえられるか！？`);
+                    state.lastEdgeWarningTime = nowTime;
+                } else if (dist2 > DOHYO_RADIUS - 60) {
+                    logDebug(`実況: ⚠️ チャンス！「${p2.name}」が土俵際に押し出されそうだ！`);
+                    state.lastEdgeWarningTime = nowTime;
+                }
+            }
+
+            createSparks((p1.x + p2.x)/2, (p1.y + p2.y)/2);
+
+            const overlap = minDist - distance;
+            const nx = dx / distance;
+            const ny = dy / distance;
+
+            p1.x -= nx * overlap * 0.5;
+            p1.y -= ny * overlap * 0.5;
+            p2.x += nx * overlap * 0.5;
+            p2.y += ny * overlap * 0.5;
+
+            const p1Dashing = p1.isDashing > 0;
+            const p2Dashing = p2.isDashing > 0;
+            const p1Force = p1.force * (p1Dashing ? 1.8 : 1.0);
+            const p2Force = p2.force * (p2Dashing ? 1.8 : 1.0);
+
+            const force1to2 = (p1Force * 16) / p2.weight;
+            const force2to1 = (p2Force * 16) / p1.weight;
+
+            p2.vx += nx * force1to2;
+            p2.vy += ny * force1to2;
+            p1.vx -= nx * force2to1;
+            p1.vy -= ny * force2to1;
+            
+            p1.currentAction = null;
+            p2.currentAction = null;
+        } else {
+            p1.isColliding = false;
+            p2.isColliding = false;
+        }
+
+        updateParticles();
+
+        // 1. 自爆か押し出しかを判断するための衝突時刻の記録
+        if (distance < minDist) {
+            state.lastCollisionTime = Date.now();
+        }
+
+        // 2. 向き変更の実況（睨み合い中や移動中に方向転換した時）
+        const nowTime = Date.now();
+        if (!state.lastTurnTime) {
+            state.lastTurnTime = { player: 0, opponent: 0 };
+        }
+        
+        state.players.forEach(p => {
+            if (p.lastAngle === undefined) {
+                p.lastAngle = p.angle;
+            }
+            let diff = p.angle - p.lastAngle;
+            while (diff < -180) diff += 360;
+            while (diff > 180) diff -= 360;
+            const angleDiff = Math.abs(diff);
+            
+            // 角度が15度以上変わっており、かつ前回の方向転換実況から3秒以上経過している場合
+            if (angleDiff > 15 && (nowTime - (state.lastTurnTime[p.id] || 0) > 3000)) {
+                logDebug(`実況: 👀「${p.name}」は ${Math.round(p.angle)}度 の方向に向きを変えて様子を窺っているぞ！`);
+                state.lastTurnTime[p.id] = nowTime;
+                p.lastAngle = p.angle;
+            }
+            
+            if (angleDiff > 0) {
+                p.lastAngle = p.angle;
+            }
+        });
+
+        // 3. 睨み合い（一定時間衝突していない状態）と時間の経過
+        if (!state.lastCollisionTime) state.lastCollisionTime = nowTime;
+        if (!state.lastNiramiTime) state.lastNiramiTime = nowTime;
+
+        const timeSinceCollision = nowTime - state.lastCollisionTime;
+        if (timeSinceCollision > 4500 && (nowTime - state.lastNiramiTime > 5000)) {
+            const rand = Math.random();
+            if (rand < 0.33) {
+                logDebug(`実況: 👀 おおっと、両者睨み合いを続けている！！`);
+            } else if (rand < 0.66) {
+                logDebug(`実況: ⏳ 時間だけが過ぎていくぞ！`);
+            } else {
+                if (state.lastDistance !== undefined) {
+                    const distDiff = distance - state.lastDistance;
+                    if (Math.abs(distDiff) > 15) {
+                        if (distDiff > 0) {
+                            logDebug(`実況: 🤨 そのまま離れていくのか？お互い間合いを取っている！`);
+                        } else {
+                            logDebug(`実況: ⚡ お互いに近づいていく！間合いが詰まってきたぞ！`);
+                        }
+                    } else {
+                        logDebug(`実況: 👀 おおっと、両者睨み合いを続けている！！`);
+                    }
+                } else {
+                    logDebug(`実況: 👀 おおっと、両者睨み合いを続けている！！`);
+                }
+            }
+            state.lastNiramiTime = nowTime;
+        }
+
+        // 定期的に距離を保存
+        if (!state.lastDistSaveTime) state.lastDistSaveTime = 0;
+        if (nowTime - state.lastDistSaveTime > 1000) {
+            state.lastDistance = distance;
+            state.lastDistSaveTime = nowTime;
+        }
+
+        // 4. 3秒以上の完全停止による反則判定
+        state.players.forEach(p => {
+            if (p.lastX === undefined) p.lastX = p.x;
+            if (p.lastY === undefined) p.lastY = p.y;
+            if (p.lastCheckAngle === undefined) p.lastCheckAngle = p.angle;
+            if (p.staticFrames === undefined) p.staticFrames = 0;
+            
+            const distMoved = getDistance(p.x, p.y, p.lastX, p.lastY);
+            const angleDiff = Math.abs(p.angle - p.lastCheckAngle);
+            
+            // 位置も角度も実質的に変化していない場合
+            if (distMoved < 0.1 && angleDiff < 0.1) {
+                p.staticFrames++;
+            } else {
+                p.staticFrames = 0;
+            }
+            
+            p.lastX = p.x;
+            p.lastY = p.y;
+            p.lastCheckAngle = p.angle;
+        });
+
+        // 3秒 = 180フレーム (60fps想定)
+        const p1Static = p1.staticFrames >= 180;
+        const p2Static = p2.staticFrames >= 180;
+
+        if (p1Static && p2Static) {
+            logDebug(`実況: 🟥 反則！両者ともに3秒以上動かなかったため、両者反則負け！！`);
+            logDebug(`実況: 🤝 両者失格による引き分けです！`);
+            endBattle('😭 両者反則負け！ (3秒停止) 😭', 'var(--accent-magenta)');
+        } else if (p1Static) {
+            logDebug(`実況: 🟥 反則！「${p1.name}」が3秒以上動かなかったため、反則負け！！`);
+            logDebug(`実況: 🏆「${p2.name}」の不戦勝！！`);
+            endBattle('😭 反則まけ... (3秒停止) 😭', 'var(--accent-magenta)');
+        } else if (p2Static) {
+            logDebug(`実況: 🟥 反則！「${p2.name}」が3秒以上動かなかったため、反則負け！！`);
+            logDebug(`実況: 🏆「${p1.name}」の不戦勝！！`);
+            endBattle('🎉 反則勝ち！ (相手3秒停止) 🎉', 'var(--accent-green)');
+        }
+
+        checkOutBounds(p1, '相手');
+        checkOutBounds(p2, '自分');
+    }
+
+    function checkOutBounds(player, winnerName) {
+        if (!state.isRunning) return;
+        const distFromCenter = getDistance(player.x, player.y, CANVAS_CENTER.x, CANVAS_CENTER.y);
+        if (distFromCenter > DOHYO_RADIUS + player.radius - 8) {
+            const winner = state.players.find(p => p.id !== player.id);
+            const timeSinceLastCollision = Date.now() - (state.lastCollisionTime || 0);
+            
+            if (timeSinceLastCollision > 1500) {
+                logDebug(`実況: 🔴 あああっと！「${player.name}」が自ら土俵の外に出てしまった！！（自爆）`);
+            } else {
+                logDebug(`実況: 🔴 そのまま土俵の外へ！「${player.name}」が押し出された！`);
+            }
+            logDebug(`実況: 🏆「${winner.name}」の勝ち！！`);
+
+            let winText = `${winnerName} のかち！`;
+            if (winnerName === '自分') {
+                winText = '🎉 あなたの かち！ 🎉';
+                endBattle(winText, 'var(--accent-green)');
+            } else {
+                winText = '😭 あなたの まけ... 😭';
+                endBattle(winText, 'var(--accent-magenta)');
+            }
+        }
+    }
+
+    function endBattle(message, color = '#ffffff') {
+        state.isRunning = false;
+        logDebug(`シミュレーションが終了しました: ${message}`);
+        battleStatusMsg.textContent = message;
+        battleStatusMsg.style.color = color;
+    }
+
+    // ==========================================
+    // 11. Canvas 描画処理 (Glow効果や弾の軌跡)
+    // ==========================================
+    function drawArena() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. 土俵
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(CANVAS_CENTER.x, CANVAS_CENTER.y, DOHYO_RADIUS + 12, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 0, 127, 0.4)';
+        ctx.lineWidth = 14;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(CANVAS_CENTER.x, CANVAS_CENTER.y, DOHYO_RADIUS, 0, Math.PI * 2);
+        ctx.strokeStyle = 'var(--accent-cyan)';
+        ctx.lineWidth = 5;
+        ctx.fillStyle = '#0a0f1d';
+        ctx.shadowColor = 'var(--accent-cyan)';
+        ctx.shadowBlur = 15;
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // 仕切り線
+        ctx.beginPath();
+        ctx.moveTo(CANVAS_CENTER.x - 80, CANVAS_CENTER.y - 25);
+        ctx.lineTo(CANVAS_CENTER.x - 80, CANVAS_CENTER.y + 25);
+        ctx.moveTo(CANVAS_CENTER.x + 80, CANVAS_CENTER.y - 25);
+        ctx.lineTo(CANVAS_CENTER.x + 80, CANVAS_CENTER.y + 25);
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+
+        // 2. 弾の描画
+        projectiles.forEach(bullet => {
+            ctx.save();
+            if (bullet.history.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(bullet.history[0].x, bullet.history[0].y);
+                for (let h = 1; h < bullet.history.length; h++) {
+                    ctx.lineTo(bullet.history[h].x, bullet.history[h].y);
+                }
+                ctx.strokeStyle = bullet.color;
+                ctx.lineWidth = bullet.radius * 1.5;
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = 0.25;
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = bullet.color;
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.restore();
+        });
+
+        // 3. ロボットの描画
+        state.players.forEach(p => {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle * Math.PI / 180);
+
+            if (p.isDashing > 0) {
+                ctx.beginPath();
+                ctx.arc(0, 0, p.radius + 10, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.18)';
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.fill();
+            }
+
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.rect(-p.radius - 2, -p.radius - 4, p.radius * 2 + 4, 8);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.rect(-p.radius - 2, p.radius - 4, p.radius * 2 + 4, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.rect(-p.radius - 6, -p.radius + 10, 10, (p.radius * 2) - 20);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, p.radius - 2, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 18;
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle * Math.PI / 180);
+
+            ctx.fillStyle = '#334155';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.rect(p.radius - 6, -8, 22, 16);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.rect(p.radius + 12, -5, 4, 10);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, p.radius / 1.6, 0, Math.PI * 2);
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(p.radius / 3, 0, 4, 0, Math.PI * 2);
+            ctx.fillStyle = p.isColliding ? '#ff0000' : 'var(--accent-cyan)';
+            ctx.fill();
+
+            ctx.restore();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px var(--font-sf)';
+            ctx.textAlign = 'center';
+            ctx.fillText(p.name, p.x, p.y - p.radius - 14);
+        });
+
+        // 4. パーティクルの描画
+        particles.forEach(pt => {
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+            ctx.fillStyle = pt.color;
+            ctx.fill();
+        });
+    }
+
+    function createSparks(x, y) {
+        for (let i = 0; i < 10; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1.5 + Math.random() * 5;
+            particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: 2.5 + Math.random() * 3.5,
+                life: 1.0,
+                decay: 0.025 + Math.random() * 0.04,
+                color: Math.random() > 0.5 ? 'var(--accent-yellow)' : 'var(--accent-magenta)'
+            });
+        }
+    }
+
+    function createHitSparks(x, y, color) {
+        for (let i = 0; i < 12; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 6;
+            particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: 2 + Math.random() * 4,
+                life: 1.0,
+                decay: 0.03 + Math.random() * 0.04,
+                color: color
+            });
+        }
+        
+        for (let j = 0; j < 360; j += 30) {
+            const rad = j * Math.PI / 180;
+            particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(rad) * 4,
+                vy: Math.sin(rad) * 4,
+                size: 1.5,
+                life: 0.8,
+                decay: 0.05,
+                color: '#ffffff'
+            });
+        }
+    }
+
+    function updateParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= p.decay;
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+    }
+
+    // ==========================================
+    // 12. 初期ロードと同期設定
+    // ==========================================
+    startBattleBtn.addEventListener('click', () => {
+        startSimulation();
+    });
+
+    resetBattleBtn.addEventListener('click', () => {
+        resetSimulation();
+    });
+
+    // 初期起動
+    updateRobotTypeDisplay('normal');
+    updateSavedRobotDropdowns();
+    goToStep(1);
+
+</script>
+</body>
+</html>
