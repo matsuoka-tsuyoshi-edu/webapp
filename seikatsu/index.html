@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>りずむクエスト - 1週間のせいかつリズムを整えよう！</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- ヘッダー -->
+    <header class="app-header">
+      <div class="header-title">
+        <i class="fa-solid fa-gamepad icon-title"></i>
+        <div>
+          <h1>りずむクエスト</h1>
+          <p class="subtitle">ゆびで じかんを のばしたり 動かしたりして、理想のせいかつリズムをつくろう！</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-export-file" class="btn btn-success"><i class="fa-solid fa-download"></i> データ保存</button>
+        <button id="btn-import-file" class="btn btn-primary"><i class="fa-solid fa-upload"></i> ファイル読込</button>
+        <input type="file" id="file-input" accept=".json" style="display: none;">
+        <button id="btn-sample-data" class="btn btn-secondary"><i class="fa-solid fa-wand-magic-sparkles"></i> ためしにデータを入れる</button>
+        <button id="btn-clear-all" class="btn btn-outline"><i class="fa-solid fa-trash-can"></i> ぜんぶ消す</button>
+      </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <div class="main-content">
+      <!-- ビュー切り替え＆コピーバー -->
+      <section class="view-nav-bar">
+        <div class="view-tabs" id="view-tabs">
+          <button class="view-tab active" data-view="week" data-day="0">📅 1週間一覧</button>
+          <button class="view-tab" data-view="day" data-day="0">日</button>
+          <button class="view-tab" data-view="day" data-day="1">月</button>
+          <button class="view-tab" data-view="day" data-day="2">火</button>
+          <button class="view-tab" data-view="day" data-day="3">水</button>
+          <button class="view-tab" data-view="day" data-day="4">木</button>
+          <button class="view-tab" data-view="day" data-day="5">金</button>
+          <button class="view-tab" data-view="day" data-day="6">土</button>
+        </div>
+
+        <div class="day-copy-container" id="day-copy-container" style="display: none;">
+          <button id="btn-open-copy-modal" class="btn btn-primary"><i class="fa-solid fa-copy"></i> 他の曜日からコピー</button>
+        </div>
+      </section>
+
+      <!-- コントロールバー -->
+      <section class="controls-panel">
+        <div class="category-selector-group">
+          <span class="section-label"><i class="fa-solid fa-paint-brush"></i> えらぶカテゴリ:</span>
+          <div class="category-pills" id="category-pills">
+            <!-- Dynamic Category Pills -->
+          </div>
+        </div>
+
+        <div class="snap-selector">
+          <span class="section-label"><i class="fa-solid fa-magnet"></i> じかんのあわせ方:</span>
+          <select id="snap-setting">
+            <option value="15" selected>15ふん単位</option>
+            <option value="30">30ふん単位</option>
+            <option value="60">1じかん単位</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- タイムラインエリア -->
+      <div class="timeline-wrapper">
+        <!-- タイムラインヘッダー (時刻目盛り) -->
+        <div class="timeline-header-row">
+          <div class="day-label-header">ようび</div>
+          <div class="timeline-ticks-container" id="timeline-ticks">
+            <!-- 0:00 ~ 24:00 目盛り -->
+          </div>
+        </div>
+
+        <!-- 7日分のタイムライン行 (日〜土) または 1日表示 -->
+        <div class="days-container" id="days-container">
+          <!-- 曜日の行がJavaScriptで生成されます -->
+        </div>
+      </div>
+
+      <!-- 分析サマリーパネル -->
+      <section class="stats-panel">
+        <div class="stats-panel-header">
+          <h2 id="stats-section-title"><i class="fa-solid fa-trophy"></i> 1しゅうかんの リズムふりかえり</h2>
+
+          <!-- ★ 睡眠の集計方法切り替えセレクター (指定の表記・順序) ★ -->
+          <div class="sleep-calc-selector">
+            <label for="sleep-calc-mode-select"><i class="fa-solid fa-moon"></i> すいみんの数え方:</label>
+            <select id="sleep-calc-mode-select">
+              <option value="morning_wake" selected>🌅 前の日から今朝までのすいみん</option>
+              <option value="night_start">🌙 今晩から次の日の朝までのすいみん</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 重なり警告エリア -->
+        <div id="overlap-alert-container"></div>
+
+        <div class="stats-grid" id="stats-grid">
+          <!-- 統計カード -->
+        </div>
+        <div class="habit-insights" id="habit-insights">
+          <!-- アドバイス・メッセージ -->
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ブロック編集モーダル -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-pen-to-square"></i> 予定の変更</h3>
+        <button class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>しゅるい</label>
+          <select id="modal-category-select"></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>はじまる時間</label>
+            <input type="time" id="modal-start-time" step="900">
+          </div>
+          <div class="form-group">
+            <label>おわる時間</label>
+            <input type="time" id="modal-end-time" step="900">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>メモ（やってたことなど）</label>
+          <input type="text" id="modal-note" placeholder="例: ぐっすりねた, 部活">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="modal-delete-btn" class="btn btn-danger"><i class="fa-solid fa-trash"></i> 消す</button>
+        <div class="right-buttons">
+          <button id="modal-cancel-btn" class="btn btn-secondary">やめる</button>
+          <button id="modal-save-btn" class="btn btn-primary">きろくする</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 曜日コピーモーダル -->
+  <div class="modal-overlay" id="copy-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-copy"></i> 予定のコピー</h3>
+        <button class="modal-close" id="copy-modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm font-bold text-[#0f172a]" id="copy-modal-target-label">【月曜日】に予定をコピーします。</p>
+        <div class="form-group">
+          <label>どの曜日の予定をコピーしますか？</label>
+          <select id="copy-modal-source-select"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div></div>
+        <div class="right-buttons">
+          <button id="copy-modal-cancel-btn" class="btn btn-secondary">やめる</button>
+          <button id="copy-modal-exec-btn" class="btn btn-primary"><i class="fa-solid fa-paste"></i> コピー実行</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
