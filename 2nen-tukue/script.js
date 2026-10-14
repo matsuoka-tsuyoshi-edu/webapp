@@ -241,6 +241,8 @@ function setNewOrder() {
 }
 
 function resetRobot() {
+    clearAllHighlights();
+    hideRunner();
     gameState.robot = { x: 4.5, y: 4.5, dir: 0, angle: 0 };
     gameState.isRunning = false;
 
@@ -363,6 +365,8 @@ function addDragEvents(el) {
 
 function onPointerDown(e) {
     e.preventDefault();
+    clearAllHighlights();
+    hideRunner();
     const target = e.currentTarget;
     if (target.classList.contains('static-start')) return;
 
@@ -622,6 +626,83 @@ function getAttachedBlocks(headBlock) {
 }
 
 // ---------------------------------------------------------
+// --- ブロックハイライト＆案内アシスタントくん機能 ---
+// ---------------------------------------------------------
+
+const ASSISTANT_ANIMALS = ['🐶', '🐱', '🐰', '🐻', '🐼', '🐵', '🦊', '🐥', '🐸', '🐨'];
+
+function pickRandomAssistant() {
+    const animal = ASSISTANT_ANIMALS[Math.floor(Math.random() * ASSISTANT_ANIMALS.length)];
+    const iconEl = document.getElementById('runner-icon');
+    if (iconEl) {
+        iconEl.textContent = animal;
+    }
+}
+
+function highlightBlock(block) {
+    clearAllHighlights();
+    if (block) {
+        block.classList.add('executing');
+    }
+}
+
+function highlightLoopHeader(loopBlock) {
+    clearAllHighlights();
+    if (loopBlock) {
+        loopBlock.classList.add('executing-loop');
+    }
+}
+
+function clearAllHighlights() {
+    document.querySelectorAll('.executing, .executing-loop').forEach(el => {
+        el.classList.remove('executing');
+        el.classList.remove('executing-loop');
+    });
+}
+
+function moveRunnerToBlock(block, bubbleText = '') {
+    const runner = document.getElementById('workspace-runner');
+    if (!runner || !block) return;
+
+    // 囲みモードのブロックの場合は、ヘッダー部分の位置に合わせる
+    let targetEl = block;
+    if (block.classList.contains('enclosure-mode')) {
+        const header = block.querySelector('.loop-header');
+        if (header) targetEl = header;
+    }
+
+    const wsRect = workspace.getBoundingClientRect();
+    const blockRect = targetEl.getBoundingClientRect();
+
+    const left = blockRect.right - wsRect.left + 12;
+    const top = (blockRect.top - wsRect.top) + (blockRect.height / 2) - 19;
+
+    runner.style.left = `${left}px`;
+    runner.style.top = `${top}px`;
+    runner.classList.remove('hidden');
+
+    const bubble = document.getElementById('runner-bubble');
+    if (bubble) {
+        if (bubbleText) {
+            bubble.textContent = bubbleText;
+            bubble.classList.add('show');
+        } else {
+            bubble.textContent = '';
+            bubble.classList.remove('show');
+        }
+    }
+}
+
+function hideRunner() {
+    const runner = document.getElementById('workspace-runner');
+    if (runner) {
+        runner.classList.add('hidden');
+        const bubble = document.getElementById('runner-bubble');
+        if (bubble) bubble.classList.remove('show');
+    }
+}
+
+// ---------------------------------------------------------
 // --- 実行ロジック ---
 // ---------------------------------------------------------
 
@@ -659,17 +740,28 @@ btnRun.addEventListener('click', async () => {
         return;
     }
 
+    // アシスタント動物をランダムに決定
+    pickRandomAssistant();
+
+    // 「はじまり」ブロックを光らせて出発の演出
+    highlightBlock(startBlock);
+    moveRunnerToBlock(startBlock, 'アシスタントです！');
     showBubble('robot', 'しゅっぱつ！', true);
     await wait(1000);
     showBubble('robot', '', false);
+    clearAllHighlights();
 
     await runBlockChain(firstCommandBlock);
 
+    clearAllHighlights();
+    hideRunner();
     checkResult();
     finishRun();
 });
 
 function finishRun() {
+    clearAllHighlights();
+    hideRunner();
     gameState.isRunning = false;
     btnRun.disabled = false;
     btnRun.style.display = 'none';
@@ -679,7 +771,7 @@ function finishRun() {
     }
 }
 
-async function runBlockChain(block) {
+async function runBlockChain(block, loopContext = null) {
     let current = block;
     let lastAction = null; 
 
@@ -687,9 +779,12 @@ async function runBlockChain(block) {
         const type = current.dataset.type;
         
         if (type === 'move' || type === 'left' || type === 'right') {
+            highlightBlock(current);
+            moveRunnerToBlock(current, loopContext || '');
             await performAction(type);
             updateRobotVisual();
-            await wait(1000); // ★修正: 待機時間を1000msに延長
+            await wait(1000); // 待機時間
+            clearAllHighlights();
             lastAction = type;
         } 
         else if (type === 'loop') {
@@ -699,16 +794,26 @@ async function runBlockChain(block) {
                 const inner = current.querySelector('.loop-inner');
                 if (inner && inner.firstElementChild) {
                     for (let i = 0; i < count; i++) {
-                        await runBlockChain(inner.firstElementChild);
+                        const loopText = `いま、${i + 1}かいめ だよ`;
+                        // 周回開始時にループ枠（ヘッダー）を一瞬光らせる
+                        highlightLoopHeader(current);
+                        moveRunnerToBlock(current, loopText);
+                        await wait(500);
+                        clearAllHighlights();
+                        await runBlockChain(inner.firstElementChild, loopText);
                     }
                 }
             } else {
                 if (lastAction) {
                     for (let i = 0; i < count; i++) {
+                        const loopText = `いま、${i + 1}かいめ だよ`;
+                        highlightBlock(current);
+                        moveRunnerToBlock(current, loopText);
                         await performAction(lastAction);
                         updateRobotVisual();
-                        // ★修正: 最後の1回も待機するように修正（移動し終わるのを待つ）
-                        await wait(1000); 
+                        await wait(900);
+                        clearAllHighlights();
+                        await wait(100); // 1回ごとの区切りをわかりやすくする
                     }
                 }
             }

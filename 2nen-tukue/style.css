@@ -483,3 +483,112 @@ button {
     display: none;
     box-shadow: 0 0 5px orange;
 }
+
+/* --- 実行中ブロックのハイライト演出 --- */
+.block.executing {
+    outline: 4px solid #FFD600;
+    outline-offset: 1px;
+    box-shadow: 0 0 15px 4px #FFEE58, 0 0 25px rgba(255, 214, 0, 0.7) !important;
+    transform: scale(1.04);
+    z-index: 50 !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease;
+    animation: block-pulse 0.8s infinite alternate;
+}
+
+/* 囲み型ループブロックのハイライト */
+.block.enclosure-mode.executing-loop > .loop-header,
+.block.enclosure-mode.executing > .loop-header {
+    outline: 4px solid #FFD600;
+    box-shadow: 0 0 15px 4px #FFEE58 !important;
+    transform: scale(1.03);
+    z-index: 50 !important;
+    transition: transform 0.15s ease;
+    animation: block-pulse 0.8s infinite alternate;
+}
+
+.block.enclosure-mode.executing-loop,
+.block.enclosure-mode.executing {
+    filter: drop-shadow(0 0 8px rgba(255, 214, 0, 0.8));
+}
+
+@keyframes block-pulse {
+    0% {
+        outline-color: #FFD600;
+        box-shadow: 0 0 12px 3px #FFEE58, 0 0 20px rgba(255, 214, 0, 0.6);
+    }
+    100% {
+        outline-color: #FFF176;
+        box-shadow: 0 0 20px 6px #FFFF00, 0 0 30px rgba(255, 235, 59, 0.9);
+    }
+}
+
+/* --- ワークスペース案内アシスタントくん --- */
+.workspace-runner {
+    position: absolute;
+    z-index: 100;
+    width: 40px;
+    height: 40px;
+    pointer-events: none;
+    transition: top 0.3s cubic-bezier(0.25, 1, 0.5, 1), left 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease;
+    opacity: 1;
+}
+
+.workspace-runner.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.runner-icon {
+    font-size: 1.6rem;
+    width: 38px;
+    height: 38px;
+    background: white;
+    border-radius: 50%;
+    border: 3px solid #4CAF50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    animation: runner-bounce 0.8s infinite alternate ease-in-out;
+}
+
+@keyframes runner-bounce {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-3px); }
+}
+
+.runner-bubble {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) scale(0.85);
+    background: #FFF9C4;
+    border: 2px solid #FBC02D;
+    color: #E65100;
+    font-weight: bold;
+    font-size: 0.85rem;
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    z-index: 110;
+}
+
+.runner-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #FBC02D;
+}
+
+.runner-bubble.show {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+}
