@@ -18,6 +18,11 @@ let gameState = {
 // 囲みモードかどうか
 let isEnclosureMode = false;
 
+// 軌跡記録用
+let isTracing = false;
+let trajectoryPoints = [];
+let trajectorySvg = null;
+
 const items = ["牛にゅう", "ごまだしうどん", "カレー", "シチュー", "ケーキ"];
 
 // DOM要素
@@ -229,6 +234,126 @@ function createClassroom() {
     rBubble.style.top = '-60px';
     robot.appendChild(rBubble);
     classroom.appendChild(robot);
+
+    // 軌跡レイヤーの初期化
+    initTrajectoryLayer();
+}
+
+// --- 軌跡（アニメーションと描画）処理 ---
+
+function initTrajectoryLayer() {
+    const oldSvg = classroom.querySelector('#trajectory-svg');
+    if (oldSvg) oldSvg.remove();
+
+    trajectorySvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    trajectorySvg.id = 'trajectory-svg';
+    classroom.appendChild(trajectorySvg);
+
+    redrawTrajectory();
+}
+
+function clearTrajectory() {
+    trajectoryPoints = [];
+    if (trajectorySvg) {
+        trajectorySvg.innerHTML = '';
+    }
+}
+
+function getGridCenterPixels(gx, gy) {
+    const cellWidth = classroom.clientWidth / GRID_COLS;
+    const cellHeight = (classroom.clientHeight - PADDING_TOP) / GRID_ROWS;
+    const px = (gx * cellWidth) + (cellWidth / 2);
+    const py = (gy * cellHeight) + (cellHeight / 2) + PADDING_TOP;
+    return { x: px, y: py };
+}
+
+function createCircleElement(cx, cy, animate = true) {
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', cx);
+    circle.setAttribute('cy', cy);
+    circle.setAttribute('r', '7');
+    circle.setAttribute('class', 'trajectory-point');
+
+    if (animate) {
+        circle.style.transformOrigin = `${cx}px ${cy}px`;
+        circle.style.transform = 'scale(0)';
+        circle.style.transition = 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        trajectorySvg.appendChild(circle);
+        requestAnimationFrame(() => {
+            circle.style.transform = 'scale(1)';
+        });
+    } else {
+        trajectorySvg.appendChild(circle);
+    }
+    return circle;
+}
+
+function addTrajectoryStartPoint(gx, gy) {
+    clearTrajectory();
+    trajectoryPoints.push({ x: gx, y: gy });
+    if (!trajectorySvg) return;
+
+    const pt = getGridCenterPixels(gx, gy);
+    createCircleElement(pt.x, pt.y, true);
+}
+
+function addTrajectoryStep(fromX, fromY, toX, toY) {
+    trajectoryPoints.push({ x: toX, y: toY });
+    if (!trajectorySvg) return;
+
+    const p1 = getGridCenterPixels(fromX, fromY);
+    const p2 = getGridCenterPixels(toX, toY);
+
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', p1.x);
+    line.setAttribute('y1', p1.y);
+    line.setAttribute('x2', p2.x);
+    line.setAttribute('y2', p2.y);
+    line.setAttribute('class', 'trajectory-line');
+    line.style.strokeDasharray = `${length}`;
+    line.style.strokeDashoffset = `${length}`;
+    line.style.transition = 'stroke-dashoffset 0.5s ease';
+
+    trajectorySvg.appendChild(line);
+
+    requestAnimationFrame(() => {
+        line.style.strokeDashoffset = '0';
+    });
+
+    // ロボットが交差点に到達するタイミング（約0.45秒後）に小さな赤丸を表示
+    setTimeout(() => {
+        if (trajectorySvg) {
+            createCircleElement(p2.x, p2.y, true);
+        }
+    }, 450);
+}
+
+function redrawTrajectory() {
+    if (!trajectorySvg) return;
+    trajectorySvg.innerHTML = '';
+    if (trajectoryPoints.length === 0) return;
+
+    const startPt = getGridCenterPixels(trajectoryPoints[0].x, trajectoryPoints[0].y);
+    createCircleElement(startPt.x, startPt.y, false);
+
+    for (let i = 1; i < trajectoryPoints.length; i++) {
+        const p1 = getGridCenterPixels(trajectoryPoints[i - 1].x, trajectoryPoints[i - 1].y);
+        const p2 = getGridCenterPixels(trajectoryPoints[i].x, trajectoryPoints[i].y);
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', p1.x);
+        line.setAttribute('y1', p1.y);
+        line.setAttribute('x2', p2.x);
+        line.setAttribute('y2', p2.y);
+        line.setAttribute('class', 'trajectory-line');
+        trajectorySvg.appendChild(line);
+
+        createCircleElement(p2.x, p2.y, false);
+    }
 }
 
 function setNewOrder() {
@@ -243,6 +368,8 @@ function setNewOrder() {
 function resetRobot() {
     clearAllHighlights();
     hideRunner();
+    isTracing = false;
+    clearTrajectory();
     gameState.robot = { x: 4.5, y: 4.5, dir: 0, angle: 0 };
     gameState.isRunning = false;
 
@@ -307,8 +434,13 @@ function performAction(type) {
         if (gameState.robot.dir === 3) nextX -= 1;
 
         if (nextX >= -0.5 && nextX <= 5.5 && nextY >= -1.5 && nextY <= 5.5) {
+            const prevX = gameState.robot.x;
+            const prevY = gameState.robot.y;
             gameState.robot.x = nextX;
             gameState.robot.y = nextY;
+            if (isTracing) {
+                addTrajectoryStep(prevX, prevY, nextX, nextY);
+            }
         } else {
             console.log('行き止まり');
             showBubble('robot', 'これいじょう\nすすめないよ', true);
@@ -743,6 +875,10 @@ btnRun.addEventListener('click', async () => {
     // アシスタント動物をランダムに決定
     pickRandomAssistant();
 
+    // 軌跡記録を開始し、スタート位置に赤丸を表示
+    isTracing = true;
+    addTrajectoryStartPoint(gameState.robot.x, gameState.robot.y);
+
     // 「はじまり」ブロックを光らせて出発の演出
     highlightBlock(startBlock);
     moveRunnerToBlock(startBlock, 'アシスタントです！');
@@ -762,6 +898,7 @@ btnRun.addEventListener('click', async () => {
 function finishRun() {
     clearAllHighlights();
     hideRunner();
+    isTracing = false;
     gameState.isRunning = false;
     btnRun.disabled = false;
     btnRun.style.display = 'none';
