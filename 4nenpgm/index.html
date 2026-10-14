@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>小学校4年 算数 プログラミング学習</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- トップ画面 -->
+  <div class="portal-container">
+    <header class="portal-header">
+      <div class="portal-badge">小学校4年生 算数</div>
+      <h1 class="portal-title">プログラミングで まなぼう！</h1>
+      <p class="portal-subtitle">フローチャートと アルゴリズムの せかいへ ようこそ</p>
+      
+      <div class="portal-tools">
+        <button id="btn-sound-toggle" class="sound-toggle-btn" title="おとの オン/オフ">
+          <span id="sound-icon">🔊</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="portal-main">
+      <div class="cards-vertical-list">
+        
+        <!-- 1枚目：すごろくをつくろう -->
+        <a href="./sugoroku/index.html" class="app-card card-sugoroku" id="card-sugoroku">
+          <div class="card-icon-area">
+            <div class="card-badge">第 1 たんげん</div>
+            <div class="card-icon">🎲</div>
+            <div class="card-mini-characters">
+              <span>🐼</span>
+              <span>🐘</span>
+              <span>🦁</span>
+            </div>
+          </div>
+          <div class="card-info-area">
+            <div class="card-heading">
+              <h2 class="card-title">すごろくをつくろう</h2>
+              <span class="card-tag">すごろくのルールを 図に表そう</span>
+            </div>
+            <p class="card-desc">
+              さいころをふって進むルールを「フローチャート」であらわそう！<br>
+              かんせいしたら、じっさいにすごろくゲームを動かしてあそべるよ。
+            </p>
+            <div class="card-features">
+              <span class="feature-pill">🧩 パズル</span>
+              <span class="feature-pill">🎮 ゲーム</span>
+              <span class="feature-pill">⚙️ ルールかいぞう</span>
+            </div>
+          </div>
+          <div class="card-action-area">
+            <span class="btn-start">スタート ➔</span>
+          </div>
+        </a>
+
+        <!-- 2枚目：がい数計算機をつくろう -->
+        <a href="./gaisu/index.html" class="app-card card-gaisu" id="card-gaisu">
+          <div class="card-icon-area">
+            <div class="card-badge">第 2 たんげん</div>
+            <div class="card-icon">🧮</div>
+            <div class="card-mini-characters">
+              <span>🐿️</span>
+              <span>💡</span>
+              <span>🔢</span>
+            </div>
+          </div>
+          <div class="card-info-area">
+            <div class="card-heading">
+              <h2 class="card-title">がい数計算機をつくろう</h2>
+              <span class="card-tag">アルゴリズムって なあに？</span>
+            </div>
+            <p class="card-desc">
+              四捨五入して「上から2けたのがい数」にする手順をときあかそう！<br>
+              数字をいれると自動でがい数をけいさんするマシンがうごきだすよ。
+            </p>
+            <div class="card-features">
+              <span class="feature-pill">🧩 なぞとき</span>
+              <span class="feature-pill">💡 マシンをうごかす</span>
+              <span class="feature-pill">🎯 がい数クイズ</span>
+            </div>
+          </div>
+          <div class="card-action-area">
+            <span class="btn-start">スタート ➔</span>
+          </div>
+        </a>
+
+      </div>
+    </main>
+
+    <footer class="portal-footer">
+      <span>💡 iPadを よこむきにして つかってね</span>
+    </footer>
+  </div>
+
+  <script src="./common/audio.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const soundBtn = document.getElementById('btn-sound-toggle');
+      const soundIcon = document.getElementById('sound-icon');
+      
+      // 音声トグル
+      soundBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sound.init();
+        sound.enabled = !sound.enabled;
+        soundIcon.textContent = sound.enabled ? '🔊' : '🔇';
+      });
+
+      // カードタップ時の効果音
+      const cards = document.querySelectorAll('.app-card');
+      cards.forEach(card => {
+        card.addEventListener('click', (e) => {
+          sound.init();
+          sound.playPon();
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>すごろくをつくろう！ - 小4算数 プログラミング</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- コンパクトな統合ヘッダー（iPad横向きで縦を圧迫しない） -->
+  <header class="app-header">
+    <div class="header-brand">
+      <a href="../index.html" class="btn-home" title="トップページへもどる">🏠 トップ</a>
+      <span class="header-badge">小4 算数</span>
+      <h1 class="header-title">すごろくのルールを 図に表そう！</h1>
+    </div>
+
+    <!-- タブナビゲーション -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="puzzle" id="tab-btn-puzzle">
+        <span>🧩</span> ① フローチャート
+      </button>
+      <button class="tab-btn locked" data-tab="game" id="tab-btn-game">
+        <span class="tab-lock-icon">🔒</span><span>🎮</span> ② すごろくであそぶ
+      </button>
+      <button class="tab-btn locked" data-tab="custom" id="tab-btn-custom">
+        <span class="tab-lock-icon">🔒</span><span>⚙️</span> ③ ルールかいぞう
+      </button>
+    </nav>
+
+    <div class="header-tools">
+      <button id="btn-sound-toggle" class="tool-btn" title="おとの オン/オフ">
+        <span id="sound-icon">🔊</span>
+      </button>
+      <button id="btn-teacher-toggle" class="tool-btn teacher-btn" title="せんせい用：ロック切り替え">
+        <span id="teacher-btn-icon">🔓</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main>
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- ==============================================
+         タブ①：パズルモード（教科書のフローチャート穴埋め）
+         ============================================== -->
+    <section id="tab-puzzle" class="tab-content active">
+      <div class="puzzle-layout">
+        
+        <!-- 左側：ピース選択 ＋ アクションボタン -->
+        <div class="puzzle-sidebar">
+          <div class="panel-card">
+            <div class="panel-header">
+              <span class="panel-title">えらぶ ことば</span>
+              <span class="panel-sub">タップして スロット（ア〜コ）にいれてね</span>
+            </div>
+            <div id="pieces-container" class="pieces-list">
+              <!-- JSでピースを生成 -->
+            </div>
+          </div>
+
+          <div class="sidebar-actions">
+            <button id="btn-check-puzzle" class="action-btn btn-primary btn-block">
+              <span>✨</span> こたえあわせをする
+            </button>
+            <button id="btn-reset-puzzle" class="action-btn btn-secondary btn-block">
+              <span>🔄</span> やりなおす
+            </button>
+          </div>
+        </div>
+
+        <!-- 右側：フローチャート（教科書と完全に一致） -->
+        <div class="puzzle-main">
+          <!-- 上部に教科書のすごろくミニ説明 -->
+          <div class="rule-hint-box">
+            <div class="rule-tag">📖 すごろくのルール</div>
+            <div class="rule-text">
+              ① さいころを ふって、出た目の数だけ 進む。<br>
+              ② 止まったマスに 指示があったら、したがう。<br>
+              ③ ゴールしたら 終わり。
+            </div>
+          </div>
+
+          <div class="flowchart-container">
+            <svg id="puzzle-svg" class="flowchart-svg" viewBox="0 0 680 620">
+              <!-- SVG要素はJSで生成 -->
+            </svg>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==============================================
+         タブ②：ゲームモード（動くフローチャート＆すごろく盤面）
+         ============================================== -->
+    <section id="tab-game" class="tab-content">
+      <div class="game-layout">
+        
+        <!-- 左側：連動フローチャート -->
+        <div class="game-chart-panel">
+          <div class="chart-header">
+            <span>📋 プログラムの ながれ</span>
+            <div class="speed-control">
+              <span>はやさ：</span>
+              <select id="speed-select">
+                <option value="slow">ゆっくり</option>
+                <option value="normal" selected>ふつう</option>
+                <option value="fast">はやい</option>
+              </select>
+            </div>
+          </div>
+          <div class="flowchart-container">
+            <svg id="game-svg" class="flowchart-svg" viewBox="0 0 680 620">
+              <!-- JSで動的レンダリング -->
+            </svg>
+          </div>
+        </div>
+
+        <!-- 右側：すごろくコース盤面＆操作 -->
+        <div class="game-main-panel">
+          
+          <!-- モード切り替えバー -->
+          <div class="game-mode-bar">
+            <div class="mode-select-group">
+              <label><input type="radio" name="play-mode" value="solo" checked> ひとりであそぶ</label>
+              <label><input type="radio" name="play-mode" value="vs-cpu"> コンピュータと対決！</label>
+            </div>
+            <div class="current-turn-indicator" id="turn-indicator">
+              👦 あなたの ばんです！
+            </div>
+          </div>
+
+          <!-- すごろく盤面（1〜30マス・教科書配置） -->
+          <div class="board-wrapper">
+            <div class="board-grid" id="board-grid">
+              <!-- JSで30マスのトラックを生成 -->
+            </div>
+          </div>
+
+          <!-- 操作コントロールエリア -->
+          <div class="game-controls">
+            <!-- サイコロ表示・振るボタン -->
+            <div class="dice-action-box">
+              <div class="dice-box" id="dice-display">🎲</div>
+              <button id="btn-roll-dice" class="action-btn btn-roll">
+                さいころを ふる！
+              </button>
+            </div>
+
+            <!-- ステータスメッセージ -->
+            <div class="game-msg-box" id="game-msg">
+              「さいころを ふる！」ボタンをおしてね！
+            </div>
+
+            <button id="btn-reset-game" class="action-btn btn-secondary btn-sm">
+              <span>🔄</span> さいしょから
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==============================================
+         タブ③：カスタマイズモード（ルールかいぞう）
+         ============================================== -->
+    <section id="tab-custom" class="tab-content">
+      <div class="custom-panel">
+        <h2 class="custom-title">⚙️ すごろくルールの かいぞう</h2>
+        <p class="custom-desc">
+          マスの指示やさいころを自分流にかえて、オリジナルのすごろくをつくろう！
+        </p>
+
+        <div class="custom-grid">
+          <!-- マス2の指示 -->
+          <div class="custom-item">
+            <span class="custom-label">📍 2番マス の指示</span>
+            <div class="custom-input">
+              <select id="custom-cell-2">
+                <option value="step:3" selected>3進む（教科書通り）</option>
+                <option value="step:5">5進む（大ジャンプ！）</option>
+                <option value="none">ふつうのマス</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- マス10の指示 -->
+          <div class="custom-item">
+            <span class="custom-label">📍 10番マス の指示</span>
+            <div class="custom-input">
+              <select id="custom-cell-10">
+                <option value="step:2" selected>2進む（教科書通り）</option>
+                <option value="step:4">4進む</option>
+                <option value="back:2">2もどる（わな！）</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- マス14の指示 -->
+          <div class="custom-item">
+            <span class="custom-label">📍 14番マス の指示</span>
+            <div class="custom-input">
+              <select id="custom-cell-14">
+                <option value="rest:1" selected>1回休み（教科書通り）</option>
+                <option value="none">ふつうのマス</option>
+                <option value="step:3">3進む（ラッキー！）</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- マス20の指示 -->
+          <div class="custom-item">
+            <span class="custom-label">📍 20番マス の指示</span>
+            <div class="custom-input">
+              <select id="custom-cell-20">
+                <option value="back:3" selected>3もどる（教科書通り）</option>
+                <option value="back:5">5もどる（大ピンチ！）</option>
+                <option value="start">スタートにもどる（激ヤバ！）</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- マス24の指示 -->
+          <div class="custom-item">
+            <span class="custom-label">📍 24番マス の指示</span>
+            <div class="custom-input">
+              <select id="custom-cell-24">
+                <option value="step:4" selected>4進む（教科書通り）</option>
+                <option value="step:2">2進む</option>
+                <option value="back:3">3もどる</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- マス28の指示 -->
+          <div class="custom-item">
+            <span class="custom-label">📍 28番マス の指示</span>
+            <div class="custom-input">
+              <select id="custom-cell-28">
+                <option value="back:4" selected>4もどる（教科書通り）</option>
+                <option value="back:2">2もどる</option>
+                <option value="rest:1">1回休み</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- サイコロのタイプ -->
+          <div class="custom-item">
+            <span class="custom-label">🎲 サイコロの 種類</span>
+            <div class="custom-input">
+              <select id="custom-dice-type">
+                <option value="1-6" selected>1〜6のふつうのサイコロ</option>
+                <option value="1-3">1〜3のゆっくりサイコロ</option>
+                <option value="special">偶数だけ！(2, 4, 6)サイコロ</option>
+                <option value="fast">4〜6のスピードサイコロ</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="custom-actions">
+          <button id="btn-reset-rules" class="action-btn btn-secondary">
+            教科書のルールにもどす
+          </button>
+          <button id="btn-apply-rules" class="action-btn btn-success">
+            このルールで ゲームをする！ ➔
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 汎用モーダルダイアログ -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <div id="modal-icon" class="modal-icon">🎉</div>
+      <h2 id="modal-title" class="modal-title">せいかい！</h2>
+      <div id="modal-body" class="modal-body">お見事！すべてのスロットがあっています。</div>
+      <button id="btn-modal-close" class="action-btn btn-primary" style="margin: 0 auto;">OK！</button>
+    </div>
+  </div>
+
+  <!-- 先生用パスワード入力モーダル（解除用） -->
+  <div id="teacher-modal-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-icon">🧑‍🏫</div>
+      <h2 class="modal-title">せんせい用 パスワード</h2>
+      <p class="modal-body" style="margin-bottom: 12px;">
+        合言葉（パスワード）を いれてください。
+      </p>
+      <form id="teacher-form" onsubmit="return false;" style="margin-bottom: 16px;">
+        <input type="password" id="teacher-pw-input" class="password-input" placeholder="パスワードを入力" autocomplete="off">
+        <div id="teacher-pw-error" class="password-error" style="display: none;">
+          合言葉が ちがいます
+        </div>
+      </form>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="btn-teacher-cancel" class="action-btn btn-secondary">キャンセル</button>
+        <button id="btn-teacher-submit" class="action-btn btn-primary">解除する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 先生用再ロック確認モーダル（再ロック用） -->
+  <div id="relock-modal-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-icon">🔒</div>
+      <h2 class="modal-title">ふたたび ロックしますか？</h2>
+      <p class="modal-body" style="margin-bottom: 16px;">
+        ②すごろくであそぶ と ③ルールかいぞう を ふたたびロックし、<br>
+        <b>さいしょの状態（①フローチャートのみ）</b> にもどします。
+      </p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="btn-relock-cancel" class="action-btn btn-secondary">キャンセル</button>
+        <button id="btn-relock-confirm" class="action-btn btn-danger">ロックする</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../common/audio.js"></script>
+  <script src="../common/confetti.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

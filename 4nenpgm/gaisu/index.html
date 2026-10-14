@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>がい数計算機をつくろう！ - 小4算数 プログラミング</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- コンパクトな統合ヘッダー（iPad横向きで縦を圧迫しない） -->
+  <header class="app-header">
+    <div class="header-brand">
+      <a href="../index.html" class="btn-home" title="トップページへもどる">🏠 トップ</a>
+      <span class="header-badge">小4 算数</span>
+      <h1 class="header-title">アルゴリズムって なあに？（がい数計算機）</h1>
+    </div>
+
+    <!-- タブナビゲーション -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="puzzle" id="tab-btn-puzzle">
+        <span>🧩</span> ① アルゴリズムパズル
+      </button>
+      <button class="tab-btn locked" data-tab="machine" id="tab-btn-machine">
+        <span class="tab-lock-icon">🔒</span><span>💡</span> ② がい数マシンを動かす
+      </button>
+      <button class="tab-btn locked" data-tab="quiz" id="tab-btn-quiz">
+        <span class="tab-lock-icon">🔒</span><span>🎯</span> ③ がい数クイズ＆かいぞう
+      </button>
+    </nav>
+
+    <div class="header-tools">
+      <button id="btn-sound-toggle" class="tool-btn" title="おとの オン/オフ">
+        <span id="sound-icon">🔊</span>
+      </button>
+      <button id="btn-teacher-toggle" class="tool-btn teacher-btn" title="せんせい用：ロック切り替え">
+        <span id="teacher-btn-icon">🔓</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main>
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- ==============================================
+         タブ①：パズルモード（教科書の穴埋め：1〜9の数字）
+         ============================================== -->
+    <section id="tab-puzzle" class="tab-content active">
+      <div class="puzzle-layout">
+        
+        <!-- 左側：数字タイル ＋ リスさんのヒント -->
+        <div class="puzzle-sidebar">
+          
+          <div class="panel-card digit-card">
+            <div class="panel-header">
+              <span class="panel-title">いれる 数字（1〜9）</span>
+              <span class="panel-sub">数字をえらんで、□をタップしてね</span>
+            </div>
+            
+            <div class="digits-grid" id="digits-grid">
+              <!-- 1〜9のボタンをJSで生成 -->
+            </div>
+          </div>
+
+          <!-- リスさんのヒントカード（教科書の下部を完全再現） -->
+          <div class="panel-card hint-card">
+            <div class="hint-header">
+              <span class="hint-char">🐿️</span>
+              <span class="hint-title">リスさんの ヒント</span>
+            </div>
+            <div class="hint-desc">
+              「ある数を 四捨五入して、<strong>上から2けたの がい数</strong>にする アルゴリズムだよ！」
+            </div>
+            <div class="example-buttons">
+              <button class="example-chip" data-ex="47477">47477 のとき</button>
+              <button class="example-chip" data-ex="41684">41684 のとき</button>
+              <button class="example-chip" data-ex="39972">39972 のとき</button>
+            </div>
+            <div class="example-display" id="example-tip">
+              ボタンをおすと、かんがえかたが 見られるよ！
+            </div>
+          </div>
+
+          <div class="sidebar-actions">
+            <button id="btn-check-puzzle" class="action-btn btn-primary btn-block">
+              <span>✨</span> こたえあわせをする
+            </button>
+            <button id="btn-reset-puzzle" class="action-btn btn-secondary btn-block">
+              <span>🔄</span> やりなおす
+            </button>
+          </div>
+
+        </div>
+
+        <!-- 右側：フローチャート（教科書と完全に一致） -->
+        <div class="puzzle-main">
+          <div class="flowchart-container">
+            <svg id="puzzle-svg" class="flowchart-svg" viewBox="0 0 720 560">
+              <!-- SVG要素はJSで生成 -->
+            </svg>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==============================================
+         タブ②：がい数マシン（シミュレーション・動くフローチャート）
+         ============================================== -->
+    <section id="tab-machine" class="tab-content">
+      <div class="machine-layout">
+        
+        <!-- 左側：連動フローチャート -->
+        <div class="machine-chart-panel">
+          <div class="chart-header">
+            <span>📋 アルゴリズムの ながれ</span>
+            <div class="speed-control">
+              <span>はやさ：</span>
+              <select id="speed-select">
+                <option value="slow">じっくり</option>
+                <option value="normal" selected>ふつう</option>
+                <option value="fast">はやい</option>
+              </select>
+            </div>
+          </div>
+          <div class="flowchart-container">
+            <svg id="machine-svg" class="flowchart-svg" viewBox="0 0 720 560">
+              <!-- JSで動的レンダリング -->
+            </svg>
+          </div>
+        </div>
+
+        <!-- 右側：がい数マシン（計算機＆ステップ実行） -->
+        <div class="machine-main-panel">
+          
+          <div class="machine-card">
+            <div class="machine-header">
+              <div class="machine-title">🧮 がい数けいさんマシン</div>
+              <div class="machine-sub">すきな数をいれて、アルゴリズムの通りに計算させよう！</div>
+            </div>
+
+            <!-- 入力＆プリセットボタン -->
+            <div class="input-section">
+              <div class="input-row">
+                <label for="input-number">計算する数：</label>
+                <input type="number" id="input-number" value="41684" min="100" max="999999" placeholder="3〜6けたの数">
+              </div>
+              <div class="preset-buttons">
+                <span class="preset-label">きょうかしょの例：</span>
+                <button class="preset-chip" data-num="47477">47477</button>
+                <button class="preset-chip" data-num="41684">41684</button>
+                <button class="preset-chip" data-num="39972">39972</button>
+                <button class="preset-chip btn-random" id="btn-random-num">🎲 ランダム</button>
+              </div>
+            </div>
+
+            <!-- 桁のビジュアル表示ディスプレイ -->
+            <div class="digits-display-area">
+              <div class="digits-display-label">数字の 各けた：</div>
+              <div class="digits-row" id="digits-row">
+                <!-- JSで各桁カードを配置 -->
+              </div>
+            </div>
+
+            <!-- アルゴリズム解説メッセージボックス -->
+            <div class="algorithm-status-card" id="algo-status-msg">
+              「けいさんスタート！」ボタンをおしてね！
+            </div>
+
+            <!-- 実行コントロールボタン -->
+            <div class="machine-controls">
+              <button id="btn-run-algo" class="action-btn btn-primary btn-lg">
+                <span>▶️</span> けいさんスタート！
+              </button>
+              <button id="btn-step-algo" class="action-btn btn-secondary">
+                <span>⏭️</span> 1ステップずつ進む
+              </button>
+              <button id="btn-reset-algo" class="action-btn btn-secondary btn-sm">
+                <span>🔄</span> リセット
+              </button>
+            </div>
+
+            <!-- 結果表示 -->
+            <div class="machine-result-area" id="machine-result" style="display: none;">
+              <span class="result-badge">けいさんけっか</span>
+              <div class="result-text" id="result-text">上から2けたのがい数：42000 （約4万2千）</div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==============================================
+         タブ③：クイズ＆ルールかいぞう
+         ============================================== -->
+    <section id="tab-quiz" class="tab-content">
+      <div class="quiz-panel">
+        
+        <div class="quiz-section-card">
+          <h2 class="section-title">🎯 がい数クイズに ちょうせん！</h2>
+          <p class="section-desc">アルゴリズムをおぼえているかな？問題にこたえてみよう！</p>
+
+          <div class="quiz-card" id="quiz-box">
+            <div class="quiz-question" id="quiz-question">
+              もんだい：58294 を 上から2けたのがい数に すると、いくつになるかな？
+            </div>
+            <div class="quiz-options" id="quiz-options">
+              <!-- JSで選択肢生成 -->
+            </div>
+            <div class="quiz-feedback" id="quiz-feedback" style="display: none;"></div>
+          </div>
+
+          <div style="text-align: right; margin-top: 10px;">
+            <button id="btn-next-quiz" class="action-btn btn-primary btn-sm">つぎのもんだい ➔</button>
+          </div>
+        </div>
+
+        <div class="quiz-section-card">
+          <h2 class="section-title">⚙️ アルゴリズムのかいぞう（発展学習）</h2>
+          <p class="section-desc">
+            「上から1けたのがい数」にするには、フローチャートの数字をどう変えたらいいかな？
+          </p>
+          <div class="custom-thinking-box">
+            <p>💡 <strong>考えてみよう：</strong></p>
+            <p>・上から2けたのがい数にするときは、上から「3」けた目の数字を見たね。</p>
+            <p>・もし「<strong>上から1けたのがい数</strong>」にしたいときは、上から何けた目の数字を見ればいいかな？</p>
+            <div style="margin-top: 8px;">
+              答え：上から <strong style="color: #e67e22; font-size: 1.1rem;">【 2 】</strong> けた目の数字を見る！
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 汎用モーダルダイアログ -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <div id="modal-icon" class="modal-icon">🎉</div>
+      <h2 id="modal-title" class="modal-title">せいかい！</h2>
+      <div id="modal-body" class="modal-body">お見事！すべてのスロットがあっています。</div>
+      <button id="btn-modal-close" class="action-btn btn-primary" style="margin: 0 auto;">OK！</button>
+    </div>
+  </div>
+
+  <!-- 先生用パスワード入力モーダル（解除用） -->
+  <div id="teacher-modal-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-icon">🧑‍🏫</div>
+      <h2 class="modal-title">せんせい用 パスワード</h2>
+      <p class="modal-body" style="margin-bottom: 12px;">
+        合言葉（パスワード）を いれてください。
+      </p>
+      <form id="teacher-form" onsubmit="return false;" style="margin-bottom: 16px;">
+        <input type="password" id="teacher-pw-input" class="password-input" placeholder="パスワードを入力" autocomplete="off">
+        <div id="teacher-pw-error" class="password-error" style="display: none;">
+          合言葉が ちがいます
+        </div>
+      </form>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="btn-teacher-cancel" class="action-btn btn-secondary">キャンセル</button>
+        <button id="btn-teacher-submit" class="action-btn btn-primary">解除する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 先生用再ロック確認モーダル（再ロック用） -->
+  <div id="relock-modal-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-icon">🔒</div>
+      <h2 class="modal-title">ふたたび ロックしますか？</h2>
+      <p class="modal-body" style="margin-bottom: 16px;">
+        ②がい数マシン と ③がい数クイズ を ふたたびロックし、<br>
+        <b>さいしょの状態（①パズルのみ）</b> にもどします。
+      </p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="btn-relock-cancel" class="action-btn btn-secondary">キャンセル</button>
+        <button id="btn-relock-confirm" class="action-btn btn-danger">ロックする</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../common/audio.js"></script>
+  <script src="../common/confetti.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
