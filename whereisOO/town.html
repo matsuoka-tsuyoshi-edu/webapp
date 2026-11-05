@@ -51,9 +51,9 @@
         </div>
     </div>
 
-    <!-- 探検役 移動ロック案内インジケーター (Aの案内が終わるまで動けない) -->
-    <div class="move-lock-indicator waiting" id="move-lock-indicator">
-        <span id="move-lock-icon">🔒</span> <span id="move-lock-text">iPad Aの英語の道案内を聞こう！（Go ahead! が出たら動けます）</span>
+    <!-- 探検役 移動ロック案内インジケーター (最初は非表示。目的地のフキダシをタップした後に表示) -->
+    <div class="move-lock-indicator waiting" id="move-lock-indicator" style="display: none;">
+        <span id="move-lock-icon">🔒</span> <span id="move-lock-text">相手の案内を聞こう</span>
     </div>
 
     <!-- 画面下部 オンスクリーンコントローラー (iPad Safari 最適化) -->
@@ -83,8 +83,8 @@
         </div>
     </div>
 
-    <!-- ミッションカード・モーダル (新機能: ランダム目的地 ＆ 質問ガイド) -->
-    <div class="mission-card-modal active" id="mission-modal">
+    <!-- ミッション詳細カード・モーダル (通常は隠れており、HUDの💡Helpタップで表示) -->
+    <div class="mission-card-modal" id="mission-modal">
         <div class="mission-card-box">
             <div class="mission-header-tag">🎯 今日のミッション (Mission)</div>
             <p style="font-weight: bold; color: #37474f; font-size: 1rem;">
@@ -116,9 +116,30 @@
                 </div>
             </div>
 
-            <button class="btn btn-primary" style="width: 100%; font-size: 1.25rem;" id="btn-close-mission">
-                探検スタート！ (OK)
+            <!-- BさんがタップしてAさんに行き先を伝えるアクションボタン -->
+            <button class="btn-tell-goal" id="btn-tell-goal" type="button">
+                <span id="btn-tell-icon">🏥</span> <span id="btn-tell-text">Aさんに目的地を伝える (Tap!)</span> ❓
             </button>
+            <button class="btn btn-primary" style="width: 100%; font-size: 1rem; margin-top: 10px;" id="btn-close-mission" type="button">
+                閉じる (OK)
+            </button>
+        </div>
+    </div>
+
+    <!-- Aさんからのリアルタイムリアクション表示 (Good, Great, etc.) -->
+    <div class="floating-3d-reaction" id="floating-reaction-badge">✨ Great!</div>
+
+    <!-- 3Dキャラクター頭上のフキダシ -->
+    <div id="speech-bubble-a" class="bubble-3d bubble-guide" style="display: none;">
+        <span id="bubble-guide-text">Hello! 👋</span>
+    </div>
+    <div id="speech-bubble-b" class="bubble-3d bubble-dest" style="display: none;" title="タップしてAさんに行き先を伝える">
+        <div class="bubble-dest-content">
+            <span class="bubble-dest-icon" id="bubble-dest-icon">🏥</span>
+            <div class="bubble-dest-body">
+                <span class="bubble-dest-text" id="bubble-dest-text">Hospital ❓</span>
+                <span class="bubble-dest-tap-guide">👆 タップでAさんに伝える</span>
+            </div>
         </div>
     </div>
 
@@ -184,9 +205,10 @@
 
             if (allowed) {
                 touchControlsContainer.classList.remove('locked');
+                moveLockIndicator.style.display = 'flex';
                 moveLockIndicator.className = 'move-lock-indicator allowed';
                 moveLockIcon.textContent = '🟢';
-                moveLockText.textContent = 'Go ahead! 街を歩いてみよう！';
+                moveLockText.textContent = "Let's go! 街を歩いてみよう！";
                 playUnlockSound();
                 // 3秒後にインジケーターを静かにフェード
                 setTimeout(() => {
@@ -196,10 +218,16 @@
                 }, 3000);
             } else {
                 touchControlsContainer.classList.add('locked');
-                moveLockIndicator.style.opacity = '1';
-                moveLockIndicator.className = 'move-lock-indicator waiting';
-                moveLockIcon.textContent = '🔒';
-                moveLockText.textContent = 'iPad Aの英語の道案内を聞こう！（Go ahead! が出たら動けます）';
+                // 出会いシーケンス中（タップ前）はインジケーターを出さない
+                if (meetingState !== 'approaching' && meetingState !== 'facing') {
+                    moveLockIndicator.style.display = 'flex';
+                    moveLockIndicator.style.opacity = '1';
+                    moveLockIndicator.className = 'move-lock-indicator waiting';
+                    moveLockIcon.textContent = '🔒';
+                    moveLockText.textContent = '相手の案内を聞こう';
+                } else {
+                    moveLockIndicator.style.display = 'none';
+                }
             }
         }
 
@@ -232,7 +260,7 @@
             }
         }
 
-        // ミッションカードDOM
+        // ミッションカードDOM & 出会いアクションバーDOM
         const missionModal = document.getElementById('mission-modal');
         const cardGoalIcon = document.getElementById('card-goal-icon');
         const cardGoalName = document.getElementById('card-goal-name');
@@ -242,6 +270,13 @@
         const cardAskPhrase = document.getElementById('card-ask-phrase');
         const btnSpeakMission = document.getElementById('btn-speak-mission');
         const btnCloseMission = document.getElementById('btn-close-mission');
+
+        // 3D頭上フキダシDOM
+        const speechBubbleA = document.getElementById('speech-bubble-a');
+        const speechBubbleB = document.getElementById('speech-bubble-b');
+        const bubbleDestIcon = document.getElementById('bubble-dest-icon');
+        const bubbleDestText = document.getElementById('bubble-dest-text');
+        const bubbleGuideText = document.getElementById('bubble-guide-text');
 
         // ゴールモーダルDOM
         const goalModal = document.getElementById('goal-modal');
@@ -260,8 +295,8 @@
         let city = CityGen.generateCity(seedParam);
         console.log('City generated:', city);
 
-        // iPad B側でランダムに目的地を選定！
-        let currentGoal = city.pickRandomGoal();
+        // iPad B側でランダムに目的地を選定（スポーン地点から14m以上離れたランドマークを優先）
+        let currentGoal = city.pickRandomGoal(null, city.spawn.worldX, city.spawn.worldZ, 14);
         updateMissionUI(currentGoal);
 
         function updateMissionUI(goalObj) {
@@ -269,6 +304,15 @@
             cardGoalIcon.textContent = goalObj.icon;
             cardGoalName.textContent = goalObj.landmarkName;
             cardGoalJp.textContent = goalObj.landmarkJpName;
+
+            // 頭上フキダシの表示更新 (絵文字＋場所名＋？で、児童が自分でWhere is the...を考える)
+            if (bubbleDestIcon) bubbleDestIcon.textContent = goalObj.icon;
+            if (bubbleDestText) bubbleDestText.textContent = `${goalObj.landmarkName} ❓`;
+
+            const btnTellIcon = document.getElementById('btn-tell-icon');
+            const btnTellText = document.getElementById('btn-tell-text');
+            if (btnTellIcon) btnTellIcon.textContent = goalObj.icon;
+            if (btnTellText) btnTellText.textContent = `Aさんに目的地「${goalObj.landmarkJpName}」を伝える (Tap!)`;
 
             const phrase = `Excuse me. Where is the ${goalObj.landmarkName.toLowerCase()}?`;
             cardAskPhrase.textContent = `"${phrase}"`;
@@ -286,10 +330,41 @@
             modalGoalJp.textContent = goalObj.landmarkJpName;
         }
 
+        // Aさんに目的地を伝えるアクション (頭上フキダシを直接タップ)
+        function onTellGoalToA() {
+            playChimeSound();
+            sendGoalToHost();
+            meetingState = 'turning_to_companion';
+            companionTimer = 0;
+            hideSpeechBubbles();
+            if (missionModal) missionModal.classList.remove('active');
+            if (moveLockIndicator) {
+                moveLockIndicator.style.display = 'flex';
+                moveLockIndicator.style.opacity = '1';
+                moveLockIndicator.className = 'move-lock-indicator waiting';
+                moveLockIcon.textContent = '🔒';
+                moveLockText.textContent = '相手の案内を聞こう';
+            }
+        }
+
+        const btnTellGoal = document.getElementById('btn-tell-goal');
+        if (btnTellGoal) {
+            btnTellGoal.addEventListener('click', onTellGoalToA);
+        }
+        if (speechBubbleB) {
+            speechBubbleB.addEventListener('click', onTellGoalToA);
+            speechBubbleB.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                onTellGoalToA();
+            }, { passive: false });
+        }
+
         // ミッションカードの開閉
-        btnCloseMission.addEventListener('click', () => {
-            missionModal.classList.remove('active');
-        });
+        if (btnCloseMission) {
+            btnCloseMission.addEventListener('click', () => {
+                missionModal.classList.remove('active');
+            });
+        }
         hudMissionBadge.addEventListener('click', () => {
             missionModal.classList.add('active');
         });
@@ -337,30 +412,42 @@
                         connDot.textContent = '🟢';
                         connStatusText.textContent = 'iPad A と同期中';
                         btnReconnect.style.display = 'none';
-                        // 接続完了時に、iPad Bで選んだ目的地をiPad Aへ通知！
-                        sendGoalToHost();
                         sendPositionToHost();
                     } else if (status === 'error' || status === 'disconnected') {
                         connDot.textContent = '🔴';
-                        connStatusText.textContent = '未接続';
+                        const isBusy = message && (message.includes('接続中') || message.includes('使用中'));
+                        connStatusText.textContent = isBusy ? '合言葉は使用中' : '未接続';
                         btnReconnect.style.display = 'inline-block';
+                        if (isBusy) {
+                            alert(message);
+                        }
                     }
                 },
                 onConnected: () => {
-                    sendGoalToHost();
                     sendPositionToHost();
                 },
                 onData: (data) => {
                     if (data.type === 'INIT' && data.seed && data.seed !== seedParam) {
                         seedParam = data.seed;
                         city = CityGen.generateCity(seedParam);
-                        currentGoal = city.pickRandomGoal();
+                        currentGoal = city.pickRandomGoal(null, city.spawn.worldX, city.spawn.worldZ, 14);
                         updateMissionUI(currentGoal);
                         rebuildWorld();
-                        sendGoalToHost();
                     } else if (data.type === 'CONTROL_MOVE') {
                         // iPad Aからの移動許可・ブレーキ指示を受信
                         updateMoveLockUI(!!data.allowMove);
+                        if (data.allowMove) {
+                            showGuideSpeechBubble("Let's go! 🟢", 2500);
+                        } else {
+                            // 出会い中（approaching / facing）はWait!を出さない（AがWait!と言いながら迫るのを防止）
+                            if (meetingState === 'walking_together') {
+                                showGuideSpeechBubble('Wait! 🔴', 2000);
+                            }
+                        }
+                    } else if (data.type === 'REACTION') {
+                        // iPad Aからのリアクションスタンプを受信
+                        showFloating3DReaction(data.text);
+                        playReactionSound(data.reaction);
                     }
                 },
                 onError: (err) => {
@@ -422,6 +509,15 @@
         let goalMarkerMesh = null;
         let celebrationParticles = null;
         let goalAchieved = false;
+
+        let pairGroup = null;
+        let charB = null; // Explorer (探検役)
+        let charA = null; // Guide (案内役)
+        let meetingState = 'approaching'; // 'approaching' | 'facing' | 'turning_to_companion' | 'walking_together' | 'goal_celebrating'
+        let meetingProgress = 0;
+        let companionTimer = 0;
+        let walkCycle = 0;
+        let celebrateCycle = 0;
 
         const player = {
             x: city.spawn.worldX,
@@ -602,7 +698,91 @@
             // ゴールマーカー
             buildGoalMarker(currentGoal.worldX, currentGoal.worldZ);
 
+            // キャラクターペア (A & B) の構築
+            if (pairGroup) {
+                scene.remove(pairGroup);
+            }
+            pairGroup = new THREE.Group();
+            charB = createVoxelCharacter('explorer');
+            charA = createVoxelCharacter('guide');
+            pairGroup.add(charB.root);
+            pairGroup.add(charA.root);
+            pairGroup.position.set(player.x, 0, player.z);
+            pairGroup.rotation.y = -(player.angle * Math.PI) / 180;
+            scene.add(pairGroup);
+
+            startMeetingSequence();
             scene.add(worldGroup);
+        }
+
+        function createSignboardTexture(text, icon, bgColor, textColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = bgColor || '#263238';
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(8, 8, 496, 112, 18);
+                ctx.fill();
+            } else {
+                ctx.fillRect(8, 8, 496, 112);
+            }
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 6;
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(8, 8, 496, 112, 18);
+                ctx.stroke();
+            } else {
+                ctx.strokeRect(8, 8, 496, 112);
+            }
+
+            ctx.fillStyle = textColor || '#ffffff';
+            ctx.font = 'bold 44px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${icon} ${text}`, 256, 64);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function addLandmarkSignboards(group, lm, bldgW, bldgD, bldgH) {
+            const signText = lm.signText || lm.name.toUpperCase();
+            const signTex = createSignboardTexture(signText, lm.icon, lm.accentColor || '#1565c0', '#ffffff');
+            const signMat = new THREE.MeshBasicMaterial({ map: signTex, transparent: true });
+
+            const signW = Math.min(bldgW * 0.85, 4.2);
+            const signH = 1.05;
+            const signY = Math.min(bldgH * 0.65, 3.8); // 道路から最も読みやすい高さ
+            const signGeo = new THREE.PlaneGeometry(signW, signH);
+
+            // 南面 (+Z)
+            const sS = new THREE.Mesh(signGeo, signMat);
+            sS.position.set(0, signY, bldgD / 2 + 0.05);
+            group.add(sS);
+
+            // 北面 (-Z)
+            const sN = new THREE.Mesh(signGeo, signMat);
+            sN.position.set(0, signY, -bldgD / 2 - 0.05);
+            sN.rotation.y = Math.PI;
+            group.add(sN);
+
+            // 東面 (+X)
+            const sE = new THREE.Mesh(signGeo, signMat);
+            sE.position.set(bldgW / 2 + 0.05, signY, 0);
+            sE.rotation.y = Math.PI / 2;
+            group.add(sE);
+
+            // 西面 (-X)
+            const sW = new THREE.Mesh(signGeo, signMat);
+            sW.position.set(-bldgW / 2 - 0.05, signY, 0);
+            sW.rotation.y = -Math.PI / 2;
+            group.add(sW);
         }
 
         function buildLandmark3D(lm, cx, cz, w, d) {
@@ -671,6 +851,23 @@
                 const glass = new THREE.Mesh(new THREE.BoxGeometry(bldgW * 0.6, 2.2, 0.15), materials.glass);
                 glass.position.set(0, 1.2, bldgD / 2 + 0.1);
                 group.add(glass);
+            } else if (lm.id === 'bakery' || lm.id === 'cafe') {
+                const awningMat = new THREE.MeshLambertMaterial({ color: lm.accentColor || 0xff9800 });
+                const awning = new THREE.Mesh(new THREE.BoxGeometry(bldgW * 0.8, 0.35, 1.2), awningMat);
+                awning.position.set(0, 2.4, bldgD / 2 + 0.6);
+                awning.rotation.x = 0.25;
+                group.add(awning);
+            } else if (lm.id === 'fire_station') {
+                const siren = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6, 8), new THREE.MeshBasicMaterial({ color: 0xff1744 }));
+                siren.position.set(0, bldgH + 0.6, 0);
+                group.add(siren);
+            } else if (lm.id === 'museum' || lm.id === 'bank') {
+                const pillarMat = new THREE.MeshLambertMaterial({ color: 0xe0e0e0 });
+                for (let px = -bldgW * 0.35; px <= bldgW * 0.35; px += bldgW * 0.35) {
+                    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.55, bldgH, 0.55), pillarMat);
+                    pillar.position.set(px, bldgH / 2, bldgD / 2 + 0.2);
+                    group.add(pillar);
+                }
             } else if (lm.id === 'library') {
                 const pillarMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
                 for (let px = -bldgW * 0.35; px <= bldgW * 0.35; px += bldgW * 0.35) {
@@ -689,10 +886,8 @@
                 group.add(clockFace);
             }
 
-            const signMat = new THREE.MeshLambertMaterial({ color: lm.accentColor || 0x1976d2 });
-            const signPlate = new THREE.Mesh(new THREE.BoxGeometry(bldgW * 0.7, 0.8, 0.2), signMat);
-            signPlate.position.set(0, bldgH + 0.8, bldgD / 2 + 0.1);
-            group.add(signPlate);
+            // 四方の壁に看板を設置 (Post Office, Hospital 等)
+            addLandmarkSignboards(group, lm, bldgW, bldgD, bldgH);
 
             worldGroup.add(group);
         }
@@ -832,6 +1027,467 @@
             scene.add(celebrationParticles);
         }
 
+        // -------------------------------------------------------------
+        // ボクセルキャラクター生成 (A: 案内役・青 / B: 探検役・緑)
+        // -------------------------------------------------------------
+        function createVoxelCharacter(role) {
+            const group = new THREE.Group();
+            const isGuide = (role === 'guide');
+
+            const skinColor = 0xffd1a4;
+            const hairColor = isGuide ? 0x263238 : 0x5d4037;
+            const shirtColor = isGuide ? 0x1565c0 : 0x43a047;
+            const pantsColor = isGuide ? 0x37474f : 0x1e88e5;
+            const capColor = isGuide ? 0x1976d2 : 0xff9800;
+            const shoeColor = isGuide ? 0xeeeeee : 0x212121;
+
+            const skinMat = new THREE.MeshLambertMaterial({ color: skinColor });
+            const hairMat = new THREE.MeshLambertMaterial({ color: hairColor });
+            const shirtMat = new THREE.MeshLambertMaterial({ color: shirtColor });
+            const pantsMat = new THREE.MeshLambertMaterial({ color: pantsColor });
+            const capMat = new THREE.MeshLambertMaterial({ color: capColor });
+            const shoeMat = new THREE.MeshLambertMaterial({ color: shoeColor });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+            const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+            // 頭部グループ
+            const headGroup = new THREE.Group();
+            headGroup.position.y = 1.35;
+
+            // 頭の土台
+            const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.44, 0.44), skinMat);
+            headMesh.castShadow = true;
+            headGroup.add(headMesh);
+
+            // 髪の毛
+            const hairMesh = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.18, 0.46), hairMat);
+            hairMesh.position.y = 0.16;
+            headGroup.add(hairMesh);
+
+            // 帽子 (つば付き)
+            const capCrown = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.16, 0.48), capMat);
+            capCrown.position.y = 0.22;
+            headGroup.add(capCrown);
+
+            const capVisor = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.05, 0.24), capMat);
+            capVisor.position.set(0, 0.16, -0.32);
+            headGroup.add(capVisor);
+
+            // 目 (-Zを正面とする)
+            const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.03), eyeMat);
+            eyeL.position.set(-0.11, 0.02, -0.23);
+            headGroup.add(eyeL);
+
+            const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.03), eyeMat);
+            eyeR.position.set(0.11, 0.02, -0.23);
+            headGroup.add(eyeR);
+
+            group.add(headGroup);
+
+            // 胴体 (シャツ)
+            const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.56, 0.26), shirtMat);
+            torsoMesh.position.y = 0.85;
+            torsoMesh.castShadow = true;
+            group.add(torsoMesh);
+
+            if (isGuide) {
+                // Aさん (案内役): 白い名札バッジ
+                const badge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.02), whiteMat);
+                badge.position.set(0, 0.95, -0.14);
+                group.add(badge);
+            } else {
+                // Bさん (探検役): 背中にリュックサック (+Z側)
+                const backpackMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
+                const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.42, 0.16), backpackMat);
+                backpack.position.set(0, 0.86, 0.20);
+                backpack.castShadow = true;
+                group.add(backpack);
+            }
+
+            // 脚 (股関節ピボット: Y=0.56で回転)
+            const legW = 0.19;
+            const legH = 0.56;
+            const legD = 0.22;
+
+            // 左脚
+            const leftLegGroup = new THREE.Group();
+            leftLegGroup.position.set(-0.12, 0.56, 0);
+            const leftLegGeo = new THREE.BoxGeometry(legW, legH, legD);
+            leftLegGeo.translate(0, -legH / 2, 0);
+            const leftLegMesh = new THREE.Mesh(leftLegGeo, pantsMat);
+            leftLegMesh.castShadow = true;
+            leftLegGroup.add(leftLegMesh);
+
+            const shoeLGeo = new THREE.BoxGeometry(legW, 0.12, legD + 0.06);
+            shoeLGeo.translate(0, -legH + 0.06, -0.03);
+            const shoeL = new THREE.Mesh(shoeLGeo, shoeMat);
+            leftLegGroup.add(shoeL);
+            group.add(leftLegGroup);
+
+            // 右脚
+            const rightLegGroup = new THREE.Group();
+            rightLegGroup.position.set(0.12, 0.56, 0);
+            const rightLegGeo = new THREE.BoxGeometry(legW, legH, legD);
+            rightLegGeo.translate(0, -legH / 2, 0);
+            const rightLegMesh = new THREE.Mesh(rightLegGeo, pantsMat);
+            rightLegMesh.castShadow = true;
+            rightLegGroup.add(rightLegMesh);
+
+            const shoeRGeo = new THREE.BoxGeometry(legW, 0.12, legD + 0.06);
+            shoeRGeo.translate(0, -legH + 0.06, -0.03);
+            const shoeR = new THREE.Mesh(shoeRGeo, shoeMat);
+            rightLegGroup.add(shoeR);
+            group.add(rightLegGroup);
+
+            // 腕 (肩ピボット: Y=1.08で回転)
+            const armW = 0.16;
+            const armH = 0.52;
+            const armD = 0.18;
+
+            // 左腕
+            const leftArmGroup = new THREE.Group();
+            leftArmGroup.position.set(-0.32, 1.08, 0);
+            const leftArmGeo = new THREE.BoxGeometry(armW, armH, armD);
+            leftArmGeo.translate(0, -armH / 2, 0);
+            const leftArmMesh = new THREE.Mesh(leftArmGeo, shirtMat);
+            leftArmMesh.castShadow = true;
+            leftArmGroup.add(leftArmMesh);
+
+            const handLGeo = new THREE.BoxGeometry(armW * 0.9, 0.14, armD * 0.9);
+            handLGeo.translate(0, -armH + 0.07, 0);
+            const handL = new THREE.Mesh(handLGeo, skinMat);
+            leftArmGroup.add(handL);
+            group.add(leftArmGroup);
+
+            // 右腕
+            const rightArmGroup = new THREE.Group();
+            rightArmGroup.position.set(0.32, 1.08, 0);
+            const rightArmGeo = new THREE.BoxGeometry(armW, armH, armD);
+            rightArmGeo.translate(0, -armH / 2, 0);
+            const rightArmMesh = new THREE.Mesh(rightArmGeo, shirtMat);
+            rightArmMesh.castShadow = true;
+            rightArmGroup.add(rightArmMesh);
+
+            const handRGeo = new THREE.BoxGeometry(armW * 0.9, 0.14, armD * 0.9);
+            handRGeo.translate(0, -armH + 0.07, 0);
+            const handR = new THREE.Mesh(handRGeo, skinMat);
+            rightArmGroup.add(handR);
+
+            if (isGuide) {
+                // Aさんは右手にバインダー地図を持つ
+                const mapMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+                const mapMesh = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.28, 0.22), mapMat);
+                mapMesh.position.set(0.06, -armH + 0.07, -0.06);
+                mapMesh.rotation.z = -0.2;
+                rightArmGroup.add(mapMesh);
+            }
+            group.add(rightArmGroup);
+
+            return {
+                role,
+                root: group,
+                headGroup,
+                leftLeg: leftLegGroup,
+                rightLeg: rightLegGroup,
+                leftArm: leftArmGroup,
+                rightArm: rightArmGroup
+            };
+        }
+
+        // -------------------------------------------------------------
+        // 出会い演出 & アニメーション管理
+        // -------------------------------------------------------------
+        function startMeetingSequence() {
+            meetingState = 'approaching';
+            meetingProgress = 0;
+            companionTimer = 0;
+
+            if (charB && charA) {
+                charB.root.position.set(-0.55, 0, 0);
+                charB.root.rotation.y = 0;
+
+                charA.root.position.set(0, 0, -4.8);
+                charA.root.rotation.y = Math.PI; // Bに向かって立つ
+                charB.leftLeg.rotation.x = 0;
+                charB.rightLeg.rotation.x = 0;
+                charB.leftArm.rotation.x = 0;
+                charB.rightArm.rotation.x = 0;
+
+                charA.leftLeg.rotation.x = 0;
+                charA.rightLeg.rotation.x = 0;
+                charA.leftArm.rotation.x = 0;
+                charA.rightArm.rotation.x = 0;
+            }
+
+            // AのフキダシはAが歩いて到着するまで隠しておく
+            if (speechBubbleA) {
+                if (bubbleGuideText) bubbleGuideText.textContent = 'Hello! 👋';
+                speechBubbleA.style.display = 'none';
+            }
+
+            // Bの頭上には最初から行き先アイコンと「〇〇 ❓」を表示（Where is theは書かず自分で考える）
+            if (speechBubbleB) {
+                if (bubbleDestIcon && currentGoal) bubbleDestIcon.textContent = currentGoal.icon;
+                if (bubbleDestText && currentGoal) bubbleDestText.textContent = `${currentGoal.landmarkName} ❓`;
+                speechBubbleB.style.display = 'block';
+            }
+        }
+
+        function hideSpeechBubbles() {
+            const bubbleA = document.getElementById('speech-bubble-a');
+            const bubbleB = document.getElementById('speech-bubble-b');
+            if (bubbleA) bubbleA.style.display = 'none';
+            if (bubbleB) bubbleB.style.display = 'none';
+        }
+
+        function showGuideSpeechBubble(text, durationMs = 2500) {
+            const bubbleA = document.getElementById('speech-bubble-a');
+            if (!bubbleA) return;
+            bubbleA.textContent = text;
+            bubbleA.style.display = 'block';
+            clearTimeout(bubbleA._hideTimer);
+            bubbleA._hideTimer = setTimeout(() => {
+                if (meetingState !== 'facing') {
+                    bubbleA.style.display = 'none';
+                }
+            }, durationMs);
+        }
+
+        function showFloating3DReaction(text) {
+            const badge = document.getElementById('floating-reaction-badge');
+            if (!badge) return;
+            badge.textContent = text;
+            badge.classList.remove('active');
+            void badge.offsetWidth;
+            badge.classList.add('active');
+            clearTimeout(badge._hideTimer);
+            badge._hideTimer = setTimeout(() => {
+                badge.classList.remove('active');
+            }, 2600);
+        }
+
+        function updateSpeechBubblesPosition() {
+            if (!camera || !renderer) return;
+            const bubbleA = document.getElementById('speech-bubble-a');
+            const bubbleB = document.getElementById('speech-bubble-b');
+            const floatingBadge = document.getElementById('floating-reaction-badge');
+
+            const tempVec = new THREE.Vector3();
+            const halfW = window.innerWidth / 2;
+            const halfH = window.innerHeight / 2;
+
+            if (bubbleB && bubbleB.style.display !== 'none' && charB) {
+                charB.headGroup.getWorldPosition(tempVec);
+                tempVec.y += 0.55;
+                tempVec.project(camera);
+                if (tempVec.z < 1) {
+                    const sx = (tempVec.x * halfW) + halfW;
+                    const sy = -(tempVec.y * halfH) + halfH;
+                    bubbleB.style.left = `${sx}px`;
+                    bubbleB.style.top = `${sy}px`;
+                }
+            }
+
+            if (bubbleA && bubbleA.style.display !== 'none' && charA) {
+                charA.headGroup.getWorldPosition(tempVec);
+                tempVec.y += 0.55;
+                tempVec.project(camera);
+                if (tempVec.z < 1) {
+                    const sx = (tempVec.x * halfW) + halfW;
+                    const sy = -(tempVec.y * halfH) + halfH;
+                    bubbleA.style.left = `${sx}px`;
+                    bubbleA.style.top = `${sy}px`;
+                }
+            }
+
+            if (floatingBadge && floatingBadge.classList.contains('active') && charA) {
+                charA.headGroup.getWorldPosition(tempVec);
+                tempVec.y += 0.95;
+                tempVec.project(camera);
+                if (tempVec.z < 1) {
+                    const sx = (tempVec.x * halfW) + halfW;
+                    const sy = -(tempVec.y * halfH) + halfH;
+                    floatingBadge.style.left = `${sx}px`;
+                    floatingBadge.style.top = `${sy}px`;
+                }
+            }
+        }
+
+        function updateCharacterAnimation(isWalking) {
+            if (!charB || !charA) return;
+
+            if (goalAchieved) {
+                celebrateCycle += 0.055;
+                const jump = Math.abs(Math.sin(celebrateCycle * 1.8)) * 0.38;
+                charB.root.position.y = jump;
+                charA.root.position.y = jump;
+
+                const armWave = Math.sin(celebrateCycle * 3.6) * 0.25;
+                charB.leftArm.rotation.x = -Math.PI * 0.75 + armWave;
+                charB.rightArm.rotation.x = -Math.PI * 0.75 - armWave;
+                charA.leftArm.rotation.x = -Math.PI * 0.75 + armWave;
+                charA.rightArm.rotation.x = -Math.PI * 0.75 - armWave;
+
+                charB.leftLeg.rotation.x = 0;
+                charB.rightLeg.rotation.x = 0;
+                charA.leftLeg.rotation.x = 0;
+                charA.rightLeg.rotation.x = 0;
+                return;
+            }
+
+            if (meetingState === 'approaching') {
+                meetingProgress += 0.007; // 約2.4秒かけてスムーズに歩いて近づく (しっかり視認できる)
+                if (meetingProgress > 1) meetingProgress = 1;
+                charA.root.position.z = -4.8 + meetingProgress * (4.8 - 1.5);
+                const swing = Math.sin(meetingProgress * 20) * 0.5;
+                charA.leftLeg.rotation.x = swing;
+                charA.rightLeg.rotation.x = -swing;
+                charA.leftArm.rotation.x = -swing;
+                charA.rightArm.rotation.x = swing;
+                charA.root.position.y = Math.abs(Math.sin(meetingProgress * 40)) * 0.05;
+
+                if (meetingProgress >= 1) {
+                    meetingState = 'facing';
+                    charA.root.position.z = -1.5;
+                    charA.leftLeg.rotation.x = 0;
+                    charA.rightLeg.rotation.x = 0;
+                    charA.leftArm.rotation.x = 0;
+                    charA.rightArm.rotation.x = 0;
+                    charA.root.position.y = 0;
+
+                    // Aさんが到着したらフキダシ「Hello! 👋」を表示
+                    if (speechBubbleA) {
+                        if (bubbleGuideText) bubbleGuideText.textContent = 'Hello! 👋';
+                        speechBubbleA.style.display = 'block';
+                    }
+                }
+            } else if (meetingState === 'facing') {
+                charA.leftLeg.rotation.x = 0;
+                charA.rightLeg.rotation.x = 0;
+                charA.leftArm.rotation.x = 0;
+                charA.rightArm.rotation.x = 0;
+                charA.root.position.y = 0;
+                charB.leftLeg.rotation.x = 0;
+                charB.rightLeg.rotation.x = 0;
+                charB.leftArm.rotation.x = 0;
+                charB.rightArm.rotation.x = 0;
+                charB.root.position.y = 0;
+            } else if (meetingState === 'turning_to_companion') {
+                companionTimer += 0.035;
+                if (companionTimer > 1) companionTimer = 1;
+                charA.root.rotation.y = THREE.MathUtils.lerp(Math.PI, 0, companionTimer);
+                charA.root.position.x = THREE.MathUtils.lerp(0, 0.55, companionTimer);
+                charA.root.position.z = THREE.MathUtils.lerp(-1.5, 0, companionTimer);
+                const swing = Math.sin(companionTimer * 16) * 0.35 * (1 - companionTimer);
+                charA.leftLeg.rotation.x = swing;
+                charA.rightLeg.rotation.x = -swing;
+                charA.root.position.y = Math.abs(Math.sin(companionTimer * 32)) * 0.04;
+
+                if (companionTimer >= 1) {
+                    meetingState = 'walking_together';
+                    charA.root.position.set(0.55, 0, 0);
+                    charA.root.rotation.y = 0;
+                    charA.leftLeg.rotation.x = 0;
+                    charA.rightLeg.rotation.x = 0;
+                    charA.root.position.y = 0;
+                }
+            } else if (meetingState === 'walking_together') {
+                if (isWalking) {
+                    walkCycle += 0.22;
+                    const swingB = Math.sin(walkCycle) * 0.55;
+                    charB.leftLeg.rotation.x = swingB;
+                    charB.rightLeg.rotation.x = -swingB;
+                    charB.leftArm.rotation.x = -swingB;
+                    charB.rightArm.rotation.x = swingB;
+                    charB.root.position.y = Math.abs(Math.sin(walkCycle * 2)) * 0.06;
+
+                    const swingA = Math.sin(walkCycle + 0.3) * 0.55;
+                    charA.leftLeg.rotation.x = swingA;
+                    charA.rightLeg.rotation.x = -swingA;
+                    charA.leftArm.rotation.x = -swingA;
+                    charA.rightArm.rotation.x = swingA;
+                    charA.root.position.y = Math.abs(Math.sin((walkCycle + 0.3) * 2)) * 0.06;
+                } else {
+                    charB.leftLeg.rotation.x *= 0.8;
+                    charB.rightLeg.rotation.x *= 0.8;
+                    charB.leftArm.rotation.x *= 0.8;
+                    charB.rightArm.rotation.x *= 0.8;
+                    charB.root.position.y = 0;
+
+                    charA.leftLeg.rotation.x *= 0.8;
+                    charA.rightLeg.rotation.x *= 0.8;
+                    charA.leftArm.rotation.x *= 0.8;
+                    charA.rightArm.rotation.x *= 0.8;
+                    charA.root.position.y = 0;
+                }
+            }
+        }
+
+        function playCelebrationSound() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((f, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.12);
+                    gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.4);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + i * 0.12);
+                    osc.stop(ctx.currentTime + i * 0.12 + 0.45);
+                });
+            } catch (e) {}
+        }
+
+        function playReactionSound(type) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                let freqs = [523.25, 659.25];
+                if (type === 'great' || type === 'excellent') freqs = [523.25, 659.25, 783.99, 1046.50];
+                else if (type === 'try_again') freqs = [440, 392];
+                freqs.forEach((f, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(f, ctx.currentTime + idx * 0.09);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.09);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.09 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + idx * 0.09);
+                    osc.stop(ctx.currentTime + idx * 0.09 + 0.3);
+                });
+            } catch (e) {}
+        }
+
+        function playChimeSound() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const notes = [659.25, 880.00];
+                notes.forEach((f, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.12);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.38);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + i * 0.12);
+                    osc.stop(ctx.currentTime + i * 0.12 + 0.42);
+                });
+            } catch (e) {}
+        }
+
         // 次のミッションへ進む
         btnNextMission.addEventListener('click', () => {
             goalModal.classList.remove('active');
@@ -841,21 +1497,19 @@
             }
             goalAchieved = false;
 
-            // 新しい目的地をランダム選定
-            currentGoal = city.pickRandomGoal(currentGoal.landmarkId);
+            // 新しい目的地を現在地から14m以上離れた場所からランダム選定
+            currentGoal = city.pickRandomGoal(currentGoal.landmarkId, player.x, player.z, 14);
             updateMissionUI(currentGoal);
             buildGoalMarker(currentGoal.worldX, currentGoal.worldZ);
 
-            // iPad Aへ新しい目的地を送信
-            sendGoalToHost();
-
-            // 次のミッションへ進む時は、再びiPad Aの道案内を待つ
+            // 次のミッションへ進む時は、案内インジケーターを非表示にして再び道案内を待つ
+            if (moveLockIndicator) moveLockIndicator.style.display = 'none';
             if (mode === 'webrtc') {
                 updateMoveLockUI(false);
             }
 
-            // 新しいミッションカードを表示
-            missionModal.classList.add('active');
+            // 出会いカットシーンを再開！(全画面モーダルで遮らず、3D街並みとフキダシで進行)
+            startMeetingSequence();
         });
 
         function rebuildWorld() {
@@ -866,6 +1520,10 @@
             player.targetZ = player.z;
             player.angle = city.spawn.angle;
             player.targetAngle = player.angle;
+            if (pairGroup) {
+                pairGroup.position.set(player.x, 0, player.z);
+                pairGroup.rotation.y = -(player.angle * Math.PI) / 180;
+            }
             updateCameraPosition();
             updateCompassHUD();
             sendPositionToHost();
@@ -875,11 +1533,43 @@
         // カメラ & 移動
         // -------------------------------------------------------------
         function updateCameraPosition() {
-            camera.position.set(player.x, player.y, player.z);
             const rad = (player.angle * Math.PI) / 180;
-            const lookX = player.x + Math.sin(rad);
-            const lookZ = player.z - Math.cos(rad);
-            camera.lookAt(lookX, player.y, lookZ);
+            const fwdX = Math.sin(rad);
+            const fwdZ = -Math.cos(rad);
+            const rightX = Math.cos(rad);
+            const rightZ = Math.sin(rad);
+
+            if (meetingState === 'approaching' || meetingState === 'facing') {
+                // 出会いカットシーン: 二人が向かい合う様子を斜め前から映す
+                const sideDist = 1.9;
+                const backDist = 2.4;
+                const camHeight = 1.85;
+                camera.position.set(
+                    player.x - fwdX * backDist + rightX * sideDist,
+                    player.y + camHeight,
+                    player.z - fwdZ * backDist + rightZ * sideDist
+                );
+                camera.lookAt(
+                    player.x - fwdX * 0.6,
+                    player.y + 0.9,
+                    player.z - fwdZ * 0.6
+                );
+            } else {
+                // 同行・街歩き: 二人の背後からの3人称視点（前方の街並みや看板が見渡せる）
+                const backDist = 3.3;
+                const camHeight = 2.2;
+                camera.position.set(
+                    player.x - fwdX * backDist,
+                    player.y + camHeight,
+                    player.z - fwdZ * backDist
+                );
+                const lookDist = 2.4;
+                camera.lookAt(
+                    player.x + fwdX * lookDist,
+                    player.y + 1.1,
+                    player.z + fwdZ * lookDist
+                );
+            }
         }
 
         function updateCompassHUD() {
@@ -909,11 +1599,33 @@
                     cell === city.cellTypes.PARK);
         }
 
+        function ensureCompanionWalkingState() {
+            if (meetingState !== 'walking_together' && meetingState !== 'goal_celebrating') {
+                meetingState = 'walking_together';
+                if (charA && charA.root) {
+                    charA.root.position.set(0.55, 0, 0);
+                    charA.root.rotation.y = 0;
+                    charA.leftLeg.rotation.x = 0;
+                    charA.rightLeg.rotation.x = 0;
+                    charA.root.position.y = 0;
+                }
+                if (charB && charB.root) {
+                    charB.root.position.set(-0.55, 0, 0);
+                    charB.root.rotation.y = 0;
+                    charB.leftLeg.rotation.x = 0;
+                    charB.rightLeg.rotation.x = 0;
+                    charB.root.position.y = 0;
+                }
+                hideSpeechBubbles();
+            }
+        }
+
         function moveForward() {
             if (!isMoveAllowed) {
                 showLockAlert();
                 return;
             }
+            ensureCompanionWalkingState();
             const rad = (player.targetAngle * Math.PI) / 180;
             const dx = Math.sin(rad) * STEP_DISTANCE;
             const dz = -Math.cos(rad) * STEP_DISTANCE;
@@ -935,6 +1647,7 @@
                 showLockAlert();
                 return;
             }
+            ensureCompanionWalkingState();
             const rad = (player.targetAngle * Math.PI) / 180;
             const dx = -Math.sin(rad) * STEP_DISTANCE;
             const dz = Math.cos(rad) * STEP_DISTANCE;
@@ -954,6 +1667,7 @@
                 showLockAlert();
                 return;
             }
+            ensureCompanionWalkingState();
             player.targetAngle = (player.targetAngle - 90);
         }
 
@@ -962,6 +1676,7 @@
                 showLockAlert();
                 return;
             }
+            ensureCompanionWalkingState();
             player.targetAngle = (player.targetAngle + 90);
         }
 
@@ -970,11 +1685,14 @@
             const dist = Math.hypot(wx - currentGoal.worldX, wz - currentGoal.worldZ);
             if (dist <= currentGoal.radius) {
                 goalAchieved = true;
+                meetingState = 'goal_celebrating';
                 notifyGoalReached();
                 triggerCelebrationParticles();
+                playCelebrationSound();
+                // 2.5秒間、3D世界で二人がぴょんぴょん飛び跳ねて紙吹雪が舞う様子を楽しんでから、ゴール画面を表示
                 setTimeout(() => {
                     goalModal.classList.add('active');
-                }, 500);
+                }, 2500);
             }
         }
 
@@ -1033,12 +1751,27 @@
             const posLerp = 0.2;
             const rotLerp = 0.25;
 
+            const prevX = player.x;
+            const prevZ = player.z;
+            const prevAngle = player.angle;
+
             player.x += (player.targetX - player.x) * posLerp;
             player.z += (player.targetZ - player.z) * posLerp;
             player.angle += (player.targetAngle - player.angle) * rotLerp;
 
+            const moveDelta = Math.hypot(player.x - prevX, player.z - prevZ);
+            const rotDelta = Math.abs(player.angle - prevAngle);
+            const isWalking = (moveDelta > 0.005 || rotDelta > 0.1);
+
+            if (pairGroup) {
+                pairGroup.position.set(player.x, 0, player.z);
+                pairGroup.rotation.y = -(player.angle * Math.PI) / 180;
+            }
+
+            updateCharacterAnimation(isWalking);
             updateCameraPosition();
             updateCompassHUD();
+            updateSpeechBubblesPosition();
 
             if (goalMarkerMesh) {
                 goalMarkerMesh.rotation.y += 0.02;

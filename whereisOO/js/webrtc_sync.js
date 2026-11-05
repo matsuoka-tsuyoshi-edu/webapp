@@ -125,6 +125,24 @@
 
             this.peer.on('connection', (conn) => {
                 console.log('[WebRTC Host Incoming Connection]', conn.peer);
+
+                // すでに探検役が接続中の場合は、重複接続を拒否（早い者勝ち・1対1排他ロック）
+                if (this.isConnected && this.conn && this.conn.open) {
+                    console.warn('[WebRTC Host] Duplicate connection rejected:', conn.peer);
+                    conn.on('open', () => {
+                        try {
+                            conn.send(JSON.stringify({
+                                type: 'ROOM_BUSY_REJECTED',
+                                message: `合言葉 [${this.roomId}] はすでに別の探検役(iPad B)が接続中です。4桁の番号をもう一度確認してください。`
+                            }));
+                        } catch (e) {}
+                        setTimeout(() => {
+                            try { conn.close(); } catch (e) {}
+                        }, 500);
+                    });
+                    return;
+                }
+
                 this.conn = conn;
                 this._setupConnectionEvents(conn);
             });
@@ -263,6 +281,12 @@
                     if (typeof data === 'string') {
                         parsed = JSON.parse(data);
                     }
+                    if (parsed && parsed.type === 'ROOM_BUSY_REJECTED') {
+                        console.warn('[WebRTC Client] Connection rejected: Room already in use');
+                        this.onStatusChange('error', parsed.message || 'この部屋はすでに別の探検役が接続中です。合言葉を確認してください。');
+                        this.destroy();
+                        return;
+                    }
                     this.onData(parsed);
                 } catch (e) {
                     this.onData(data);
@@ -270,14 +294,18 @@
             });
 
             conn.on('close', () => {
-                this.isConnected = false;
-                console.log('[WebRTC DataChannel CLOSED]');
-                this.onStatusChange('disconnected', '接続が切断されました。');
+                if (this.conn === conn) {
+                    this.isConnected = false;
+                    console.log('[WebRTC DataChannel CLOSED]');
+                    this.onStatusChange('disconnected', '接続が切断されました。');
+                }
             });
 
             conn.on('error', (err) => {
-                console.error('[WebRTC DataChannel Error]', err);
-                this.onStatusChange('error', 'データ通信エラー: ' + (err.message || err));
+                if (this.conn === conn) {
+                    console.error('[WebRTC DataChannel Error]', err);
+                    this.onStatusChange('error', 'データ通信エラー: ' + (err.message || err));
+                }
             });
         }
 

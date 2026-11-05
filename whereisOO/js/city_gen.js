@@ -180,6 +180,114 @@
             height: 0.5,
             signText: 'PARK',
             isPark: true
+        },
+        {
+            id: 'bakery',
+            name: 'Bakery',
+            jpName: 'パン屋',
+            color: '#fff3e0',
+            accentColor: '#ff9800',
+            roofColor: '#d84315',
+            icon: '🥐',
+            description: 'Warm aroma of freshly baked bread',
+            height: 1.8,
+            signText: 'BAKERY'
+        },
+        {
+            id: 'supermarket',
+            name: 'Supermarket',
+            jpName: 'スーパーマーケット',
+            color: '#e8f5e9',
+            accentColor: '#43a047',
+            roofColor: '#2e7d32',
+            icon: '🏬',
+            description: 'Large grocery and daily goods store',
+            height: 2.2,
+            signText: 'SUPERMARKET'
+        },
+        {
+            id: 'cafe',
+            name: 'Cafe',
+            jpName: 'カフェ',
+            color: '#efebe9',
+            accentColor: '#795548',
+            roofColor: '#4e342e',
+            icon: '☕',
+            description: 'Coffee shop with striped terrace awnings',
+            height: 1.6,
+            signText: 'CAFE'
+        },
+        {
+            id: 'museum',
+            name: 'Museum',
+            jpName: '博物館・美術館',
+            color: '#ede7f6',
+            accentColor: '#7e57c2',
+            roofColor: '#512da8',
+            icon: '🏛️',
+            description: 'Classical museum with grand entrance pillars',
+            height: 2.8,
+            signText: 'MUSEUM'
+        },
+        {
+            id: 'fire_station',
+            name: 'Fire Station',
+            jpName: '消防署',
+            color: '#ffebee',
+            accentColor: '#e53935',
+            roofColor: '#b71c1c',
+            icon: '🚒',
+            description: 'Red emergency fire station with siren beacon',
+            height: 2.4,
+            signText: 'FIRE STATION'
+        },
+        {
+            id: 'drugstore',
+            name: 'Pharmacy',
+            jpName: '薬局・ドラッグストア',
+            color: '#e0f7fa',
+            accentColor: '#00acc1',
+            roofColor: '#006064',
+            icon: '💊',
+            description: 'Medicine and wellness drugstore',
+            height: 1.7,
+            signText: 'PHARMACY'
+        },
+        {
+            id: 'bank',
+            name: 'Bank',
+            jpName: '銀行',
+            color: '#eceff1',
+            accentColor: '#546e7a',
+            roofColor: '#37474f',
+            icon: '🏦',
+            description: 'Sturdy financial building with gold crest',
+            height: 2.6,
+            signText: 'BANK'
+        },
+        {
+            id: 'bookstore',
+            name: 'Bookstore',
+            jpName: '本屋',
+            color: '#fbe9e7',
+            accentColor: '#ff7043',
+            roofColor: '#bf360c',
+            icon: '📖',
+            description: 'Store packed with books, magazines and manga',
+            height: 1.9,
+            signText: 'BOOKSTORE'
+        },
+        {
+            id: 'gym',
+            name: 'Gym',
+            jpName: '体育館・スポーツジム',
+            color: '#e1f5fe',
+            accentColor: '#039be5',
+            roofColor: '#01579b',
+            icon: '⚽',
+            description: 'Sports complex with arena roof',
+            height: 2.7,
+            signText: 'SPORTS GYM'
         }
     ];
 
@@ -297,7 +405,7 @@
         const availableLandmarks = rng.shuffle(LANDMARK_DEFINITIONS);
 
         const landmarksInCity = [];
-        const numLandmarksToPlace = Math.min(6, availableLandmarks.length, blocks.length);
+        const numLandmarksToPlace = Math.min(8, availableLandmarks.length, blocks.length);
 
         for (let i = 0; i < numLandmarksToPlace; i++) {
             const block = shuffledBlocks[i];
@@ -485,15 +593,30 @@
 
             /**
              * 公園以外のランドマークからランダムに新しい目的地を選定する
+             * 現在地（またはスポーン地点）から一定距離離れたランドマークを優先選定
              * @param {string} [excludeId] 直前の目的地IDを除外
+             * @param {number} [currentX] 現在のワールドX座標（省略時はスポーン地点）
+             * @param {number} [currentZ] 現在のワールドZ座標（省略時はスポーン地点）
+             * @param {number} [minDistance=14] 最低離す距離（ワールド単位、約5ブロック相当）
              * @returns {Object} 選定されたgoalオブジェクト
              */
-            pickRandomGoal: function (excludeId) {
+            pickRandomGoal: function (excludeId, currentX, currentZ, minDistance = 14) {
                 let candidates = this.landmarks.filter(lm => !lm.isPark);
                 if (excludeId && candidates.length > 1) {
                     candidates = candidates.filter(lm => lm.id !== excludeId);
                 }
-                const chosen = candidates[Math.floor(Math.random() * candidates.length)] || this.landmarks[0];
+
+                // 現在地（指定がなければスポーン地点）からの距離が minDistance 以上の候補を優先
+                const refX = (currentX !== undefined && currentX !== null) ? currentX : this.spawn.worldX;
+                const refZ = (currentZ !== undefined && currentZ !== null) ? currentZ : this.spawn.worldZ;
+
+                const farCandidates = candidates.filter(lm => {
+                    const dist = Math.hypot(lm.frontRoadWorld.x - refX, lm.frontRoadWorld.z - refZ);
+                    return dist >= minDistance;
+                });
+
+                const pool = (farCandidates.length > 0) ? farCandidates : candidates;
+                const chosen = pool[Math.floor(Math.random() * pool.length)] || this.landmarks[0];
                 this.goal = createGoalFromLandmark(chosen);
                 return this.goal;
             }

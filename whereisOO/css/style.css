@@ -538,6 +538,496 @@ html, body {
     transform: scale(0.95);
 }
 
+/* フレーズドロワー レベル別タブ */
+.phrase-level-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    background: #e8f5e9;
+    padding: 4px;
+    border-radius: 12px;
+}
+
+.level-tab-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 6px 3px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #2e7d32;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.level-tab-btn.active {
+    background: #ffffff;
+    color: #1b5e20;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* リアクション・評価スタンプバー */
+.reactions-bar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-reaction {
+    background: #ffffff;
+    border: 2px solid #90caf9;
+    border-radius: 18px;
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #0d47a1;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: transform 0.1s, background 0.1s;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.btn-reaction:active {
+    transform: scale(0.92);
+    background: #e3f2fd;
+}
+
+/* 3D フローティングリアクションバッジ */
+.floating-3d-reaction {
+    position: absolute;
+    top: 28%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    background: rgba(255, 255, 255, 0.96);
+    border: 3px solid #ff9800;
+    border-radius: 28px;
+    padding: 12px 28px;
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #e65100;
+    box-shadow: 0 8px 32px rgba(255, 152, 0, 0.45);
+    z-index: 120;
+    pointer-events: none;
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.35s;
+}
+
+.floating-3d-reaction.active {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+}
+
+/* 3D頭上フキダシ */
+.bubble-3d {
+    position: absolute;
+    background: #ffffff;
+    border: 2px solid #37474f;
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #263238;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 80;
+    transform: translate(-50%, -100%);
+    transition: opacity 0.3s;
+}
+
+.bubble-3d::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 8px 6px 0;
+    border-style: solid;
+    border-color: #37474f transparent;
+    display: block;
+    width: 0;
+}
+
+/* 探検役(B)の頭上行き先フキダシ (タップ可能・アテンション付き) */
+.bubble-3d.bubble-dest {
+    background: #ffffff;
+    border: 3px solid #ff9800;
+    border-radius: 20px;
+    padding: 10px 16px;
+    box-shadow: 0 8px 24px rgba(230, 81, 0, 0.35);
+    cursor: pointer;
+    text-align: center;
+    min-width: 200px;
+    max-width: 290px;
+    animation: bubbleBounce 2.2s infinite ease-in-out;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.bubble-3d.bubble-dest::after {
+    border-color: #ff9800 transparent;
+}
+
+@keyframes bubbleBounce {
+    0%, 100% { transform: translate(-50%, -100%) scale(1); }
+    50% { transform: translate(-50%, -106%) scale(1.03); }
+}
+
+.bubble-dest-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bubble-dest-icon {
+    font-size: 2.2rem;
+    flex-shrink: 0;
+}
+
+.bubble-dest-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.bubble-dest-text {
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #d84315;
+    line-height: 1.25;
+}
+
+.bubble-dest-tap-guide {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #e65100;
+    background: #fff3e0;
+    border: 1px solid #ffb74d;
+    border-radius: 8px;
+    padding: 2px 6px;
+    margin-top: 4px;
+    display: inline-block;
+}
+
+/* 案内役(A)の頭上フキダシ */
+.bubble-3d.bubble-guide {
+    background: #e3f2fd;
+    border: 3px solid #1976d2;
+    color: #0d47a1;
+    font-size: 1.1rem;
+    font-weight: 900;
+    border-radius: 18px;
+    padding: 8px 14px;
+    box-shadow: 0 6px 18px rgba(25, 118, 210, 0.35);
+}
+
+.bubble-3d.bubble-guide::after {
+    border-color: #1976d2 transparent;
+}
+
+/* 出会い・質問フェーズ専用: 画面下部コンパクトアクションバー */
+.meeting-action-bar {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(40px);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 60;
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.1, 0.9, 0.2, 1);
+    width: 90%;
+    max-width: 520px;
+}
+
+.meeting-action-bar.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+.meeting-bar-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 3px solid #ff9800;
+    border-radius: 24px;
+    padding: 12px 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.meeting-bar-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bar-goal-icon {
+    font-size: 2rem;
+}
+
+.bar-goal-text {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.bar-goal-label {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #616161;
+}
+
+.bar-goal-name {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #d84315;
+}
+
+.meeting-bar-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-meeting-tell {
+    flex: 1;
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 16px;
+    padding: 12px 16px;
+    font-size: 1.1rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(245, 124, 0, 0.4);
+    transition: transform 0.1s, box-shadow 0.1s;
+    animation: pulseTell 1.8s infinite ease-in-out;
+}
+
+.btn-meeting-tell:active {
+    transform: scale(0.96);
+}
+
+.btn-meeting-help {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: 2px solid #81c784;
+    border-radius: 16px;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    white-space: nowrap;
+}
+
+.btn-meeting-help:active {
+    background: #c8e6c9;
+}
+
+/* ==========================================================================
+   iPad A: 3D ペア探検隊ステージ (map.html: 地図と方位磁石の間のスペースに配置)
+   ========================================================================== */
+.companion-3d-stage {
+    position: absolute;
+    top: 12px;
+    right: 108px; /* 地図と方位計(right: 60px)の間のスペースに配置 */
+    width: 195px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 2px solid #81c784;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 80;
+    pointer-events: auto;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.companion-stage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-bottom: 1.5px solid #a5d6a7;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.companion-stage-title {
+    color: #1b5e20;
+}
+
+.companion-stage-status {
+    color: #e65100;
+    background: #fff8e1;
+    padding: 2px 6px;
+    border-radius: 8px;
+    border: 1px solid #ffe082;
+    white-space: nowrap;
+    font-size: 0.68rem;
+}
+
+.companion-canvas-wrapper {
+    width: 100%;
+    height: 120px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #b3e5fc 0%, #e1f5fe 100%);
+}
+
+.companion-canvas-wrapper canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.companion-stage-speech {
+    position: absolute;
+    top: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffffff;
+    border: 2px solid #ff9800;
+    border-radius: 12px;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #e65100;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+    animation: popBubble 0.25s ease-out;
+}
+
+/* ペア探検隊 直下の操作・リアクションパネル */
+.companion-stage-controls {
+    padding: 8px 6px;
+    background: #f9fbe7;
+    border-top: 1.5px solid #c8e6c9;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.companion-stage-controls .btn-control-go {
+    width: 100%;
+    background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+    color: #ffffff;
+    border: 2px solid #81c784;
+    border-radius: 12px;
+    padding: 8px 6px;
+    font-size: 0.88rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(46, 125, 50, 0.35);
+    transition: transform 0.1s, background 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+    white-space: nowrap;
+    text-align: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.companion-stage-controls .btn-control-go:active {
+    transform: scale(0.96);
+}
+
+.companion-stage-controls .btn-control-go.btn-control-wait {
+    background: linear-gradient(135deg, #fb8c00 0%, #e65100 100%);
+    border-color: #ffb74d;
+    box-shadow: 0 3px 8px rgba(230, 81, 0, 0.35);
+    animation: pulse-orange 1.5s infinite;
+}
+
+.companion-stage-controls .reactions-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    width: 100%;
+}
+
+.companion-stage-controls .btn-reaction {
+    padding: 6px 2px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-align: center;
+    border-radius: 10px;
+    white-space: nowrap;
+    border: 1.5px solid #90caf9;
+    box-sizing: border-box;
+}
+
+@keyframes popBubble {
+    0% { transform: translateX(-50%) scale(0.6); opacity: 0; }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+    .companion-3d-stage {
+        width: 155px;
+        right: 85px;
+        top: 8px;
+    }
+    .companion-canvas-wrapper {
+        height: 100px;
+    }
+    .companion-stage-controls .btn-control-go {
+        font-size: 0.78rem;
+        padding: 6px 4px;
+    }
+    .companion-stage-controls .btn-reaction {
+        font-size: 0.7rem;
+        padding: 4px 1px;
+    }
+}
+
+/* 目的地をAに伝えるボタン (アニメーション付き) */
+.btn-tell-goal {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: white;
+    border: 2px solid #ffffff;
+    border-radius: 18px;
+    padding: 12px 20px;
+    font-size: 1.15rem;
+    font-weight: 900;
+    box-shadow: 0 6px 18px rgba(245, 124, 0, 0.4);
+    cursor: pointer;
+    animation: pulseTell 1.6s infinite ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 14px;
+}
+
+@keyframes pulseTell {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+}
+
+/* ゴール時のぴょんぴょんジャンプアニメーション */
+@keyframes jumpBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-16px); }
+}
+
 /* ==========================================================================
    iPad B: 3D ボクセル街ビュー (town.html) スタイル
    ========================================================================== */
@@ -887,63 +1377,7 @@ html, body {
     gap: 10px;
 }
 
-/* ==========================================================================
-   iPad A (地図役): 探検役への移動許可・ブレーキ (Go ahead! / Wait!) コントロール
-   ========================================================================== */
-.control-move-panel {
-    display: flex;
-    align-items: center;
-    margin-left: auto;
-}
 
-.btn-control-go {
-    background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
-    color: #ffffff;
-    border: 2px solid #81c784;
-    border-radius: 14px;
-    padding: 8px 18px;
-    font-size: 1.05rem;
-    font-weight: 900;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: transform 0.15s, box-shadow 0.15s;
-    white-space: nowrap;
-}
-
-.btn-control-go:active {
-    transform: scale(0.96);
-}
-
-.btn-control-wait {
-    background: linear-gradient(135deg, #fb8c00 0%, #e65100 100%);
-    color: #ffffff;
-    border: 2px solid #ffb74d;
-    border-radius: 14px;
-    padding: 8px 18px;
-    font-size: 1.05rem;
-    font-weight: 900;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(230, 81, 0, 0.4);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: transform 0.15s, box-shadow 0.15s;
-    white-space: nowrap;
-    animation: pulse-orange 1.5s infinite;
-}
-
-.btn-control-wait:active {
-    transform: scale(0.96);
-}
-
-@keyframes pulse-orange {
-    0% { box-shadow: 0 0 0 0 rgba(230, 81, 0, 0.6); }
-    70% { box-shadow: 0 0 0 10px rgba(230, 81, 0, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(230, 81, 0, 0); }
-}
 
 /* ==========================================================================
    iPad B (探検役): 移動ロック状態インジケーター & コントローラーロック

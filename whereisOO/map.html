@@ -6,6 +6,12 @@
     <title>Where is OO? - iPad A [Navigator / 地図役]</title>
     <link rel="stylesheet" href="css/style.css">
     <!-- ローカルライブラリ ＆ CDNフォールバック -->
+    <script src="js/three.min.js"></script>
+    <script>
+    if (typeof THREE === 'undefined') {
+        document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+    </script>
     <script src="js/peerjs.min.js"></script>
     <script>
     if (typeof Peer === 'undefined') {
@@ -33,25 +39,13 @@
             <span id="goal-name-text">❓ 相手の質問待ち...</span>
         </div>
 
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <!-- 探検役への移動許可・ブレーキボタン (Go ahead! / Wait!) -->
-            <div class="control-move-panel" id="control-move-panel" style="display: none;">
-                <button class="btn-control-go" id="btn-toggle-move" type="button" title="案内が終わったら押して、探検役に『どうぞ！』と伝えよう">
-                    🟢 Go ahead! (どうぞ！)
-                </button>
-            </div>
-
+        <div>
             <label style="font-size: 0.85rem; font-weight: bold; color: #37474f; display: flex; align-items: center; gap: 4px; cursor: pointer; background: #fff; padding: 6px 10px; border-radius: 8px; border: 1px solid #ccc;">
                 <input type="checkbox" id="toggle-player-visible" checked>
                 <span>相手の位置</span>
             </label>
         </div>
     </header>
-
-    <!-- 探検役からの質問バナー (新機能) -->
-    <div class="question-banner" id="question-banner">
-        <span>🗣️ 探検役(iPad B)が「Excuse me. Where is the...?」と尋ねてきます。言葉を聞いて地図で案内しよう！</span>
-    </div>
 
     <!-- メイン地図エリア -->
     <main class="map-content-area">
@@ -66,70 +60,48 @@
                 <div class="drawer-title">💬 道案内フレーズ</div>
                 <button class="drawer-close-btn" id="btn-close-drawer" aria-label="閉じる">✕</button>
             </div>
-            <p style="font-size: 0.82rem; color: #555; margin-bottom: 12px; line-height: 1.4;">
+
+            <!-- レベル別 & 逆引きタブ -->
+            <div class="phrase-level-tabs" id="phrase-tabs">
+                <button class="level-tab-btn active" data-tab="level1">⭐ Lv.1</button>
+                <button class="level-tab-btn" data-tab="level2">⭐⭐ Lv.2</button>
+                <button class="level-tab-btn" data-tab="level3">⭐⭐⭐ Lv.3</button>
+                <button class="level-tab-btn" data-tab="search">🔍 逆引き</button>
+            </div>
+
+            <p style="font-size: 0.8rem; color: #555; margin-bottom: 8px; line-height: 1.3;" id="phrase-tab-desc">
                 まずは自分で考えて、どうしても思い出せない時に確認しよう！
             </p>
-            <div class="drawer-phrase-list">
-                <div class="drawer-phrase-item">
-                    <div class="drawer-phrase-top">
-                        <span class="drawer-phrase-en">Go straight for 1 block.</span>
-                        <button class="btn-mini-speak" type="button" onclick="speakPhrase('Go straight for one block.')">🔊 きく</button>
-                    </div>
-                    <span class="drawer-phrase-jp">1ブロックまっすぐ進んで</span>
-                </div>
-                <div class="drawer-phrase-item">
-                    <div class="drawer-phrase-top">
-                        <span class="drawer-phrase-en">Go straight for 2 blocks.</span>
-                        <button class="btn-mini-speak" type="button" onclick="speakPhrase('Go straight for two blocks.')">🔊 きく</button>
-                    </div>
-                    <span class="drawer-phrase-jp">2ブロックまっすぐ進んで</span>
-                </div>
-                <div class="drawer-phrase-item">
-                    <div class="drawer-phrase-top">
-                        <span class="drawer-phrase-en">Turn left at the corner.</span>
-                        <button class="btn-mini-speak" type="button" onclick="speakPhrase('Turn left at the next corner.')">🔊 きく</button>
-                    </div>
-                    <span class="drawer-phrase-jp">角を左に曲がって</span>
-                </div>
-                <div class="drawer-phrase-item">
-                    <div class="drawer-phrase-top">
-                        <span class="drawer-phrase-en">Turn right at the corner.</span>
-                        <button class="btn-mini-speak" type="button" onclick="speakPhrase('Turn right at the next corner.')">🔊 きく</button>
-                    </div>
-                    <span class="drawer-phrase-jp">角を右に曲がって</span>
-                </div>
-                <div class="drawer-phrase-item">
-                    <div class="drawer-phrase-top">
-                        <span class="drawer-phrase-en">It's on your right.</span>
-                        <button class="btn-mini-speak" type="button" onclick="speakPhrase('It is on your right.')">🔊 きく</button>
-                    </div>
-                    <span class="drawer-phrase-jp">右手にあるよ</span>
-                </div>
-                <div class="drawer-phrase-item">
-                    <div class="drawer-phrase-top">
-                        <span class="drawer-phrase-en">It's on your left.</span>
-                        <button class="btn-mini-speak" type="button" onclick="speakPhrase('It is on your left.')">🔊 きく</button>
-                    </div>
-                    <span class="drawer-phrase-jp">左手にあるよ</span>
-                </div>
-                <div class="drawer-phrase-item">
-                    <div class="drawer-phrase-top">
-                        <span class="drawer-phrase-en">You can see it!</span>
-                        <button class="btn-mini-speak" type="button" onclick="speakPhrase('You can see it!')">🔊 きく</button>
-                    </div>
-                    <span class="drawer-phrase-jp">見えてきたよ！</span>
-                </div>
-                <div class="drawer-phrase-item">
-                    <div class="drawer-phrase-top">
-                        <span class="drawer-phrase-en">You're welcome!</span>
-                        <button class="btn-mini-speak" type="button" onclick="speakPhrase('You are welcome!')">🔊 きく</button>
-                    </div>
-                    <span class="drawer-phrase-jp">どういたしまして！</span>
-                </div>
+
+            <div class="drawer-phrase-list" id="drawer-phrase-list">
+                <!-- JSで動的に表示 -->
             </div>
         </aside>
 
         <div id="map-canvas-container">
+            <!-- 3Dペア探検隊 ミニステージ (地図と方位磁石の間のスペースに配置: Aさん & Bさんがその場で足踏み) -->
+            <div class="companion-3d-stage" id="companion-3d-stage">
+                <div class="companion-stage-header">
+                    <span class="companion-stage-title">👥 ペア探検隊</span>
+                    <span class="companion-stage-status" id="companion-stage-status">❓ 質問待ち</span>
+                </div>
+                <div id="companion-canvas-wrapper" class="companion-canvas-wrapper"></div>
+                <div class="companion-stage-speech" id="companion-stage-speech" style="display: none;"></div>
+
+                <!-- ペア探検隊 直下の操作パネル (Go Ahead & リアクションスタンプ) -->
+                <div class="companion-stage-controls" id="control-move-panel">
+                    <button class="btn-control-go" id="btn-toggle-move" type="button" title="案内が終わったら押して、探検役に『どうぞ！』と伝えよう">
+                        🟢 Go ahead! (どうぞ！)
+                    </button>
+                    <div class="reactions-bar">
+                        <button class="btn-reaction" type="button" data-reaction="good" title="いいね！">👍 Good!</button>
+                        <button class="btn-reaction" type="button" data-reaction="great" title="すばらしい！">✨ Great!</button>
+                        <button class="btn-reaction" type="button" data-reaction="excellent" title="最高！">🌟 Excellent!</button>
+                        <button class="btn-reaction" type="button" data-reaction="try_again" title="おしい！もう一回！">🔄 Try again!</button>
+                    </div>
+                </div>
+            </div>
+
             <canvas id="map-canvas"></canvas>
         </div>
     </main>
@@ -180,10 +152,48 @@
         const connDot = document.getElementById('conn-dot');
         const goalBadge = document.getElementById('goal-badge');
         const goalNameText = document.getElementById('goal-name-text');
-        const questionBanner = document.getElementById('question-banner');
         const togglePlayerVisible = document.getElementById('toggle-player-visible');
         const controlMovePanel = document.getElementById('control-move-panel');
         const btnToggleMove = document.getElementById('btn-toggle-move');
+
+        // 3Dペア探検隊 ミニステージDOM
+        const companionStage = document.getElementById('companion-3d-stage');
+        const companionCanvasWrapper = document.getElementById('companion-canvas-wrapper');
+        const companionStageStatus = document.getElementById('companion-stage-status');
+        const companionStageSpeech = document.getElementById('companion-stage-speech');
+
+        function setCompanionStageStatus(text, type = 'normal') {
+            if (!companionStageStatus) return;
+            companionStageStatus.textContent = text;
+            if (type === 'go') {
+                companionStageStatus.style.background = '#e8f5e9';
+                companionStageStatus.style.color = '#2e7d32';
+                companionStageStatus.style.borderColor = '#81c784';
+            } else if (type === 'wait') {
+                companionStageStatus.style.background = '#ffebee';
+                companionStageStatus.style.color = '#c62828';
+                companionStageStatus.style.borderColor = '#ef9a9a';
+            } else if (type === 'goal') {
+                companionStageStatus.style.background = '#fff3e0';
+                companionStageStatus.style.color = '#e65100';
+                companionStageStatus.style.borderColor = '#ffb74d';
+            } else {
+                companionStageStatus.style.background = '#fff8e1';
+                companionStageStatus.style.color = '#f57f17';
+                companionStageStatus.style.borderColor = '#ffe082';
+            }
+        }
+
+        let speechTimer = null;
+        function showCompanionSpeech(text, durationMs = 2400) {
+            if (!companionStageSpeech) return;
+            companionStageSpeech.textContent = text;
+            companionStageSpeech.style.display = 'block';
+            clearTimeout(speechTimer);
+            speechTimer = setTimeout(() => {
+                if (companionStageSpeech) companionStageSpeech.style.display = 'none';
+            }, durationMs);
+        }
 
         let isMoveAllowed = false; // iPad Bの移動許可フラグ (初期はロック)
 
@@ -193,10 +203,16 @@
                 btnToggleMove.className = 'btn-control-wait';
                 btnToggleMove.innerHTML = '🔴 Wait! (ストップ！)';
                 btnToggleMove.title = 'タップすると探検役をストップさせます';
+                setCompanionStageStatus('🟢 Go ahead! (前進許可)', 'go');
             } else {
                 btnToggleMove.className = 'btn-control-go';
                 btnToggleMove.innerHTML = '🟢 Go ahead! (どうぞ！)';
                 btnToggleMove.title = '英語の案内が終わったら押して、探検役に『どうぞ！』と伝えよう';
+                if (activeGoal) {
+                    setCompanionStageStatus(`${activeGoal.icon} ${activeGoal.landmarkName} へ案内中`, 'normal');
+                } else {
+                    setCompanionStageStatus('❓ 質問待ち', 'normal');
+                }
             }
         }
 
@@ -204,6 +220,11 @@
             btnToggleMove.addEventListener('click', () => {
                 isMoveAllowed = !isMoveAllowed;
                 updateMoveControlButton();
+                if (isMoveAllowed) {
+                    showCompanionSpeech("Let's go! 🟢", 2000);
+                } else {
+                    showCompanionSpeech('Wait! 🔴', 1800);
+                }
                 if (rtcSync && rtcSync.isConnected) {
                     rtcSync.send({
                         type: 'CONTROL_MOVE',
@@ -211,6 +232,113 @@
                     });
                 }
             });
+        }
+
+        // リアクションスタンプ (Good, Great, Excellent, Try again)
+        document.querySelectorAll('.btn-reaction').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const reactionType = btn.getAttribute('data-reaction');
+                const text = btn.textContent.trim();
+                playReactionSound(reactionType);
+                showCompanionSpeech(text, 2200);
+                if (rtcSync && rtcSync.isConnected) {
+                    rtcSync.send({
+                        type: 'REACTION',
+                        reaction: reactionType,
+                        text: text
+                    });
+                }
+            });
+        });
+
+        // お助けフレーズ (レベル別 & 逆引き) データと描画
+        const phraseTabs = document.getElementById('phrase-tabs');
+        const phraseTabDesc = document.getElementById('phrase-tab-desc');
+        const drawerPhraseList = document.getElementById('drawer-phrase-list');
+
+        const PHRASES_DATA = {
+            level1: [
+                { en: "Go straight.", jp: "まっすぐ進んで", tts: "Go straight." },
+                { en: "Turn right.", jp: "右に曲がって", tts: "Turn right." },
+                { en: "Turn left.", jp: "左に曲がって", tts: "Turn left." },
+                { en: "Stop.", jp: "止まって", tts: "Stop." },
+                { en: "Go ahead!", jp: "どうぞ！進んで！", tts: "Go ahead!" },
+                { en: "You're welcome!", jp: "どういたしまして！", tts: "You are welcome!" }
+            ],
+            level2: [
+                { en: "Go straight for 1 block.", jp: "1ブロックまっすぐ進んで", tts: "Go straight for one block." },
+                { en: "Go straight for 2 blocks.", jp: "2ブロックまっすぐ進んで", tts: "Go straight for two blocks." },
+                { en: "Turn right at the corner.", jp: "角を右に曲がって", tts: "Turn right at the corner." },
+                { en: "Turn left at the corner.", jp: "角を左に曲がって", tts: "Turn left at the corner." },
+                { en: "Turn right at the second corner.", jp: "2つ目の角を右に曲がって", tts: "Turn right at the second corner." },
+                { en: "It's on your right.", jp: "右手にあるよ", tts: "It is on your right." },
+                { en: "It's on your left.", jp: "左手にあるよ", tts: "It is on your left." },
+                { en: "You can see it!", jp: "見えてきたよ！", tts: "You can see it!" }
+            ],
+            level3: [
+                { en: "Turn right at the corner of the Post Office.", jp: "郵便局の角を右に曲がって", tts: "Turn right at the corner of the Post Office." },
+                { en: "Turn left at the corner of the Hospital.", jp: "病院の角を左に曲がって", tts: "Turn left at the corner of the Hospital." },
+                { en: "It's next to the Library.", jp: "図書館の隣にあるよ", tts: "It is next to the Library." },
+                { en: "It's across from the Park.", jp: "公園の向かい側にあるよ", tts: "It is across from the Park." },
+                { en: "It's across the street.", jp: "通りの向かいにあるよ", tts: "It is across the street." },
+                { en: "It's between the Bank and the Bakery.", jp: "銀行とパン屋の間にあるよ", tts: "It is between the Bank and the Bakery." }
+            ],
+            search: [
+                { q: "「角で曲がって」って何て言う？", en: "Turn right / left at the corner.", jp: "角を右／左に曲がって", tts: "Turn right at the corner." },
+                { q: "「〇〇の角で曲がって」って何て言う？", en: "Turn right at the corner of the ~.", jp: "〜の角を右に曲がって", tts: "Turn right at the corner of the post office." },
+                { q: "「〇〇の隣にあるよ」って何て言う？", en: "It's next to the ~.", jp: "〜の隣にあるよ", tts: "It is next to the library." },
+                { q: "「〇〇の向かい側だよ」って何て言う？", en: "It's across from the ~.", jp: "〜の向かい側にあるよ", tts: "It is across from the park." },
+                { q: "「行き過ぎちゃった！」って何て言う？", en: "You passed it! Come back!", jp: "通り過ぎたよ！戻って！", tts: "You passed it! Come back!" },
+                { q: "「もう1回言って？」って何て言う？", en: "One more time, please.", jp: "もう1回言ってください", tts: "One more time, please." },
+                { q: "「ゆっくり言って？」って何て言う？", en: "Slowly, please.", jp: "ゆっくりお願いします", tts: "Slowly, please." },
+                { q: "「どういたしまして」って何て言う？", en: "You're welcome!", jp: "どういたしまして！", tts: "You are welcome!" }
+            ]
+        };
+
+        function renderPhrases(tabKey) {
+            if (!drawerPhraseList) return;
+            drawerPhraseList.innerHTML = '';
+            
+            const list = PHRASES_DATA[tabKey] || PHRASES_DATA.level1;
+            
+            if (tabKey === 'level1') {
+                phraseTabDesc.textContent = '【初級】基本のシンプルな指示表現。短くハッキリ伝えよう！';
+            } else if (tabKey === 'level2') {
+                phraseTabDesc.textContent = '【標準】ブロック数や角（corner）、左右を組み合わせた道案内！';
+            } else if (tabKey === 'level3') {
+                phraseTabDesc.textContent = '【応用】建物の名前（目印）や位置関係を使ったリアルな道案内！';
+            } else {
+                phraseTabDesc.textContent = '【逆引き】「これ英語で何て言うんだっけ？」をすぐに探せるよ！';
+            }
+
+            list.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'drawer-phrase-item';
+                let html = '';
+                if (item.q) {
+                    html += `<div style="font-size: 0.82rem; font-weight: bold; color: #e65100; margin-bottom: 2px;">${item.q}</div>`;
+                }
+                html += `
+                    <div class="drawer-phrase-top">
+                        <span class="drawer-phrase-en">${item.en}</span>
+                        <button class="btn-mini-speak" type="button" onclick="speakPhrase('${item.tts.replace(/'/g, "\\'")}')">🔊 きく</button>
+                    </div>
+                    <span class="drawer-phrase-jp">${item.jp}</span>
+                `;
+                el.innerHTML = html;
+                drawerPhraseList.appendChild(el);
+            });
+        }
+
+        if (phraseTabs) {
+            phraseTabs.querySelectorAll('.level-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    phraseTabs.querySelectorAll('.level-tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderPhrases(btn.getAttribute('data-tab'));
+                });
+            });
+            renderPhrases('level1');
         }
 
         const goalModal = document.getElementById('goal-modal');
@@ -229,7 +357,6 @@
         if (mode !== 'webrtc') {
             activeGoal = city.goal;
             updateGoalDisplay(activeGoal);
-            questionBanner.innerHTML = `<span>🗣️ 探検役から「Excuse me. Where is the <strong>${activeGoal.landmarkName}</strong>?」と聞かれたら案内しよう！（建物をタップして変更も可能）</span>`;
         }
 
         function updateGoalDisplay(goalObj) {
@@ -241,7 +368,15 @@
             modalGoalName.textContent = goalObj.landmarkName;
             modalGoalJp.textContent = goalObj.landmarkJpName;
 
-            questionBanner.innerHTML = `<span>🗣️ 探検役の質問: <strong>"Excuse me. Where is the ${goalObj.landmarkName.toLowerCase()}?"</strong> ➜ 地図を見て案内してあげよう！</span>`;
+            // 3Dペア探検隊ステージの更新: Bさんが合流し、目的地への足踏み行進を開始
+            if (charA3D && charB3D) {
+                charA3D.root.position.set(-0.48, 0.11, 0);
+                charB3D.root.position.set(0.48, 0.11, 0);
+                charB3D.root.visible = true;
+                setCompanionStageStatus(`${goalObj.icon} ${goalObj.landmarkName} へ案内中`, 'normal');
+                showCompanionSpeech(`${goalObj.icon} Let's go!`, 2500);
+            }
+
             drawMap();
         }
 
@@ -283,7 +418,6 @@
                         connStatusPill.className = 'status-pill connected';
                         connDot.textContent = '🟢';
                         connStatusText.textContent = 'iPad B 接続中';
-                        if (controlMovePanel) controlMovePanel.style.display = 'flex';
                         isMoveAllowed = false;
                         updateMoveControlButton();
                         rtcSync.send({
@@ -310,6 +444,8 @@
                 onData: (data) => {
                     if (data.type === 'CHOOSE_GOAL') {
                         // iPad Bからランダム目的地が届いた！
+                        isGoalCelebrating = false;
+                        playChimeSound();
                         const newGoal = city.setGoalById(data.landmarkId);
                         if (newGoal) {
                             updateGoalDisplay(newGoal);
@@ -352,18 +488,35 @@
             connStatusText.textContent = `シード共有モード [${seedParam}]`;
         }
 
+        let isGoalCelebrating = false;
         btnWaitNextGoal.addEventListener('click', () => {
             goalModal.classList.remove('active');
+            isGoalCelebrating = false;
+            isCompanionGoalCelebrating = false;
             goalBadge.className = 'goal-info-badge waiting';
             goalNameText.textContent = '❓ つぎの質問待ち...';
-            questionBanner.innerHTML = '<span>🗣️ 探検役(iPad B)が次の行き先を選んでいます... 質問を待ちましょう！</span>';
             activeGoal = null;
+            isMoveAllowed = false;
+            updateMoveControlButton();
+            if (charA3D && charB3D) {
+                charB3D.root.visible = false;
+                charA3D.root.position.set(0, 0.11, 0);
+                setCompanionStageStatus('❓ 質問待ち', 'normal');
+            }
             drawMap();
         });
 
         function showGoalModal() {
-            goalModal.classList.add('active');
+            isGoalCelebrating = true;
+            isCompanionGoalCelebrating = true;
+            setCompanionStageStatus('🎉 GOAL!', 'goal');
+            showCompanionSpeech('🎉 GOAL!! 🎉', 4500);
+            triggerMapConfetti();
             playCelebrationSound();
+            // 2.5秒間、3Dステージと地図上で二人がぴょんぴょん飛び跳ねて紙吹雪が舞う様子を楽しんでから、ゴール画面を表示
+            setTimeout(() => {
+                if (isGoalCelebrating) goalModal.classList.add('active');
+            }, 2500);
         }
 
         // -------------------------------------------------------------
@@ -394,6 +547,14 @@
 
             mapOffsetX = (w - city.worldWidth * mapScale) / 2;
             mapOffsetY = (h - city.worldDepth * mapScale) / 2;
+
+            if (companionRenderer && companionCamera && companionCanvasWrapper) {
+                const cw = companionCanvasWrapper.clientWidth || 175;
+                const ch = companionCanvasWrapper.clientHeight || 130;
+                companionCamera.aspect = cw / ch;
+                companionCamera.updateProjectionMatrix();
+                companionRenderer.setSize(cw, ch);
+            }
 
             drawMap();
         }
@@ -595,47 +756,14 @@
                 ctx.fillText(`GOAL: ${activeGoal.landmarkName}`, goalP.x, goalP.y - cellPix * 0.5);
             }
 
-            // 探索役 (iPad B) のリアルタイム位置
+            // 探索役の現在位置と向きを示す単一の方向三角形マーカー (▲)
             if (showExplorer && explorerState.active) {
                 const expP = worldToCanvas(explorerState.worldX, explorerState.worldZ);
-
-                ctx.save();
-                ctx.translate(expP.x, expP.y);
-
-                ctx.rotate((explorerState.angle * Math.PI) / 180);
-                const coneGrad = ctx.createRadialGradient(0, 0, 5, 0, -cellPix * 1.5, cellPix * 1.5);
-                coneGrad.addColorStop(0, 'rgba(33, 150, 243, 0.45)');
-                coneGrad.addColorStop(1, 'rgba(33, 150, 243, 0)');
-                ctx.fillStyle = coneGrad;
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.arc(0, 0, cellPix * 1.5, -Math.PI / 2 - 0.5, -Math.PI / 2 + 0.5);
-                ctx.closePath();
-                ctx.fill();
-
-                ctx.fillStyle = '#1976d2';
-                ctx.beginPath();
-                ctx.arc(0, 0, cellPix * 0.38, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.moveTo(0, -cellPix * 0.3);
-                ctx.lineTo(cellPix * 0.16, cellPix * 0.16);
-                ctx.lineTo(-cellPix * 0.16, cellPix * 0.16);
-                ctx.closePath();
-                ctx.fill();
-
-                ctx.restore();
-
-                ctx.fillStyle = '#0d47a1';
-                ctx.font = `bold ${Math.max(10, Math.floor(cellPix * 0.25))}px sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.fillText('Explorer (iPad B)', expP.x, expP.y + cellPix * 0.65);
+                drawDirectionalMarker(ctx, expP.x, expP.y, explorerState.angle, cellPix, isGoalCelebrating);
             }
+
+            // 紙吹雪アニメーション
+            updateAndDrawMapConfetti(ctx);
 
             // 方位計
             drawCompass(rect.width - 60, 60, 36);
@@ -686,6 +814,451 @@
             ctx.restore();
         }
 
+        function drawDirectionalMarker(ctx, cx, cy, angle, cellPix, isGoalCelebrating) {
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            let jumpY = 0;
+            if (isGoalCelebrating) {
+                jumpY = -Math.abs(Math.sin(Date.now() / 320)) * (cellPix * 0.35);
+            }
+            ctx.translate(0, jumpY);
+
+            // 進行方向の視界コーン (前方の視野)
+            ctx.save();
+            ctx.rotate((angle * Math.PI) / 180);
+
+            const coneGrad = ctx.createRadialGradient(0, 0, 4, 0, -cellPix * 1.6, cellPix * 1.6);
+            coneGrad.addColorStop(0, 'rgba(33, 150, 243, 0.45)');
+            coneGrad.addColorStop(1, 'rgba(33, 150, 243, 0)');
+            ctx.fillStyle = coneGrad;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, cellPix * 1.6, -Math.PI / 2 - 0.52, -Math.PI / 2 + 0.52);
+            ctx.closePath();
+            ctx.fill();
+
+            // 台座サークル
+            const radius = Math.max(12, cellPix * 0.42);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#1565c0';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 進行方向を示す1つのシャープな三角形 (▲)
+            ctx.fillStyle = '#1e88e5';
+            ctx.beginPath();
+            ctx.moveTo(0, -radius * 1.32); // 先端
+            ctx.lineTo(radius * 0.72, radius * 0.68); // 右後
+            ctx.lineTo(0, radius * 0.22); // くびれ
+            ctx.lineTo(-radius * 0.72, radius * 0.68); // 左後
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.restore();
+
+            // 状態バッジ (上部に表示)
+            const badgeY = -cellPix * 0.62;
+            ctx.font = `bold ${Math.max(10, Math.floor(cellPix * 0.24))}px sans-serif`;
+            ctx.textAlign = 'center';
+            if (isGoalCelebrating) {
+                ctx.fillStyle = '#e65100';
+                ctx.fillText('🎉 GOAL!', 0, badgeY);
+            } else if (isMoveAllowed) {
+                ctx.fillStyle = '#2e7d32';
+                ctx.fillText('🟢 Go ahead!', 0, badgeY);
+            } else {
+                ctx.fillStyle = '#d32f2f';
+                ctx.fillText('🔒 Wait', 0, badgeY);
+            }
+
+            ctx.restore();
+        }
+
+        let mapConfettiParticles = [];
+        function triggerMapConfetti() {
+            mapConfettiParticles = [];
+            const colors = ['#e91e63', '#9c27b0', '#2196f3', '#4caf50', '#ffeb3b', '#ff9800'];
+            for (let i = 0; i < 70; i++) {
+                mapConfettiParticles.push({
+                    x: Math.random() * canvas.width,
+                    y: -10 - Math.random() * 80,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: 2 + Math.random() * 4,
+                    size: 4 + Math.random() * 6,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * Math.PI,
+                    vRot: (Math.random() - 0.5) * 0.2
+                });
+            }
+        }
+
+        function updateAndDrawMapConfetti(ctx) {
+            if (mapConfettiParticles.length === 0) return;
+            for (let i = 0; i < mapConfettiParticles.length; i++) {
+                const p = mapConfettiParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.rotation += p.vRot;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.7);
+                ctx.restore();
+            }
+            mapConfettiParticles = mapConfettiParticles.filter(p => p.y < canvas.height + 20);
+        }
+
+        function playReactionSound(type) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                let freqs = [523.25, 659.25];
+                if (type === 'great' || type === 'excellent') freqs = [523.25, 659.25, 783.99, 1046.50];
+                else if (type === 'try_again') freqs = [440, 392];
+                freqs.forEach((f, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(f, ctx.currentTime + idx * 0.09);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.09);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.09 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + idx * 0.09);
+                    osc.stop(ctx.currentTime + idx * 0.09 + 0.3);
+                });
+            } catch (e) {}
+        }
+
+        function playChimeSound() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const notes = [659.25, 880.00];
+                notes.forEach((f, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.12);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.38);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + i * 0.12);
+                    osc.stop(ctx.currentTime + i * 0.12 + 0.42);
+                });
+            } catch (e) {}
+        }
+
+        // -------------------------------------------------------------
+        // 3D ペア探検隊 ミニステージ (Three.js WebGL)
+        // -------------------------------------------------------------
+        let companionScene, companionCamera, companionRenderer;
+        let charA3D = null;
+        let charB3D = null;
+        let pedestalGroup = null;
+        let companionWalkCycle = 0;
+        let isCompanionGoalCelebrating = false;
+        let companionCelebrateCycle = 0;
+
+        function createVoxelCharacter(role) {
+            const group = new THREE.Group();
+            const isGuide = (role === 'guide');
+
+            const skinColor = 0xffd1a4;
+            const hairColor = isGuide ? 0x263238 : 0x5d4037;
+            const shirtColor = isGuide ? 0x1565c0 : 0x43a047;
+            const pantsColor = isGuide ? 0x37474f : 0x1e88e5;
+            const capColor = isGuide ? 0x1976d2 : 0xff9800;
+            const shoeColor = isGuide ? 0xeeeeee : 0x212121;
+
+            const skinMat = new THREE.MeshLambertMaterial({ color: skinColor });
+            const hairMat = new THREE.MeshLambertMaterial({ color: hairColor });
+            const shirtMat = new THREE.MeshLambertMaterial({ color: shirtColor });
+            const pantsMat = new THREE.MeshLambertMaterial({ color: pantsColor });
+            const capMat = new THREE.MeshLambertMaterial({ color: capColor });
+            const shoeMat = new THREE.MeshLambertMaterial({ color: shoeColor });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+            const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+            // 頭部グループ
+            const headGroup = new THREE.Group();
+            headGroup.position.y = 1.35;
+
+            // 頭
+            const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.44, 0.44), skinMat);
+            headMesh.castShadow = true;
+            headGroup.add(headMesh);
+
+            // 髪の毛
+            const hairMesh = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.18, 0.46), hairMat);
+            hairMesh.position.y = 0.16;
+            headGroup.add(hairMesh);
+
+            // 帽子 (つば付き)
+            const capCrown = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.16, 0.48), capMat);
+            capCrown.position.y = 0.22;
+            headGroup.add(capCrown);
+
+            const capVisor = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.05, 0.24), capMat);
+            capVisor.position.set(0, 0.16, -0.32);
+            headGroup.add(capVisor);
+
+            // 目 (-Z正面)
+            const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.03), eyeMat);
+            eyeL.position.set(-0.11, 0.02, -0.23);
+            headGroup.add(eyeL);
+
+            const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.03), eyeMat);
+            eyeR.position.set(0.11, 0.02, -0.23);
+            headGroup.add(eyeR);
+
+            group.add(headGroup);
+
+            // 胴体 (シャツ)
+            const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.56, 0.26), shirtMat);
+            torsoMesh.position.y = 0.85;
+            torsoMesh.castShadow = true;
+            group.add(torsoMesh);
+
+            if (isGuide) {
+                // Aさん (案内役): 白い名札バッジ
+                const badge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.02), whiteMat);
+                badge.position.set(0, 0.95, -0.14);
+                group.add(badge);
+            } else {
+                // Bさん (探検役): 背中にリュックサック
+                const backpackMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
+                const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.42, 0.16), backpackMat);
+                backpack.position.set(0, 0.86, 0.20);
+                backpack.castShadow = true;
+                group.add(backpack);
+            }
+
+            // 脚
+            const legW = 0.19;
+            const legH = 0.56;
+            const legD = 0.22;
+
+            // 左脚
+            const leftLegGroup = new THREE.Group();
+            leftLegGroup.position.set(-0.12, 0.56, 0);
+            const leftLegGeo = new THREE.BoxGeometry(legW, legH, legD);
+            leftLegGeo.translate(0, -legH / 2, 0);
+            const leftLegMesh = new THREE.Mesh(leftLegGeo, pantsMat);
+            leftLegMesh.castShadow = true;
+            leftLegGroup.add(leftLegMesh);
+
+            const shoeLGeo = new THREE.BoxGeometry(legW, 0.12, legD + 0.06);
+            shoeLGeo.translate(0, -legH + 0.06, -0.03);
+            const shoeL = new THREE.Mesh(shoeLGeo, shoeMat);
+            leftLegGroup.add(shoeL);
+            group.add(leftLegGroup);
+
+            // 右脚
+            const rightLegGroup = new THREE.Group();
+            rightLegGroup.position.set(0.12, 0.56, 0);
+            const rightLegGeo = new THREE.BoxGeometry(legW, legH, legD);
+            rightLegGeo.translate(0, -legH / 2, 0);
+            const rightLegMesh = new THREE.Mesh(rightLegGeo, pantsMat);
+            rightLegMesh.castShadow = true;
+            rightLegGroup.add(rightLegMesh);
+
+            const shoeRGeo = new THREE.BoxGeometry(legW, 0.12, legD + 0.06);
+            shoeRGeo.translate(0, -legH + 0.06, -0.03);
+            const shoeR = new THREE.Mesh(shoeRGeo, shoeMat);
+            rightLegGroup.add(shoeR);
+            group.add(rightLegGroup);
+
+            // 腕
+            const armW = 0.16;
+            const armH = 0.52;
+            const armD = 0.18;
+
+            // 左腕
+            const leftArmGroup = new THREE.Group();
+            leftArmGroup.position.set(-0.32, 1.08, 0);
+            const leftArmGeo = new THREE.BoxGeometry(armW, armH, armD);
+            leftArmGeo.translate(0, -armH / 2, 0);
+            const leftArmMesh = new THREE.Mesh(leftArmGeo, shirtMat);
+            leftArmMesh.castShadow = true;
+            leftArmGroup.add(leftArmMesh);
+
+            const handLGeo = new THREE.BoxGeometry(armW * 0.9, 0.14, armD * 0.9);
+            handLGeo.translate(0, -armH + 0.07, 0);
+            const handL = new THREE.Mesh(handLGeo, skinMat);
+            leftArmGroup.add(handL);
+            group.add(leftArmGroup);
+
+            // 右腕
+            const rightArmGroup = new THREE.Group();
+            rightArmGroup.position.set(0.32, 1.08, 0);
+            const rightArmGeo = new THREE.BoxGeometry(armW, armH, armD);
+            rightArmGeo.translate(0, -armH / 2, 0);
+            const rightArmMesh = new THREE.Mesh(rightArmGeo, shirtMat);
+            rightArmMesh.castShadow = true;
+            rightArmGroup.add(rightArmMesh);
+
+            const handRGeo = new THREE.BoxGeometry(armW * 0.9, 0.14, armD * 0.9);
+            handRGeo.translate(0, -armH + 0.07, 0);
+            const handR = new THREE.Mesh(handRGeo, skinMat);
+            rightArmGroup.add(handR);
+
+            if (isGuide) {
+                // Aさんは右手にバインダー地図を持つ
+                const mapMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+                const mapMesh = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.28, 0.22), mapMat);
+                mapMesh.position.set(0.06, -armH + 0.07, -0.06);
+                mapMesh.rotation.z = -0.2;
+                rightArmGroup.add(mapMesh);
+            }
+            group.add(rightArmGroup);
+
+            return {
+                role,
+                root: group,
+                headGroup,
+                leftLeg: leftLegGroup,
+                rightLeg: rightLegGroup,
+                leftArm: leftArmGroup,
+                rightArm: rightArmGroup
+            };
+        }
+
+        function initCompanion3D() {
+            if (typeof THREE === 'undefined' || !companionCanvasWrapper) return;
+
+            const width = companionCanvasWrapper.clientWidth || 175;
+            const height = companionCanvasWrapper.clientHeight || 130;
+
+            companionScene = new THREE.Scene();
+
+            companionCamera = new THREE.PerspectiveCamera(42, width / height, 0.1, 50);
+            companionCamera.position.set(0, 1.55, 3.75);
+            companionCamera.lookAt(0, 0.88, 0);
+
+            companionRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            companionRenderer.setSize(width, height);
+            companionRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            companionRenderer.shadowMap.enabled = true;
+            companionCanvasWrapper.appendChild(companionRenderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            companionScene.add(ambientLight);
+
+            const hemiLight = new THREE.HemisphereLight(0x81d4fa, 0x558b2f, 0.45);
+            companionScene.add(hemiLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfffaed, 0.85);
+            sunLight.position.set(5, 10, 6);
+            sunLight.castShadow = true;
+            companionScene.add(sunLight);
+
+            // ステージ円形台座 (Pedestal)
+            pedestalGroup = new THREE.Group();
+
+            const pedGeo = new THREE.CylinderGeometry(1.4, 1.5, 0.22, 32);
+            const pedMat = new THREE.MeshLambertMaterial({ color: 0x7cb342 });
+            const pedMesh = new THREE.Mesh(pedGeo, pedMat);
+            pedMesh.position.y = 0;
+            pedMesh.receiveShadow = true;
+            pedestalGroup.add(pedMesh);
+
+            const rimGeo = new THREE.CylinderGeometry(1.42, 1.52, 0.06, 32);
+            const rimMat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+            const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+            rimMesh.position.y = -0.08;
+            pedestalGroup.add(rimMesh);
+
+            charA3D = createVoxelCharacter('guide');
+            charB3D = createVoxelCharacter('explorer');
+
+            // 初期位置
+            if (activeGoal) {
+                charA3D.root.position.set(-0.48, 0.11, 0);
+                charB3D.root.position.set(0.48, 0.11, 0);
+                charB3D.root.visible = true;
+                setCompanionStageStatus(`${activeGoal.icon} ${activeGoal.landmarkName} へ案内中`, 'normal');
+            } else {
+                charA3D.root.position.set(0, 0.11, 0);
+                charB3D.root.position.set(0.48, 0.11, 0);
+                charB3D.root.visible = false;
+                setCompanionStageStatus('❓ 質問待ち', 'normal');
+            }
+
+            pedestalGroup.add(charA3D.root);
+            pedestalGroup.add(charB3D.root);
+            companionScene.add(pedestalGroup);
+
+            animateCompanion3D();
+        }
+
+        function animateCompanion3D() {
+            if (!companionRenderer) return;
+
+            if (isCompanionGoalCelebrating) {
+                companionCelebrateCycle += 0.055;
+                const jump = Math.abs(Math.sin(companionCelebrateCycle * 1.8)) * 0.38;
+                if (charA3D) charA3D.root.position.y = 0.11 + jump;
+                if (charB3D && charB3D.root.visible) charB3D.root.position.y = 0.11 + jump;
+
+                const armWave = Math.sin(companionCelebrateCycle * 3.6) * 0.25;
+                if (charA3D) {
+                    charA3D.leftArm.rotation.x = -Math.PI * 0.75 + armWave;
+                    charA3D.rightArm.rotation.x = -Math.PI * 0.75 - armWave;
+                    charA3D.leftLeg.rotation.x = 0;
+                    charA3D.rightLeg.rotation.x = 0;
+                }
+                if (charB3D && charB3D.root.visible) {
+                    charB3D.leftArm.rotation.x = -Math.PI * 0.75 + armWave;
+                    charB3D.rightArm.rotation.x = -Math.PI * 0.75 - armWave;
+                    charB3D.leftLeg.rotation.x = 0;
+                    charB3D.rightLeg.rotation.x = 0;
+                }
+            } else {
+                // その場で足踏みアニメーション (手足をリズミカルに振る)
+                const stepSpeed = isMoveAllowed ? 0.22 : 0.13;
+                const swingAmp = isMoveAllowed ? 0.52 : 0.36;
+                companionWalkCycle += stepSpeed;
+
+                if (charA3D) {
+                    const swingA = Math.sin(companionWalkCycle) * swingAmp;
+                    charA3D.leftLeg.rotation.x = swingA;
+                    charA3D.rightLeg.rotation.x = -swingA;
+                    charA3D.leftArm.rotation.x = -swingA;
+                    charA3D.rightArm.rotation.x = swingA;
+                    charA3D.root.position.y = 0.11 + Math.abs(Math.sin(companionWalkCycle * 2)) * 0.05;
+                }
+
+                if (charB3D && charB3D.root.visible) {
+                    const swingB = Math.sin(companionWalkCycle + 0.35) * swingAmp;
+                    charB3D.leftLeg.rotation.x = swingB;
+                    charB3D.rightLeg.rotation.x = -swingB;
+                    charB3D.leftArm.rotation.x = -swingB;
+                    charB3D.rightArm.rotation.x = swingB;
+                    charB3D.root.position.y = 0.11 + Math.abs(Math.sin((companionWalkCycle + 0.35) * 2)) * 0.05;
+                }
+            }
+
+            if (pedestalGroup) {
+                pedestalGroup.rotation.y = Math.sin(Date.now() / 3600) * 0.16;
+            }
+
+            companionRenderer.render(companionScene, companionCamera);
+            requestAnimationFrame(animateCompanion3D);
+        }
+
         function animate() {
             drawMap();
             requestAnimationFrame(animate);
@@ -693,6 +1266,7 @@
 
         setTimeout(() => {
             resizeCanvas();
+            initCompanion3D();
             requestAnimationFrame(animate);
         }, 100);
 
