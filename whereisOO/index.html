@@ -12,16 +12,24 @@
     }
     </script>
     <script src="js/webrtc_sync.js"></script>
+    <script src="js/i18n.js"></script>
 </head>
 <body>
     <div class="lobby-container">
         
+        <!-- トップバー (言語切替: 日/英 for ALT) -->
+        <div class="lobby-top-bar">
+            <button class="lang-toggle-btn" type="button" onclick="I18n.toggleLang()" title="Switch to English (for ALT)">
+                🌐 English
+            </button>
+        </div>
+
         <!-- ヘッダー -->
         <header class="lobby-header">
             <h1 class="lobby-title">
                 <span>🗺️</span> Where is OO? <span>🧭</span>
             </h1>
-            <div class="lobby-subtitle">
+            <div class="lobby-subtitle" data-i18n="lobby_subtitle">
                 3Dの街で楽しむ英語道案内ペアワーク教材 (Webリアルタイム版)
             </div>
         </header>
@@ -31,14 +39,14 @@
 
             <!-- iPad A用 アクションカード -->
             <div class="lobby-card">
-                <h2>
+                <h2 data-i18n="card_a_title">
                     <span>🗺️</span> 【iPad A】地図役 (Navigator)
                 </h2>
-                <p class="card-desc">
+                <p class="card-desc" data-i18n="card_a_desc">
                     街の2D全体地図を見ながら道案内をします。「部屋をつくる」を押すと4桁の合言葉が表示されます。
                 </p>
                 <div style="margin-top: auto; padding-top: 10px;">
-                    <button class="btn btn-role-a" style="width: 100%; font-size: 1.25rem;" onclick="startHostRoom()">
+                    <button class="btn btn-role-a" style="width: 100%; font-size: 1.25rem;" onclick="startHostRoom()" data-i18n="btn_start_host">
                         🗺️ 部屋をつくって合言葉を出す
                     </button>
                 </div>
@@ -46,20 +54,20 @@
 
             <!-- iPad B用 アクションカード -->
             <div class="lobby-card">
-                <h2>
+                <h2 data-i18n="card_b_title">
                     <span>🧭</span> 【iPad B】探検役 (Explorer)
                 </h2>
-                <p class="card-desc">
+                <p class="card-desc" data-i18n="card_b_desc">
                     3Dの街を歩きます。iPad Aから4桁の合言葉を教えてもらい、入力してスタートしましょう！
                 </p>
 
                 <div class="form-group" style="margin-top: 10px;">
-                    <label class="form-label" for="input-room-id">相手(iPad A)の合言葉 (4桁数字):</label>
-                    <input type="tel" id="input-room-id" class="form-input" placeholder="例: 1234" maxlength="4" pattern="[0-9]*">
+                    <label class="form-label" for="input-room-id" data-i18n="label_room_code">相手(iPad A)の合言葉 (4桁数字):</label>
+                    <input type="tel" id="input-room-id" class="form-input" placeholder="例: 1234" maxlength="4" pattern="[0-9]*" data-i18n="placeholder_room_code">
                 </div>
 
                 <div style="margin-top: auto; padding-top: 10px;">
-                    <button class="btn btn-role-b" style="width: 100%; font-size: 1.25rem;" onclick="joinClientRoom()">
+                    <button class="btn btn-role-b" style="width: 100%; font-size: 1.25rem;" onclick="joinClientRoom()" data-i18n="btn_join_client">
                         🧭 合言葉を入れて探検スタート！
                     </button>
                 </div>
@@ -69,25 +77,25 @@
 
         <!-- 折りたたみ: 遊び方・英語道案内ガイド -->
         <details class="quick-guide-box" style="margin-top: 24px;">
-            <summary>📖 遊び方・ルール & 会話の流れ</summary>
+            <summary data-i18n="guide_summary">📖 遊び方・ルール & 会話の流れ</summary>
             <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-                <p><strong>【対話の流れ（インフォメーション・ギャップ）】</strong></p>
+                <p><strong data-i18n="guide_flow_title">【対話の流れ（インフォメーション・ギャップ）】</strong></p>
                 <ol style="margin-left: 20px; line-height: 1.6;">
-                    <li><strong>画面は見せ合いません！</strong>（向き合ってワイワイ言いながら、ことばだけで伝え合いましょう）</li>
-                    <li><strong>iPad B（探検役）</strong>がスタートすると、画面に「行きたい場所（ミッション）」がランダムで出ます。</li>
-                    <li>iPad BがiPad Aに英語で尋ねます: <code>"Excuse me. Where is the hospital?"</code></li>
-                    <li><strong>iPad A（地図役）</strong>は地図を見て、英語で道案内します: <code>"Go straight for two blocks. Turn right at the corner."</code></li>
-                    <li>iPad Bが指示を聞きながら3D街を歩き、光るサークルに入ったらゴール！</li>
-                    <li>iPad B: <code>"Thank you!"</code> ➜ iPad A: <code>"You're welcome!"</code></li>
-                    <li>「つぎの目的地に挑戦！」を押してどんどん新しい場所へ行きましょう！</li>
+                    <li data-i18n="guide_step_1"><strong>画面は見せ合いません！</strong>（向き合ってワイワイ言いながら、ことばだけで伝え合いましょう）</li>
+                    <li data-i18n="guide_step_2"><strong>iPad B（探検役）</strong>がスタートすると、画面に「行きたい場所（ミッション）」がランダムで出ます。</li>
+                    <li data-i18n="guide_step_3">iPad BがiPad Aに英語で尋ねます: <code>"Excuse me. Where is the hospital?"</code></li>
+                    <li data-i18n="guide_step_4"><strong>iPad A（地図役）</strong>は地図を見て、英語で道案内します: <code>"Go straight for two blocks. Turn right at the corner."</code></li>
+                    <li data-i18n="guide_step_5">iPad Bが指示を聞きながら3D街を歩き、光るサークルに入ったらゴール！</li>
+                    <li data-i18n="guide_step_6">iPad B: <code>"Thank you!"</code> ➜ iPad A: <code>"You're welcome!"</code></li>
+                    <li data-i18n="guide_step_7">「つぎの目的地に挑戦！」を押してどんどん新しい場所へ行きましょう！</li>
                 </ol>
 
-                <p style="margin-top: 8px;"><strong>【よく使う英語表現】</strong></p>
+                <p style="margin-top: 8px;"><strong data-i18n="guide_phrase_title">【よく使う英語表現】</strong></p>
                 <ul style="margin-left: 20px; line-height: 1.6;">
-                    <li><code>Excuse me. Where is the [建物名]?</code>（すみません、〜はどこですか？）</li>
-                    <li><code>Go straight for 1 block / 2 blocks.</code>（○ブロックまっすぐ進んで）</li>
-                    <li><code>Turn left / Turn right at the corner.</code>（角を左／右に曲がって）</li>
-                    <li><code>It's on your right / left.</code>（右手 / 左手に見えるよ）</li>
+                    <li data-i18n="guide_p1"><code>Excuse me. Where is the [建物名]?</code>（すみません、〜はどこですか？）</li>
+                    <li data-i18n="guide_p2"><code>Go straight for 1 block / 2 blocks.</code>（○ブロックまっすぐ進んで）</li>
+                    <li data-i18n="guide_p3"><code>Turn left / Turn right at the corner.</code>（角を左／右に曲がって）</li>
+                    <li data-i18n="guide_p4"><code>It's on your right / left.</code>（右手 / 左手に見えるよ）</li>
                 </ul>
             </div>
         </details>
@@ -98,20 +106,25 @@
     (function () {
         'use strict';
 
+        // 多言語初期化
+        I18n.init();
+
         window.startHostRoom = function () {
             const roomId = WebRTCSync.generateNumericId();
-            window.location.href = `map.html?mode=webrtc&room=${roomId}&seed=${roomId}`;
+            const lang = I18n.getLang();
+            window.location.href = `map.html?mode=webrtc&room=${roomId}&seed=${roomId}&lang=${lang}`;
         };
 
         window.joinClientRoom = function () {
             const input = document.getElementById('input-room-id');
             const roomId = input.value.trim();
             if (!roomId || roomId.length < 3) {
-                alert('4桁の合言葉を入力してください（相手のiPad Aの画面上部に表示されています）。');
+                alert(I18n.t('alert_input_room'));
                 input.focus();
                 return;
             }
-            window.location.href = `town.html?mode=webrtc&room=${roomId}&seed=${roomId}`;
+            const lang = I18n.getLang();
+            window.location.href = `town.html?mode=webrtc&room=${roomId}&seed=${roomId}&lang=${lang}`;
         };
 
         document.getElementById('input-room-id').addEventListener('keydown', function (e) {

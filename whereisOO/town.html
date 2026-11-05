@@ -20,6 +20,7 @@
     </script>
     <script src="js/city_gen.js"></script>
     <script src="js/webrtc_sync.js"></script>
+    <script src="js/i18n.js"></script>
 </head>
 <body class="town-page-container">
 
@@ -35,25 +36,30 @@
     <!-- 画面上部 HUD (方位・接続状態・目的地・ロビー戻る) -->
     <div class="town-hud">
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <a href="index.html" class="hud-pill" style="text-decoration: none; color: #333;">🏠 ロビー</a>
+            <a href="index.html" class="hud-pill" style="text-decoration: none; color: #333;" data-i18n="nav_lobby">🏠 ロビー</a>
             <div class="hud-pill" id="hud-status-pill">
-                <span id="conn-dot">🟡</span> <span id="conn-status-text">待機中...</span>
-                <button class="btn-reconnect" id="btn-reconnect" style="display: none;" type="button">再接続</button>
+                <span id="conn-dot">🟡</span> <span id="conn-status-text" data-i18n="hud_status_waiting">待機中...</span>
+                <button class="btn-reconnect" id="btn-reconnect" style="display: none;" type="button" data-i18n="btn_reconnect">再接続</button>
             </div>
             <!-- 目的地確認バッジ (タップでミッションカードを再表示) -->
             <div class="hud-pill mission-pill" id="hud-mission-badge" title="タップで質問カードを開く">
-                🎯 目的地: <span id="hud-goal-name">...</span> 💡Help
+                <span data-i18n="hud_goal_label">🎯 目的地: </span><span id="hud-goal-name">...</span> 💡Help
             </div>
         </div>
 
-        <div class="hud-pill">
-            🧭 方角: <span class="compass-display" id="compass-dir-text">NORTH</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <div class="hud-pill">
+                <span data-i18n="hud_dir_label">🧭 方角: </span><span class="compass-display" id="compass-dir-text">NORTH</span>
+            </div>
+            <button class="lang-toggle-btn" type="button" onclick="I18n.toggleLang()" title="Switch to English (for ALT)">
+                🌐 English
+            </button>
         </div>
     </div>
 
     <!-- 探検役 移動ロック案内インジケーター (最初は非表示。目的地のフキダシをタップした後に表示) -->
     <div class="move-lock-indicator waiting" id="move-lock-indicator" style="display: none;">
-        <span id="move-lock-icon">🔒</span> <span id="move-lock-text">相手の案内を聞こう</span>
+        <span id="move-lock-icon">🔒</span> <span id="move-lock-text" data-i18n="lock_msg_listen">相手の案内を聞こう</span>
     </div>
 
     <!-- 画面下部 オンスクリーンコントローラー (iPad Safari 最適化) -->
@@ -86,8 +92,8 @@
     <!-- ミッション詳細カード・モーダル (通常は隠れており、HUDの💡Helpタップで表示) -->
     <div class="mission-card-modal" id="mission-modal">
         <div class="mission-card-box">
-            <div class="mission-header-tag">🎯 今日のミッション (Mission)</div>
-            <p style="font-weight: bold; color: #37474f; font-size: 1rem;">
+            <div class="mission-header-tag" data-i18n="mission_title">🎯 今日のミッション (Mission)</div>
+            <p style="font-weight: bold; color: #37474f; font-size: 1rem;" data-i18n="mission_desc">
                 あなたの行きたい場所が決まりました！
             </p>
             
@@ -98,18 +104,18 @@
             </div>
 
             <div class="mission-ask-box">
-                <div class="mission-ask-title">🗣️ iPad A(地図役)に英語で聞いてみよう！</div>
-                <p class="mission-ask-prompt">
+                <div class="mission-ask-title" data-i18n="mission_ask_title">🗣️ iPad A(地図役)に英語で聞いてみよう！</div>
+                <p class="mission-ask-prompt" data-i18n="mission_ask_prompt">
                     なんて質問するか思い出せるかな？<br>
                     まずは声に出して質問してみよう！
                 </p>
-                <button class="btn-help-reveal" type="button" id="btn-reveal-help">
+                <button class="btn-help-reveal" type="button" id="btn-reveal-help" data-i18n="btn_reveal_help">
                     💡 英語のヒントを見る (Help)
                 </button>
                 <div class="mission-phrase-reveal-area" id="mission-reveal-area">
                     <div class="mission-phrase-row">
                         <span class="mission-phrase-text" id="card-ask-phrase">"Excuse me. Where is the hospital?"</span>
-                        <button class="audio-btn" type="button" id="btn-speak-mission">
+                        <button class="audio-btn" type="button" id="btn-speak-mission" data-i18n="btn_listen">
                             🔊 きく
                         </button>
                     </div>
@@ -118,9 +124,9 @@
 
             <!-- BさんがタップしてAさんに行き先を伝えるアクションボタン -->
             <button class="btn-tell-goal" id="btn-tell-goal" type="button">
-                <span id="btn-tell-icon">🏥</span> <span id="btn-tell-text">Aさんに目的地を伝える (Tap!)</span> ❓
+                <span id="btn-tell-icon">🏥</span> <span id="btn-tell-text" data-i18n="btn_tell_goal_text">Aさんに目的地を伝える (Tap!)</span> ❓
             </button>
-            <button class="btn btn-primary" style="width: 100%; font-size: 1rem; margin-top: 10px;" id="btn-close-mission" type="button">
+            <button class="btn btn-primary" style="width: 100%; font-size: 1rem; margin-top: 10px;" id="btn-close-mission" type="button" data-i18n="btn_close_mission">
                 閉じる (OK)
             </button>
         </div>
@@ -138,7 +144,7 @@
             <span class="bubble-dest-icon" id="bubble-dest-icon">🏥</span>
             <div class="bubble-dest-body">
                 <span class="bubble-dest-text" id="bubble-dest-text">Hospital ❓</span>
-                <span class="bubble-dest-tap-guide">👆 タップでAさんに伝える</span>
+                <span class="bubble-dest-tap-guide" data-i18n="bubble_tap_guide">👆 タップでAさんに伝える</span>
             </div>
         </div>
     </div>
@@ -146,8 +152,8 @@
     <!-- ゴール達成モーダル -->
     <div class="modal-overlay" id="goal-modal">
         <div class="modal-dialog">
-            <div class="goal-celebration-title">🎉 GOAL! 🎉</div>
-            <p style="font-weight: bold; color: #2e7d32; font-size: 1.15rem;">
+            <div class="goal-celebration-title" data-i18n="goal_modal_title">🎉 GOAL! 🎉</div>
+            <p style="font-weight: bold; color: #2e7d32; font-size: 1.15rem;" data-i18n="goal_modal_msg_b">
                 目的地に到着しました！
             </p>
             <div class="goal-landmark-box">
@@ -155,16 +161,16 @@
                 <div class="name" id="modal-goal-name">Hospital</div>
                 <div style="font-size: 0.95rem; color: #616161;" id="modal-goal-jp">病院</div>
             </div>
-            <p style="font-size: 1.05rem; color: #333; margin-bottom: 20px;">
+            <p style="font-size: 1.05rem; color: #333; margin-bottom: 20px;" data-i18n="goal_modal_found">
                 You found it! ナイス探検でした！
             </p>
-            <button class="btn btn-accent" style="width: 100%; font-size: 1.15rem;" id="btn-next-mission">
+            <button class="btn btn-accent" style="width: 100%; font-size: 1.15rem;" id="btn-next-mission" data-i18n="btn_next_mission">
                 🎯 つぎの目的地に挑戦！
             </button>
-            <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="location.reload()">
+            <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="location.reload()" data-i18n="btn_restart">
                 最初からやり直す
             </button>
-            <button class="btn btn-blue" style="width: 100%; margin-top: 10px;" onclick="location.href='index.html'">
+            <button class="btn btn-blue" style="width: 100%; margin-top: 10px;" onclick="location.href='index.html'" data-i18n="btn_back_lobby">
                 ロビーに戻る
             </button>
         </div>
@@ -173,6 +179,9 @@
     <script>
     (function () {
         'use strict';
+
+        // 多言語初期化
+        I18n.init();
 
         // URLパラメータ解析
         const params = new URLSearchParams(window.location.search);
@@ -202,13 +211,14 @@
         function updateMoveLockUI(allowed) {
             isMoveAllowed = allowed;
             if (!moveLockIndicator || !touchControlsContainer) return;
+            const isEn = I18n.getLang() === 'en';
 
             if (allowed) {
                 touchControlsContainer.classList.remove('locked');
                 moveLockIndicator.style.display = 'flex';
                 moveLockIndicator.className = 'move-lock-indicator allowed';
                 moveLockIcon.textContent = '🟢';
-                moveLockText.textContent = "Let's go! 街を歩いてみよう！";
+                moveLockText.textContent = isEn ? "Let's go! Walk around town!" : "Let's go! 街を歩いてみよう！";
                 playUnlockSound();
                 // 3秒後にインジケーターを静かにフェード
                 setTimeout(() => {
@@ -224,7 +234,7 @@
                     moveLockIndicator.style.opacity = '1';
                     moveLockIndicator.className = 'move-lock-indicator waiting';
                     moveLockIcon.textContent = '🔒';
-                    moveLockText.textContent = '相手の案内を聞こう';
+                    moveLockText.textContent = I18n.t('lock_msg_listen');
                 } else {
                     moveLockIndicator.style.display = 'none';
                 }
@@ -300,10 +310,11 @@
         updateMissionUI(currentGoal);
 
         function updateMissionUI(goalObj) {
+            const isEn = I18n.getLang() === 'en';
             hudGoalName.textContent = `${goalObj.icon} ${goalObj.landmarkName}`;
             cardGoalIcon.textContent = goalObj.icon;
             cardGoalName.textContent = goalObj.landmarkName;
-            cardGoalJp.textContent = goalObj.landmarkJpName;
+            cardGoalJp.textContent = isEn ? '(Target Destination)' : goalObj.landmarkJpName;
 
             // 頭上フキダシの表示更新 (絵文字＋場所名＋？で、児童が自分でWhere is the...を考える)
             if (bubbleDestIcon) bubbleDestIcon.textContent = goalObj.icon;
@@ -312,7 +323,7 @@
             const btnTellIcon = document.getElementById('btn-tell-icon');
             const btnTellText = document.getElementById('btn-tell-text');
             if (btnTellIcon) btnTellIcon.textContent = goalObj.icon;
-            if (btnTellText) btnTellText.textContent = `Aさんに目的地「${goalObj.landmarkJpName}」を伝える (Tap!)`;
+            if (btnTellText) btnTellText.textContent = isEn ? `Tell Navigator (Destination: ${goalObj.landmarkName})` : `Aさんに目的地「${goalObj.landmarkJpName}」を伝える (Tap!)`;
 
             const phrase = `Excuse me. Where is the ${goalObj.landmarkName.toLowerCase()}?`;
             cardAskPhrase.textContent = `"${phrase}"`;
@@ -322,12 +333,12 @@
                 missionRevealArea.classList.remove('active');
             }
             if (btnRevealHelp) {
-                btnRevealHelp.innerHTML = '💡 英語のヒントを見る (Help)';
+                btnRevealHelp.innerHTML = I18n.t('btn_reveal_help');
             }
 
             modalGoalIcon.textContent = goalObj.icon;
             modalGoalName.textContent = goalObj.landmarkName;
-            modalGoalJp.textContent = goalObj.landmarkJpName;
+            modalGoalJp.textContent = isEn ? '(Destination)' : goalObj.landmarkJpName;
         }
 
         // Aさんに目的地を伝えるアクション (頭上フキダシを直接タップ)
@@ -343,9 +354,24 @@
                 moveLockIndicator.style.opacity = '1';
                 moveLockIndicator.className = 'move-lock-indicator waiting';
                 moveLockIcon.textContent = '🔒';
-                moveLockText.textContent = '相手の案内を聞こう';
+                moveLockText.textContent = I18n.t('lock_msg_listen');
             }
         }
+
+        // 言語切替時の動的UI再描画
+        window.addEventListener('languageChanged', () => {
+            if (currentGoal) {
+                updateMissionUI(currentGoal);
+            }
+            updateMoveLockUI(isMoveAllowed);
+            if (rtcSync) {
+                if (rtcSync.isConnected) {
+                    connStatusText.textContent = I18n.t('hud_status_connected');
+                } else {
+                    connStatusText.textContent = I18n.t('hud_status_waiting');
+                }
+            }
+        });
 
         const btnTellGoal = document.getElementById('btn-tell-goal');
         if (btnTellGoal) {
@@ -410,7 +436,7 @@
                         btnReconnect.style.display = 'none';
                     } else if (status === 'connected') {
                         connDot.textContent = '🟢';
-                        connStatusText.textContent = 'iPad A と同期中';
+                        connStatusText.textContent = I18n.t('hud_status_connected');
                         btnReconnect.style.display = 'none';
                         sendPositionToHost();
                     } else if (status === 'error' || status === 'disconnected') {
