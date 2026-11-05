@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Where is OO? - iPad B [Explorer / 3D探検役]</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- ローカルライブラリ ＆ CDNフォールバック -->
+    <script src="js/three.min.js"></script>
+    <script>
+    if (typeof THREE === 'undefined') {
+        document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+    </script>
+    <script src="js/peerjs.min.js"></script>
+    <script>
+    if (typeof Peer === 'undefined') {
+        document.write('<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"><\/script>');
+    }
+    </script>
+    <script src="js/city_gen.js"></script>
+    <script src="js/webrtc_sync.js"></script>
+</head>
+<body class="town-page-container">
+
+    <!-- 3D WebGL Canvas コンテナ -->
+    <div id="three-canvas-container"></div>
+
+    <!-- エラー通知バナー (動的表示用) -->
+    <div class="error-notice-banner" id="webgl-error-banner" style="display: none;">
+        <span id="webgl-error-text">⚠️ 3Dグラフィックスの初期化に失敗しました。</span>
+        <button class="icon-btn" onclick="location.reload()" style="padding: 4px 8px; font-size: 0.85rem;">🔄 再読み込み</button>
+    </div>
+
+    <!-- 画面上部 HUD (方位・接続状態・目的地・ロビー戻る) -->
+    <div class="town-hud">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <a href="index.html" class="hud-pill" style="text-decoration: none; color: #333;">🏠 ロビー</a>
+            <div class="hud-pill" id="hud-status-pill">
+                <span id="conn-dot">🟡</span> <span id="conn-status-text">待機中...</span>
+                <button class="btn-reconnect" id="btn-reconnect" style="display: none;" type="button">再接続</button>
+            </div>
+            <!-- 目的地確認バッジ (タップでミッションカードを再表示) -->
+            <div class="hud-pill mission-pill" id="hud-mission-badge" title="タップで質問カードを開く">
+                🎯 目的地: <span id="hud-goal-name">...</span> 💡Help
+            </div>
+        </div>
+
+        <div class="hud-pill">
+            🧭 方角: <span class="compass-display" id="compass-dir-text">NORTH</span>
+        </div>
+    </div>
+
+    <!-- 探検役 移動ロック案内インジケーター (Aの案内が終わるまで動けない) -->
+    <div class="move-lock-indicator waiting" id="move-lock-indicator">
+        <span id="move-lock-icon">🔒</span> <span id="move-lock-text">iPad Aの英語の道案内を聞こう！（Go ahead! が出たら動けます）</span>
+    </div>
+
+    <!-- 画面下部 オンスクリーンコントローラー (iPad Safari 最適化) -->
+    <div class="touch-controls-container locked" id="touch-controls-container">
+        <!-- 左右 90度旋回ボタン -->
+        <div class="turn-container">
+            <button class="touch-btn turn-btn" id="btn-turn-left" aria-label="左を向く">
+                ◀
+                <span class="btn-subtext">Left 90°</span>
+            </button>
+            <button class="touch-btn turn-btn" id="btn-turn-right" aria-label="右を向く">
+                ▶
+                <span class="btn-subtext">Right 90°</span>
+            </button>
+        </div>
+
+        <!-- 前進・後退ボタン -->
+        <div class="dpad-container">
+            <button class="touch-btn" id="btn-backward" aria-label="後退">
+                ▼
+                <span class="btn-subtext">Back</span>
+            </button>
+            <button class="touch-btn forward-btn" id="btn-forward" aria-label="前進">
+                ▲
+                <span class="btn-subtext">Straight</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ミッションカード・モーダル (新機能: ランダム目的地 ＆ 質問ガイド) -->
+    <div class="mission-card-modal active" id="mission-modal">
+        <div class="mission-card-box">
+            <div class="mission-header-tag">🎯 今日のミッション (Mission)</div>
+            <p style="font-weight: bold; color: #37474f; font-size: 1rem;">
+                あなたの行きたい場所が決まりました！
+            </p>
+            
+            <div class="mission-target-display">
+                <span class="mission-target-icon" id="card-goal-icon">🏥</span>
+                <div class="mission-target-name" id="card-goal-name">Hospital</div>
+                <div class="mission-target-jp" id="card-goal-jp">病院</div>
+            </div>
+
+            <div class="mission-ask-box">
+                <div class="mission-ask-title">🗣️ iPad A(地図役)に英語で聞いてみよう！</div>
+                <p class="mission-ask-prompt">
+                    なんて質問するか思い出せるかな？<br>
+                    まずは声に出して質問してみよう！
+                </p>
+                <button class="btn-help-reveal" type="button" id="btn-reveal-help">
+                    💡 英語のヒントを見る (Help)
+                </button>
+                <div class="mission-phrase-reveal-area" id="mission-reveal-area">
+                    <div class="mission-phrase-row">
+                        <span class="mission-phrase-text" id="card-ask-phrase">"Excuse me. Where is the hospital?"</span>
+                        <button class="audio-btn" type="button" id="btn-speak-mission">
+                            🔊 きく
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; font-size: 1.25rem;" id="btn-close-mission">
+                探検スタート！ (OK)
+            </button>
+        </div>
+    </div>
+
+    <!-- ゴール達成モーダル -->
+    <div class="modal-overlay" id="goal-modal">
+        <div class="modal-dialog">
+            <div class="goal-celebration-title">🎉 GOAL! 🎉</div>
+            <p style="font-weight: bold; color: #2e7d32; font-size: 1.15rem;">
+                目的地に到着しました！
+            </p>
+            <div class="goal-landmark-box">
+                <span class="icon" id="modal-goal-icon">🏥</span>
+                <div class="name" id="modal-goal-name">Hospital</div>
+                <div style="font-size: 0.95rem; color: #616161;" id="modal-goal-jp">病院</div>
+            </div>
+            <p style="font-size: 1.05rem; color: #333; margin-bottom: 20px;">
+                You found it! ナイス探検でした！
+            </p>
+            <button class="btn btn-accent" style="width: 100%; font-size: 1.15rem;" id="btn-next-mission">
+                🎯 つぎの目的地に挑戦！
+            </button>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="location.reload()">
+                最初からやり直す
+            </button>
+            <button class="btn btn-blue" style="width: 100%; margin-top: 10px;" onclick="location.href='index.html'">
+                ロビーに戻る
+            </button>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // URLパラメータ解析
+        const params = new URLSearchParams(window.location.search);
+        let seedParam = params.get('seed') || '01';
+        const roomParam = params.get('room') || '';
+        const mode = params.get('mode') || (roomParam ? 'webrtc' : 'seed');
+
+        // DOM要素
+        const container = document.getElementById('three-canvas-container');
+        const compassDirText = document.getElementById('compass-dir-text');
+        const connDot = document.getElementById('conn-dot');
+        const connStatusText = document.getElementById('conn-status-text');
+        const btnReconnect = document.getElementById('btn-reconnect');
+        const hudMissionBadge = document.getElementById('hud-mission-badge');
+        const hudGoalName = document.getElementById('hud-goal-name');
+        const webglErrorBanner = document.getElementById('webgl-error-banner');
+        const webglErrorText = document.getElementById('webgl-error-text');
+
+        // 移動ロック案内DOM
+        const moveLockIndicator = document.getElementById('move-lock-indicator');
+        const moveLockIcon = document.getElementById('move-lock-icon');
+        const moveLockText = document.getElementById('move-lock-text');
+        const touchControlsContainer = document.getElementById('touch-controls-container');
+
+        let isMoveAllowed = (mode !== 'webrtc'); // WebRTC接続時はiPad Aの「Go ahead!」指示を待つ
+
+        function updateMoveLockUI(allowed) {
+            isMoveAllowed = allowed;
+            if (!moveLockIndicator || !touchControlsContainer) return;
+
+            if (allowed) {
+                touchControlsContainer.classList.remove('locked');
+                moveLockIndicator.className = 'move-lock-indicator allowed';
+                moveLockIcon.textContent = '🟢';
+                moveLockText.textContent = 'Go ahead! 街を歩いてみよう！';
+                playUnlockSound();
+                // 3秒後にインジケーターを静かにフェード
+                setTimeout(() => {
+                    if (isMoveAllowed && moveLockIndicator) {
+                        moveLockIndicator.style.opacity = '0.35';
+                    }
+                }, 3000);
+            } else {
+                touchControlsContainer.classList.add('locked');
+                moveLockIndicator.style.opacity = '1';
+                moveLockIndicator.className = 'move-lock-indicator waiting';
+                moveLockIcon.textContent = '🔒';
+                moveLockText.textContent = 'iPad Aの英語の道案内を聞こう！（Go ahead! が出たら動けます）';
+            }
+        }
+
+        function playUnlockSound() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1); // A5
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+            } catch (e) {}
+        }
+
+        function showLockAlert() {
+            if (moveLockIndicator) {
+                moveLockIndicator.style.opacity = '1';
+                moveLockIndicator.style.transform = 'translateX(-50%) scale(1.08)';
+                setTimeout(() => {
+                    if (moveLockIndicator) moveLockIndicator.style.transform = 'translateX(-50%) scale(1)';
+                }, 200);
+            }
+        }
+
+        // ミッションカードDOM
+        const missionModal = document.getElementById('mission-modal');
+        const cardGoalIcon = document.getElementById('card-goal-icon');
+        const cardGoalName = document.getElementById('card-goal-name');
+        const cardGoalJp = document.getElementById('card-goal-jp');
+        const btnRevealHelp = document.getElementById('btn-reveal-help');
+        const missionRevealArea = document.getElementById('mission-reveal-area');
+        const cardAskPhrase = document.getElementById('card-ask-phrase');
+        const btnSpeakMission = document.getElementById('btn-speak-mission');
+        const btnCloseMission = document.getElementById('btn-close-mission');
+
+        // ゴールモーダルDOM
+        const goalModal = document.getElementById('goal-modal');
+        const modalGoalIcon = document.getElementById('modal-goal-icon');
+        const modalGoalName = document.getElementById('modal-goal-name');
+        const modalGoalJp = document.getElementById('modal-goal-jp');
+        const btnNextMission = document.getElementById('btn-next-mission');
+
+        // 操作ボタン
+        const btnForward = document.getElementById('btn-forward');
+        const btnBackward = document.getElementById('btn-backward');
+        const btnTurnLeft = document.getElementById('btn-turn-left');
+        const btnTurnRight = document.getElementById('btn-turn-right');
+
+        // 街データ生成
+        let city = CityGen.generateCity(seedParam);
+        console.log('City generated:', city);
+
+        // iPad B側でランダムに目的地を選定！
+        let currentGoal = city.pickRandomGoal();
+        updateMissionUI(currentGoal);
+
+        function updateMissionUI(goalObj) {
+            hudGoalName.textContent = `${goalObj.icon} ${goalObj.landmarkName}`;
+            cardGoalIcon.textContent = goalObj.icon;
+            cardGoalName.textContent = goalObj.landmarkName;
+            cardGoalJp.textContent = goalObj.landmarkJpName;
+
+            const phrase = `Excuse me. Where is the ${goalObj.landmarkName.toLowerCase()}?`;
+            cardAskPhrase.textContent = `"${phrase}"`;
+
+            // 新しいミッション時はヒントを閉じておく（自分で考える練習）
+            if (missionRevealArea) {
+                missionRevealArea.classList.remove('active');
+            }
+            if (btnRevealHelp) {
+                btnRevealHelp.innerHTML = '💡 英語のヒントを見る (Help)';
+            }
+
+            modalGoalIcon.textContent = goalObj.icon;
+            modalGoalName.textContent = goalObj.landmarkName;
+            modalGoalJp.textContent = goalObj.landmarkJpName;
+        }
+
+        // ミッションカードの開閉
+        btnCloseMission.addEventListener('click', () => {
+            missionModal.classList.remove('active');
+        });
+        hudMissionBadge.addEventListener('click', () => {
+            missionModal.classList.add('active');
+        });
+
+        // 💡 英語のヒントを見る (Help) トグル展開
+        if (btnRevealHelp && missionRevealArea) {
+            btnRevealHelp.addEventListener('click', () => {
+                const isActive = missionRevealArea.classList.toggle('active');
+                if (isActive) {
+                    btnRevealHelp.innerHTML = '🔼 ヒントを隠す';
+                } else {
+                    btnRevealHelp.innerHTML = '💡 英語のヒントを見る (Help)';
+                }
+            });
+        }
+
+        // 英語音声読み上げ
+        btnSpeakMission.addEventListener('click', () => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const text = `Excuse me. Where is the ${currentGoal.landmarkName}?`;
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'en-US';
+                utter.rate = 0.85;
+                window.speechSynthesis.speak(utter);
+            }
+        });
+
+        // -------------------------------------------------------------
+        // WebRTC 通信セットアップ (クライアント役)
+        // -------------------------------------------------------------
+        let rtcSync = null;
+
+        if (mode === 'webrtc' && roomParam) {
+            rtcSync = new WebRTCSync({
+                role: 'client',
+                roomId: roomParam,
+                onStatusChange: (status, message) => {
+                    console.log('[WebRTC Client Status]', status, message);
+                    if (status === 'connecting') {
+                        connDot.textContent = '🟡';
+                        connStatusText.textContent = `接続中 [${roomParam}]...`;
+                        btnReconnect.style.display = 'none';
+                    } else if (status === 'connected') {
+                        connDot.textContent = '🟢';
+                        connStatusText.textContent = 'iPad A と同期中';
+                        btnReconnect.style.display = 'none';
+                        // 接続完了時に、iPad Bで選んだ目的地をiPad Aへ通知！
+                        sendGoalToHost();
+                        sendPositionToHost();
+                    } else if (status === 'error' || status === 'disconnected') {
+                        connDot.textContent = '🔴';
+                        connStatusText.textContent = '未接続';
+                        btnReconnect.style.display = 'inline-block';
+                    }
+                },
+                onConnected: () => {
+                    sendGoalToHost();
+                    sendPositionToHost();
+                },
+                onData: (data) => {
+                    if (data.type === 'INIT' && data.seed && data.seed !== seedParam) {
+                        seedParam = data.seed;
+                        city = CityGen.generateCity(seedParam);
+                        currentGoal = city.pickRandomGoal();
+                        updateMissionUI(currentGoal);
+                        rebuildWorld();
+                        sendGoalToHost();
+                    } else if (data.type === 'CONTROL_MOVE') {
+                        // iPad Aからの移動許可・ブレーキ指示を受信
+                        updateMoveLockUI(!!data.allowMove);
+                    }
+                },
+                onError: (err) => {
+                    console.warn('[WebRTC Client Error]', err);
+                    btnReconnect.style.display = 'inline-block';
+                }
+            });
+
+            rtcSync.init();
+
+            btnReconnect.addEventListener('click', () => {
+                btnReconnect.style.display = 'none';
+                connDot.textContent = '🟡';
+                connStatusText.textContent = '再接続中...';
+                rtcSync.reconnect();
+            });
+        } else {
+            connDot.textContent = '⚪';
+            connStatusText.textContent = `シード [${seedParam}]`;
+        }
+
+        // iPad Aへ目的地情報を送信
+        function sendGoalToHost() {
+            if (rtcSync && rtcSync.isConnected && currentGoal) {
+                rtcSync.send({
+                    type: 'CHOOSE_GOAL',
+                    landmarkId: currentGoal.landmarkId,
+                    landmarkName: currentGoal.landmarkName,
+                    landmarkJpName: currentGoal.landmarkJpName,
+                    icon: currentGoal.icon
+                });
+            }
+        }
+
+        function sendPositionToHost() {
+            if (rtcSync && rtcSync.isConnected) {
+                rtcSync.send({
+                    type: 'MOVE',
+                    x: player.x,
+                    z: player.z,
+                    angle: player.angle
+                });
+            }
+        }
+
+        function notifyGoalReached() {
+            if (rtcSync && rtcSync.isConnected) {
+                rtcSync.send({
+                    type: 'GOAL'
+                });
+            }
+        }
+
+        // -------------------------------------------------------------
+        // Three.js 3D ワールド構築
+        // -------------------------------------------------------------
+        let scene, camera, renderer;
+        let worldGroup = null;
+        let goalMarkerMesh = null;
+        let celebrationParticles = null;
+        let goalAchieved = false;
+
+        const player = {
+            x: city.spawn.worldX,
+            z: city.spawn.worldZ,
+            y: 1.6,
+            angle: city.spawn.angle,
+            targetAngle: city.spawn.angle,
+            targetX: city.spawn.worldX,
+            targetZ: city.spawn.worldZ,
+            isMoving: false,
+            isRotating: false
+        };
+
+        let materials = null;
+
+        function showWebGLError(msg) {
+            if (webglErrorBanner && webglErrorText) {
+                webglErrorText.textContent = '⚠️ ' + msg;
+                webglErrorBanner.style.display = 'flex';
+            }
+        }
+
+        function initMaterials() {
+            materials = {
+                road: new THREE.MeshLambertMaterial({ color: 0x455a64 }),
+                roadStripe: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+                grass: new THREE.MeshLambertMaterial({ color: 0x7cb342 }),
+                sidewalk: new THREE.MeshLambertMaterial({ color: 0x90a4ae }),
+                wood: new THREE.MeshLambertMaterial({ color: 0x5d4037 }),
+                leaves: new THREE.MeshLambertMaterial({ color: 0x2e7d32 }),
+                glass: new THREE.MeshLambertMaterial({ color: 0x81d4fa, transparent: true, opacity: 0.75 }),
+                white: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+                redCross: new THREE.MeshLambertMaterial({ color: 0xd32f2f }),
+                lampYellow: new THREE.MeshBasicMaterial({ color: 0xffeb3b }),
+                lampPole: new THREE.MeshLambertMaterial({ color: 0x37474f })
+            };
+        }
+
+        function initThree() {
+            if (typeof THREE === 'undefined') {
+                console.error('[Three.js Error] THREE is not defined');
+                showWebGLError('3D描画ライブラリ(Three.js)が読み込まれていません。通信環境を確認するか、ページを再読み込みしてください。');
+                return;
+            }
+
+            try {
+                initMaterials();
+
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x81d4fa);
+                // 遠く見えすぎ防止フォグ: 14m先から霧がかかり38m先は完全に見えない
+                // これにより、Aさんの道案内をしっかり聞かないと目的地に辿り着けないインフォメーションギャップを成立させる
+                scene.fog = new THREE.Fog(0x81d4fa, 14, 38);
+
+                const width = window.innerWidth || document.documentElement.clientWidth || 800;
+                const height = window.innerHeight || document.documentElement.clientHeight || 600;
+
+                camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 150);
+                updateCameraPosition();
+
+                renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+                renderer.setSize(width, height);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                container.appendChild(renderer.domElement);
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+                scene.add(ambientLight);
+
+                const hemiLight = new THREE.HemisphereLight(0x81d4fa, 0x558b2f, 0.45);
+                scene.add(hemiLight);
+
+                const sunLight = new THREE.DirectionalLight(0xfffaed, 0.85);
+                sunLight.position.set(40, 80, 30);
+                sunLight.castShadow = true;
+                sunLight.shadow.mapSize.width = 1024;
+                sunLight.shadow.mapSize.height = 1024;
+                sunLight.shadow.camera.near = 10;
+                sunLight.shadow.camera.far = 160;
+                const d = 45;
+                sunLight.shadow.camera.left = -d;
+                sunLight.shadow.camera.right = d;
+                sunLight.shadow.camera.top = d;
+                sunLight.shadow.camera.bottom = -d;
+                scene.add(sunLight);
+
+                buildCityWorld();
+
+                window.addEventListener('resize', onWindowResize);
+                setupInputListeners();
+                updateCompassHUD();
+                animate();
+            } catch (err) {
+                console.error('[WebGL Init Error]', err);
+                showWebGLError('3Dグラフィックス(WebGL)の起動に失敗しました: ' + err.message);
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function buildCityWorld() {
+            if (worldGroup) {
+                scene.remove(worldGroup);
+            }
+            worldGroup = new THREE.Group();
+
+            const cs = city.cellSize;
+
+            // 地面
+            const groundGeo = new THREE.PlaneGeometry(city.worldWidth * 1.5, city.worldDepth * 1.5);
+            const groundMat = new THREE.MeshLambertMaterial({ color: 0x689f38 });
+            const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+            groundMesh.rotation.x = -Math.PI / 2;
+            groundMesh.position.set(city.worldWidth / 2, -0.05, city.worldDepth / 2);
+            groundMesh.receiveShadow = true;
+            worldGroup.add(groundMesh);
+
+            // 道路
+            const roadBoxGeo = new THREE.BoxGeometry(cs, 0.1, cs);
+            const stripeGeo = new THREE.BoxGeometry(0.25, 0.12, 1.2);
+            const stripeGeoH = new THREE.BoxGeometry(1.2, 0.12, 0.25);
+
+            for (let z = 0; z < city.gridSizeZ; z++) {
+                for (let x = 0; x < city.gridSizeX; x++) {
+                    const cType = city.grid[z][x];
+                    const wx = (x + 0.5) * cs;
+                    const wz = (z + 0.5) * cs;
+
+                    if (cType === city.cellTypes.ROAD || cType === city.cellTypes.INTERSECTION) {
+                        const roadMesh = new THREE.Mesh(roadBoxGeo, materials.road);
+                        roadMesh.position.set(wx, 0.0, wz);
+                        roadMesh.receiveShadow = true;
+                        worldGroup.add(roadMesh);
+
+                        if (cType === city.cellTypes.ROAD) {
+                            if (z % 4 === 0) {
+                                const stripe = new THREE.Mesh(stripeGeoH, materials.roadStripe);
+                                stripe.position.set(wx, 0.02, wz);
+                                worldGroup.add(stripe);
+                            } else {
+                                const stripe = new THREE.Mesh(stripeGeo, materials.roadStripe);
+                                stripe.position.set(wx, 0.02, wz);
+                                worldGroup.add(stripe);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 建物
+            city.blocks.forEach(block => {
+                const bw = block.width * cs;
+                const bh = block.height * cs;
+                const bx = (block.startX + block.width / 2) * cs;
+                const bz = (block.startZ + block.height / 2) * cs;
+
+                if (block.isLandmark && block.landmark) {
+                    buildLandmark3D(block.landmark, bx, bz, bw, bh);
+                } else if (block.building) {
+                    buildGeneralBuilding3D(block.building, bx, bz, bw, bh);
+                }
+            });
+
+            // 街路樹・街灯
+            city.streetProps.forEach(prop => {
+                if (prop.type === 'tree') {
+                    buildTree3D(prop.worldX, prop.worldZ);
+                } else {
+                    buildLamp3D(prop.worldX, prop.worldZ);
+                }
+            });
+
+            // ゴールマーカー
+            buildGoalMarker(currentGoal.worldX, currentGoal.worldZ);
+
+            scene.add(worldGroup);
+        }
+
+        function buildLandmark3D(lm, cx, cz, w, d) {
+            const group = new THREE.Group();
+            group.position.set(cx, 0, cz);
+
+            const bldgW = w * 0.85;
+            const bldgD = d * 0.85;
+            const bldgH = (lm.height || 2.0) * 3.5;
+
+            if (lm.isPark) {
+                const parkBaseGeo = new THREE.BoxGeometry(w, 0.15, d);
+                const parkMesh = new THREE.Mesh(parkBaseGeo, materials.grass);
+                parkMesh.position.y = 0.08;
+                parkMesh.receiveShadow = true;
+                group.add(parkMesh);
+
+                const fountainBase = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.6, 2.5), materials.sidewalk);
+                fountainBase.position.y = 0.3;
+                group.add(fountainBase);
+
+                const water = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.7, 2.1), materials.glass);
+                water.position.y = 0.38;
+                group.add(water);
+
+                buildTree3D(cx - 3, cz - 3);
+                buildTree3D(cx + 3, cz + 3);
+                worldGroup.add(group);
+                return;
+            }
+
+            const wallMat = new THREE.MeshLambertMaterial({ color: lm.color || 0xffffff });
+            const bodyGeo = new THREE.BoxGeometry(bldgW, bldgH, bldgD);
+            const bodyMesh = new THREE.Mesh(bodyGeo, wallMat);
+            bodyMesh.position.y = bldgH / 2;
+            bodyMesh.castShadow = true;
+            bodyMesh.receiveShadow = true;
+            group.add(bodyMesh);
+
+            const roofMat = new THREE.MeshLambertMaterial({ color: lm.roofColor || 0x333333 });
+            const roofGeo = new THREE.BoxGeometry(bldgW + 0.4, 0.6, bldgD + 0.4);
+            const roofMesh = new THREE.Mesh(roofGeo, roofMat);
+            roofMesh.position.y = bldgH + 0.3;
+            roofMesh.castShadow = true;
+            group.add(roofMesh);
+
+            if (lm.id === 'hospital') {
+                const crossMat = materials.redCross;
+                const vCross = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.4, 0.2), crossMat);
+                vCross.position.set(0, bldgH * 0.7, bldgD / 2 + 0.12);
+                group.add(vCross);
+                const hCross = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 0.2), crossMat);
+                hCross.position.set(0, bldgH * 0.7, bldgD / 2 + 0.12);
+                group.add(hCross);
+            } else if (lm.id === 'convenience_store') {
+                const orangeLine = new THREE.Mesh(new THREE.BoxGeometry(bldgW + 0.1, 0.4, bldgD + 0.1),
+                    new THREE.MeshLambertMaterial({ color: 0xf57c00 }));
+                orangeLine.position.y = bldgH - 0.5;
+                group.add(orangeLine);
+
+                const greenLine = new THREE.Mesh(new THREE.BoxGeometry(bldgW + 0.1, 0.4, bldgD + 0.1),
+                    new THREE.MeshLambertMaterial({ color: 0x2e7d32 }));
+                greenLine.position.y = bldgH - 0.9;
+                group.add(greenLine);
+
+                const glass = new THREE.Mesh(new THREE.BoxGeometry(bldgW * 0.6, 2.2, 0.15), materials.glass);
+                glass.position.set(0, 1.2, bldgD / 2 + 0.1);
+                group.add(glass);
+            } else if (lm.id === 'library') {
+                const pillarMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
+                for (let px = -bldgW * 0.35; px <= bldgW * 0.35; px += bldgW * 0.35) {
+                    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.6, bldgH, 0.6), pillarMat);
+                    pillar.position.set(px, bldgH / 2, bldgD / 2 + 0.2);
+                    group.add(pillar);
+                }
+            } else if (lm.id === 'school') {
+                const towerH = 4.0;
+                const tower = new THREE.Mesh(new THREE.BoxGeometry(2.5, towerH, 2.5), wallMat);
+                tower.position.set(0, bldgH + towerH / 2, 0);
+                group.add(tower);
+
+                const clockFace = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 2.6), materials.white);
+                clockFace.position.set(0, bldgH + towerH * 0.7, 0);
+                group.add(clockFace);
+            }
+
+            const signMat = new THREE.MeshLambertMaterial({ color: lm.accentColor || 0x1976d2 });
+            const signPlate = new THREE.Mesh(new THREE.BoxGeometry(bldgW * 0.7, 0.8, 0.2), signMat);
+            signPlate.position.set(0, bldgH + 0.8, bldgD / 2 + 0.1);
+            group.add(signPlate);
+
+            worldGroup.add(group);
+        }
+
+        function buildGeneralBuilding3D(bldg, cx, cz, w, d) {
+            const group = new THREE.Group();
+            group.position.set(cx, 0, cz);
+
+            const bldgW = w * 0.82;
+            const bldgD = d * 0.82;
+            const bldgH = (bldg.height || 2.0) * 3.2;
+
+            const wallMat = new THREE.MeshLambertMaterial({ color: bldg.colors.wall });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(bldgW, bldgH, bldgD), wallMat);
+            body.position.y = bldgH / 2;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+
+            const roofMat = new THREE.MeshLambertMaterial({ color: bldg.colors.roof });
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(bldgW + 0.3, 0.4, bldgD + 0.3), roofMat);
+            roof.position.y = bldgH + 0.2;
+            roof.castShadow = true;
+            group.add(roof);
+
+            const winMat = materials.glass;
+            const winGeo = new THREE.BoxGeometry(0.8, 0.8, 0.1);
+            const floors = Math.floor(bldgH / 2.2);
+
+            for (let f = 1; f <= floors; f++) {
+                const wy = f * 2.0;
+                const win1 = new THREE.Mesh(winGeo, winMat);
+                win1.position.set(-bldgW * 0.25, wy, bldgD / 2 + 0.06);
+                group.add(win1);
+
+                const win2 = new THREE.Mesh(winGeo, winMat);
+                win2.position.set(bldgW * 0.25, wy, bldgD / 2 + 0.06);
+                group.add(win2);
+            }
+
+            worldGroup.add(group);
+        }
+
+        function buildTree3D(x, z) {
+            const group = new THREE.Group();
+            group.position.set(x, 0, z);
+
+            const trunkH = 2.4;
+            const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.6, trunkH, 0.6), materials.wood);
+            trunk.position.y = trunkH / 2;
+            trunk.castShadow = true;
+            group.add(trunk);
+
+            const foliage = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.0, 2.0), materials.leaves);
+            foliage.position.y = trunkH + 0.8;
+            foliage.castShadow = true;
+            group.add(foliage);
+
+            worldGroup.add(group);
+        }
+
+        function buildLamp3D(x, z) {
+            const group = new THREE.Group();
+            group.position.set(x, 0, z);
+
+            const poleH = 3.2;
+            const pole = new THREE.Mesh(new THREE.BoxGeometry(0.2, poleH, 0.2), materials.lampPole);
+            pole.position.y = poleH / 2;
+            group.add(pole);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), materials.lampYellow);
+            head.position.y = poleH + 0.2;
+            group.add(head);
+
+            worldGroup.add(group);
+        }
+
+        function buildGoalMarker(x, z) {
+            if (goalMarkerMesh && worldGroup) {
+                worldGroup.remove(goalMarkerMesh);
+            }
+            const group = new THREE.Group();
+            group.position.set(x, 0.08, z);
+
+            const ringGeo = new THREE.RingGeometry(0.8, 1.4, 32);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0xffd54f,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.85
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            group.add(ring);
+
+            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.0, 8), materials.white);
+            pillar.position.y = 1.0;
+            group.add(pillar);
+
+            const flag = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.1), new THREE.MeshBasicMaterial({ color: 0xe53935 }));
+            flag.position.set(0.6, 1.8, 0);
+            group.add(flag);
+
+            goalMarkerMesh = group;
+            if (worldGroup) {
+                worldGroup.add(group);
+            }
+        }
+
+        function triggerCelebrationParticles() {
+            const particleCount = 200;
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = player.x + (Math.random() - 0.5) * 12;
+                positions[i * 3 + 1] = player.y + 1 + Math.random() * 8;
+                positions[i * 3 + 2] = player.z + (Math.random() - 0.5) * 12;
+
+                colors[i * 3] = Math.random();
+                colors[i * 3 + 1] = Math.random();
+                colors[i * 3 + 2] = Math.random();
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.35,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.95
+            });
+
+            celebrationParticles = new THREE.Points(geo, mat);
+            scene.add(celebrationParticles);
+        }
+
+        // 次のミッションへ進む
+        btnNextMission.addEventListener('click', () => {
+            goalModal.classList.remove('active');
+            if (celebrationParticles) {
+                scene.remove(celebrationParticles);
+                celebrationParticles = null;
+            }
+            goalAchieved = false;
+
+            // 新しい目的地をランダム選定
+            currentGoal = city.pickRandomGoal(currentGoal.landmarkId);
+            updateMissionUI(currentGoal);
+            buildGoalMarker(currentGoal.worldX, currentGoal.worldZ);
+
+            // iPad Aへ新しい目的地を送信
+            sendGoalToHost();
+
+            // 次のミッションへ進む時は、再びiPad Aの道案内を待つ
+            if (mode === 'webrtc') {
+                updateMoveLockUI(false);
+            }
+
+            // 新しいミッションカードを表示
+            missionModal.classList.add('active');
+        });
+
+        function rebuildWorld() {
+            buildCityWorld();
+            player.x = city.spawn.worldX;
+            player.z = city.spawn.worldZ;
+            player.targetX = player.x;
+            player.targetZ = player.z;
+            player.angle = city.spawn.angle;
+            player.targetAngle = player.angle;
+            updateCameraPosition();
+            updateCompassHUD();
+            sendPositionToHost();
+        }
+
+        // -------------------------------------------------------------
+        // カメラ & 移動
+        // -------------------------------------------------------------
+        function updateCameraPosition() {
+            camera.position.set(player.x, player.y, player.z);
+            const rad = (player.angle * Math.PI) / 180;
+            const lookX = player.x + Math.sin(rad);
+            const lookZ = player.z - Math.cos(rad);
+            camera.lookAt(lookX, player.y, lookZ);
+        }
+
+        function updateCompassHUD() {
+            let normalizedAngle = ((player.angle % 360) + 360) % 360;
+            let dirName = 'NORTH';
+            if (normalizedAngle >= 45 && normalizedAngle < 135) dirName = 'EAST (東)';
+            else if (normalizedAngle >= 135 && normalizedAngle < 225) dirName = 'SOUTH (南)';
+            else if (normalizedAngle >= 225 && normalizedAngle < 315) dirName = 'WEST (西)';
+            else dirName = 'NORTH (北)';
+
+            compassDirText.textContent = dirName;
+        }
+
+        const STEP_DISTANCE = city.cellSize;
+
+        function canMoveTo(wx, wz) {
+            const cx = Math.floor(wx / city.cellSize);
+            const cz = Math.floor(wz / city.cellSize);
+
+            if (cx < 0 || cx >= city.gridSizeX || cz < 0 || cz >= city.gridSizeZ) {
+                return false;
+            }
+
+            const cell = city.grid[cz][cx];
+            return (cell === city.cellTypes.ROAD ||
+                    cell === city.cellTypes.INTERSECTION ||
+                    cell === city.cellTypes.PARK);
+        }
+
+        function moveForward() {
+            if (!isMoveAllowed) {
+                showLockAlert();
+                return;
+            }
+            const rad = (player.targetAngle * Math.PI) / 180;
+            const dx = Math.sin(rad) * STEP_DISTANCE;
+            const dz = -Math.cos(rad) * STEP_DISTANCE;
+
+            const nextX = player.targetX + dx;
+            const nextZ = player.targetZ + dz;
+
+            if (canMoveTo(nextX, nextZ)) {
+                player.targetX = nextX;
+                player.targetZ = nextZ;
+                checkGoalReach(nextX, nextZ);
+            } else {
+                if (navigator.vibrate) navigator.vibrate(50);
+            }
+        }
+
+        function moveBackward() {
+            if (!isMoveAllowed) {
+                showLockAlert();
+                return;
+            }
+            const rad = (player.targetAngle * Math.PI) / 180;
+            const dx = -Math.sin(rad) * STEP_DISTANCE;
+            const dz = Math.cos(rad) * STEP_DISTANCE;
+
+            const nextX = player.targetX + dx;
+            const nextZ = player.targetZ + dz;
+
+            if (canMoveTo(nextX, nextZ)) {
+                player.targetX = nextX;
+                player.targetZ = nextZ;
+                checkGoalReach(nextX, nextZ);
+            }
+        }
+
+        function turnLeft() {
+            if (!isMoveAllowed) {
+                showLockAlert();
+                return;
+            }
+            player.targetAngle = (player.targetAngle - 90);
+        }
+
+        function turnRight() {
+            if (!isMoveAllowed) {
+                showLockAlert();
+                return;
+            }
+            player.targetAngle = (player.targetAngle + 90);
+        }
+
+        function checkGoalReach(wx, wz) {
+            if (goalAchieved || !currentGoal) return;
+            const dist = Math.hypot(wx - currentGoal.worldX, wz - currentGoal.worldZ);
+            if (dist <= currentGoal.radius) {
+                goalAchieved = true;
+                notifyGoalReached();
+                triggerCelebrationParticles();
+                setTimeout(() => {
+                    goalModal.classList.add('active');
+                }, 500);
+            }
+        }
+
+        // タッチ操作設定
+        function setupButton(element, action) {
+            let intervalId = null;
+
+            function start(e) {
+                e.preventDefault();
+                element.classList.add('pressed');
+                action();
+                intervalId = setInterval(action, 320);
+            }
+
+            function stop(e) {
+                e.preventDefault();
+                element.classList.remove('pressed');
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                }
+            }
+
+            element.addEventListener('touchstart', start, { passive: false });
+            element.addEventListener('touchend', stop, { passive: false });
+            element.addEventListener('touchcancel', stop, { passive: false });
+            element.addEventListener('mousedown', start);
+            element.addEventListener('mouseup', stop);
+            element.addEventListener('mouseleave', stop);
+        }
+
+        function setupInputListeners() {
+            setupButton(btnForward, moveForward);
+            setupButton(btnBackward, moveBackward);
+            setupButton(btnTurnLeft, turnLeft);
+            setupButton(btnTurnRight, turnRight);
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                    moveForward();
+                } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+                    moveBackward();
+                } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                    turnLeft();
+                } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                    turnRight();
+                }
+            });
+        }
+
+        let lastReportTime = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const posLerp = 0.2;
+            const rotLerp = 0.25;
+
+            player.x += (player.targetX - player.x) * posLerp;
+            player.z += (player.targetZ - player.z) * posLerp;
+            player.angle += (player.targetAngle - player.angle) * rotLerp;
+
+            updateCameraPosition();
+            updateCompassHUD();
+
+            if (goalMarkerMesh) {
+                goalMarkerMesh.rotation.y += 0.02;
+            }
+
+            if (celebrationParticles) {
+                const pos = celebrationParticles.geometry.attributes.position.array;
+                for (let i = 1; i < pos.length; i += 3) {
+                    pos[i] -= 0.05;
+                    if (pos[i] < 0) pos[i] = player.y + 8;
+                }
+                celebrationParticles.geometry.attributes.position.needsUpdate = true;
+            }
+
+            const now = Date.now();
+            if (now - lastReportTime > 150) {
+                lastReportTime = now;
+                sendPositionToHost();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        initThree();
+
+    })();
+    </script>
+</body>
+</html>

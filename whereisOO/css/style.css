@@ -1,0 +1,1086 @@
+/* ==========================================================================
+   Where is OO? - iPad Safari 最適化 共通スタイルシート
+   ========================================================================== */
+
+:root {
+    --primary-color: #2e7d32;
+    --primary-dark: #1b5e20;
+    --primary-light: #81c784;
+    --accent-color: #ff9800;
+    --accent-dark: #e65100;
+    --accent-light: #ffe0b2;
+    --danger-color: #e53935;
+    --info-color: #0288d1;
+    --bg-color: #e8f5e9;
+    --panel-bg: rgba(255, 255, 255, 0.95);
+    --panel-border: #81c784;
+    --text-main: #212121;
+    --text-muted: #616161;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    --mc-font: "Courier New", Courier, monospace;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    position: fixed;
+    inset: 0;
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    user-select: none;
+    -webkit-user-select: none;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+}
+
+/* ==========================================================================
+   ロビー画面 (index.html) スタイル
+   ========================================================================== */
+.lobby-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    padding: 16px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    background: linear-gradient(135deg, #a5d6a7 0%, #80cbc4 50%, #81d4fa 100%);
+}
+
+.lobby-header {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.lobby-title {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #1b5e20;
+    text-shadow: 2px 2px 0 #ffffff, 4px 4px 0 rgba(0,0,0,0.1);
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.lobby-subtitle {
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: #2e7d32;
+    margin-top: 6px;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 4px 14px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.lobby-cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    width: 100%;
+    max-width: 960px;
+    justify-content: center;
+}
+
+.lobby-card {
+    background: var(--panel-bg);
+    border: 3px solid #66bb6a;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    flex: 1 1 420px;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.lobby-card h2 {
+    font-size: 1.35rem;
+    color: #1b5e20;
+    border-bottom: 2px dashed #a5d6a7;
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.badge-tag {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 10px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-weight: bold;
+    border: 1px solid #81c784;
+}
+
+.badge-tag.webrtc {
+    background: #e3f2fd;
+    color: #1565c0;
+    border-color: #90caf9;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-label {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #37474f;
+}
+
+.form-input {
+    font-size: 1.3rem;
+    font-weight: bold;
+    text-align: center;
+    letter-spacing: 2px;
+    padding: 10px 14px;
+    border: 2px solid #a5d6a7;
+    border-radius: 12px;
+    outline: none;
+    background: #fafafa;
+    color: #212121;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+    border-color: #2e7d32;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2);
+    background: #ffffff;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 20px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
+    text-decoration: none;
+    color: #ffffff;
+}
+
+.btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+}
+
+.btn-accent {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+}
+
+.btn-blue {
+    background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
+}
+
+.btn-role-a {
+    background: linear-gradient(135deg, #00897b 0%, #00695c 100%);
+}
+
+.btn-role-b {
+    background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+}
+
+.card-desc {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.quick-guide-box {
+    margin-top: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 14px;
+    padding: 12px 18px;
+    max-width: 960px;
+    width: 100%;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #424242;
+    border: 2px solid #b2dfdb;
+}
+
+.quick-guide-box summary {
+    font-weight: bold;
+    cursor: pointer;
+    color: #00695c;
+    font-size: 1rem;
+}
+
+/* ==========================================================================
+   iPad A: 地図ビュー (map.html) スタイル
+   ========================================================================== */
+.map-page-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    position: relative;
+    background: #f1f8e9;
+}
+
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    z-index: 100;
+    gap: 12px;
+}
+
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.room-badge {
+    background: #e3f2fd;
+    border: 2px solid #1976d2;
+    color: #0d47a1;
+    font-weight: 900;
+    font-size: 1.1rem;
+    padding: 4px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.goal-info-badge {
+    background: #ffebee;
+    border: 2px solid #e53935;
+    color: #c62828;
+    font-weight: 800;
+    font-size: 1.05rem;
+    padding: 4px 14px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    animation: pulse-border 1.8s infinite;
+}
+
+.goal-info-badge.waiting {
+    background: #fff8e1;
+    border-color: #fbc02d;
+    color: #f57f17;
+    animation: none;
+}
+
+@keyframes pulse-border {
+    0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(229, 57, 53, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+}
+
+.status-pill {
+    font-size: 0.85rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.status-pill.connected {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #81c784;
+}
+.status-pill.waiting {
+    background: #fff8e1;
+    color: #f57f17;
+    border: 1px solid #ffe082;
+}
+.status-pill.offline {
+    background: #eceff1;
+    color: #546e7a;
+    border: 1px solid #cfd8dc;
+}
+
+/* 探検役からの質問バナー (iPad A) */
+.question-banner {
+    background: #fff3e0;
+    border-bottom: 2px solid #ff9800;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: #e65100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    z-index: 95;
+    animation: slide-down 0.3s ease;
+}
+
+@keyframes slide-down {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+
+.map-content-area {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    height: calc(100% - 60px);
+    position: relative;
+    overflow: hidden;
+}
+
+#map-canvas-container {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: #e8f5e9;
+    touch-action: none;
+}
+
+#map-canvas {
+    display: block;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+/* ==========================================================================
+   英語フレーズヘルパー (iPad A: 左サイド展開ドロワー)
+   ========================================================================== */
+.phrase-drawer-toggle {
+    position: absolute;
+    top: 75px;
+    left: 12px;
+    background: #ffffff;
+    border: 2px solid #2e7d32;
+    border-radius: 14px;
+    padding: 8px 14px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #1b5e20;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 85;
+    transition: transform 0.15s, background-color 0.15s;
+}
+
+.phrase-drawer-toggle:active {
+    transform: scale(0.95);
+    background: #e8f5e9;
+}
+
+.phrase-drawer-panel {
+    position: absolute;
+    top: 60px;
+    bottom: 16px;
+    left: 0;
+    width: 320px;
+    max-width: 85vw;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 3px solid #81c784;
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+    box-shadow: 8px 0 24px rgba(0,0,0,0.22);
+    z-index: 95;
+    transform: translateX(-105%);
+    transition: transform 0.28s cubic-bezier(0.1, 0.9, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 18px 16px;
+    box-sizing: border-box;
+}
+
+.phrase-drawer-panel.open {
+    transform: translateX(0);
+}
+
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #c8e6c9;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+}
+
+.drawer-title {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #1b5e20;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.drawer-close-btn {
+    background: #eeeeee;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #555;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.drawer-close-btn:active {
+    background: #ccc;
+}
+
+.drawer-phrase-list {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+}
+
+.drawer-phrase-item {
+    background: #f1f8e9;
+    border: 1px solid #c5e1a5;
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: background 0.15s;
+}
+
+.drawer-phrase-item:hover, .drawer-phrase-item:active {
+    background: #e8f5e9;
+    border-color: #81c784;
+}
+
+.drawer-phrase-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.drawer-phrase-en {
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: #2e7d32;
+}
+
+.drawer-phrase-jp {
+    font-size: 0.85rem;
+    color: #616161;
+}
+
+.btn-mini-speak {
+    background: #ff9800;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.btn-mini-speak:active {
+    transform: scale(0.95);
+}
+
+/* ==========================================================================
+   iPad B: 3D ボクセル街ビュー (town.html) スタイル
+   ========================================================================== */
+.town-page-container {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    position: relative;
+    overflow: hidden;
+    touch-action: none;
+    background: #81d4fa;
+}
+
+#three-canvas-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    touch-action: none;
+}
+
+/* 画面上部 HUD (方位・接続状態・ロビー戻る) */
+.town-hud {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.hud-pill {
+    pointer-events: auto;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 2px solid rgba(0,0,0,0.1);
+    border-radius: 14px;
+    padding: 6px 14px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.hud-pill.mission-pill {
+    background: linear-gradient(135deg, #fff9c4 0%, #fff176 100%);
+    border-color: #fbc02d;
+    color: #e65100;
+    cursor: pointer;
+}
+
+.compass-display {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #d32f2f;
+    letter-spacing: 1px;
+}
+
+/* 画面下部 タッチオンスクリーンコントローラー (iPad Safari 最適化) */
+.touch-controls-container {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 28px;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.dpad-container, .turn-container {
+    pointer-events: auto;
+    display: flex;
+    gap: 12px;
+}
+
+.touch-btn {
+    width: 76px;
+    height: 76px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 3px solid #2e7d32;
+    color: #1b5e20;
+    font-size: 1.8rem;
+    font-weight: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition: transform 0.08s, background-color 0.08s;
+}
+
+.touch-btn:active, .touch-btn.pressed {
+    transform: scale(0.92);
+    background: #a5d6a7;
+    border-color: #1b5e20;
+}
+
+.touch-btn .btn-subtext {
+    font-size: 0.65rem;
+    font-weight: bold;
+    margin-top: 2px;
+    text-transform: uppercase;
+}
+
+.touch-btn.turn-btn {
+    border-color: #f57c00;
+    color: #e65100;
+    width: 82px;
+    height: 82px;
+}
+
+.touch-btn.turn-btn:active, .touch-btn.turn-btn.pressed {
+    background: #ffe082;
+}
+
+.touch-btn.forward-btn {
+    width: 90px;
+    height: 90px;
+    font-size: 2.2rem;
+    border-color: #2e7d32;
+    background: rgba(232, 245, 233, 0.95);
+}
+
+/* ==========================================================================
+   ミッションカード・モーダル (iPad B用 新機能)
+   ========================================================================== */
+.mission-card-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.mission-card-modal.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.mission-card-box {
+    background: #ffffff;
+    border: 5px solid #ff9800;
+    border-radius: 28px;
+    padding: 28px 24px;
+    width: 90%;
+    max-width: 480px;
+    text-align: center;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.mission-card-modal.active .mission-card-box {
+    transform: scale(1);
+}
+
+.mission-header-tag {
+    display: inline-block;
+    background: #fff3e0;
+    color: #e65100;
+    font-weight: 900;
+    font-size: 0.95rem;
+    padding: 4px 14px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    border: 1px solid #ffb74d;
+}
+
+.mission-target-display {
+    background: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%);
+    border: 3px dashed #fbc02d;
+    border-radius: 20px;
+    padding: 16px;
+    margin: 12px 0;
+}
+
+.mission-target-icon {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.mission-target-name {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #d84315;
+}
+
+.mission-target-jp {
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: #616161;
+}
+
+.mission-ask-box {
+    background: #e8f5e9;
+    border: 2px solid #81c784;
+    border-radius: 16px;
+    padding: 14px;
+    margin-top: 14px;
+    margin-bottom: 18px;
+    text-align: center;
+}
+
+.mission-ask-title {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #1b5e20;
+    margin-bottom: 6px;
+}
+
+.mission-ask-prompt {
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.btn-help-reveal {
+    background: linear-gradient(135deg, #fff9c4 0%, #fff176 100%);
+    border: 2px solid #fbc02d;
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-size: 1rem;
+    font-weight: 900;
+    color: #e65100;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.15s, background-color 0.15s;
+}
+
+.btn-help-reveal:active {
+    transform: scale(0.96);
+}
+
+.mission-phrase-reveal-area {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 2px dashed #a5d6a7;
+    animation: fade-in-down 0.25s ease;
+}
+
+.mission-phrase-reveal-area.active {
+    display: block;
+}
+
+@keyframes fade-in-down {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mission-phrase-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    text-align: left;
+}
+
+.mission-phrase-text {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #00695c;
+}
+
+.audio-btn {
+    background: #ff9800;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.audio-btn:active {
+    transform: scale(0.95);
+}
+
+/* 再接続ボタン (HUD用) */
+.btn-reconnect {
+    background: #ff9800;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    margin-left: 6px;
+}
+.btn-reconnect:active {
+    transform: scale(0.95);
+}
+
+/* エラー通知バナー */
+.error-notice-banner {
+    position: absolute;
+    top: 60px;
+    left: 20px;
+    right: 20px;
+    background: #ffebee;
+    border: 2px solid #ef5350;
+    border-radius: 14px;
+    padding: 12px 16px;
+    color: #c62828;
+    font-weight: bold;
+    font-size: 0.95rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+/* ==========================================================================
+   iPad A (地図役): 探検役への移動許可・ブレーキ (Go ahead! / Wait!) コントロール
+   ========================================================================== */
+.control-move-panel {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+.btn-control-go {
+    background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+    color: #ffffff;
+    border: 2px solid #81c784;
+    border-radius: 14px;
+    padding: 8px 18px;
+    font-size: 1.05rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+}
+
+.btn-control-go:active {
+    transform: scale(0.96);
+}
+
+.btn-control-wait {
+    background: linear-gradient(135deg, #fb8c00 0%, #e65100 100%);
+    color: #ffffff;
+    border: 2px solid #ffb74d;
+    border-radius: 14px;
+    padding: 8px 18px;
+    font-size: 1.05rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(230, 81, 0, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+    animation: pulse-orange 1.5s infinite;
+}
+
+.btn-control-wait:active {
+    transform: scale(0.96);
+}
+
+@keyframes pulse-orange {
+    0% { box-shadow: 0 0 0 0 rgba(230, 81, 0, 0.6); }
+    70% { box-shadow: 0 0 0 10px rgba(230, 81, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(230, 81, 0, 0); }
+}
+
+/* ==========================================================================
+   iPad B (探検役): 移動ロック状態インジケーター & コントローラーロック
+   ========================================================================== */
+.move-lock-indicator {
+    position: absolute;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 16px;
+    padding: 8px 18px;
+    font-size: 0.95rem;
+    font-weight: 900;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    max-width: 90%;
+}
+
+.move-lock-indicator.waiting {
+    background: rgba(255, 235, 238, 0.95);
+    border: 2px solid #ef5350;
+    color: #c62828;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.move-lock-indicator.allowed {
+    background: rgba(232, 245, 233, 0.95);
+    border: 2px solid #43a047;
+    color: #1b5e20;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: bounce-glow 0.6s ease;
+}
+
+@keyframes bounce-glow {
+    0% { transform: translateX(-50%) scale(0.85); }
+    50% { transform: translateX(-50%) scale(1.08); }
+    100% { transform: translateX(-50%) scale(1); }
+}
+
+/* ロック時のオンスクリーンコントローラー表示 */
+.touch-controls-container.locked .touch-btn {
+    opacity: 0.35;
+    filter: grayscale(80%);
+    border-color: #9e9e9e !important;
+    color: #757575 !important;
+    background: rgba(238, 238, 238, 0.7) !important;
+    pointer-events: auto; /* タッチイベント拾ってトースト出すため */
+}
+
+/* ==========================================================================
+   ゴール達成 モーダル (iPad A & iPad B 共通)
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-dialog {
+    background: #ffffff;
+    border: 5px solid #ffb300;
+    border-radius: 28px;
+    padding: 32px 24px;
+    width: 90%;
+    max-width: 460px;
+    text-align: center;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.3);
+    transform: scale(0.85);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-overlay.active .modal-dialog {
+    transform: scale(1);
+}
+
+.goal-celebration-title {
+    font-size: 2.4rem;
+    font-weight: 900;
+    color: #e65100;
+    margin-bottom: 12px;
+    text-shadow: 1px 1px 0 #ffe082;
+    letter-spacing: 1px;
+}
+
+.goal-landmark-box {
+    background: #fff8e1;
+    border: 2px dashed #ffb300;
+    border-radius: 16px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.goal-landmark-box .icon {
+    font-size: 3.5rem;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.goal-landmark-box .name {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #37474f;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #ccc;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    color: #333;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
