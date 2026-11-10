@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>シン・学習アプリ＋１０</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="./qrcode.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'"></script>
     <style>
         /* --- デザイン設定 --- */
         body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333; display: flex; flex-direction: column; height: 100vh; }
@@ -38,8 +39,158 @@
         .tag.subject { background-color: #e1effe; color: #1e429f; border-color: #c3ddfd; }
         .card-title { margin: 0 0 8px; font-size: 1.15rem; line-height: 1.4; color: #333; font-weight: bold; }
         .card-desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; line-height: 1.6; flex-grow: 1; }
-        .card-link { display: block; text-align: center; background-color: #4a90e2; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-size: 0.95rem; font-weight: bold; transition: background 0.2s; }
+        .card-actions { display: flex; gap: 8px; margin-top: auto; }
+        .card-link { flex: 1; display: block; text-align: center; background-color: #4a90e2; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-size: 0.95rem; font-weight: bold; transition: background 0.2s; }
         .card-link:hover { background-color: #357abd; }
+        .qr-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 0 12px;
+            background-color: #fff;
+            color: #4a90e2;
+            border: 1.5px solid #4a90e2;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .qr-btn:hover { background-color: #e6f0fa; }
+        .qr-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+        /* QRモーダル (iPad横向きや大画面でどーんと表示) */
+        .qr-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.65);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .qr-modal.active { display: flex; }
+        .qr-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px 28px;
+            max-width: min(92vw, 560px);
+            width: 100%;
+            max-height: 96vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+            position: relative;
+            box-sizing: border-box;
+            animation: modalFadeIn 0.2s ease-out;
+            overflow-y: auto;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #888;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .modal-close-btn:hover { color: #111; background-color: #f0f0f0; }
+        .modal-title {
+            margin: 0 0 12px;
+            font-size: 1.45rem;
+            font-weight: bold;
+            color: #222;
+            padding: 0 30px;
+            word-break: break-all;
+            line-height: 1.3;
+        }
+        .modal-qrcode-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            margin: 0 auto 14px;
+            /* iPad横向き画面の中央にどーんと大きく広がるサイズ */
+            width: min(78vw, 56vh, 440px);
+            height: min(78vw, 56vh, 440px);
+            box-sizing: border-box;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+        }
+        .modal-qrcode-container img, .modal-qrcode-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
+            display: block;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+        .modal-url {
+            font-size: 0.85rem;
+            color: #555;
+            word-break: break-all;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 0 0 14px;
+            max-height: 48px;
+            overflow-y: auto;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 11px 14px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #334155;
+            transition: all 0.2s;
+        }
+        .modal-btn:hover { background: #f1f5f9; }
+        .modal-btn.primary {
+            background: #4a90e2;
+            color: #fff;
+            border-color: #4a90e2;
+        }
+        .modal-btn.primary:hover { background: #357abd; }
+
+        /* 横向き（iPad横向きなど）で縦幅が狭い場合でも1画面にすっきり収める調整 */
+        @media (orientation: landscape) and (max-height: 700px) {
+            .qr-modal-content { padding: 14px 20px; }
+            .modal-title { font-size: 1.25rem; margin-bottom: 8px; }
+            .modal-qrcode-container { margin-bottom: 8px; width: min(78vw, 54vh, 380px); height: min(78vw, 54vh, 380px); padding: 10px; }
+            .modal-url { margin-bottom: 8px; padding: 5px 10px; font-size: 0.75rem; }
+            .modal-btn { padding: 8px 10px; font-size: 0.85rem; }
+        }
+
         #error-msg { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; padding: 20px; margin: 20px; border: 1px solid transparent; border-radius: .25rem; display: none; }
         @media (max-width: 768px) { .main-container { flex-direction: column; } .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #ddd; padding: 10px; } .sidebar h3 { margin-top: 10px; display: inline-block; margin-right: 10px; border: none; } .sidebar ul { display: inline; } .filter-btn { display: inline-flex; width: auto; padding: 5px 10px; } .content-area { padding: 15px; } }
     </style>
@@ -57,6 +208,20 @@
     <main class="content-area">
         <div class="app-grid" id="appGrid">Loading...</div>
     </main>
+</div>
+
+<!-- QRコード表示モーダル -->
+<div id="qr-modal" class="qr-modal" onclick="closeQrModal(event)">
+    <div class="qr-modal-content" onclick="event.stopPropagation()">
+        <button class="modal-close-btn" onclick="closeQrModal()">&times;</button>
+        <h3 id="modal-title" class="modal-title"></h3>
+        <div id="modal-qrcode" class="modal-qrcode-container"></div>
+        <p class="modal-url" id="modal-url"></p>
+        <div class="modal-buttons">
+            <button class="modal-btn" id="copy-btn" onclick="copyUrl()">URLをコピー</button>
+            <button class="modal-btn primary" onclick="downloadQr()">QR画像を保存</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -109,7 +274,24 @@
                 let finalPath = "#";
 
                 if (rawPath) {
-                    if (rawPath.startsWith('./') && rawPath.endsWith('.html')) {
+                    if (/^https?:\/\//i.test(rawPath)) {
+                        finalPath = rawPath;
+                        try {
+                            const urlObj = new URL(rawPath);
+                            const segments = urlObj.pathname.split('/').filter(Boolean);
+                            if (segments.length > 0) {
+                                let last = segments[segments.length - 1];
+                                if (last.toLowerCase() === 'index.html' || last.toLowerCase() === 'index.htm') {
+                                    folderName = segments.length > 1 ? segments[segments.length - 2] : '';
+                                } else {
+                                    folderName = last.replace(/\.[^/.]+$/, '');
+                                }
+                            }
+                        } catch (e) {
+                            const parts = rawPath.split('/').filter(Boolean);
+                            folderName = parts[parts.length - 1] || "";
+                        }
+                    } else if (rawPath.startsWith('./') && rawPath.endsWith('.html')) {
                         finalPath = rawPath;
                         const parts = rawPath.split('/');
                         folderName = parts[parts.length - 1].replace('.html', '');
@@ -122,7 +304,9 @@
                 let finalImage = "";
                 if (row.image) {
                     // Excelで指定があればそれを使う
-                    finalImage = row.image.startsWith('./') ? row.image : IMG_DIR + row.image;
+                    finalImage = (row.image.startsWith('./') || /^https?:\/\//i.test(row.image)) 
+                        ? row.image 
+                        : IMG_DIR + row.image;
                 } else {
                     // 指定がなければ一旦 .png とする（ロード失敗時に onerror で .jpg を試す）
                     finalImage = IMG_DIR + folderName + DEFAULT_EXT;
@@ -184,7 +368,15 @@
                         <div class="card-meta">${subjectTag}${gradeTags}</div>
                         <h2 class="card-title">${item.title}</h2>
                         <p class="card-desc">${item.desc}</p>
-                        <a href="${item.path}" class="card-link">アプリを開く</a>
+                        <div class="card-actions">
+                            <a href="${item.path}" class="card-link">アプリを開く</a>
+                            <button type="button" class="qr-btn" onclick="openQrModal(${item.id})" title="QRコードを表示">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v3h-3v-3zm-5 0h3v3h-3v-3zm2 5h3v3h-3v-3zm3 0h3v3h-3v-3zm-5-2h2v2h-2v-2zm7 0h2v2h-2v-2z"/>
+                                </svg>
+                                QR
+                            </button>
+                        </div>
                     </div>
                 </div>`;
         });
@@ -272,6 +464,107 @@
 
         renderGrid(filtered);
     };
+
+    // --- QRコードモーダル制御 ---
+    let currentQrUrl = "";
+    let currentQrTitle = "";
+
+    function openQrModal(id) {
+        const item = appData.find(d => d.id === id);
+        if (!item) return;
+
+        // 相対パスの場合は完全な絶対URLに解決する
+        const fullUrl = new URL(item.path, window.location.href).href;
+        currentQrUrl = fullUrl;
+        currentQrTitle = item.title;
+
+        document.getElementById('modal-title').textContent = item.title;
+        document.getElementById('modal-url').textContent = fullUrl;
+
+        const qrContainer = document.getElementById('modal-qrcode');
+        qrContainer.innerHTML = '';
+
+        if (typeof QRCode !== 'undefined') {
+            // 拡大時や印刷時にもシャープになるよう高解像度(512x512)で生成
+            new QRCode(qrContainer, {
+                text: fullUrl,
+                width: 512,
+                height: 512,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        } else {
+            qrContainer.innerHTML = '<p style="color:#d9534f;font-size:0.85rem;">QRコードライブラリの読み込みに失敗しました</p>';
+        }
+
+        document.getElementById('qr-modal').classList.add('active');
+    }
+
+    function closeQrModal(e) {
+        if (e && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) return;
+        document.getElementById('qr-modal').classList.remove('active');
+    }
+
+    function copyUrl() {
+        if (!currentQrUrl) return;
+        const btn = document.getElementById('copy-btn');
+        const origText = btn.textContent;
+
+        const updateBtn = () => {
+            btn.textContent = 'コピー完了！';
+            setTimeout(() => { btn.textContent = origText; }, 1500);
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(currentQrUrl).then(updateBtn).catch(() => fallbackCopy(currentQrUrl, updateBtn));
+        } else {
+            fallbackCopy(currentQrUrl, updateBtn);
+        }
+    }
+
+    function fallbackCopy(text, callback) {
+        const tempInput = document.createElement('textarea');
+        tempInput.value = text;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        if (callback) callback();
+    }
+
+    function downloadQr() {
+        const qrContainer = document.getElementById('modal-qrcode');
+        const img = qrContainer.querySelector('img');
+        const canvas = qrContainer.querySelector('canvas');
+        let dataUrl = "";
+
+        if (img && img.src && img.src.startsWith('data:image/')) {
+            dataUrl = img.src;
+        } else if (canvas) {
+            dataUrl = canvas.toDataURL('image/png');
+        }
+
+        if (dataUrl) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `QR_${currentQrTitle || 'app'}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            alert('QRコード画像の保存に失敗しました。');
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('qr-modal');
+            if (modal && modal.classList.contains('active')) {
+                modal.classList.remove('active');
+            }
+        }
+    });
 
     loadExcelData();
 </script>
