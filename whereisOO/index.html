@@ -13,6 +13,12 @@
     </script>
     <script src="js/webrtc_sync.js"></script>
     <script src="js/i18n.js"></script>
+    <script src="js/qrcode.min.js"></script>
+    <script>
+    if (typeof QRCode === 'undefined') {
+        document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>');
+    }
+    </script>
 </head>
 <body>
     <div class="lobby-container">
@@ -33,6 +39,34 @@
                 3Dの街で楽しむ英語道案内ペアワーク教材 (Webリアルタイム版)
             </div>
         </header>
+
+        <!-- 📲 教室共有用 QRコード＆URL 自動表示パネル -->
+        <section class="qr-share-card" aria-label="教室共有用アクセスQRコード">
+            <div class="qr-code-box" id="btn-qr-box" title="タップで大画面拡大表示 (プロジェクター用)">
+                <div class="qr-code-container" id="lobby-qr-container"></div>
+                <span class="qr-tap-hint">👆 タップで拡大</span>
+            </div>
+            <div class="qr-info-box">
+                <h2 class="qr-title" data-i18n="qr_panel_title">
+                    <span>📲</span> 教室で共有！ 参加用QRコード & URL
+                </h2>
+                <p class="qr-desc" data-i18n="qr_panel_desc">
+                    児童・生徒のiPadカメラでこのQRコードをかざすだけで、すぐにこのロビーに入れます！
+                </p>
+                <div class="qr-url-row">
+                    <input type="text" id="share-url-input" class="qr-url-input" readonly aria-label="アクセスURL">
+                    <button type="button" class="btn-qr-action" id="btn-copy-url" data-i18n="btn_copy_url">
+                        📋 URLをコピー
+                    </button>
+                    <button type="button" class="btn-qr-action btn-qr-zoom" id="btn-zoom-qr" data-i18n="btn_zoom_qr">
+                        🔍 大画面で表示 (プロジェクター用)
+                    </button>
+                </div>
+                <div id="file-protocol-warning" style="display: none; font-size: 0.8rem; color: #d32f2f; font-weight: bold; margin-top: 4px;">
+                    ⚠️ 現在ローカルファイル(file://)で開いています。他のiPadから接続するにはWebサーバー経由（http://...）でアクセスしてください。
+                </div>
+            </div>
+        </section>
 
         <!-- メインカードコンテナ (リアルタイム通信専用のシンプルUI) -->
         <div class="lobby-cards-container">
@@ -102,12 +136,135 @@
 
     </div>
 
+    <!-- 拡大QRコードモーダル (プロジェクター・電子黒板投影用) -->
+    <div class="qr-modal-overlay" id="qr-modal-overlay" role="dialog" aria-modal="true" aria-label="QRコード拡大表示">
+        <div class="qr-modal-dialog">
+            <h2 style="font-size: 1.35rem; color: #1b5e20; margin-top: 0; margin-bottom: 6px;" data-i18n="zoom_modal_title">
+                🎉 教室のみんなでアクセス！ 🎉
+            </h2>
+            <p style="font-size: 0.95rem; color: #555; margin-bottom: 12px;" data-i18n="zoom_modal_desc">
+                iPadのカメラを画面に向けてスキャンしてね！
+            </p>
+            <div class="qr-modal-canvas-wrap" id="modal-qr-container"></div>
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+                <input type="text" id="modal-url-input" class="qr-url-input" readonly>
+                <button type="button" class="btn-qr-action" id="btn-modal-copy-url" data-i18n="btn_copy_url">
+                    📋 URLをコピー
+                </button>
+            </div>
+            <button type="button" class="btn btn-primary" id="btn-close-qr-modal" style="width: 100%; margin-top: 16px; font-size: 1.05rem;" data-i18n="btn_close">
+                閉じる
+            </button>
+        </div>
+    </div>
+
     <script>
     (function () {
         'use strict';
 
         // 多言語初期化
         I18n.init();
+
+        // QRコード生成 & URL共有
+        const currentUrl = window.location.href;
+        const shareUrlInput = document.getElementById('share-url-input');
+        const lobbyQrContainer = document.getElementById('lobby-qr-container');
+        const modalQrContainer = document.getElementById('modal-qr-container');
+        const qrModalOverlay = document.getElementById('qr-modal-overlay');
+        const modalUrlInput = document.getElementById('modal-url-input');
+        const fileWarning = document.getElementById('file-protocol-warning');
+
+        if (shareUrlInput) shareUrlInput.value = currentUrl;
+        if (modalUrlInput) modalUrlInput.value = currentUrl;
+
+        if (window.location.protocol === 'file:') {
+            if (fileWarning) fileWarning.style.display = 'block';
+        }
+
+        function generateQR(container, size) {
+            if (!container) return;
+            container.innerHTML = '';
+            try {
+                if (typeof QRCode !== 'undefined') {
+                    new QRCode(container, {
+                        text: currentUrl,
+                        width: size,
+                        height: size,
+                        colorDark: "#1b5e20",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                    return;
+                }
+            } catch (e) {
+                console.warn('Local QRCode generator failed, fallback to external img', e);
+            }
+            // フォールバック: 外部QR画像サービス (オンライン時)
+            const img = document.createElement('img');
+            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(currentUrl)}`;
+            img.alt = 'QR Code';
+            container.appendChild(img);
+        }
+
+        // 初期描画 (ロビー内)
+        generateQR(lobbyQrContainer, 130);
+
+        // モーダル操作
+        function openZoomModal() {
+            if (!modalQrContainer.hasChildNodes()) {
+                generateQR(modalQrContainer, 260);
+            }
+            if (qrModalOverlay) qrModalOverlay.classList.add('active');
+        }
+
+        function closeZoomModal() {
+            if (qrModalOverlay) qrModalOverlay.classList.remove('active');
+        }
+
+        const btnZoom = document.getElementById('btn-zoom-qr');
+        const btnBox = document.getElementById('btn-qr-box');
+        const btnClose = document.getElementById('btn-close-qr-modal');
+
+        if (btnZoom) btnZoom.addEventListener('click', openZoomModal);
+        if (btnBox) btnBox.addEventListener('click', openZoomModal);
+        if (btnClose) btnClose.addEventListener('click', closeZoomModal);
+        if (qrModalOverlay) {
+            qrModalOverlay.addEventListener('click', (e) => {
+                if (e.target === qrModalOverlay) closeZoomModal();
+            });
+        }
+
+        // URLコピー処理
+        function copyUrl(btnElement) {
+            const onSuccess = () => {
+                const originalText = btnElement.innerHTML;
+                btnElement.innerHTML = '✓ ' + I18n.t('copied_msg');
+                btnElement.style.background = '#388e3c';
+                setTimeout(() => {
+                    btnElement.innerHTML = originalText;
+                    btnElement.style.background = '';
+                }, 2200);
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(currentUrl).then(onSuccess).catch(() => {
+                    if (shareUrlInput) {
+                        shareUrlInput.select();
+                        document.execCommand('copy');
+                        onSuccess();
+                    }
+                });
+            } else if (shareUrlInput) {
+                shareUrlInput.select();
+                document.execCommand('copy');
+                onSuccess();
+            }
+        }
+
+        const btnCopy = document.getElementById('btn-copy-url');
+        const btnModalCopy = document.getElementById('btn-modal-copy-url');
+        if (btnCopy) btnCopy.addEventListener('click', function () { copyUrl(this); });
+        if (btnModalCopy) btnModalCopy.addEventListener('click', function () { copyUrl(this); });
 
         window.startHostRoom = function () {
             const roomId = WebRTCSync.generateNumericId();

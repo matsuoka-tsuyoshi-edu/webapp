@@ -57,6 +57,16 @@
             'guide_p4': '<code>It\'s on your right / left.</code>（右手 / 左手に見えるよ）',
             'alert_input_room': '4桁の合言葉を入力してください（相手のiPad Aの画面上部に表示されています）。',
 
+            // QRコード共有パネル (index.html)
+            'qr_panel_title': '<span>📲</span> 教室で共有！ 参加用QRコード & URL',
+            'qr_panel_desc': '児童・生徒のiPadカメラでこのQRコードをかざすだけで、すぐにこのロビーに入れます！',
+            'qr_url_label': 'アクセスURL:',
+            'btn_copy_url': '📋 URLをコピー',
+            'btn_zoom_qr': '🔍 大画面で表示 (プロジェクター用)',
+            'copied_msg': 'URLをコピーしました！',
+            'zoom_modal_title': '🎉 教室のみんなでアクセス！ 🎉',
+            'zoom_modal_desc': 'iPadのカメラを画面に向けてスキャンしてね！',
+
             // map.html (地図役)
             'room_label_prefix': '🔑 合言葉: ',
             'status_waiting_partner': '探検役(iPad B)の接続待機中...',
@@ -143,6 +153,16 @@
             'guide_p3': '<code>Turn left / Turn right at the corner.</code> (Turning at a corner)',
             'guide_p4': '<code>It\'s on your right / left.</code> (Specifying the side)',
             'alert_input_room': "Please enter the 4-digit Room Code (shown at the top of partner's iPad A).",
+
+            // QR Code Sharing Panel (index.html)
+            'qr_panel_title': '<span>📲</span> Share in Class! Access QR Code & URL',
+            'qr_panel_desc': 'Scan this QR code with students’ iPad cameras to open this Lobby instantly!',
+            'qr_url_label': 'Access URL:',
+            'btn_copy_url': '📋 Copy URL',
+            'btn_zoom_qr': '🔍 Enlarge (for Projector)',
+            'copied_msg': 'URL copied to clipboard!',
+            'zoom_modal_title': '🎉 Join with All Students! 🎉',
+            'zoom_modal_desc': 'Point your iPad camera at this screen to scan and join!',
 
             // map.html (地図役)
             'room_label_prefix': '🔑 Code: ',

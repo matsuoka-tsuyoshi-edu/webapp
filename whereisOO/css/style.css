@@ -1554,3 +1554,200 @@ html, body {
     align-items: center;
     margin-bottom: 6px;
 }
+
+/* ==========================================================================
+   QRコード共有パネル (Lobby QR Code & URL Share Panel)
+   ========================================================================== */
+.qr-share-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    border: 2px solid #81c784;
+    width: 100%;
+    max-width: 960px;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+}
+
+.qr-code-box {
+    background: #f1f8e9;
+    border: 2px dashed #4caf50;
+    border-radius: 14px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    flex-shrink: 0;
+}
+
+.qr-code-box:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.25);
+}
+
+.qr-code-container {
+    width: 130px;
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.qr-code-container canvas, .qr-code-container img {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+.qr-tap-hint {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #2e7d32;
+    margin-top: 6px;
+    text-align: center;
+}
+
+.qr-info-box {
+    flex: 1;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.qr-title {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #1b5e20;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+.qr-desc {
+    font-size: 0.88rem;
+    color: #455a64;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.qr-url-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.qr-url-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    font-family: monospace;
+    color: #263238;
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    outline: none;
+    user-select: all;
+    -webkit-user-select: all;
+}
+
+.btn-qr-action {
+    background: #2e7d32;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s ease, transform 0.1s ease;
+    white-space: nowrap;
+}
+
+.btn-qr-action:hover, .btn-qr-action:active {
+    background: #1b5e20;
+    transform: translateY(-1px);
+}
+
+.btn-qr-zoom {
+    background: #0288d1;
+}
+
+.btn-qr-zoom:hover, .btn-qr-zoom:active {
+    background: #01579b;
+}
+
+/* 拡大QRコードモーダル (プロジェクター・電子黒板用) */
+.qr-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    padding: 16px;
+}
+
+.qr-modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.qr-modal-dialog {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 24px 30px;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: popInModal 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.qr-modal-canvas-wrap {
+    width: 260px;
+    height: 260px;
+    margin: 16px auto;
+    background: #ffffff;
+    padding: 12px;
+    border: 3px solid #4caf50;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.qr-modal-canvas-wrap canvas, .qr-modal-canvas-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+@keyframes popInModal {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
