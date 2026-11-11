@@ -390,18 +390,25 @@
     <!-- ==================== PHASE 3: ANSWER REVEAL & STATS (NEW FLOW - EXPANDED CANVAS) ==================== -->
     <section id="phase-reveal" class="phase-content hidden h-full max-h-full flex flex-col justify-between gap-2 md:gap-2.5 relative overflow-hidden">
       
-      <!-- Top Status Banner (Slim & Compact) -->
-      <div class="bg-pop-purple neo-border shadow-neo px-4 py-2 rounded-xl md:rounded-2xl flex items-center justify-between z-10 shrink-0">
-        <h2 class="text-lg md:text-xl font-black text-pop-yellow flex items-center space-x-2">
+      <!-- Top Status Banner (Slim & Compact with Action Buttons) -->
+      <div class="bg-pop-purple neo-border shadow-neo px-4 py-2 rounded-xl md:rounded-2xl flex items-center justify-between z-10 shrink-0 gap-2">
+        <h2 class="text-lg md:text-xl font-black text-pop-yellow flex items-center space-x-2 truncate">
           <i class="fa-solid fa-chart-simple"></i>
           <span id="reveal-header-title">回答が出揃いました！みんなの予想は？</span>
         </h2>
-        <div class="flex items-center space-x-2.5">
-          <button id="btn-trigger-answer" onclick="triggerDramaticAnswerReveal()" class="bg-pop-yellow hover:bg-amber-300 text-black px-3.5 py-1 rounded-xl text-xs md:text-sm font-black neo-border-sm neo-button flex items-center gap-1 shadow">
+        <div class="flex items-center space-x-2 md:space-x-3 shrink-0">
+          <button id="btn-trigger-answer" onclick="triggerDramaticAnswerReveal()" class="bg-pop-yellow hover:bg-amber-300 text-black px-3.5 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-black neo-border-sm neo-button flex items-center gap-1.5 shadow">
             <i class="fa-solid fa-bolt"></i>
             <span>正解を発表する！</span>
           </button>
-          <div class="bg-pop-dark text-pop-cyan font-black px-3 py-1 rounded-xl neo-border-sm text-xs" id="reveal-stat-badge">
+          
+          <!-- User Requested: "次の問題へ" relocated to Top Banner right next to "運命の正解発表！！" -->
+          <button onclick="advanceNextQuestionOrFinish()" id="btn-next-action" class="hidden bg-pop-yellow hover:bg-amber-300 text-black text-xs md:text-sm font-black px-4 md:px-6 py-1.5 md:py-2 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center space-x-1.5 transition-all">
+            <span id="next-action-text">次の問題へ</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+
+          <div class="bg-pop-dark text-pop-cyan font-black px-3 py-1.5 rounded-xl neo-border-sm text-xs" id="reveal-stat-badge">
             集計完了
           </div>
         </div>
@@ -504,15 +511,6 @@
 
         </div>
 
-      </div>
-
-      <!-- Action Footer (User Requested: "次の問題へ→" located at bottom-right corner!) -->
-      <div class="flex justify-between items-center z-10 shrink-0 py-0.5">
-        <span class="text-xs font-bold text-gray-400" id="reveal-footer-note">※みんなの回答内訳が集計表示されています</span>
-        <button onclick="advanceNextQuestionOrFinish()" id="btn-next-action" class="bg-pop-yellow hover:bg-amber-300 text-black text-base md:text-lg font-black px-6 md:px-8 py-2 md:py-2.5 rounded-xl md:rounded-2xl neo-border shadow-neo neo-button flex items-center space-x-2">
-          <span id="next-action-text">次の問題へ</span>
-          <i class="fa-solid fa-arrow-right"></i>
-        </button>
       </div>
 
     </section>
@@ -2464,11 +2462,13 @@
       const statBadge = document.getElementById('reveal-stat-badge');
       const headerTitle = document.getElementById('reveal-header-title');
       const triggerBtn = document.getElementById('btn-trigger-answer');
+      const nextBtn = document.getElementById('btn-next-action');
 
       document.getElementById('reveal-q-summary').textContent = `Q${currentQIndex + 1}. ${q.question}`;
       headerTitle.textContent = "回答が出揃いました！みんなの予想は？";
       statBadge.textContent = "回答集計表示中";
       triggerBtn.classList.remove('hidden');
+      if (nextBtn) nextBtn.classList.add('hidden');
 
       // Hide suspense & answer overlays, show graph
       suspenseStage.classList.add('hidden');
@@ -2569,6 +2569,7 @@
       const statBadge = document.getElementById('reveal-stat-badge');
       const headerTitle = document.getElementById('reveal-header-title');
       const triggerBtn = document.getElementById('btn-trigger-answer');
+      const nextBtn = document.getElementById('btn-next-action');
 
       triggerBtn.classList.add('hidden');
       headerTitle.textContent = "運命の正解発表！！";
@@ -2598,6 +2599,9 @@
         playCymbalCrash();
 
         statBadge.textContent = "正解開示！";
+        if (nextBtn) {
+          nextBtn.classList.remove('hidden');
+        }
 
         // Highlight correct option in background graph
         const corrCard = document.getElementById(`stat-card-${q.correct}`);
