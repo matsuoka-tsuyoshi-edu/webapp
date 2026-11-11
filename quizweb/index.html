@@ -1,1 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POP QUIZ SHOW - ポータルメニュー</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Fredoka', 'M PLUS Rounded 1c', sans-serif;
+    }
+    .neo-border {
+      border: 4px solid #000;
+    }
+    .neo-shadow {
+      box-shadow: 6px 6px 0px #000;
+    }
+    .neo-btn {
+      transition: all 0.15s ease;
+    }
+    .neo-btn:active {
+      transform: translate(3px, 3px);
+      box-shadow: 3px 3px 0px #000;
+    }
+  </style>
+</head>
+<body class="bg-[#141221] text-white min-h-screen flex flex-col items-center justify-center p-6">
 
+  <div class="max-w-2xl w-full bg-[#1E1B2E] neo-border neo-shadow rounded-3xl p-8 text-center">
+    
+    <!-- Title -->
+    <div class="inline-block bg-[#FDCB6E] text-black px-4 py-1 rounded-full text-xs font-black uppercase mb-3 border-2 border-black">
+      WebRTC Realtime Quiz System
+    </div>
+    <h1 class="text-4xl md:text-5xl font-black text-[#FDCB6E] tracking-wider mb-2 drop-shadow-[3px_3px_0px_#000]">
+      POP QUIZ SHOW ⚡
+    </h1>
+    <p class="text-gray-300 font-bold text-sm md:text-base mb-8">
+      サーバー設置不要！ブラウザだけで動く1:Nリアルタイム対戦クイズシステム
+    </p>
+
+    <!-- Navigation Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
+      
+      <!-- Host Launch -->
+      <a href="host.html" class="block bg-[#6C5CE7] hover:bg-[#5b4bc4] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-14 h-14 bg-[#FDCB6E] text-black rounded-xl border-2 border-black flex items-center justify-center text-3xl font-black">
+            🖥️
+          </div>
+          <span class="text-xs font-black bg-black text-[#00CEC9] px-2.5 py-1 rounded-md">親機 (iPad / PC)</span>
+        </div>
+        <h2 class="text-2xl font-black text-white group-hover:text-[#FDCB6E] transition-colors">
+          ホスト画面を開く
+        </h2>
+        <p class="text-xs font-bold text-purple-200 mt-2 leading-relaxed">
+          部屋コード・QRコード発行、アプリ内クイズ作成（画像・2択/3択/4択対応）、ZIP/Excel保存・読込、リアルタイム演出。
+        </p>
+      </a>
+
+      <!-- Player Launch -->
+      <a href="player.html" class="block bg-[#00B894] hover:bg-[#00a383] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-14 h-14 bg-white text-black rounded-xl border-2 border-black flex items-center justify-center text-3xl font-black">
+            📱
+          </div>
+          <span class="text-xs font-black bg-black text-[#FDCB6E] px-2.5 py-1 rounded-md">子機 (スマホ)</span>
+        </div>
+        <h2 class="text-2xl font-black text-black group-hover:text-white transition-colors">
+          参加者画面を開く
+        </h2>
+        <p class="text-xs font-black text-slate-800 mt-2 leading-relaxed">
+          カメラでQR即参加。問題画像の手元表示＆2択/3択/4択に最適化された巨大ボタン回答。
+        </p>
+      </a>
+
+    </div>
+
+    <!-- Quick Utilities -->
+    <div class="bg-[#2A2640] rounded-2xl p-4 neo-border flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-bold">
+      <div class="flex flex-wrap items-center gap-2 text-gray-200">
+        <i class="fa-solid fa-box-archive text-yellow-400 text-lg"></i>
+        <span>サンプル・テンプレート:</span>
+        <a href="sample_quiz_with_images.zip" download class="bg-[#FDCB6E] hover:bg-amber-300 text-black px-2.5 py-1 rounded-lg neo-border-sm text-[11px] font-black inline-flex items-center gap-1">
+          <i class="fa-solid fa-file-zipper"></i>画像付きZIP
+        </a>
+        <a href="sample_quiz.xlsx" download class="bg-[#00B894] hover:bg-emerald-400 text-black px-2.5 py-1 rounded-lg neo-border-sm text-[11px] font-black inline-flex items-center gap-1">
+          <i class="fa-solid fa-file-excel"></i>Excel (.xlsx)
+        </a>
+        <a href="sample_quiz.csv" download class="text-[#00CEC9] underline hover:text-white">CSV版</a>
+      </div>
+      <div class="flex items-center space-x-2 text-gray-300 shrink-0">
+        <i class="fa-solid fa-book text-yellow-400 text-lg"></i>
+        <span>マニュアル: <a href="manual/manual.html" class="text-[#FDCB6E] underline hover:text-white">Web版操作説明書</a></span>
+      </div>
+    </div>
+
+    <!-- Footer Note -->
+    <div class="mt-6 text-gray-400 text-xs font-bold">
+      ※本アプリはWebRTC (PeerJS) を利用し、サーバー代ゼロで高速P2P通信を行います。
+    </div>
+
+  </div>
+
+</body>
+</html>

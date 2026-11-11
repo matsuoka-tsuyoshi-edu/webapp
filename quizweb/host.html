@@ -1,0 +1,2812 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>POP QUIZ SHOW - Host System</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- PeerJS CDN -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- SheetJS (XLSX / CSV parser) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- JSZip (ZIP packaging for Image Quizzes) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- Google Fonts: Fredoka & M PLUS Rounded 1c -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'pop-purple': '#6C5CE7',
+            'pop-dark': '#1E1B2E',
+            'pop-card': '#2A2640',
+            'pop-pink': '#FF7675',
+            'pop-yellow': '#FDCB6E',
+            'pop-green': '#00B894',
+            'pop-blue': '#0984E3',
+            'pop-cyan': '#00CEC9',
+          },
+          fontFamily: {
+            pop: ['"Fredoka"', '"M PLUS Rounded 1c"', 'sans-serif'],
+          },
+          boxShadow: {
+            'neo': '5px 5px 0px #000000',
+            'neo-lg': '8px 8px 0px #000000',
+            'neo-sm': '3px 3px 0px #000000',
+            'neo-pink': '6px 6px 0px #FF7675',
+            'neo-yellow': '6px 6px 0px #FDCB6E',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Fredoka', 'M PLUS Rounded 1c', sans-serif;
+      background-color: #141221;
+      color: #FFFFFF;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* iPad Safari Orientation Notice */
+    @media (orientation: portrait) {
+      #portrait-warning {
+        display: flex !important;
+      }
+    }
+
+    /* Neo-Brutalism Custom Utilities */
+    .neo-border {
+      border: 4px solid #000000;
+    }
+    .neo-border-sm {
+      border: 3px solid #000000;
+    }
+    .neo-button {
+      transition: all 0.1s ease;
+      cursor: pointer;
+    }
+    .neo-button:active {
+      transform: translate(3px, 3px);
+      box-shadow: 2px 2px 0px #000000 !important;
+    }
+
+    /* Progress Ring Animation */
+    .timer-ring-circle {
+      transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    /* Keyframes for Suspense & Reveal Animations */
+    @keyframes pulse-fast {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+    .animate-pulse-fast {
+      animation: pulse-fast 0.5s infinite ease-in-out;
+    }
+
+    @keyframes slide-in-dramatic {
+      0% { transform: translateX(-120%) scale(0.5) rotate(-10deg); opacity: 0; }
+      70% { transform: translateX(8%) scale(1.08) rotate(2deg); opacity: 1; }
+      100% { transform: translateX(0) scale(1) rotate(0deg); opacity: 1; }
+    }
+    .animate-reveal-slide {
+      animation: slide-in-dramatic 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes suspense-dots {
+      0%, 100% { opacity: 0.2; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-5px); }
+    }
+    .dot-1 { animation: suspense-dots 0.8s infinite 0s; }
+    .dot-2 { animation: suspense-dots 0.8s infinite 0.2s; }
+    .dot-3 { animation: suspense-dots 0.8s infinite 0.4s; }
+
+    @keyframes pop-podium {
+      0% { transform: translateY(100%) scale(0.8); opacity: 0; }
+      80% { transform: translateY(-5%) scale(1.05); opacity: 1; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .animate-podium-pop {
+      animation: pop-podium 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* 回答時のピョコッとポップ演出 */
+    @keyframes pop-toast {
+      0% { transform: translateY(50px) scale(0.7); opacity: 0; }
+      20% { transform: translateY(-10px) scale(1.08); opacity: 1; }
+      30% { transform: translateY(0) scale(1); opacity: 1; }
+      80% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-30px) scale(0.9); opacity: 0; }
+    }
+    .toast-pop-anim {
+      animation: pop-toast 2.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* Custom Scrollbar for Player List */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1E1B2E;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #6C5CE7;
+      border-radius: 4px;
+      border: 2px solid #000000;
+    }
+
+    /* QR Code Safe Display (Single & Beautiful) */
+    #qr-container canvas, #qr-container img, #modal-qr-container canvas, #modal-qr-container img {
+      border-radius: 14px;
+      border: 4px solid #000;
+      background: #fff;
+      padding: 6px;
+    }
+
+    /* iPad Safari Double-tap zoom prevention */
+    html, body, button, div, img, video {
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+    }
+  </style>
+  <script>
+    // iPad Safari double-tap zoom prevention
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+  </script>
+</head>
+<body class="flex flex-col h-full w-full bg-[#141221] text-white">
+
+  <!-- 1. 縦向き注意ダイアログ (Portrait Warning for iPad) -->
+  <div id="portrait-warning" class="hidden fixed inset-0 bg-pop-dark z-50 flex-col items-center justify-center p-8 text-center border-8 border-pop-pink">
+    <i class="fa-solid font-bold fa-rotate-left text-7xl text-pop-yellow mb-6 animate-spin"></i>
+    <h1 class="text-3xl font-black text-pop-yellow mb-2">画面を横向きにしてください</h1>
+    <p class="text-lg text-gray-300">本クイズホスト画面は iPad の横向き（Landscape）表示に最適化されています。</p>
+  </div>
+
+  <!-- Floating Sound Control (Clean & Minimal) -->
+  <button id="sound-btn" onclick="toggleSound()" class="fixed top-3 right-3 z-50 w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-cyan text-lg neo-button hover:bg-slate-800" title="サウンド切り替え">
+    <i class="fa-solid fa-volume-high" id="sound-icon"></i>
+  </button>
+
+  <!-- MAIN CONTENT CONTAINER (100dvh Dynamic Viewport) -->
+  <main class="flex-1 relative overflow-hidden p-3 md:p-4">
+
+    <!-- ==================== PHASE 1: SETUP & LOBBY ==================== -->
+    <section id="phase-setup" class="phase-content h-full grid grid-cols-12 gap-6">
+      
+      <!-- Left Panel: Excel Loader & Quiz Status & QR -->
+      <div class="col-span-5 flex flex-col gap-5">
+        <!-- Room Code & QR Banner -->
+        <div class="bg-pop-purple neo-border shadow-neo-lg rounded-3xl p-5 text-center relative overflow-hidden flex flex-row items-center justify-between">
+          <div class="text-left flex-1 pr-3">
+            <span class="bg-pop-yellow text-black px-3 py-0.5 rounded-full text-xs font-black neo-border-sm uppercase tracking-wider inline-block mb-1">子端末の接続コード</span>
+            <div class="text-5xl font-black tracking-widest text-white drop-shadow-[4px_4px_0px_#000]" id="setup-room-code">接続中...</div>
+            <p class="text-xs font-bold text-purple-200 mt-2">カメラで右のQRコードをかざすだけで即参加！</p>
+            <button onclick="openQrModal()" class="mt-2 bg-pop-yellow text-black text-xs font-black px-3 py-1.5 rounded-xl neo-border-sm neo-button inline-flex items-center gap-1 shadow-sm">
+              <i class="fa-solid fa-magnifying-glass-plus"></i>
+              <span>QRコードを画面いっぱいに拡大</span>
+            </button>
+          </div>
+          <div id="qr-container" class="shrink-0 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" onclick="openQrModal()" title="クリックで拡大">
+            <!-- QR code rendered here -->
+          </div>
+        </div>
+
+        <!-- Quiz Management: Quiz Studio Only (Clean & Focused) -->
+        <div class="flex-1 bg-pop-card neo-border shadow-neo rounded-3xl p-6 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-black flex items-center space-x-2 text-pop-green">
+                <i class="fa-solid fa-wand-magic-sparkles text-2xl text-pop-yellow"></i>
+                <span>クイズデータ管理</span>
+              </h2>
+              <span id="file-status-badge" class="bg-pop-dark text-pop-yellow text-xs px-3 py-1 rounded-full neo-border-sm font-bold">デモ問題待機中</span>
+            </div>
+
+            <!-- Main Quiz Studio Button -->
+            <button onclick="openQuizStudio()" class="w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-pop-purple hover:opacity-95 text-white font-black py-5 px-6 rounded-3xl neo-border shadow-neo neo-button flex flex-col items-center justify-center gap-2 group transition-all">
+              <div class="w-14 h-14 bg-pop-yellow text-black rounded-2xl neo-border-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shadow">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </div>
+              <span class="text-lg md:text-xl text-pop-yellow font-black">クイズを作成・編集・読込</span>
+              <span class="text-xs text-gray-300 font-bold">クイズスタジオを開く（画像・動画・Excel/ZIP読込）</span>
+            </button>
+          </div>
+
+          <!-- Quick Actions & Status -->
+          <div class="mt-4 pt-3 border-t border-gray-700 flex items-center justify-between">
+            <span class="text-xs font-bold text-gray-300" id="quiz-summary-text">10問のサンプル問題を自動セット済</span>
+            <button onclick="loadSampleData()" class="bg-pop-cyan hover:bg-cyan-300 text-black px-3 py-1.5 rounded-xl text-xs font-black neo-border-sm shadow-neo-sm neo-button flex items-center gap-1">
+              <i class="fa-solid fa-rotate-right"></i><span>標準デモ問題</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Player Waiting Lobby -->
+      <div class="col-span-7 bg-pop-card neo-border shadow-neo rounded-3xl p-6 flex flex-col justify-between">
+        <div>
+          <!-- Lobby Header -->
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+            <div class="flex items-center space-x-3">
+              <h2 class="text-2xl font-black text-white flex items-center space-x-2">
+                <i class="fa-solid fa-users text-pop-yellow"></i>
+                <span>参加プレイヤー</span>
+              </h2>
+              <span id="player-count" class="bg-pop-pink text-black px-3 py-1 rounded-full text-base font-black neo-border-sm">0名 接続中</span>
+            </div>
+            <div class="flex items-center space-x-2 text-xs font-bold text-pop-green">
+              <span class="w-3 h-3 bg-pop-green rounded-full animate-ping"></span>
+              <span id="connection-status-label">P2P リアルタイム待機中</span>
+            </div>
+          </div>
+
+          <!-- Player Grid Display -->
+          <div id="player-grid" class="grid grid-cols-4 gap-3 max-h-[360px] overflow-y-auto pr-2">
+            <div class="col-span-4 text-center py-16 text-gray-400 font-bold">
+              <i class="fa-solid fa-mobile-screen-button text-4xl mb-3 text-pop-yellow animate-bounce"></i>
+              <p>プレイヤーの参加を待っています...</p>
+              <p class="text-xs text-gray-500 mt-1">カメラでQRコードを読み取るか、コードを入力してね</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Start Quiz Big Button -->
+        <div class="pt-4 border-t border-gray-700 flex gap-4">
+          <button onclick="addBotPlayer()" class="bg-pop-dark hover:bg-slate-700 text-pop-yellow text-sm font-black px-4 py-4 rounded-2xl neo-border-sm shadow-neo-sm neo-button">
+            <i class="fa-solid fa-robot mr-1"></i>テスト用Bot追加
+          </button>
+          <button onclick="startQuizSequence()" id="start-btn" class="flex-1 bg-pop-green hover:bg-emerald-400 text-black text-2xl font-black py-4 rounded-2xl neo-border shadow-neo-lg neo-button flex items-center justify-center space-x-3">
+            <i class="fa-solid fa-play text-3xl"></i>
+            <span>クイズをスタートする！</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ==================== PHASE 2: QUIZ QUESTION & TIMER ==================== -->
+    <section id="phase-quiz" class="phase-content hidden h-full max-h-full flex flex-col justify-between gap-2 md:gap-2.5 relative overflow-hidden">
+      
+      <!-- TOP / MAIN STAGE: Question Text & Media & Center Timer (User Requested God Layout - Auto Fit) -->
+      <div class="flex-1 flex flex-col justify-between min-h-0 bg-pop-card neo-border shadow-neo rounded-2xl md:rounded-3xl p-3.5 md:p-4 relative overflow-hidden">
+        
+        <!-- Background watermark -->
+        <div class="absolute -right-3 -top-5 text-white/5 text-8xl md:text-9xl font-black pointer-events-none" id="q-big-watermark">Q1</div>
+
+        <!-- Dynamic Stage Container: switches between Split (Left Media / Right Text) and Full Width Text -->
+        <div id="quiz-stage-container" class="flex-1 flex items-center justify-between gap-4 md:gap-6 min-h-0 overflow-hidden">
+          
+          <!-- LEFT HALF: Media Box (Image or Video) - Shows when media exists (Max Height & Width Controlled) -->
+          <div id="question-media-wrap" class="hidden w-2/5 max-w-[420px] h-full max-h-full flex items-center justify-center bg-pop-dark neo-border rounded-xl md:rounded-2xl overflow-hidden relative cursor-pointer group shadow shrink-0 p-1" onclick="zoomQuestionMedia()">
+            <img id="question-img" src="" alt="問題画像" class="max-h-full max-w-full w-auto h-auto object-contain rounded-lg">
+            <video id="question-video" src="" autoplay muted loop playsinline class="hidden max-h-full max-w-full w-auto h-auto object-contain rounded-lg"></video>
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[11px] font-black text-white gap-1 backdrop-blur-[2px]">
+              <i class="fa-solid fa-magnifying-glass-plus text-sm"></i><span>クリックで特大プレビュー</span>
+            </div>
+          </div>
+
+          <!-- RIGHT HALF (or Full Width): Question Text & Circular Timer -->
+          <div id="question-content-wrap" class="flex-1 h-full flex flex-row items-center justify-between gap-4 md:gap-6 min-h-0">
+            <!-- Big Question Text -->
+            <div class="flex-1 flex items-center h-full overflow-y-auto pr-2">
+              <h2 class="text-xl md:text-2xl lg:text-3xl font-black leading-snug text-white drop-shadow" id="question-text">
+                問題文を読み込んでいます...
+              </h2>
+            </div>
+
+            <!-- Countdown Timer Gauge (Compact & High Impact) -->
+            <div class="shrink-0 flex flex-col items-center justify-center">
+              <div class="relative w-24 h-24 md:w-28 md:h-28 flex items-center justify-center">
+                <svg class="w-full h-full" viewBox="0 0 100 100">
+                  <circle class="text-pop-dark" stroke-width="10" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50"/>
+                  <circle id="timer-circle" class="timer-ring-circle text-pop-yellow" stroke-width="10" stroke-dasharray="251.2" stroke-dashoffset="0" stroke-linecap="round" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50"/>
+                </svg>
+                <div id="timer-text" class="absolute text-3xl md:text-4xl font-black text-pop-yellow drop-shadow-[2px_2px_0px_#000]">10</div>
+              </div>
+              <span class="text-[9px] font-black text-gray-400 mt-0.5 uppercase tracking-wider">REMAINING TIME</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Live Toast Overlay for quick answers -->
+        <div id="live-toast-container" class="absolute bottom-2 left-4 z-40 pointer-events-none flex flex-col gap-1.5">
+          <!-- Popups appear here -->
+        </div>
+
+      </div>
+
+      <!-- Option Buttons Display (Dynamically renders 2, 3, or 4 options - SACRED COMPACT GRID) -->
+      <div id="quiz-options-grid" class="grid grid-cols-2 gap-2.5 md:gap-3 h-28 md:h-32 shrink-0">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- BOTTOM BANNER (User Requested: Question Count, Avatars, Answer Count & Skip Button at the very bottom!) -->
+      <div class="bg-pop-card neo-border shadow-neo px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl flex items-center justify-between gap-3 z-20 shrink-0">
+        <!-- Left: Question Number -->
+        <div class="flex items-center space-x-2 shrink-0">
+          <span class="bg-pop-yellow text-black font-black px-3 py-0.5 rounded-lg neo-border-sm text-sm md:text-base" id="q-number">Q. 01 / 10</span>
+        </div>
+
+        <!-- Center: Answered Avatars Line -->
+        <div class="flex-1 flex items-center gap-1.5 overflow-hidden mx-2">
+          <span class="text-[11px] font-black text-pop-cyan shrink-0">回答済:</span>
+          <div id="answered-avatars-row" class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Right: Answer Count Status & Skip Button -->
+        <div class="flex items-center space-x-3 shrink-0">
+          <div class="text-right">
+            <div class="text-sm md:text-base font-black text-pop-cyan leading-none" id="live-answer-count">0 / 0 人</div>
+          </div>
+          <button onclick="skipToReveal()" class="bg-pop-pink hover:bg-rose-400 text-black font-black text-xs px-3 py-1.5 rounded-lg neo-border-sm shadow-neo-sm neo-button flex items-center gap-1">
+            <i class="fa-solid fa-forward-step"></i>
+            <span>今すぐ締め切る</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ==================== PHASE 3: ANSWER REVEAL & STATS (NEW FLOW) ==================== -->
+    <section id="phase-reveal" class="phase-content hidden h-full flex flex-col justify-between gap-3.5 relative">
+      
+      <!-- Top Status Banner (Slimmed & Sleek) -->
+      <div class="bg-pop-purple neo-border shadow-neo px-5 py-3 rounded-2xl flex items-center justify-between z-10 shrink-0">
+        <h2 class="text-xl md:text-2xl font-black text-pop-yellow flex items-center space-x-3">
+          <i class="fa-solid fa-chart-simple"></i>
+          <span id="reveal-header-title">回答が出揃いました！みんなの予想は？</span>
+        </h2>
+        <div class="flex items-center space-x-3">
+          <button id="btn-trigger-answer" onclick="triggerDramaticAnswerReveal()" class="bg-pop-yellow hover:bg-amber-300 text-black px-4 py-1.5 rounded-xl text-sm font-black neo-border-sm neo-button flex items-center gap-1 shadow">
+            <i class="fa-solid fa-bolt"></i>
+            <span>正解を発表する！</span>
+          </button>
+          <div class="bg-pop-dark text-pop-cyan font-black px-3.5 py-1.5 rounded-xl neo-border-sm text-xs" id="reveal-stat-badge">
+            集計完了
+          </div>
+        </div>
+      </div>
+
+      <!-- Question Summary Card -->
+      <div class="bg-pop-card neo-border shadow-neo rounded-2xl px-4 py-2.5 text-center z-10 shrink-0">
+        <p class="text-gray-200 text-sm md:text-base font-bold truncate" id="reveal-q-summary">問題文</p>
+      </div>
+
+      <!-- MAIN REVEAL CANVAS AREA (Maximum Vertical Space for Explanation) -->
+      <div class="flex-1 relative rounded-3xl overflow-hidden flex flex-col justify-center min-h-0 bg-pop-dark/40 neo-border shadow-neo-lg">
+        
+        <!-- STAGE 1: ANSWER DISTRIBUTION GRAPH (Shown FIRST) -->
+        <div id="reveal-stage-graph" class="w-full h-full grid grid-cols-4 gap-4 md:gap-6 items-end p-6 transition-all duration-700">
+          
+          <!-- Option 1 Stat -->
+          <div class="h-full flex flex-col justify-end">
+            <div class="text-center font-black text-pop-pink mb-2 text-xl md:text-2xl stat-percent" id="stat-p-1">0% (0人)</div>
+            <div id="stat-card-1" class="bg-pop-card neo-border shadow-neo rounded-2xl p-4 flex flex-col justify-between">
+              <span class="font-black text-sm md:text-base text-white truncate" id="stat-label-1">1. 選択肢1</span>
+              <div class="w-full bg-pop-dark rounded-full h-4 neo-border-sm overflow-hidden mt-3">
+                <div id="stat-bar-1" class="bg-pop-pink h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Option 2 Stat -->
+          <div class="h-full flex flex-col justify-end">
+            <div class="text-center font-black text-pop-yellow mb-2 text-xl md:text-2xl stat-percent" id="stat-p-2">0% (0人)</div>
+            <div id="stat-card-2" class="bg-pop-card neo-border shadow-neo rounded-2xl p-4 flex flex-col justify-between">
+              <span class="font-black text-sm md:text-base text-white truncate" id="stat-label-2">2. 選択肢2</span>
+              <div class="w-full bg-pop-dark rounded-full h-4 neo-border-sm overflow-hidden mt-3">
+                <div id="stat-bar-2" class="bg-pop-blue h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Option 3 Stat -->
+          <div class="h-full flex flex-col justify-end">
+            <div class="text-center font-black text-pop-yellow mb-2 text-xl md:text-2xl stat-percent" id="stat-p-3">0% (0人)</div>
+            <div id="stat-card-3" class="bg-pop-card neo-border shadow-neo rounded-2xl p-4 flex flex-col justify-between">
+              <span class="font-black text-sm md:text-base text-white truncate" id="stat-label-3">3. 選択肢3</span>
+              <div class="w-full bg-pop-dark rounded-full h-4 neo-border-sm overflow-hidden mt-3">
+                <div id="stat-bar-3" class="bg-pop-yellow h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Option 4 Stat -->
+          <div class="h-full flex flex-col justify-end">
+            <div class="text-center font-black text-pop-green mb-2 text-xl md:text-2xl stat-percent" id="stat-p-4">0% (0人)</div>
+            <div id="stat-card-4" class="bg-pop-card neo-border shadow-neo rounded-2xl p-4 flex flex-col justify-between">
+              <span class="font-black text-sm md:text-base text-white truncate" id="stat-label-4">4. 選択肢4</span>
+              <div class="w-full bg-pop-dark rounded-full h-4 neo-border-sm overflow-hidden mt-3">
+                <div id="stat-bar-4" class="bg-pop-green h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- STAGE 2: SUSPENSE OVERLAY ("正解は……") -->
+        <div id="reveal-stage-suspense" class="hidden absolute inset-0 bg-pop-dark/95 backdrop-blur rounded-3xl flex flex-col items-center justify-center z-30 transition-all duration-500">
+          <div class="text-pop-yellow text-2xl font-black mb-3 tracking-widest animate-pulse">ANSWER REVEAL</div>
+          <div class="text-6xl md:text-7xl font-black text-white tracking-widest flex items-center space-x-2">
+            <span>正解は</span>
+            <span class="dot-1 text-pop-pink">.</span>
+            <span class="dot-2 text-pop-yellow">.</span>
+            <span class="dot-3 text-pop-cyan">.</span>
+          </div>
+        </div>
+
+        <!-- STAGE 3: DRAMATIC ANSWER & LARGE EXPLANATION IMPACT (Spacious & Clear) -->
+        <div id="reveal-stage-answer" class="hidden absolute inset-0 bg-pop-purple/95 rounded-3xl flex flex-col items-center justify-center z-30 transition-all duration-300 p-6 md:p-8 overflow-y-auto">
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-300/20 via-transparent to-transparent animate-pulse pointer-events-none"></div>
+          
+          <span class="bg-pop-yellow text-black font-black px-6 py-1.5 rounded-full text-xs md:text-sm neo-border-sm mb-3 tracking-wider uppercase shadow">CORRECT ANSWER</span>
+          
+          <!-- Animated Text Card (Correct Answer) -->
+          <div id="reveal-answer-text-box" class="bg-pop-yellow text-black border-4 border-black shadow-neo-lg px-8 md:px-12 py-4 md:py-5 rounded-3xl flex items-center space-x-6 animate-reveal-slide max-w-4xl text-center w-full justify-center">
+            <div class="w-14 h-14 md:w-16 md:h-16 bg-black text-white rounded-2xl neo-border-sm flex items-center justify-center text-3xl md:text-4xl font-black shrink-0" id="reveal-correct-number">2</div>
+            <span class="text-3xl md:text-5xl font-black tracking-wide truncate" id="reveal-correct-text">木星！！</span>
+          </div>
+
+          <!-- Explanation Card (SPACIOUS & EXPANDED FOR CLARITY!) -->
+          <div id="reveal-explanation-box" class="mt-4 md:mt-5 max-w-4xl w-full bg-pop-card neo-border shadow-neo p-5 md:p-6 rounded-3xl text-left animate-bounce-once border-2 border-black">
+            <div class="text-xs md:text-sm font-black text-pop-cyan uppercase tracking-wider mb-2 flex items-center gap-2">
+              <div class="w-7 h-7 bg-pop-yellow text-black rounded-lg neo-border-sm flex items-center justify-center text-sm font-black">
+                <i class="fa-solid fa-lightbulb"></i>
+              </div>
+              <span>ワンポイント解説</span>
+            </div>
+            <p class="text-base md:text-xl font-bold text-white leading-relaxed pl-1" id="reveal-explanation-text">
+              解説テキストがここに表示されます。
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Action Footer (User Requested: "次の問題へ→" located at bottom-right corner!) -->
+      <div class="flex justify-between items-center z-10 shrink-0">
+        <span class="text-xs font-bold text-gray-400" id="reveal-footer-note">※みんなの回答内訳が集計表示されています</span>
+        <button onclick="advanceNextQuestionOrFinish()" id="btn-next-action" class="bg-pop-yellow hover:bg-amber-300 text-black text-lg md:text-xl font-black px-8 py-3 rounded-2xl neo-border shadow-neo neo-button flex items-center space-x-2">
+          <span id="next-action-text">次の問題へ</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+    </section>
+
+
+    <!-- ==================== PHASE 4: FINAL RANKING PODIUM (FULLY AUTOMATED) ==================== -->
+    <section id="phase-ranking" class="phase-content hidden h-full grid grid-cols-12 gap-6">
+      
+      <!-- Left Column: Podium Animation Stage -->
+      <div class="col-span-8 bg-pop-card neo-border shadow-neo rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden">
+        
+        <div class="flex items-center justify-between z-10">
+          <h2 class="text-3xl font-black text-pop-yellow flex items-center space-x-3">
+            <i class="fa-solid fa-trophy text-4xl text-pop-yellow"></i>
+            <span>最終順位発表</span>
+          </h2>
+          <!-- Controls for Step-by-Step / Re-play Reveal -->
+          <div class="flex items-center space-x-2">
+            <button onclick="revealNextRank()" id="btn-next-rank" class="bg-pop-dark text-pop-yellow font-black text-xs px-3 py-2 rounded-xl neo-border-sm neo-button flex items-center space-x-1">
+              <i class="fa-solid fa-forward-step"></i><span>手動で順位を発表</span>
+            </button>
+            <button onclick="startAutoCeremony()" class="bg-pop-purple hover:bg-purple-600 text-white font-black text-xs px-3 py-2 rounded-xl neo-border-sm neo-button flex items-center space-x-1">
+              <i class="fa-solid fa-rotate-right mr-1"></i><span>表彰式を最初から再生</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Podium Display (3rd, 1st, 2nd Container) -->
+        <div class="flex items-end justify-center space-x-4 h-[340px] pt-12 px-4 relative">
+          
+          <!-- 2nd Place Podium -->
+          <div id="podium-2" class="w-1/3 flex flex-col items-center opacity-0 transition-all duration-500">
+            <div class="mb-3 text-center">
+              <div class="w-20 h-20 bg-gray-300 text-4xl rounded-2xl neo-border shadow-neo flex items-center justify-center mx-auto mb-1" id="podium-2-avatar">
+                🐱
+              </div>
+              <div class="font-black text-base text-white truncate max-w-[120px]" id="podium-2-name">---</div>
+              <div class="text-xs font-black text-pop-cyan" id="podium-2-score">0 pt</div>
+            </div>
+            <div class="w-full bg-gray-400 neo-border shadow-neo rounded-t-2xl h-44 flex flex-col items-center justify-start pt-3">
+              <span class="text-5xl font-black text-black opacity-80">2</span>
+              <span class="text-xs font-black text-black">SILVER</span>
+            </div>
+          </div>
+
+          <!-- 1st Place Podium -->
+          <div id="podium-1" class="w-1/3 flex flex-col items-center opacity-0 z-10 transition-all duration-500">
+            <div class="mb-3 text-center relative">
+              <i class="fa-solid fa-crown text-5xl text-pop-yellow absolute -top-10 left-1/2 -translate-x-1/2 drop-shadow animate-bounce"></i>
+              <div class="w-24 h-24 bg-pop-yellow text-5xl rounded-2xl neo-border shadow-neo-lg flex items-center justify-center mx-auto mb-1 ring-4 ring-pop-yellow" id="podium-1-avatar">
+                🦊
+              </div>
+              <div class="font-black text-xl text-pop-yellow truncate max-w-[140px]" id="podium-1-name">---</div>
+              <div class="text-sm font-black text-pop-green" id="podium-1-score">0 pt</div>
+            </div>
+            <div class="w-full bg-pop-yellow neo-border shadow-neo-lg rounded-t-2xl h-60 flex flex-col items-center justify-start pt-4">
+              <span class="text-7xl font-black text-black">1</span>
+              <span class="text-sm font-black text-black tracking-widest">CHAMPION</span>
+            </div>
+          </div>
+
+          <!-- 3rd Place Podium -->
+          <div id="podium-3" class="w-1/3 flex flex-col items-center opacity-0 transition-all duration-500">
+            <div class="mb-3 text-center">
+              <div class="w-18 h-18 bg-amber-700 text-3xl rounded-2xl neo-border shadow-neo flex items-center justify-center mx-auto mb-1 p-2" id="podium-3-avatar">
+                🐼
+              </div>
+              <div class="font-black text-base text-white truncate max-w-[120px]" id="podium-3-name">---</div>
+              <div class="text-xs font-black text-pop-cyan" id="podium-3-score">0 pt</div>
+            </div>
+            <div class="w-full bg-amber-800 neo-border shadow-neo rounded-t-2xl h-32 flex flex-col items-center justify-start pt-3">
+              <span class="text-4xl font-black text-white opacity-80">3</span>
+              <span class="text-xs font-black text-white">BRONZE</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Right Column: 4th-8th Rank List & Restart -->
+      <div class="col-span-4 bg-pop-card neo-border shadow-neo rounded-3xl p-6 flex flex-col justify-between">
+        <div>
+          <h3 class="text-xl font-black text-white mb-4 pb-3 border-b border-gray-700 flex items-center justify-between">
+            <span class="flex items-center space-x-2">
+              <i class="fa-solid fa-list-ol text-pop-cyan"></i>
+              <span>4位以下の順位</span>
+            </span>
+            <span id="rank-step-badge" class="bg-pop-dark text-pop-yellow text-xs px-2.5 py-1 rounded-md neo-border-sm">
+              待機中
+            </span>
+          </h3>
+
+          <!-- List 4th and below -->
+          <div id="other-ranks-container" class="space-y-2 max-h-[360px] overflow-y-auto pr-1 opacity-0 transition-opacity duration-500">
+            <!-- Dynamic 4th+ list -->
+          </div>
+        </div>
+
+        <!-- Restart Button -->
+        <button onclick="restartGame()" class="w-full bg-pop-pink hover:bg-rose-400 text-black text-xl font-black py-4 rounded-2xl neo-border shadow-neo neo-button flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-rotate-right"></i>
+          <span>次のゲームへ（待機画面へ）</span>
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ==================== QR CODE FULLSCREEN MODAL (NEW) ==================== -->
+  <div id="qr-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 md:p-6" onclick="closeQrModal()">
+    <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl p-6 md:p-8 max-w-2xl w-full text-center relative flex flex-col items-center max-h-[96dvh] overflow-y-auto" onclick="event.stopPropagation()">
+      <button onclick="closeQrModal()" class="absolute top-4 right-4 w-11 h-11 bg-pop-pink text-black rounded-xl neo-border-sm flex items-center justify-center text-xl font-black neo-button" title="閉じる">
+        ✕
+      </button>
+
+      <span class="bg-pop-yellow text-black px-4 py-1 rounded-full text-xs font-black uppercase neo-border-sm mb-2 inline-block">
+        教室のどこからでもスマホで即参加！
+      </span>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-1">QRコードをスキャンしてね</h2>
+      <p class="text-xs text-gray-300 font-bold mb-3">標準カメラアプリでかざすだけで、コード入力不要で直行できます</p>
+
+      <div class="bg-white p-4 rounded-3xl neo-border inline-block shadow-neo mx-auto my-1" id="modal-qr-container">
+        <!-- Giant QR injected here (480px - 2x size) -->
+      </div>
+
+      <div class="mt-3 w-full bg-pop-dark p-3.5 rounded-2xl neo-border-sm flex items-center justify-between">
+        <div class="text-left">
+          <span class="text-[10px] text-gray-400 font-black block">手動入力用 部屋番号</span>
+          <span class="text-3xl font-black text-pop-yellow tracking-widest" id="modal-room-code">----</span>
+        </div>
+        <button onclick="closeQrModal()" class="bg-pop-green text-black font-black text-sm px-6 py-2.5 rounded-xl neo-border-sm neo-button">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== IMAGE ZOOM MODAL (NEW) ==================== -->
+  <div id="image-zoom-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 md:p-6 cursor-pointer" onclick="closeImageZoom()">
+    <div class="relative max-w-5xl max-h-[90dvh] bg-pop-dark neo-border shadow-neo-lg rounded-3xl p-3 flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+      <button onclick="closeImageZoom()" class="absolute -top-3 -right-3 w-11 h-11 bg-pop-pink hover:bg-rose-400 text-black rounded-xl neo-border-sm flex items-center justify-center font-black neo-button z-10 text-xl" title="閉じる">
+        ✕
+      </button>
+      <img id="zoom-modal-img" src="" class="max-w-full max-h-[82dvh] object-contain rounded-2xl neo-border-sm mx-auto">
+      <video id="zoom-modal-video" src="" controls autoplay playsinline class="hidden max-w-full max-h-[82dvh] object-contain rounded-2xl neo-border-sm mx-auto"></video>
+    </div>
+  </div>
+
+  <!-- ==================== QUIZ STUDIO (CREATOR & EDITOR MODAL) ==================== -->
+  <div id="quiz-studio-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col p-4 md:p-6" onclick="closeQuizStudio()">
+    <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl flex-1 flex flex-col overflow-hidden max-w-6xl w-full mx-auto" onclick="event.stopPropagation()">
+      
+      <!-- Studio Header (Minimal & Focused) -->
+      <div class="bg-pop-dark px-5 py-3 border-b-4 border-black flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 bg-pop-purple text-pop-yellow rounded-xl neo-border-sm flex items-center justify-center text-lg font-black shadow-sm">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div>
+            <h2 class="text-lg md:text-xl font-black text-white flex items-center gap-2 leading-tight">
+              <span>POP クイズスタジオ</span>
+            </h2>
+            <p class="text-[10px] text-gray-400 font-bold leading-none">クイズ作成・編集・画像/動画添付</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="studioTriggerImport()" class="bg-pop-dark hover:bg-slate-700 text-pop-cyan text-xs font-black px-3 py-1.5 rounded-xl neo-border-sm neo-button flex items-center gap-1.5 shadow-sm" title="Excel (.xlsx) / CSV または ZIPパッケージから問題を一括読み込み">
+            <i class="fa-solid fa-file-import text-pop-yellow"></i><span>📥 Excel/ZIP読込</span>
+          </button>
+          <input type="file" id="studio-import-file-input" class="hidden" accept=".xlsx,.xls,.csv,.zip" onchange="handleStudioFileSelect(event)">
+          
+          <button onclick="studioExportZip()" class="bg-pop-yellow hover:bg-amber-300 text-black text-xs font-black px-3 py-1.5 rounded-xl neo-border-sm neo-button flex items-center gap-1.5 shadow-sm" title="添付メディアも含めてZIPファイルとして丸ごと保存">
+            <i class="fa-solid fa-file-zipper"></i><span>📦 ZIP保存</span>
+          </button>
+          
+          <button onclick="studioExportExcel()" class="bg-pop-green hover:bg-emerald-400 text-black text-xs font-black px-3 py-1.5 rounded-xl neo-border-sm neo-button flex items-center gap-1.5 shadow-sm" title="Excel (.xlsx) ファイルとしてエクスポート">
+            <i class="fa-solid fa-file-excel"></i><span>📊 Excel保存</span>
+          </button>
+
+          <button onclick="closeQuizStudio()" class="w-9 h-9 bg-pop-pink hover:bg-rose-400 text-black rounded-xl neo-border-sm flex items-center justify-center font-black neo-button ml-2 text-base" title="閉じる">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Studio Body (2 columns: List & Editor) -->
+      <div class="flex-1 grid grid-cols-12 min-h-0 overflow-hidden">
+        
+        <!-- Left: Question List (4 cols) -->
+        <div class="col-span-4 bg-pop-dark/70 border-r-4 border-black p-4 flex flex-col justify-between overflow-hidden">
+          <div class="flex items-center justify-between mb-3 shrink-0">
+            <span class="text-xs font-black text-gray-300 uppercase tracking-wider" id="studio-q-count">問題一覧 (0問)</span>
+            <button onclick="studioAddNewQuestion()" class="bg-pop-green hover:bg-emerald-400 text-black text-xs font-black px-3 py-1.5 rounded-xl neo-border-sm neo-button flex items-center gap-1 shadow-sm">
+              <i class="fa-solid fa-plus"></i><span>問題を追加</span>
+            </button>
+          </div>
+          
+          <!-- Scrollable list of question items -->
+          <div id="studio-question-list" class="flex-1 overflow-y-auto space-y-2 pr-1">
+            <!-- Dynamically populated question cards -->
+          </div>
+        </div>
+
+        <!-- Right: Question Edit Form (8 cols) -->
+        <div class="col-span-8 p-6 overflow-y-auto flex flex-col justify-between" id="studio-editor-panel">
+          <!-- Dynamically rendered editor form -->
+        </div>
+
+      </div>
+
+      <!-- Studio Footer -->
+      <div class="bg-pop-dark px-6 py-3 border-t-4 border-black flex items-center justify-between shrink-0">
+        <span class="text-xs text-gray-400 font-bold flex items-center gap-1">
+          <i class="fa-solid fa-circle-info text-pop-cyan"></i>
+          <span>編集した内容は「ゲームに適用する」を押すと現在の対戦セットに反映されます</span>
+        </span>
+        <div class="flex items-center gap-3">
+          <button onclick="closeQuizStudio()" class="bg-slate-700 text-white font-black text-sm px-4 py-2 rounded-xl neo-border-sm neo-button">
+            キャンセル
+          </button>
+          <button onclick="studioApplyToGame()" class="bg-pop-green hover:bg-emerald-400 text-black font-black text-base px-6 py-2 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center gap-2">
+            <i class="fa-solid fa-check text-lg"></i>
+            <span>ゲームに適用する</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APP LOGIC -->
+  <script>
+    // ==========================================
+    // 1. STATE & CONSTANTS
+    // ==========================================
+    let peer = null;
+    let roomCode = null;
+    const PEER_PREFIX = 'popquiz-room-';
+    
+    // Players Map: id -> { id, conn, name, avatar, score, isBot, answered, currentAnswer, answerTimeMs }
+    const players = new Map();
+
+    // Quiz Questions array
+    let questions = [];
+    let currentQIndex = 0;
+    let timerInterval = null;
+    let soundEnabled = true;
+    let rankingRevealStep = 0; // 0: reset, 1: 4th+, 2: 3rd, 3: 2nd, 4: 1st
+    let currentPhase = 'setup'; // 'setup', 'quiz', 'reveal', 'ranking'
+    let questionStartTime = 0;
+    let answerCountForQuestion = 0;
+    let autoCeremonyTimer = null;
+
+    // Default Sample Questions (10 questions with Explanations)
+    const DEFAULT_QUESTIONS = [
+      {
+        question: "太陽系の中で、最も大きくて質量が重い惑星は次のうちどれでしょう？",
+        options: ["火星 (Mars)", "木星 (Jupiter)", "土星 (Saturn)", "金星 (Venus)"],
+        correct: 2,
+        timeLimit: 10,
+        category: "宇宙・天文",
+        explanation: "木星は地球の約1300倍もの体積があり、太陽系最大のガス惑星です！"
+      },
+      {
+        question: "世界で最も高い山「エベレスト」がある山脈の名前は何でしょう？",
+        options: ["アンデス山脈", "ロッキー山脈", "ヒマラヤ山脈", "アルプス山脈"],
+        correct: 3,
+        timeLimit: 10,
+        category: "地理",
+        explanation: "エベレストの標高は8848mで、ネパールとチベットにまたがるヒマラヤ山脈にあります。"
+      },
+      {
+        question: "1円玉の重さは正確に何グラムでしょう？",
+        options: ["1グラム", "2グラム", "0.5グラム", "1.5グラム"],
+        correct: 1,
+        timeLimit: 8,
+        category: "一般常識",
+        explanation: "1円玉はアルミニウム100%でできており、ちょうど1グラムです！"
+      },
+      {
+        question: "日本の「初代内閣総理大臣」は誰でしょう？",
+        options: ["板垣退助", "伊藤博文", "大隈重信", "坂本龍馬"],
+        correct: 2,
+        timeLimit: 10,
+        category: "歴史",
+        explanation: "1885年に内閣制度が創設され、初代首相に伊藤博文が就任しました。"
+      },
+      {
+        question: "プログラミングで、一度実行したら戻れないわけではなく、何度も繰り返す構文は？",
+        options: ["If文", "Switch文", "Loop (ループ) 処理", "Try-Catch"],
+        correct: 3,
+        timeLimit: 8,
+        category: "IT・技術",
+        explanation: "for文やwhile文などのループ処理を使うことで、同じ動作を自動で繰り返します。"
+      },
+      {
+        question: "日本で一番面積が広い都道府県はどこ？",
+        options: ["北海道", "岩手県", "福島県", "長野県"],
+        correct: 1,
+        timeLimit: 8,
+        category: "地理",
+        explanation: "北海道の面積は約8万3424平方kmで、日本の国土の約22%を占めます！"
+      },
+      {
+        question: "人間の骨の数は成人でおよそ何個？",
+        options: ["約100個", "約200個", "約300個", "約500個"],
+        correct: 2,
+        timeLimit: 10,
+        category: "生物",
+        explanation: "赤ちゃんは約300個ありますが、成長するにつれてくっつき、大人では約206個になります。"
+      },
+      {
+        question: "光の速さは1秒間に地球をおよそ何周する？",
+        options: ["約3周半", "約5周半", "約7周半", "約10周半"],
+        correct: 3,
+        timeLimit: 10,
+        category: "科学",
+        explanation: "光の速さは秒速約30万kmで、地球1周（約4万km）の約7周半に相当します！"
+      },
+      {
+        question: "オリンピックの五輪の輪で使われていない色はどれ？",
+        options: ["青", "黄", "紫", "緑"],
+        correct: 3,
+        timeLimit: 8,
+        category: "スポーツ",
+        explanation: "五輪の輪の色は「青・黄・黒・緑・赤」の5色で、紫は含まれていません。"
+      },
+      {
+        question: "日本の通貨単位「円」が定められたのはいつの時代？",
+        options: ["江戸時代", "明治時代", "大正時代", "昭和時代"],
+        correct: 2,
+        timeLimit: 10,
+        category: "歴史",
+        explanation: "1871年（明治4年）の新貨条例によって、日本の通貨単位が「円」になりました。"
+      }
+    ];
+
+    // ==========================================
+    // 2. AUDIO SYNTHESIZER (Web Audio API)
+    // ==========================================
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playBeep(freq = 440, type = 'sine', duration = 0.1) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e) {}
+    }
+
+    // 回答が届いた時の効果音
+    function playAnswerPopSound(isFirst = false) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = isFirst ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(isFirst ? 880 : 660, now);
+        osc.frequency.exponentialRampToValueAtTime(isFirst ? 1320 : 990, now + 0.12);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      } catch(e) {}
+    }
+
+    function playDrumroll(duration = 2.4, callback) {
+      // 確実に指定時間後（2.4秒後）にコールバックを実行（Web Audio APIのクロック遅延・停止に依存しない安全設計）
+      let callbackFired = false;
+      const safeCallback = () => {
+        if (!callbackFired) {
+          callbackFired = true;
+          try { playCymbalCrash(); } catch (e) {}
+          if (callback) callback();
+        }
+      };
+
+      setTimeout(safeCallback, duration * 1000);
+
+      if (!soundEnabled) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      const startClock = Date.now();
+      let count = 0;
+      const timer = setInterval(() => {
+        if (!soundEnabled || (Date.now() - startClock >= duration * 1000)) {
+          clearInterval(timer);
+          safeCallback();
+          return;
+        }
+        try {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(120 + (count * 3), audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.05);
+          count++;
+        } catch (e) {
+          clearInterval(timer);
+          safeCallback();
+        }
+      }, 60);
+    }
+
+    function playCymbalCrash() {
+      if (!soundEnabled) return;
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.8);
+    }
+
+    function toggleSound() {
+      initAudio();
+      soundEnabled = !soundEnabled;
+      const icon = document.getElementById('sound-icon');
+      const btn = document.getElementById('sound-btn');
+      if (soundEnabled) {
+        icon.className = 'fa-solid fa-volume-high';
+        btn.classList.remove('text-gray-500');
+        btn.classList.add('text-pop-cyan');
+        playBeep(880, 'sine', 0.15);
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark';
+        btn.classList.remove('text-pop-cyan');
+        btn.classList.add('text-gray-500');
+      }
+    }
+
+    // ==========================================
+    // 3. WEBRTC / PEERJS P2P COMMUNICATION & QR
+    // ==========================================
+    function generateRoomCode() {
+      return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+
+    // 先生のiPadの現在URLを逐一チェックして参加用URLを組み立てる
+    function getPlayerJoinUrl() {
+      const currentUrl = window.location.href;
+      let baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+      return baseUrl + 'player.html?room=' + roomCode;
+    }
+
+    function initPeerHost(retryCount = 0) {
+      if (retryCount > 5) {
+        alert("シグナリングサーバーへの接続に失敗しました。ページをリロードしてください。");
+        return;
+      }
+      roomCode = generateRoomCode();
+      const peerId = PEER_PREFIX + roomCode;
+      
+      const setEl = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+      setEl('setup-room-code', roomCode);
+      setEl('header-room-code', roomCode);
+      setEl('modal-room-code', roomCode);
+
+      // 即時QRコード生成（Peerの接続完了を待たずに即表示）
+      renderQRCode();
+
+      if (peer) {
+        try { peer.destroy(); } catch(e){}
+      }
+
+      peer = new Peer(peerId, { debug: 1 });
+
+      peer.on('open', (id) => {
+        console.log('Host Peer open with ID:', id);
+        const pst = document.getElementById('peer-status-text'); if (pst) pst.textContent = "P2P ルーム準備完了 (" + roomCode + ")";
+        renderQRCode();
+      });
+
+      peer.on('connection', (conn) => {
+        handleIncomingConnection(conn);
+      });
+
+      peer.on('error', (err) => {
+        console.warn('Peer error:', err);
+        if (err.type === 'unavailable-id') {
+          initPeerHost(retryCount + 1);
+        } else {
+          const pst = document.getElementById('peer-status-text'); if (pst) pst.textContent = "接続エラー: " + err.type;
+        }
+      });
+    }
+
+    function renderQRCode() {
+      const playerUrl = getPlayerJoinUrl();
+      console.log('Player Join URL:', playerUrl);
+
+      function renderSingleQr(container, size) {
+        if (!container) return;
+        container.innerHTML = '';
+        new QRCode(container, {
+          text: playerUrl,
+          width: size,
+          height: size,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+
+        // QRCode.js creates both canvas and img. Ensure only ONE is visible.
+        setTimeout(() => {
+          const canvas = container.querySelector('canvas');
+          const img = container.querySelector('img');
+          if (img && img.src && img.src.startsWith('data:image')) {
+            // If image generated successfully, hide canvas to prevent duplicate
+            if (canvas) canvas.style.display = 'none';
+            img.style.display = 'block';
+            img.style.margin = '0 auto';
+          } else if (canvas) {
+            // Fallback: show canvas if img not ready
+            canvas.style.display = 'block';
+            canvas.style.margin = '0 auto';
+            if (img) img.style.display = 'none';
+          }
+        }, 50);
+      }
+
+      // 通常バナー用
+      renderSingleQr(document.getElementById('qr-container'), 110);
+
+      // 拡大モーダル用 (特大480px)
+      renderSingleQr(document.getElementById('modal-qr-container'), 460);
+    }
+
+    function openQrModal() {
+      initAudio();
+      const modalEl = document.getElementById('qr-modal');
+      if (modalEl) modalEl.classList.remove('hidden');
+      const modalRoomEl = document.getElementById('modal-room-code');
+      if (modalRoomEl) modalRoomEl.textContent = roomCode;
+      
+      const modalContainer = document.getElementById('modal-qr-container');
+      if (modalContainer && (!modalContainer.children || modalContainer.children.length === 0)) {
+        renderQRCode();
+      }
+      playBeep(700, 'sine', 0.1);
+    }
+
+    function closeQrModal() {
+      document.getElementById('qr-modal').classList.add('hidden');
+    }
+
+    function handleIncomingConnection(conn) {
+      conn.on('open', () => {
+        console.log('Player connected:', conn.peer);
+      });
+
+      conn.on('data', (data) => {
+        handlePlayerData(conn, data);
+      });
+
+      conn.on('close', () => {
+        removePlayer(conn.peer);
+      });
+
+      conn.on('error', () => {
+        removePlayer(conn.peer);
+      });
+    }
+
+    function handlePlayerData(conn, data) {
+      if (!data || !data.type) return;
+
+      switch(data.type) {
+        case 'JOIN': {
+          const playerId = conn.peer;
+          const playerObj = {
+            id: playerId,
+            conn: conn,
+            name: data.name || ('プレイヤー' + (players.size + 1)),
+            avatar: data.avatar || getRandomAvatar(),
+            score: 0,
+            isBot: false,
+            answered: false,
+            currentAnswer: null,
+            answerTimeMs: 0
+          };
+          players.set(playerId, playerObj);
+          
+          playBeep(750, 'sine', 0.1);
+          renderPlayers();
+
+          conn.send({
+            type: 'JOIN_ACCEPTED',
+            roomCode: roomCode,
+            totalQuestions: questions.length,
+            quizCategory: questions[currentQIndex] ? questions[currentQIndex].category : '一般'
+          });
+
+          if (currentPhase === 'quiz') {
+            const q = questions[currentQIndex];
+            const elapsed = Date.now() - questionStartTime;
+            const remaining = Math.max(1, q.timeLimit - Math.floor(elapsed / 1000));
+            conn.send({
+              type: 'QUESTION_START',
+              qIndex: currentQIndex,
+              totalQuestions: questions.length,
+              question: q.question,
+              options: q.options,
+              timeLimit: remaining,
+              category: q.category
+            });
+          }
+          break;
+        }
+
+        case 'ANSWER_SUBMIT': {
+          const p = players.get(conn.peer);
+          if (p && currentPhase === 'quiz' && !p.answered) {
+            p.answered = true;
+            p.currentAnswer = parseInt(data.answer, 10);
+            p.answerTimeMs = data.answerTimeMs || 3000;
+            answerCountForQuestion++;
+
+            // ★ 新機能：リアルタイム「〇〇さん、早い！」「〇〇さん回答したよ！」ポップ演出
+            triggerLiveAnswerToast(p, answerCountForQuestion === 1);
+
+            updateLiveAnswerStatus();
+            checkAllAnswered();
+          }
+          break;
+        }
+
+        case 'PING': {
+          conn.send({ type: 'PONG' });
+          break;
+        }
+      }
+    }
+
+    function removePlayer(playerId) {
+      if (players.has(playerId)) {
+        players.delete(playerId);
+        renderPlayers();
+        if (currentPhase === 'quiz') {
+          updateLiveAnswerStatus();
+          checkAllAnswered();
+        }
+      }
+    }
+
+    function broadcast(data) {
+      players.forEach((p) => {
+        if (!p.isBot && p.conn && p.conn.open) {
+          try {
+            p.conn.send(data);
+          } catch(e) {
+            console.error('Broadcast error to', p.id, e);
+          }
+        }
+      });
+    }
+
+    // ==========================================
+    // 4. LIVE ANSWER POPUP TOAST & AVATAR ROW
+    // ==========================================
+    function triggerLiveAnswerToast(player, isFirst = false) {
+      playAnswerPopSound(isFirst);
+
+      // Toast Bubble
+      const container = document.getElementById('live-toast-container');
+      const toast = document.createElement('div');
+      
+      let badgeStyle = isFirst 
+        ? "bg-pop-yellow text-black border-4 border-black font-black" 
+        : "bg-pop-card text-white border-3 border-pop-cyan font-black";
+
+      let textContent = isFirst 
+        ? `⚡ <span class="text-xl">${player.avatar}</span> <strong>${player.name}さん</strong>、一番乗り！はやいっ！！` 
+        : `🔥 <span class="text-xl">${player.avatar}</span> <strong>${player.name}さん</strong>、回答したよ！`;
+
+      toast.className = `${badgeStyle} shadow-neo px-4 py-2 rounded-2xl flex items-center gap-2 text-sm toast-pop-anim`;
+      toast.innerHTML = textContent;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 2300);
+
+      // Add to answered avatar row
+      const avatarRow = document.getElementById('answered-avatars-row');
+      const avatarPill = document.createElement('div');
+      avatarPill.className = "flex items-center gap-1 bg-pop-dark border-2 border-pop-green px-2 py-0.5 rounded-full text-xs font-bold animate-bounce";
+      avatarPill.innerHTML = `<span>${player.avatar}</span><span class="truncate max-w-[60px]">${player.name}</span>`;
+      avatarRow.appendChild(avatarPill);
+    }
+
+    // ==========================================
+    // 5. BOT PLAYERS
+    // ==========================================
+    const BOT_NAMES = ['サトウ', 'タナカ', 'スズキ', 'タカハシ', 'イトウ', 'ヤマダ', 'ワタナベ', 'コバヤシ'];
+    const AVATARS = ['🦊', '🐱', '🐼', '🐯', '🐰', '🐸', '🦄', '🐶', '🦁', '🐵', '🦉', '🐙'];
+
+    function getRandomAvatar() {
+      return AVATARS[Math.floor(Math.random() * AVATARS.length)];
+    }
+
+    function addBotPlayer() {
+      initAudio();
+      const botId = 'bot_' + Math.random().toString(36).substring(2, 8);
+      const name = BOT_NAMES[players.size % BOT_NAMES.length] || ('Bot_' + (players.size + 1));
+      const avatar = AVATARS[players.size % AVATARS.length];
+
+      players.set(botId, {
+        id: botId,
+        conn: null,
+        name: name,
+        avatar: avatar,
+        score: 0,
+        isBot: true,
+        answered: false,
+        currentAnswer: null,
+        answerTimeMs: 0
+      });
+
+      playBeep(900, 'sine', 0.1);
+      renderPlayers();
+    }
+
+    function simulateBotAnswers() {
+      const q = questions[currentQIndex];
+      if (!q) return;
+
+      players.forEach((p) => {
+        if (p.isBot && !p.answered) {
+          const answerDelay = 1200 + Math.random() * ((q.timeLimit - 1.5) * 1000);
+          setTimeout(() => {
+            if (currentPhase !== 'quiz' || p.answered) return;
+            const isAccurate = Math.random() < 0.75;
+            p.currentAnswer = isAccurate ? q.correct : (1 + Math.floor(Math.random() * 4));
+            p.answered = true;
+            p.answerTimeMs = answerDelay;
+            answerCountForQuestion++;
+
+            triggerLiveAnswerToast(p, answerCountForQuestion === 1);
+            updateLiveAnswerStatus();
+            checkAllAnswered();
+          }, answerDelay);
+        }
+      });
+    }
+
+    // ==========================================
+    // 6. PHASE NAVIGATION & SETUP
+    // ==========================================
+    function switchPhase(phaseName) {
+      currentPhase = phaseName;
+      playBeep(600, 'sine', 0.08);
+
+      document.querySelectorAll('.phase-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.phase-tab').forEach(btn => {
+        btn.className = 'phase-tab px-4 py-2 rounded-xl text-sm font-black transition-all flex items-center space-x-2 text-gray-400';
+      });
+
+      const targetContent = document.getElementById(`phase-${phaseName}`);
+      if (targetContent) {
+        targetContent.classList.remove('hidden');
+      }
+      const targetTab = document.getElementById(`tab-${phaseName}`);
+      if (targetTab) {
+        targetTab.className = 'phase-tab px-4 py-2 rounded-xl text-sm font-black transition-all flex items-center space-x-2 bg-pop-purple text-white neo-border-sm';
+      }
+
+      if (phaseName === 'quiz') {
+        runQuizQuestion();
+      } else if (phaseName === 'reveal') {
+        setupAndShowGraphFirst();
+      } else if (phaseName === 'ranking') {
+        prepareAndShowRanking();
+      }
+    }
+
+    function renderPlayers() {
+      const grid = document.getElementById('player-grid');
+      const countBadge = document.getElementById('player-count');
+      countBadge.textContent = `${players.size}名 接続中`;
+
+      if (players.size === 0) {
+        grid.innerHTML = `
+          <div class="col-span-4 text-center py-16 text-gray-400 font-bold">
+            <i class="fa-solid fa-mobile-screen-button text-4xl mb-3 text-pop-yellow animate-bounce"></i>
+            <p>プレイヤーの参加を待っています...</p>
+            <p class="text-xs text-gray-500 mt-1">カメラでQRコードを読み取るか、コードを入力してね</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      players.forEach(p => {
+        html += `
+          <div class="bg-pop-dark neo-border-sm rounded-2xl p-3 flex flex-col items-center justify-center relative hover:scale-105 transition-transform">
+            <div class="w-14 h-14 bg-pop-card neo-border-sm rounded-xl flex items-center justify-center text-3xl mb-1">
+              ${p.avatar}
+            </div>
+            <span class="font-black text-sm text-white truncate max-w-full">${p.name}</span>
+            <span class="text-[10px] font-black ${p.isBot ? 'text-pop-cyan' : 'text-pop-green'} flex items-center mt-1">
+              <span class="w-2 h-2 ${p.isBot ? 'bg-pop-cyan' : 'bg-pop-green'} rounded-full mr-1"></span>
+              ${p.isBot ? 'BOT' : 'CONNECTED'}
+            </span>
+          </div>
+        `;
+      });
+      grid.innerHTML = html;
+    }
+
+    function loadSampleData() {
+      initAudio();
+      questions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+      currentQIndex = 0;
+      
+      const badge = document.getElementById('file-status-badge');
+      badge.textContent = `デモ問題 ${questions.length}問 ロード完了`;
+      badge.className = "bg-pop-green text-black text-xs px-3 py-1 rounded-full neo-border-sm font-black";
+
+      document.getElementById('quiz-summary-text').textContent = `全 ${questions.length} 問のクイズを待機中`;
+      playBeep(880, 'triangle', 0.2);
+    }
+
+    // クイズ作成用Excelテンプレート (.xlsx) のワンクリックダウンロード
+    function downloadSampleExcel() {
+      initAudio();
+      playBeep(880, 'triangle', 0.15);
+
+      try {
+        if (typeof XLSX !== 'undefined') {
+          const data = [
+            ["問題文", "選択肢1", "選択肢2", "選択肢3", "選択肢4", "正解番号", "制限時間", "ジャンル", "解説"]
+          ];
+          DEFAULT_QUESTIONS.forEach(q => {
+            data.push([
+              q.question,
+              q.options[0] || '',
+              q.options[1] || '',
+              q.options[2] || '',
+              q.options[3] || '',
+              q.correct,
+              q.timeLimit,
+              q.category || '',
+              q.explanation || ''
+            ]);
+          });
+          const ws = XLSX.utils.aoa_to_sheet(data);
+          ws['!cols'] = [
+            { wch: 45 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+            { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 55 }
+          ];
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "クイズ問題リスト");
+          XLSX.writeFile(wb, "sample_quiz.xlsx");
+          return;
+        }
+      } catch(e) {
+        console.warn("SheetJS download error, falling back to static link:", e);
+      }
+
+      // 静的ファイルダウンロードへのフォールバック
+      const a = document.createElement('a');
+      a.href = 'sample_quiz.xlsx';
+      a.download = 'sample_quiz.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // サンプル画像付きZIPパッケージ (.zip) のダウンロード
+    function downloadSampleZip() {
+      initAudio();
+      playBeep(880, 'triangle', 0.15);
+      const a = document.createElement('a');
+      a.href = 'sample_quiz_with_images.zip';
+      a.download = 'sample_quiz_with_images.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function triggerFileSelect() {
+      document.getElementById('excel-file-input').click();
+    }
+
+    // ZIPファイル解凍・読み込み共通処理
+    async function handleZipFile(file, isStudio = false) {
+      if (typeof JSZip === 'undefined') {
+        alert("ZIP解析ライブラリ(JSZip)の読み込みに失敗しました。インターネット接続を確認してください。");
+        return;
+      }
+      try {
+        const zip = await JSZip.loadAsync(file);
+        const jsonFile = zip.file("quiz.json");
+        if (!jsonFile) {
+          alert("ZIPファイル内に quiz.json が見つかりませんでした。有効なPOP QUIZパッケージを選択してください。");
+          return;
+        }
+
+        const jsonText = await jsonFile.async("text");
+        const quizData = JSON.parse(jsonText);
+        const rawQuestions = quizData.questions || [];
+
+        if (rawQuestions.length === 0) {
+          alert("ZIP内の quiz.json に問題データが含まれていません。");
+          return;
+        }
+
+        // 画像ファイルを Data URL に変換して問題データにバインド
+        const parsedQuestions = [];
+        for (let i = 0; i < rawQuestions.length; i++) {
+          const rq = rawQuestions[i];
+          let imgDataUrl = null;
+
+          if (rq.image) {
+            // ZIP内から画像ファイルを探索
+            const imgFileInZip = zip.file(rq.image) || zip.file(rq.image.replace(/^\/?/, ''));
+            if (imgFileInZip) {
+              const base64 = await imgFileInZip.async("base64");
+              const ext = rq.image.split('.').pop().toLowerCase();
+              const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : (ext === 'webp' ? 'image/webp' : 'image/png');
+              imgDataUrl = `data:${mime};base64,${base64}`;
+            }
+          }
+
+          parsedQuestions.push({
+            id: rq.id || (i + 1),
+            type: rq.type || (rq.options.length === 2 ? '2choice' : (rq.options.length === 3 ? '3choice' : '4choice')),
+            question: rq.question || '問題文なし',
+            image: imgDataUrl,
+            options: rq.options || ['選択肢1', '選択肢2'],
+            correct: parseInt(rq.correct, 10) || 1,
+            timeLimit: parseInt(rq.timeLimit, 10) || 10,
+            category: rq.category || '一般',
+            explanation: rq.explanation || ''
+          });
+        }
+
+        if (isStudio) {
+          studioQuestions = parsedQuestions;
+          studioActiveIndex = 0;
+          renderStudioList();
+          renderStudioForm();
+          playBeep(880, 'sine', 0.2);
+          alert(`ZIPパッケージから ${parsedQuestions.length}問 読み込みました！`);
+        } else {
+          questions = parsedQuestions;
+          currentQIndex = 0;
+          const badge = document.getElementById('file-status-badge');
+          badge.textContent = `${file.name} (${questions.length}問)`;
+          badge.className = "bg-pop-green text-black text-xs px-3 py-1 rounded-full neo-border-sm font-black";
+          document.getElementById('quiz-summary-text').textContent = `${file.name} (画像付きZIP) から ${questions.length}問 読み込み完了`;
+          playBeep(880, 'sine', 0.2);
+        }
+
+      } catch (err) {
+        console.error("ZIP parse error:", err);
+        alert("ZIPファイルの読み込み中にエラーが発生しました: " + err.message);
+      }
+    }
+
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      initAudio();
+
+      // ZIPファイル判定
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        handleZipFile(file, false);
+        return;
+      }
+
+      // Excel / CSV 読み込み
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+          if (!rows || rows.length < 2) {
+            alert("Excelファイルにクイズデータが見つかりません。2行以上のデータが必要です。");
+            return;
+          }
+
+          const parsed = [];
+          for (let i = 1; i < rows.length; i++) {
+            const r = rows[i];
+            if (!r || !r[0]) continue;
+
+            const qText = String(r[0]).trim();
+            const opt1 = r[1] !== undefined ? String(r[1]).trim() : "選択肢1";
+            const opt2 = r[2] !== undefined ? String(r[2]).trim() : "選択肢2";
+            const opt3 = r[3] !== undefined ? String(r[3]).trim() : "";
+            const opt4 = r[4] !== undefined ? String(r[4]).trim() : "";
+
+            const options = [opt1, opt2];
+            if (opt3) options.push(opt3);
+            if (opt4) options.push(opt4);
+            
+            let corr = 1;
+            const rawCorr = String(r[5] || '').trim().toUpperCase();
+            if (rawCorr === 'A' || rawCorr === '1') corr = 1;
+            else if (rawCorr === 'B' || rawCorr === '2') corr = 2;
+            else if (rawCorr === 'C' || rawCorr === '3') corr = 3;
+            else if (rawCorr === 'D' || rawCorr === '4') corr = 4;
+            else corr = parseInt(rawCorr, 10) || 1;
+
+            const timeLimit = parseInt(r[6], 10) || 10;
+            const category = r[7] ? String(r[7]).trim() : "クイズ";
+            const explanation = r[8] ? String(r[8]).trim() : "正解は " + corr + " 番です！";
+
+            parsed.push({
+              question: qText,
+              image: null,
+              type: options.length === 2 ? '2choice' : (options.length === 3 ? '3choice' : '4choice'),
+              options: options,
+              correct: corr,
+              timeLimit: timeLimit,
+              category: category,
+              explanation: explanation
+            });
+          }
+
+          if (parsed.length === 0) {
+            alert("有効なクイズデータが抽出できませんでした。ヘッダーの列構成を確認してください。");
+            return;
+          }
+
+          questions = parsed;
+          currentQIndex = 0;
+
+          const badge = document.getElementById('file-status-badge');
+          badge.textContent = `${file.name} (${questions.length}問)`;
+          badge.className = "bg-pop-green text-black text-xs px-3 py-1 rounded-full neo-border-sm font-black";
+
+          document.getElementById('quiz-summary-text').textContent = `${file.name} から ${questions.length}問 読み込み完了`;
+          playBeep(880, 'sine', 0.2);
+        } catch (err) {
+          console.error(err);
+          alert("ファイルの解析中にエラーが発生しました: " + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // =========================================================================
+    // QUIZ STUDIO (CREATOR & EDITOR) LOGIC
+    // =========================================================================
+    let studioQuestions = [];
+    let studioActiveIndex = 0;
+
+    function openQuizStudio() {
+      initAudio();
+      playBeep(700, 'triangle', 0.15);
+
+      // Deep copy from current questions or sample if empty
+      studioQuestions = JSON.parse(JSON.stringify(questions.length > 0 ? questions : DEFAULT_QUESTIONS));
+      studioActiveIndex = 0;
+
+      renderStudioList();
+      renderStudioForm();
+
+      document.getElementById('quiz-studio-modal').classList.remove('hidden');
+    }
+
+    function closeQuizStudio() {
+      document.getElementById('quiz-studio-modal').classList.add('hidden');
+    }
+
+    function renderStudioList() {
+      const listEl = document.getElementById('studio-question-list');
+      const countEl = document.getElementById('studio-q-count');
+      countEl.textContent = `問題一覧 (${studioQuestions.length}問)`;
+
+      let html = '';
+      studioQuestions.forEach((q, idx) => {
+        const isActive = idx === studioActiveIndex;
+        const typeLabel = q.options.length === 2 ? '2択' : (q.options.length === 3 ? '3択' : '4択');
+        const hasImg = !!q.image;
+
+        html += `
+          <div onclick="studioSelectQuestion(${idx})" class="p-3 rounded-2xl neo-border-sm cursor-pointer transition-all ${isActive ? 'bg-pop-purple text-white shadow-neo-sm ring-2 ring-pop-yellow' : 'bg-pop-dark hover:bg-slate-800 text-gray-200'}">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-black text-xs text-pop-yellow">Q.${String(idx + 1).padStart(2, '0')}</span>
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] font-black bg-black/50 px-1.5 py-0.5 rounded text-pop-cyan">${typeLabel}</span>
+                ${hasImg ? '<span class="text-[10px] font-black bg-pop-green text-black px-1.5 py-0.5 rounded">画像有</span>' : ''}
+                <span class="text-[10px] font-black bg-pop-pink text-black px-1.5 py-0.5 rounded">正解: ${q.correct}</span>
+              </div>
+            </div>
+            <p class="text-xs font-bold truncate line-clamp-1">${q.question || '(問題文未入力)'}</p>
+            <div class="flex items-center justify-between mt-2 pt-1 border-t border-white/10 text-[10px]">
+              <span class="text-gray-400 font-bold">${q.timeLimit || 10}秒 / ${q.category || '一般'}</span>
+              <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+                <button onclick="studioDuplicateQuestion(${idx})" class="px-1.5 py-0.5 bg-black/40 hover:bg-black rounded text-gray-300 hover:text-white" title="複製">
+                  <i class="fa-solid fa-copy"></i>
+                </button>
+                <button onclick="studioMoveQuestion(${idx}, -1)" class="px-1.5 py-0.5 bg-black/40 hover:bg-black rounded text-gray-300 hover:text-white ${idx === 0 ? 'opacity-30 pointer-events-none' : ''}" title="上へ移動">
+                  <i class="fa-solid fa-arrow-up"></i>
+                </button>
+                <button onclick="studioMoveQuestion(${idx}, 1)" class="px-1.5 py-0.5 bg-black/40 hover:bg-black rounded text-gray-300 hover:text-white ${idx === studioQuestions.length - 1 ? 'opacity-30 pointer-events-none' : ''}" title="下へ移動">
+                  <i class="fa-solid fa-arrow-down"></i>
+                </button>
+                <button onclick="studioDeleteQuestion(${idx})" class="px-1.5 py-0.5 bg-rose-900/60 hover:bg-rose-600 rounded text-rose-300 hover:text-white ml-1" title="削除">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      listEl.innerHTML = html;
+    }
+
+    function syncCurrentFormToActiveQuestion() {
+      const q = studioQuestions[studioActiveIndex];
+      if (!q) return;
+
+      const qTextEl = document.getElementById('studio-q-text-input');
+      if (qTextEl) q.question = qTextEl.value;
+
+      const optInputs = document.querySelectorAll('.studio-opt-input');
+      optInputs.forEach((input, idx) => {
+        if (idx < q.options.length) {
+          q.options[idx] = input.value;
+        }
+      });
+
+      const expEl = document.getElementById('studio-exp-input');
+      if (expEl) q.explanation = expEl.value;
+
+      const timeEl = document.getElementById('studio-time-input');
+      if (timeEl) q.timeLimit = parseInt(timeEl.value, 10) || 10;
+    }
+
+    function renderStudioForm() {
+      const panel = document.getElementById('studio-editor-panel');
+      const q = studioQuestions[studioActiveIndex];
+
+      if (!q) {
+        panel.innerHTML = `<div class="text-center py-20 text-gray-400 font-bold">問題がありません。「問題を追加」ボタンを押してください。</div>`;
+        return;
+      }
+
+      const optCount = q.options.length;
+
+      let optionsHtml = '';
+      const colors = ['bg-pop-pink', 'bg-pop-blue', 'bg-pop-yellow text-black', 'bg-pop-green text-black'];
+      for (let i = 0; i < optCount; i++) {
+        const isCorrect = q.correct === (i + 1);
+        optionsHtml += `
+          <div class="flex items-center gap-2 p-2.5 bg-pop-dark rounded-2xl neo-border-sm ${isCorrect ? 'ring-2 ring-pop-green bg-emerald-950/40' : ''}">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center font-black shrink-0 ${colors[i % colors.length]}">
+              ${i + 1}
+            </div>
+            <input type="text" value="${escapeHtml(q.options[i] || '')}" 
+                   id="studio-opt-${i}"
+                   class="studio-opt-input flex-1 bg-transparent text-white font-bold text-sm outline-none px-2 py-1"
+                   placeholder="選択肢 ${i + 1} のテキスト" 
+                   oninput="studioUpdateOption(${i}, this.value)"
+                   onchange="studioUpdateOption(${i}, this.value)"
+                   onblur="studioUpdateOption(${i}, this.value)">
+            <button onclick="studioSetCorrect(${i + 1})" class="px-3 py-1.5 rounded-xl text-xs font-black neo-border-sm neo-button flex items-center gap-1 shrink-0 ${isCorrect ? 'bg-pop-green text-black' : 'bg-slate-700 text-gray-300 hover:text-white'}">
+              <i class="fa-solid fa-check"></i>
+              <span>${isCorrect ? '正解！' : '正解にする'}</span>
+            </button>
+          </div>
+        `;
+      }
+
+      const isVideo = q.mediaType === 'video' || (q.image && q.image.startsWith('data:video/'));
+
+      panel.innerHTML = `
+        <div class="space-y-4">
+          <!-- Question Header & Type Switcher -->
+          <div class="flex items-center justify-between pb-3 border-b border-gray-700">
+            <div class="flex items-center gap-2">
+              <span class="text-lg font-black text-pop-yellow">Q.${studioActiveIndex + 1} 編集</span>
+              <span class="text-xs text-gray-400 font-bold">出題形式:</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-pop-dark p-1 rounded-xl neo-border-sm">
+              <button onclick="studioChangeType('4choice')" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${optCount === 4 ? 'bg-pop-purple text-white shadow-sm' : 'text-gray-400 hover:text-white'}">
+                4択
+              </button>
+              <button onclick="studioChangeType('3choice')" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${optCount === 3 ? 'bg-pop-purple text-white shadow-sm' : 'text-gray-400 hover:text-white'}">
+                3択
+              </button>
+              <button onclick="studioChangeType('2choice')" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${optCount === 2 ? 'bg-pop-purple text-white shadow-sm' : 'text-gray-400 hover:text-white'}">
+                2択 (〇×・二択)
+              </button>
+            </div>
+          </div>
+
+          <!-- Question Text Input -->
+          <div>
+            <label class="block text-xs font-black text-pop-cyan mb-1.5">問題文</label>
+            <textarea id="studio-q-text-input" 
+                      rows="2" 
+                      placeholder="問題文を入力してください" 
+                      oninput="studioUpdateField('question', this.value)"
+                      onchange="studioUpdateField('question', this.value)"
+                      class="w-full bg-pop-dark neo-border-sm rounded-2xl p-3 text-white font-bold text-sm outline-none focus:border-pop-yellow resize-none">${escapeHtml(q.question || '')}</textarea>
+          </div>
+
+          <!-- Media Attachment Area (Image or Video) -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-black text-pop-green flex items-center gap-1.5">
+                <i class="fa-solid fa-photo-film"></i>
+                <span>問題メディア（画像 または 動画・任意）</span>
+              </label>
+              ${q.image ? '<button onclick="studioRemoveImage()" class="text-xs text-pop-pink hover:underline font-bold"><i class="fa-solid fa-trash mr-1"></i>メディアを削除</button>' : ''}
+            </div>
+
+            ${q.image ? `
+              <div class="flex items-center gap-4 p-3 bg-pop-dark rounded-2xl neo-border-sm">
+                ${isVideo ? `
+                  <video src="${q.image}" controls class="w-36 h-24 object-contain rounded-xl neo-border-sm bg-black"></video>
+                ` : `
+                  <img src="${q.image}" class="w-36 h-24 object-contain rounded-xl neo-border-sm bg-black">
+                `}
+                <div class="text-xs text-gray-300 font-bold flex-1">
+                  <p class="text-pop-green">${isVideo ? '🎬 動画が添付されています' : '🖼️ 画像が添付されています'}</p>
+                  <p class="text-[11px] text-gray-400 mt-1">出題画面に大画面で表示され、生徒のスマホにも配信されます。</p>
+                </div>
+              </div>
+            ` : `
+              <div onclick="studioTriggerImageUpload()" class="border-2 border-dashed border-gray-600 hover:border-pop-green rounded-2xl p-3 text-center cursor-pointer bg-pop-dark/50 hover:bg-pop-dark transition-all flex items-center justify-center gap-3">
+                <input type="file" id="studio-img-input" class="hidden" accept="image/*,video/mp4,video/webm" onchange="studioHandleImageUpload(event)">
+                <i class="fa-solid fa-file-arrow-up text-2xl text-pop-green"></i>
+                <div class="text-left">
+                  <p class="text-xs font-bold text-gray-200">クリックして画像または動画を添付 (PNG, JPG, MP4, WebM)</p>
+                  <p class="text-[10px] text-gray-400">※動画は25MB以内を推奨します</p>
+                </div>
+              </div>
+            `}
+          </div>
+
+          <!-- Options Area -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-black text-pop-yellow">選択肢と正解の設定</label>
+              ${optCount === 2 ? `
+                <button onclick="studioSetQuickTrueFalse()" class="bg-pop-blue hover:bg-blue-400 text-white text-xs font-black px-3.5 py-1.5 rounded-xl neo-border-sm neo-button flex items-center gap-1.5 shadow-sm">
+                  <i class="fa-solid fa-magic"></i>
+                  <span>🔘 「〇 / ×」を自動セット</span>
+                </button>
+              ` : ''}
+            </div>
+            <div class="space-y-2">
+              ${optionsHtml}
+            </div>
+          </div>
+
+          <!-- Meta (Time & Explanation - Category Removed!) -->
+          <div class="grid grid-cols-3 gap-4 pt-2 border-t border-gray-700">
+            <div>
+              <label class="block text-xs font-black text-gray-300 mb-1">制限時間 (秒)</label>
+              <input type="number" id="studio-time-input" min="5" max="60" value="${q.timeLimit || 10}" 
+                     oninput="studioUpdateField('timeLimit', parseInt(this.value, 10) || 10)" 
+                     onchange="studioUpdateField('timeLimit', parseInt(this.value, 10) || 10)"
+                     class="w-full bg-pop-dark neo-border-sm rounded-xl px-3 py-1.5 text-sm font-bold text-white outline-none">
+            </div>
+            <div class="col-span-2">
+              <label class="block text-xs font-black text-gray-300 mb-1">💡 正解の解説 (任意)</label>
+              <input type="text" id="studio-exp-input" value="${escapeHtml(q.explanation || '')}" 
+                     oninput="studioUpdateField('explanation', this.value)" 
+                     onchange="studioUpdateField('explanation', this.value)"
+                     placeholder="正解発表時に大きく表示されるワンポイント解説" 
+                     class="w-full bg-pop-dark neo-border-sm rounded-xl px-3 py-1.5 text-sm font-bold text-white outline-none">
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function studioSelectQuestion(index) {
+      syncCurrentFormToActiveQuestion();
+      studioActiveIndex = index;
+      renderStudioList();
+      renderStudioForm();
+    }
+
+    function studioAddNewQuestion() {
+      studioQuestions.push({
+        id: studioQuestions.length + 1,
+        type: '4choice',
+        question: `新しい問題 ${studioQuestions.length + 1}`,
+        image: null,
+        options: ['選択肢1', '選択肢2', '選択肢3', '選択肢4'],
+        correct: 1,
+        timeLimit: 10,
+        category: '一般',
+        explanation: ''
+      });
+      studioActiveIndex = studioQuestions.length - 1;
+      renderStudioList();
+      renderStudioForm();
+      playBeep(700, 'sine', 0.1);
+    }
+
+    function studioDuplicateQuestion(index) {
+      const copy = JSON.parse(JSON.stringify(studioQuestions[index]));
+      copy.id = studioQuestions.length + 1;
+      copy.question = copy.question + ' (コピー)';
+      studioQuestions.splice(index + 1, 0, copy);
+      studioActiveIndex = index + 1;
+      renderStudioList();
+      renderStudioForm();
+      playBeep(750, 'sine', 0.1);
+    }
+
+    function studioDeleteQuestion(index) {
+      if (studioQuestions.length <= 1) {
+        alert("クイズには少なくとも1問必要です。");
+        return;
+      }
+      studioQuestions.splice(index, 1);
+      if (studioActiveIndex >= studioQuestions.length) {
+        studioActiveIndex = studioQuestions.length - 1;
+      }
+      renderStudioList();
+      renderStudioForm();
+      playBeep(400, 'sawtooth', 0.15);
+    }
+
+    function studioMoveQuestion(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= studioQuestions.length) return;
+      const item = studioQuestions.splice(index, 1)[0];
+      studioQuestions.splice(targetIndex, 0, item);
+      studioActiveIndex = targetIndex;
+      renderStudioList();
+      renderStudioForm();
+    }
+
+    function studioChangeType(type) {
+      syncCurrentFormToActiveQuestion();
+      const q = studioQuestions[studioActiveIndex];
+      if (!q) return;
+      q.type = type;
+
+      if (type === '2choice') {
+        const isDefault = q.options.length >= 2 && q.options[0].startsWith('選択肢') && q.options[1].startsWith('選択肢');
+        q.options = q.options.slice(0, 2);
+        if (q.options.length < 2 || isDefault) {
+          q.options = ['〇', '×'];
+        }
+        if (q.correct > 2) q.correct = 1;
+      } else if (type === '3choice') {
+        while (q.options.length < 3) q.options.push(`選択肢 ${q.options.length + 1}`);
+        q.options = q.options.slice(0, 3);
+        if (q.correct > 3) q.correct = 1;
+      } else {
+        while (q.options.length < 4) q.options.push(`選択肢 ${q.options.length + 1}`);
+        q.options = q.options.slice(0, 4);
+      }
+      renderStudioList();
+      renderStudioForm();
+    }
+
+    function studioSetQuickTrueFalse() {
+      const q = studioQuestions[studioActiveIndex];
+      if (!q) return;
+      q.options = ['〇', '×'];
+      renderStudioForm();
+      playBeep(800, 'sine', 0.1);
+    }
+
+    function studioTriggerImageUpload() {
+      document.getElementById('studio-img-input').click();
+    }
+
+    function studioHandleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const isVideo = file.type.startsWith('video/');
+      const maxSizeMB = isVideo ? 30 : 10;
+      if (file.size > maxSizeMB * 1024 * 1024) {
+        alert(`ファイルサイズが大きすぎます (${(file.size / 1024 / 1024).toFixed(1)}MB)。快適な動作のため ${maxSizeMB}MB 以下のファイルをご使用ください。`);
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const q = studioQuestions[studioActiveIndex];
+        if (q) {
+          q.image = e.target.result; // Data URL
+          q.mediaType = isVideo ? 'video' : 'image';
+          renderStudioList();
+          renderStudioForm();
+          playBeep(880, 'sine', 0.15);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function studioRemoveImage() {
+      const q = studioQuestions[studioActiveIndex];
+      if (q) {
+        q.image = null;
+        q.mediaType = null;
+        renderStudioList();
+        renderStudioForm();
+      }
+    }
+
+    function studioUpdateField(field, value) {
+      const q = studioQuestions[studioActiveIndex];
+      if (q) {
+        q[field] = value;
+        if (field === 'question') {
+          renderStudioList();
+        }
+      }
+    }
+
+    function studioUpdateOption(optIndex, value) {
+      const q = studioQuestions[studioActiveIndex];
+      if (q && q.options) {
+        q.options[optIndex] = value;
+      }
+    }
+
+    function studioSetCorrect(corrNum) {
+      syncCurrentFormToActiveQuestion();
+      const q = studioQuestions[studioActiveIndex];
+      if (q) {
+        q.correct = corrNum;
+        renderStudioList();
+        renderStudioForm();
+        playBeep(880, 'triangle', 0.1);
+      }
+    }
+
+    // ZIPとして保存 (JSZip使用)
+    async function studioExportZip() {
+      syncCurrentFormToActiveQuestion();
+      if (typeof JSZip === 'undefined') {
+        alert("JSZipライブラリが読み込まれていません。");
+        return;
+      }
+      initAudio();
+      playBeep(880, 'triangle', 0.2);
+
+      const zip = new JSZip();
+      const exportQuestions = [];
+
+      for (let i = 0; i < studioQuestions.length; i++) {
+        const sq = studioQuestions[i];
+        let mediaRelPath = null;
+
+        if (sq.image && sq.image.startsWith('data:')) {
+          const parts = sq.image.split(',');
+          const mimeMatch = parts[0].match(/:(.*?);/);
+          const mime = mimeMatch ? mimeMatch[1] : (sq.mediaType === 'video' ? 'video/mp4' : 'image/png');
+          const ext = mime.split('/')[1] || (sq.mediaType === 'video' ? 'mp4' : 'png');
+          const base64Data = parts[1];
+          const folder = sq.mediaType === 'video' ? 'media' : 'images';
+          mediaRelPath = `${folder}/q${i + 1}.${ext}`;
+          zip.file(mediaRelPath, base64Data, { base64: true });
+        } else if (sq.image) {
+          mediaRelPath = sq.image;
+        }
+
+        exportQuestions.push({
+          id: i + 1,
+          type: sq.type || (sq.options.length + 'choice'),
+          mediaType: sq.mediaType || (sq.image && sq.image.includes('video') ? 'video' : 'image'),
+          question: sq.question,
+          image: mediaRelPath,
+          options: sq.options,
+          correct: sq.correct,
+          timeLimit: sq.timeLimit,
+          explanation: sq.explanation
+        });
+      }
+
+      const quizJson = {
+        title: "POP QUIZ パッケージ",
+        version: "3.1",
+        createdAt: new Date().toISOString(),
+        questions: exportQuestions
+      };
+
+      zip.file("quiz.json", JSON.stringify(quizJson, null, 2));
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `popquiz_package_${new Date().toISOString().slice(0,10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // Excelとして保存 (SheetJS使用)
+    function studioExportExcel() {
+      syncCurrentFormToActiveQuestion();
+      if (typeof XLSX === 'undefined') {
+        alert("XLSXライブラリが読み込まれていません。");
+        return;
+      }
+      initAudio();
+      playBeep(880, 'triangle', 0.2);
+
+      const data = [
+        ["問題文", "選択肢1", "選択肢2", "選択肢3", "選択肢4", "正解番号", "制限時間", "解説"]
+      ];
+
+      studioQuestions.forEach(q => {
+        data.push([
+          q.question,
+          q.options[0] || '',
+          q.options[1] || '',
+          q.options[2] || '',
+          q.options[3] || '',
+          q.correct,
+          q.timeLimit || 10,
+          q.explanation || ''
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      ws['!cols'] = [
+        { wch: 45 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+        { wch: 12 }, { wch: 12 }, { wch: 55 }
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "クイズ問題リスト");
+      XLSX.writeFile(wb, `popquiz_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    function studioTriggerImport() {
+      document.getElementById('studio-import-file-input').click();
+    }
+
+    function handleStudioFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        handleZipFile(file, true);
+        return;
+      }
+
+      // Excel/CSV
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+          if (!rows || rows.length < 2) {
+            alert("有効なクイズデータが見つかりません。");
+            return;
+          }
+
+          const parsed = [];
+          for (let i = 1; i < rows.length; i++) {
+            const r = rows[i];
+            if (!r || !r[0]) continue;
+            const qText = String(r[0]).trim();
+            const opt1 = r[1] !== undefined ? String(r[1]).trim() : "選択肢1";
+            const opt2 = r[2] !== undefined ? String(r[2]).trim() : "選択肢2";
+            const opt3 = r[3] !== undefined ? String(r[3]).trim() : "";
+            const opt4 = r[4] !== undefined ? String(r[4]).trim() : "";
+            const options = [opt1, opt2];
+            if (opt3) options.push(opt3);
+            if (opt4) options.push(opt4);
+
+            let corr = parseInt(String(r[5] || '').trim(), 10) || 1;
+            parsed.push({
+              id: parsed.length + 1,
+              type: options.length === 2 ? '2choice' : (options.length === 3 ? '3choice' : '4choice'),
+              question: qText,
+              image: null,
+              mediaType: null,
+              options: options,
+              correct: corr,
+              timeLimit: parseInt(r[6], 10) || 10,
+              explanation: r[7] ? String(r[7]).trim() : ""
+            });
+          }
+
+          studioQuestions = parsed;
+          studioActiveIndex = 0;
+          renderStudioList();
+          renderStudioForm();
+          playBeep(880, 'sine', 0.2);
+          alert(`Excel/CSVファイルから ${parsed.length}問 読み込みました！`);
+        } catch(err) {
+          alert("読み込みエラー: " + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function studioApplyToGame() {
+      syncCurrentFormToActiveQuestion();
+      if (studioQuestions.length === 0) {
+        alert("クイズデータがありません。");
+        return;
+      }
+
+      questions = JSON.parse(JSON.stringify(studioQuestions));
+      currentQIndex = 0;
+
+      const badge = document.getElementById('file-status-badge');
+      badge.textContent = `スタジオ作成 (${questions.length}問)`;
+      badge.className = "bg-pop-green text-black text-xs px-3 py-1 rounded-full neo-border-sm font-black";
+
+      document.getElementById('quiz-summary-text').textContent = `クイズスタジオから ${questions.length}問 をゲームにセットしました！`;
+
+      closeQuizStudio();
+      playBeep(880, 'triangle', 0.25);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // メディア（画像・動画）特大プレビュー
+    function zoomQuestionMedia() {
+      const q = questions[currentQIndex];
+      if (!q || !q.image) return;
+
+      const modalImg = document.getElementById('zoom-modal-img');
+      const modalVideo = document.getElementById('zoom-modal-video');
+      const isVideo = q.mediaType === 'video' || q.image.startsWith('data:video/') || q.image.includes('.mp4') || q.image.includes('.webm');
+
+      if (isVideo) {
+        modalImg.classList.add('hidden');
+        modalVideo.src = q.image;
+        modalVideo.classList.remove('hidden');
+        modalVideo.play().catch(() => {});
+      } else {
+        modalVideo.pause();
+        modalVideo.classList.add('hidden');
+        modalVideo.src = '';
+        modalImg.src = q.image;
+        modalImg.classList.remove('hidden');
+      }
+
+      document.getElementById('image-zoom-modal').classList.remove('hidden');
+    }
+
+    function zoomQuestionImage() {
+      zoomQuestionMedia();
+    }
+
+    function closeImageZoom() {
+      const modalVideo = document.getElementById('zoom-modal-video');
+      if (modalVideo) {
+        modalVideo.pause();
+        modalVideo.src = '';
+      }
+      document.getElementById('image-zoom-modal').classList.add('hidden');
+    }
+
+    function startQuizSequence() {
+      initAudio();
+      if (questions.length === 0) {
+        loadSampleData();
+      }
+      if (players.size === 0) {
+        addBotPlayer();
+        addBotPlayer();
+        addBotPlayer();
+      }
+
+      currentQIndex = 0;
+      players.forEach(p => {
+        p.score = 0;
+        p.answered = false;
+        p.currentAnswer = null;
+      });
+
+      switchPhase('quiz');
+    }
+
+    // ==========================================
+    // 7. QUIZ RUNNER (Supports Image & 2, 3, 4 Choices)
+    // ==========================================
+    function renderQuizOptions(options) {
+      const container = document.getElementById('quiz-options-grid');
+      const count = options.length;
+
+      // Adjust grid columns and heights to prevent any overflow
+      if (count === 2) {
+        container.className = "grid grid-cols-2 gap-3 h-16 md:h-20 shrink-0";
+      } else if (count === 3) {
+        container.className = "grid grid-cols-3 gap-2.5 md:gap-3 h-16 md:h-20 shrink-0";
+      } else {
+        container.className = "grid grid-cols-2 gap-2 md:gap-2.5 h-24 md:h-28 shrink-0";
+      }
+
+      const styles = [
+        { bg: 'bg-pop-pink text-black', label: '1' },
+        { bg: 'bg-pop-blue text-white', label: '2' },
+        { bg: 'bg-pop-yellow text-black', label: '3' },
+        { bg: 'bg-pop-green text-black', label: '4' }
+      ];
+
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        const s = styles[i % styles.length];
+        html += `
+          <div class="${s.bg} neo-border shadow-neo rounded-xl md:rounded-2xl px-3 py-1.5 md:py-2 flex items-center space-x-3 relative overflow-hidden">
+            <div class="w-8 h-8 md:w-10 md:h-10 bg-black text-white rounded-lg md:rounded-xl neo-border-sm flex items-center justify-center text-lg md:text-xl font-black shrink-0">
+              ${s.label}
+            </div>
+            <span class="text-base md:text-xl font-black leading-tight line-clamp-2 truncate">
+              ${escapeHtml(options[i] || '')}
+            </span>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function runQuizQuestion() {
+      const q = questions[currentQIndex];
+      if (!q) {
+        switchPhase('ranking');
+        return;
+      }
+
+      answerCountForQuestion = 0;
+      document.getElementById('live-toast-container').innerHTML = '';
+      document.getElementById('answered-avatars-row').innerHTML = '';
+
+      players.forEach(p => {
+        p.answered = false;
+        p.currentAnswer = null;
+        p.answerTimeMs = 0;
+      });
+
+      document.getElementById('q-number').textContent = `Q. ${String(currentQIndex + 1).padStart(2, '0')} / ${String(questions.length).padStart(2, '0')}`;
+      document.getElementById('q-big-watermark').textContent = `Q${currentQIndex + 1}`;
+      const catEl = document.getElementById('q-category');
+      if (catEl) catEl.textContent = `ジャンル: ${q.category || '一般'}`;
+      document.getElementById('question-text').textContent = q.question;
+
+      // Media (Image or Video) handling for God Layout
+      const mediaWrap = document.getElementById('question-media-wrap');
+      const imgEl = document.getElementById('question-img');
+      const videoEl = document.getElementById('question-video');
+
+      if (q.image) {
+        const isVideo = q.mediaType === 'video' || q.image.startsWith('data:video/') || q.image.includes('.mp4') || q.image.includes('.webm');
+        if (isVideo) {
+          if (imgEl) imgEl.classList.add('hidden');
+          if (videoEl) {
+            videoEl.src = q.image;
+            videoEl.classList.remove('hidden');
+            videoEl.play().catch(() => {});
+          }
+        } else {
+          if (videoEl) {
+            videoEl.pause();
+            videoEl.classList.add('hidden');
+            videoEl.src = '';
+          }
+          if (imgEl) {
+            imgEl.src = q.image;
+            imgEl.classList.remove('hidden');
+          }
+        }
+        if (mediaWrap) mediaWrap.classList.remove('hidden');
+      } else {
+        if (mediaWrap) mediaWrap.classList.add('hidden');
+        if (imgEl) { imgEl.src = ''; imgEl.classList.remove('hidden'); }
+        if (videoEl) { videoEl.pause(); videoEl.src = ''; videoEl.classList.add('hidden'); }
+      }
+
+      // Render options (2, 3, or 4 options - Sacred Grid)
+      renderQuizOptions(q.options || []);
+
+      updateLiveAnswerStatus();
+
+      questionStartTime = Date.now();
+      broadcast({
+        type: 'QUESTION_START',
+        qIndex: currentQIndex,
+        totalQuestions: questions.length,
+        question: q.question,
+        image: q.image || null,
+        mediaType: q.mediaType || (q.image && q.image.includes('video') ? 'video' : 'image'),
+        options: q.options,
+        timeLimit: q.timeLimit,
+        category: q.category
+      });
+
+      startCountdownTimer(q.timeLimit);
+      simulateBotAnswers();
+    }
+
+    function updateLiveAnswerStatus() {
+      let answeredCount = 0;
+      players.forEach(p => {
+        if (p.answered) answeredCount++;
+      });
+      document.getElementById('live-answer-count').textContent = `${answeredCount} / ${players.size} 人 回答済`;
+    }
+
+    function checkAllAnswered() {
+      if (currentPhase !== 'quiz') return;
+      let allAnswered = true;
+      players.forEach(p => {
+        if (!p.answered) allAnswered = false;
+      });
+
+      if (allAnswered && players.size > 0) {
+        clearInterval(timerInterval);
+        playBeep(400, 'square', 0.2);
+        setTimeout(() => {
+          if (currentPhase === 'quiz') {
+            switchPhase('reveal');
+          }
+        }, 600);
+      }
+    }
+
+    function skipToReveal() {
+      clearInterval(timerInterval);
+      playBeep(300, 'sawtooth', 0.3);
+      switchPhase('reveal');
+    }
+
+    function startCountdownTimer(seconds) {
+      clearInterval(timerInterval);
+      const totalDuration = seconds * 1000;
+      const startTime = Date.now();
+      const circle = document.getElementById('timer-circle');
+      const text = document.getElementById('timer-text');
+      const circumference = 251.2;
+
+      circle.style.strokeDashoffset = 0;
+      circle.classList.remove('text-pop-pink', 'animate-pulse-fast');
+      circle.classList.add('text-pop-yellow');
+      text.textContent = seconds;
+      text.classList.remove('text-pop-pink', 'animate-bounce');
+
+      timerInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, totalDuration - elapsed);
+        const timeLeft = Math.ceil(remaining / 1000);
+
+        text.textContent = timeLeft;
+
+        const progress = remaining / totalDuration;
+        const offset = circumference - (progress * circumference);
+        circle.style.strokeDashoffset = offset;
+
+        if (timeLeft <= 3 && timeLeft > 0) {
+          circle.classList.remove('text-pop-yellow');
+          circle.classList.add('text-pop-pink');
+          text.classList.add('text-pop-pink');
+          if (elapsed % 1000 < 100) {
+            playBeep(900, 'square', 0.08);
+          }
+        }
+
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          text.textContent = "0";
+          playBeep(300, 'sawtooth', 0.4);
+          setTimeout(() => {
+            if (currentPhase === 'quiz') {
+              switchPhase('reveal');
+            }
+          }, 600);
+        }
+      }, 50);
+    }
+
+    // =========================================================================
+    // 8. ★新演出順序：制限時間後、まず回答内訳(グラフ)を開示 ➔ 次に正解＆解説発表！
+    // =========================================================================
+    let currentCounts = [];
+    let isAnswerStageRevealed = false;
+
+    function setupAndShowGraphFirst() {
+      const q = questions[currentQIndex];
+      if (!q) return;
+
+      isAnswerStageRevealed = false;
+      const suspenseStage = document.getElementById('reveal-stage-suspense');
+      const answerStage = document.getElementById('reveal-stage-answer');
+      const graphStage = document.getElementById('reveal-stage-graph');
+      const statBadge = document.getElementById('reveal-stat-badge');
+      const headerTitle = document.getElementById('reveal-header-title');
+      const triggerBtn = document.getElementById('btn-trigger-answer');
+
+      document.getElementById('reveal-q-summary').textContent = `Q${currentQIndex + 1}. ${q.question}`;
+      headerTitle.textContent = "回答が出揃いました！みんなの予想は？";
+      statBadge.textContent = "回答集計表示中";
+      triggerBtn.classList.remove('hidden');
+
+      // Hide suspense & answer overlays, show graph
+      suspenseStage.classList.add('hidden');
+      answerStage.classList.add('hidden');
+      graphStage.classList.remove('opacity-20');
+
+      // Populate Explanation
+      document.getElementById('reveal-explanation-text').textContent = q.explanation || `正解は ${q.correct} 番でした！`;
+
+      const optCount = q.options.length;
+      if (optCount === 2) {
+        graphStage.className = "w-full h-full grid grid-cols-2 gap-8 items-end pb-2 pt-4 transition-all duration-700 max-w-4xl mx-auto";
+      } else if (optCount === 3) {
+        graphStage.className = "w-full h-full grid grid-cols-3 gap-6 items-end pb-2 pt-4 transition-all duration-700";
+      } else {
+        graphStage.className = "w-full h-full grid grid-cols-4 gap-5 items-end pb-2 pt-4 transition-all duration-700";
+      }
+
+      const barColors = ['bg-pop-pink', 'bg-pop-blue', 'bg-pop-yellow', 'bg-pop-green'];
+      let graphHtml = '';
+      for (let i = 1; i <= optCount; i++) {
+        const c = barColors[(i - 1) % barColors.length];
+        graphHtml += `
+          <div class="h-full flex flex-col justify-end">
+            <div class="text-center font-black text-pop-yellow mb-2 text-xl stat-percent" id="stat-p-${i}">0% (0人)</div>
+            <div id="stat-card-${i}" class="bg-pop-card neo-border shadow-neo rounded-2xl p-4 flex flex-col justify-between">
+              <span class="font-black text-base text-white truncate" id="stat-label-${i}">${i}. ${escapeHtml(q.options[i-1] || '')}</span>
+              <div class="w-full bg-pop-dark rounded-full h-4 neo-border-sm overflow-hidden mt-3">
+                <div id="stat-bar-${i}" class="${c} h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      graphStage.innerHTML = graphHtml;
+
+      // Calculate Stats & Scores
+      currentCounts = new Array(optCount).fill(0);
+      const totalAnswers = players.size;
+
+      players.forEach(p => {
+        const choice = p.currentAnswer;
+        if (choice >= 1 && choice <= optCount) {
+          currentCounts[choice - 1]++;
+        }
+
+        let earned = 0;
+        let isCorrect = false;
+        if (choice === q.correct) {
+          isCorrect = true;
+          const ratio = Math.max(0, 1 - (p.answerTimeMs / (q.timeLimit * 1000)));
+          const speedBonus = Math.floor(500 * ratio);
+          earned = 1000 + speedBonus;
+          p.score += earned;
+        }
+
+        p.lastEarned = earned;
+        p.lastCorrect = isCorrect;
+      });
+
+      // Compute rank per player
+      const sortedByScore = Array.from(players.values()).sort((a, b) => b.score - a.score);
+      sortedByScore.forEach((p, idx) => {
+        p.currentRank = idx + 1;
+      });
+
+      // STEP 1: Animate Graph Bars Smoothly
+      setTimeout(() => {
+        for (let i = 1; i <= optCount; i++) {
+          const count = currentCounts[i - 1] || 0;
+          const pct = totalAnswers > 0 ? Math.round((count / totalAnswers) * 100) : 0;
+          const bar = document.getElementById(`stat-bar-${i}`);
+          const pLabel = document.getElementById(`stat-p-${i}`);
+          if (bar) bar.style.width = `${pct}%`;
+          if (pLabel) pLabel.textContent = `${pct}% (${count}人)`;
+        }
+        playBeep(880, 'triangle', 0.25);
+      }, 200);
+
+      // Auto-trigger answer reveal after 4.5 seconds of enjoying the graph
+      setTimeout(() => {
+        if (!isAnswerStageRevealed && currentPhase === 'reveal') {
+          triggerDramaticAnswerReveal();
+        }
+      }, 4500);
+
+      const isLastQ = currentQIndex >= questions.length - 1;
+      document.getElementById('next-action-text').textContent = isLastQ ? "最終ランキング発表へ" : "次の問題へ";
+    }
+
+    function triggerDramaticAnswerReveal() {
+      if (isAnswerStageRevealed) return;
+      isAnswerStageRevealed = true;
+
+      const q = questions[currentQIndex];
+      const suspenseStage = document.getElementById('reveal-stage-suspense');
+      const answerStage = document.getElementById('reveal-stage-answer');
+      const statBadge = document.getElementById('reveal-stat-badge');
+      const headerTitle = document.getElementById('reveal-header-title');
+      const triggerBtn = document.getElementById('btn-trigger-answer');
+
+      triggerBtn.classList.add('hidden');
+      headerTitle.textContent = "運命の正解発表！！";
+      statBadge.textContent = "正解確認中...";
+
+      // STEP A: Suspense Stage ("正解は……")
+      suspenseStage.classList.remove('hidden', 'opacity-0');
+
+      let beepCount = 0;
+      const suspenseInterval = setInterval(() => {
+        playBeep(520 + (beepCount * 90), 'sine', 0.12);
+        beepCount++;
+        if (beepCount >= 3) clearInterval(suspenseInterval);
+      }, 600);
+
+      // STEP B: Answer & Explanation Impact ("シュッ！正解はこれ！！")
+      setTimeout(() => {
+        suspenseStage.classList.add('opacity-0');
+        setTimeout(() => suspenseStage.classList.add('hidden'), 300);
+
+        // Fill Answer Card
+        document.getElementById('reveal-correct-number').textContent = q.correct;
+        document.getElementById('reveal-correct-text').textContent = (q.options[q.correct - 1] || '---') + '！！';
+
+        answerStage.classList.remove('hidden', 'opacity-0');
+        playBeep(1200, 'sawtooth', 0.25);
+        playCymbalCrash();
+
+        statBadge.textContent = "正解開示！";
+
+        // Highlight correct option in background graph
+        const corrCard = document.getElementById(`stat-card-${q.correct}`);
+        corrCard.className = "bg-pop-blue border-4 border-pop-yellow shadow-neo-lg rounded-2xl p-4 flex flex-col justify-between relative ring-4 ring-pop-yellow";
+        document.getElementById(`stat-p-${q.correct}`).innerHTML = `<i class="fa-solid fa-crown mr-1"></i>` + document.getElementById(`stat-p-${q.correct}`).textContent;
+
+        // Send results to players
+        players.forEach(p => {
+          if (!p.isBot && p.conn && p.conn.open) {
+            p.conn.send({
+              type: 'QUESTION_RESULT',
+              correctOption: q.correct,
+              correctText: q.options[q.correct - 1] || '',
+              isCorrect: p.lastCorrect,
+              earnedScore: p.lastEarned,
+              currentScore: p.score,
+              currentRank: p.currentRank,
+              totalPlayers: players.size,
+              explanation: q.explanation
+            });
+          }
+        });
+
+      }, 2200);
+    }
+
+    function advanceNextQuestionOrFinish() {
+      if (currentQIndex < questions.length - 1) {
+        currentQIndex++;
+        switchPhase('quiz');
+      } else {
+        switchPhase('ranking');
+      }
+    }
+
+    // =========================================================================
+    // 9. ★最終結果：完全自動＆ドラマチック表彰式 (4位以下 ➔ 3位 ➔ 2位 ➔ 1位)
+    // =========================================================================
+    let sortedRankings = [];
+
+    function prepareAndShowRanking() {
+      sortedRankings = Array.from(players.values()).sort((a, b) => b.score - a.score);
+      resetRankingReveal();
+
+      // Populate Podium Elements
+      if (sortedRankings[0]) {
+        document.getElementById('podium-1-name').textContent = sortedRankings[0].name;
+        document.getElementById('podium-1-avatar').textContent = sortedRankings[0].avatar;
+        document.getElementById('podium-1-score').textContent = `${sortedRankings[0].score.toLocaleString()} pt`;
+      } else {
+        document.getElementById('podium-1-name').textContent = "なし";
+      }
+
+      if (sortedRankings[1]) {
+        document.getElementById('podium-2-name').textContent = sortedRankings[1].name;
+        document.getElementById('podium-2-avatar').textContent = sortedRankings[1].avatar;
+        document.getElementById('podium-2-score').textContent = `${sortedRankings[1].score.toLocaleString()} pt`;
+      } else {
+        document.getElementById('podium-2-name').textContent = "なし";
+      }
+
+      if (sortedRankings[2]) {
+        document.getElementById('podium-3-name').textContent = sortedRankings[2].name;
+        document.getElementById('podium-3-avatar').textContent = sortedRankings[2].avatar;
+        document.getElementById('podium-3-score').textContent = `${sortedRankings[2].score.toLocaleString()} pt`;
+      } else {
+        document.getElementById('podium-3-name').textContent = "なし";
+      }
+
+      // 4th+ list
+      const container = document.getElementById('other-ranks-container');
+      let html = '';
+      if (sortedRankings.length > 3) {
+        for (let i = 3; i < sortedRankings.length; i++) {
+          const p = sortedRankings[i];
+          html += `
+            <div class="bg-pop-dark neo-border-sm rounded-xl p-3 flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <span class="font-black text-gray-400 w-6 text-center">${i + 1}</span>
+                <span class="text-xl">${p.avatar}</span>
+                <span class="font-bold text-sm truncate max-w-[120px]">${p.name}</span>
+              </div>
+              <span class="font-black text-xs text-pop-yellow">${p.score.toLocaleString()} pt</span>
+            </div>
+          `;
+        }
+      } else {
+        html = `<div class="text-center py-6 text-gray-400 font-bold text-xs">4位以下のプレイヤーはいません</div>`;
+      }
+      container.innerHTML = html;
+
+      broadcast({
+        type: 'FINAL_RANKING',
+        rankings: sortedRankings.map((p, idx) => ({
+          rank: idx + 1,
+          name: p.name,
+          avatar: p.avatar,
+          score: p.score
+        }))
+      });
+
+      // ★ 自動でドラマチック表彰式を始動！
+      startAutoCeremony();
+    }
+
+    function resetRankingReveal() {
+      rankingRevealStep = 0;
+      if (autoCeremonyTimer) {
+        clearTimeout(autoCeremonyTimer);
+        autoCeremonyTimer = null;
+      }
+      document.getElementById('other-ranks-container').classList.add('opacity-0');
+      document.getElementById('podium-3').classList.add('opacity-0');
+      document.getElementById('podium-3').classList.remove('animate-podium-pop');
+      document.getElementById('podium-2').classList.add('opacity-0');
+      document.getElementById('podium-2').classList.remove('animate-podium-pop');
+      document.getElementById('podium-1').classList.add('opacity-0');
+      document.getElementById('podium-1').classList.remove('animate-podium-pop');
+
+      document.getElementById('rank-step-badge').textContent = "表彰式準備完了";
+      document.getElementById('btn-next-rank').disabled = false;
+    }
+
+    function startAutoCeremony() {
+      resetRankingReveal();
+
+      // Sequence delays
+      setTimeout(() => { revealNextRank(); }, 600);    // Step 1: 4th+ list
+      setTimeout(() => { revealNextRank(); }, 2600);   // Step 2: 3rd
+      setTimeout(() => { revealNextRank(); }, 4800);   // Step 3: 2nd
+      setTimeout(() => { revealNextRank(); }, 7000);   // Step 4: 1st with Drumroll & Confetti
+    }
+
+    function revealNextRank() {
+      rankingRevealStep++;
+
+      if (rankingRevealStep === 1) {
+        playBeep(600, 'sine', 0.15);
+        document.getElementById('other-ranks-container').classList.remove('opacity-0');
+        document.getElementById('rank-step-badge').textContent = "4位以下 発表";
+      } else if (rankingRevealStep === 2) {
+        playBeep(700, 'triangle', 0.25);
+        const p3 = document.getElementById('podium-3');
+        p3.classList.remove('opacity-0');
+        p3.classList.add('animate-podium-pop');
+        document.getElementById('rank-step-badge').textContent = "第3位 発表";
+      } else if (rankingRevealStep === 3) {
+        playBeep(850, 'triangle', 0.25);
+        const p2 = document.getElementById('podium-2');
+        p2.classList.remove('opacity-0');
+        p2.classList.add('animate-podium-pop');
+        document.getElementById('rank-step-badge').textContent = "第2位 発表";
+      } else if (rankingRevealStep === 4) {
+        document.getElementById('rank-step-badge').textContent = "ドラムロール中...";
+        document.getElementById('btn-next-rank').disabled = true;
+
+        playDrumroll(2.4, () => {
+          const p1 = document.getElementById('podium-1');
+          p1.classList.remove('opacity-0');
+          p1.classList.add('animate-podium-pop');
+          document.getElementById('rank-step-badge').textContent = "👑 優勝決定！";
+          fireConfetti();
+        });
+      }
+    }
+
+    function fireConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
+        setTimeout(() => {
+          confetti({ particleCount: 100, angle: 60, spread: 60, origin: { x: 0 } });
+          confetti({ particleCount: 100, angle: 120, spread: 60, origin: { x: 1 } });
+        }, 400);
+      }
+    }
+
+    function restartGame() {
+      currentQIndex = 0;
+      players.forEach(p => {
+        p.score = 0;
+        p.answered = false;
+        p.currentAnswer = null;
+      });
+      broadcast({ type: 'RESET' });
+      switchPhase('setup');
+    }
+
+    // ==========================================
+    // 10. WINDOW INITIALIZATION
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSampleData();
+      initPeerHost();
+
+      const dropZone = document.getElementById('drop-zone');
+      if (dropZone) {
+        dropZone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropZone.classList.add('border-pop-yellow', 'bg-pop-dark');
+        });
+        dropZone.addEventListener('dragleave', () => {
+          dropZone.classList.remove('border-pop-yellow', 'bg-pop-dark');
+        });
+        dropZone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropZone.classList.remove('border-pop-yellow', 'bg-pop-dark');
+          if (e.dataTransfer.files.length > 0) {
+            handleFileSelect({ target: { files: e.dataTransfer.files } });
+          }
+        });
+      }
+
+      window.addEventListener('click', () => {
+        initAudio();
+      }, { once: true });
+    });
+  </script>
+</body>
+</html>

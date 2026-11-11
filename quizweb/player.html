@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>POP QUIZ - Player</title>
+  <!-- PeerJS CDN -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent-yellow: #fbbf24;
+      --accent-pink: #f43f5e;
+      --accent-cyan: #06b6d4;
+      --accent-green: #10b981;
+      --accent-purple: #a855f7;
+      --text: #f8fafc;
+      --border-dark: #020617;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      font-family: 'M PLUS Rounded 1c', 'Fredoka', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* パネル共通 */
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      animation: fadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .screen.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* 1. ログイン画面 */
+    .join-card {
+      background: var(--card-bg);
+      border: 4px solid var(--border-dark);
+      border-radius: 28px;
+      padding: 28px 20px;
+      width: 100%;
+      box-shadow: 0 10px 0 var(--border-dark);
+      text-align: center;
+    }
+    .app-logo {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--accent-yellow);
+      text-shadow: 3px 3px 0 var(--border-dark);
+      margin-bottom: 18px;
+      letter-spacing: 1px;
+    }
+    .input-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+    .input-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .custom-input {
+      width: 100%;
+      background: #0f172a;
+      border: 3px solid var(--border-dark);
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      outline: none;
+      text-align: center;
+    }
+    .custom-input:focus {
+      border-color: var(--accent-yellow);
+    }
+    .custom-input:disabled {
+      background: #1e1b2e;
+      color: var(--accent-yellow);
+      opacity: 0.9;
+    }
+
+    /* アバター選択 */
+    .avatar-selector {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 2px 8px;
+      margin-bottom: 14px;
+      justify-content: center;
+    }
+    .avatar-item {
+      font-size: 26px;
+      background: #0f172a;
+      border: 2px solid var(--border-dark);
+      border-radius: 14px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .avatar-item.selected {
+      background: var(--accent-purple);
+      border-color: var(--accent-yellow);
+      transform: scale(1.15);
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--accent-green);
+      color: var(--border-dark);
+      border: 3px solid var(--border-dark);
+      border-radius: 20px;
+      padding: 15px;
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 6px 0 var(--border-dark);
+      transition: all 0.1s;
+      margin-top: 6px;
+    }
+    .btn-submit:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 var(--border-dark);
+    }
+
+    /* 2. 待機中画面 */
+    .lobby-card {
+      background: var(--card-bg);
+      border: 4px solid var(--border-dark);
+      border-radius: 28px;
+      padding: 36px 20px;
+      width: 100%;
+      box-shadow: 0 10px 0 var(--border-dark);
+      text-align: center;
+    }
+    .lobby-avatar {
+      font-size: 64px;
+      margin-bottom: 12px;
+      animation: bounce 1.8s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* 3. 回答画面 */
+    .player-header {
+      position: absolute;
+      top: 16px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(30, 41, 59, 0.95);
+      border: 3px solid var(--border-dark);
+      padding: 8px 16px;
+      border-radius: 50px;
+      box-shadow: 0 4px 0 var(--border-dark);
+      z-index: 20;
+    }
+    .player-info {
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--accent-yellow);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .player-score {
+      font-weight: 900;
+      font-size: 15px;
+      background: var(--accent-purple);
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 2px solid var(--border-dark);
+    }
+
+    .question-hint-box {
+      width: 100%;
+      background: #1e293b;
+      border: 3px solid var(--border-dark);
+      border-radius: 20px;
+      padding: 14px 16px;
+      margin-top: 70px;
+      margin-bottom: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.4;
+      text-align: center;
+      color: #fff;
+      box-shadow: 0 4px 0 var(--border-dark);
+    }
+
+    .timer-bar-wrap {
+      width: 100%;
+      height: 8px;
+      background: #0f172a;
+      border-radius: 4px;
+      border: 2px solid var(--border-dark);
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .timer-bar-fill {
+      height: 100%;
+      background: var(--accent-yellow);
+      width: 100%;
+      transition: width 0.1s linear, background-color 0.3s;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 12px;
+      width: 100%;
+      height: 52vh;
+    }
+    .options-grid.grid-2 {
+      grid-template-columns: 1fr;
+      grid-gap: 14px;
+    }
+    .options-grid.grid-3 {
+      grid-template-columns: 1fr;
+      grid-gap: 10px;
+    }
+    .options-grid.has-image {
+      height: 42vh !important;
+    }
+    .opt-btn {
+      border: 4px solid var(--border-dark);
+      border-radius: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 900;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 8px 0 var(--border-dark);
+      transition: all 0.1s;
+      position: relative;
+      padding: 10px;
+    }
+    .opt-btn:active {
+      transform: translateY(5px);
+      box-shadow: 0 3px 0 var(--border-dark);
+    }
+    .opt-btn.red { background: #ef4444; }
+    .opt-btn.blue { background: #3b82f6; }
+    .opt-btn.yellow { background: #eab308; color: #000; }
+    .opt-btn.green { background: #10b981; }
+    .opt-label {
+      font-size: 15px;
+      margin-top: 4px;
+      text-align: center;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+
+    /* 4. 送信完了・待機画面 */
+    .waiting-box {
+      text-align: center;
+      background: var(--card-bg);
+      border: 4px solid var(--border-dark);
+      border-radius: 32px;
+      padding: 36px 20px;
+      box-shadow: 0 10px 0 var(--border-dark);
+      width: 100%;
+    }
+    .status-icon {
+      font-size: 60px;
+      margin-bottom: 14px;
+      animation: pulse 1.4s infinite alternate;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.18); }
+    }
+    .selected-badge {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 50px;
+      border: 3px solid var(--border-dark);
+      font-size: 20px;
+      font-weight: 900;
+      margin: 18px 0;
+      color: #fff;
+      max-width: 90%;
+      word-break: break-word;
+    }
+
+    /* 5. 結果発表画面 */
+    .result-box {
+      text-align: center;
+      width: 100%;
+    }
+    .result-banner {
+      font-size: 42px;
+      font-weight: 900;
+      text-shadow: 4px 4px 0 var(--border-dark);
+      margin-bottom: 12px;
+      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .result-banner.correct { color: var(--accent-green); }
+    .result-banner.wrong { color: var(--accent-pink); }
+    
+    @keyframes popIn {
+      from { transform: scale(0.2); }
+      to { transform: scale(1); }
+    }
+    
+    .rank-card {
+      background: var(--card-bg);
+      border: 4px solid var(--border-dark);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 10px 0 var(--border-dark);
+    }
+    .rank-val {
+      font-size: 50px;
+      font-weight: 900;
+      color: var(--accent-yellow);
+      text-shadow: 3px 3px 0 var(--border-dark);
+    }
+
+    /* プレイヤー手元での解説ボックス */
+    .player-explanation-box {
+      background: #0f172a;
+      border: 2px solid var(--border-dark);
+      border-radius: 16px;
+      padding: 12px;
+      margin-top: 14px;
+      font-size: 13px;
+      color: #e2e8f0;
+      font-weight: 700;
+      line-height: 1.4;
+      text-align: left;
+    }
+
+    /* 6. 最終結果画面 */
+    .final-card {
+      background: var(--card-bg);
+      border: 4px solid var(--border-dark);
+      border-radius: 28px;
+      padding: 28px 20px;
+      width: 100%;
+      box-shadow: 0 10px 0 var(--border-dark);
+      text-align: center;
+    }
+
+    #toast-msg {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ef4444;
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 8px 18px;
+      border-radius: 30px;
+      border: 2px solid #000;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+  </style>
+  <script>
+    // iPad/Mobile double-tap zoom prevention
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+  </script>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- 1. ログイン画面 -->
+    <div id="screen-login" class="screen active">
+      <div class="join-card">
+        <div class="app-logo">POP QUIZ ⚡</div>
+        
+        <div class="input-group">
+          <label class="input-label" id="label-room-status">ルームコード (4桁)</label>
+          <input type="number" id="input-room" class="custom-input" placeholder="7842" maxlength="4">
+        </div>
+        
+        <div class="input-group">
+          <label class="input-label">あなたの名前 (ニックネーム)</label>
+          <input type="text" id="input-name" class="custom-input" placeholder="名前を入力" maxlength="8">
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">アバターを選んでね</label>
+          <div class="avatar-selector" id="avatar-list">
+            <span class="avatar-item selected" onclick="selectAvatar('🐱', this)">🐱</span>
+            <span class="avatar-item" onclick="selectAvatar('🐶', this)">🐶</span>
+            <span class="avatar-item" onclick="selectAvatar('🦊', this)">🦊</span>
+            <span class="avatar-item" onclick="selectAvatar('🐼', this)">🐼</span>
+            <span class="avatar-item" onclick="selectAvatar('🐯', this)">🐯</span>
+            <span class="avatar-item" onclick="selectAvatar('🐰', this)">🐰</span>
+            <span class="avatar-item" onclick="selectAvatar('🐸', this)">🐸</span>
+            <span class="avatar-item" onclick="selectAvatar('🦄', this)">🦄</span>
+          </div>
+        </div>
+
+        <button class="btn-submit" id="btn-join" onclick="joinRoom()">クイズに参加する！</button>
+      </div>
+    </div>
+
+    <!-- 2. 待機中画面（ロビー） -->
+    <div id="screen-lobby" class="screen">
+      <div class="lobby-card">
+        <div class="lobby-avatar" id="lobby-avatar-display">🐱</div>
+        <h2 style="font-size: 24px; font-weight: 900; color: var(--accent-yellow);" id="lobby-name-display">たろう</h2>
+        <p style="color: var(--accent-cyan); font-weight: 800; margin-top: 4px;">参加完了！</p>
+        <div style="margin: 24px 0; padding: 14px; background: #0f172a; border-radius: 16px; border: 2px solid var(--border-dark);">
+          <p style="font-size: 14px; color: #94a3b8; font-weight: 800;">先生（ホスト）の画面で</p>
+          <p style="font-size: 16px; font-weight: 900; color: #fff; margin-top: 4px;">クイズが始まるのを待っています...</p>
+        </div>
+        <p style="font-size: 12px; color: #64748b; font-weight: 700;">※画面を閉じずにお待ちください</p>
+      </div>
+    </div>
+
+    <!-- 3. 回答選択画面 -->
+    <div id="screen-answer" class="screen">
+      <div class="player-header">
+        <div class="player-info">
+          <span id="player-avatar-hud">🐱</span>
+          <span id="player-name-hud">たろう</span>
+        </div>
+        <div class="player-score" id="player-score-hud">0 pt</div>
+      </div>
+
+      <div class="question-hint-box" id="q-hint-text">
+        問題文がここに表示されます
+      </div>
+
+      <!-- 問題メディア表示枠 (画像または動画) -->
+      <div id="player-q-img-wrap" class="hidden" style="width: 100%; max-height: 140px; margin-bottom: 10px; border-radius: 16px; overflow: hidden; border: 3px solid var(--border-dark); background: #000; flex-shrink: 0;">
+        <img id="player-q-img" src="" alt="問題画像" style="width: 100%; height: 100%; object-fit: contain;">
+        <video id="player-q-video" src="" autoplay muted loop playsinline class="hidden" style="width: 100%; height: 100%; object-fit: contain;"></video>
+      </div>
+
+      <div class="timer-bar-wrap">
+        <div class="timer-bar-fill" id="timer-bar"></div>
+      </div>
+
+      <!-- 動的選択肢ボタングリッド (2択 / 3択 / 4択 に対応) -->
+      <div class="options-grid" id="player-options-grid">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- 4. 回答完了・待機画面 -->
+    <div id="screen-waiting" class="screen">
+      <div class="waiting-box">
+        <div class="status-icon">🚀</div>
+        <h2 style="font-size: 24px; font-weight: 900;">回答を送信しました！</h2>
+        <p style="color:#94a3b8; margin-top: 8px; font-size: 14px;">あなたが選んだ答え</p>
+        <div id="selected-answer-display" class="selected-badge" style="background: #3b82f6;">
+          2. 木星
+        </div>
+        <p style="font-weight: 800; color: var(--accent-yellow); margin-top: 8px;">先生（ホスト）の画面に注目してね！</p>
+      </div>
+    </div>
+
+    <!-- 5. 1問ごとの結果画面 -->
+    <div id="screen-result" class="screen">
+      <div class="result-box">
+        <div class="result-banner" id="result-status-banner">正解！ 🎉</div>
+        <div class="rank-card">
+          <p style="font-size: 13px; color: #94a3b8; font-weight: 800;">現在のあなたの順位</p>
+          <div class="rank-val" id="result-rank-text">第 2 位</div>
+          <p style="font-size: 13px; color: #94a3b8; font-weight: 800; margin-top: 4px;" id="result-total-players">/ 8 人中</p>
+          <p style="font-size: 20px; font-weight: 900; margin-top: 10px; color: var(--accent-cyan);" id="result-gained-score">+1,250 pt 獲得！</p>
+          <p style="font-size: 14px; font-weight: 800; color: #fff; margin-top: 2px;" id="result-current-score">累計: 1,250 pt</p>
+
+          <!-- 手元解説表示 -->
+          <div class="player-explanation-box" id="player-explanation-container" style="display: none;">
+            <span style="color: var(--accent-yellow); font-weight: 900; display: block; margin-bottom: 2px;">💡 正解の解説:</span>
+            <span id="player-explanation-text">解説テキスト</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. 最終結果画面 -->
+    <div id="screen-final" class="screen">
+      <div class="final-card">
+        <div style="font-size: 54px; margin-bottom: 8px;">🏆</div>
+        <h2 style="font-size: 26px; font-weight: 900; color: var(--accent-yellow);">全問終了！</h2>
+        <p style="font-size: 14px; color: #94a3b8; font-weight: 800; margin-top: 4px;">お疲れ様でした！あなたの最終結果</p>
+        
+        <div style="margin: 20px 0; padding: 20px; background: #0f172a; border-radius: 20px; border: 3px solid var(--border-dark);">
+          <div style="font-size: 14px; color: var(--accent-cyan); font-weight: 800;">最終順位</div>
+          <div style="font-size: 56px; font-weight: 900; color: var(--accent-yellow); text-shadow: 3px 3px 0 #000;" id="final-rank-val">第 1 位</div>
+          <div style="font-size: 22px; font-weight: 900; color: #fff; margin-top: 8px;" id="final-score-val">4,800 pt</div>
+        </div>
+
+        <p style="font-size: 13px; color: var(--accent-green); font-weight: 800;">ホストの画面で表彰式が行われています！</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast-msg">メッセージ</div>
+
+  <script>
+    // ==========================================
+    // 1. STATE & CONSTANTS
+    // ==========================================
+    let peer = null;
+    let conn = null;
+    const PEER_PREFIX = 'popquiz-room-';
+
+    let currentAvatar = '🐱';
+    let playerName = '';
+    let currentScore = 0;
+    let currentQIndex = -1;
+    let questionReceivedTime = 0;
+    let questionTimeLimit = 10;
+    let timerAnimation = null;
+    let currentOptions = [];
+
+    // ==========================================
+    // 2. AUDIO FEEDBACK (Web Audio API)
+    // ==========================================
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSound(type) {
+      try {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'tap') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'correct') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.08);
+          osc.frequency.setValueAtTime(783.99, now + 0.16);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (type === 'wrong') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(250, now);
+          osc.frequency.setValueAtTime(200, now + 0.12);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        }
+      } catch(e) {}
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast-msg');
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      setTimeout(() => {
+        toast.style.opacity = '0';
+      }, 3000);
+    }
+
+    // ==========================================
+    // 3. SCREEN SWITCHING
+    // ==========================================
+    function switchScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(screenId);
+      if (target) {
+        target.classList.add('active');
+      }
+    }
+
+    function selectAvatar(avatar, el) {
+      currentAvatar = avatar;
+      document.querySelectorAll('.avatar-item').forEach(item => item.classList.remove('selected'));
+      el.classList.add('selected');
+      playSound('tap');
+    }
+
+    // ==========================================
+    // 4. WEBRTC / PEERJS CLIENT CONNECTION
+    // ==========================================
+    function joinRoom() {
+      initAudio();
+      const roomInput = document.getElementById('input-room').value.trim();
+      const nameInput = document.getElementById('input-name').value.trim();
+
+      if (!roomInput || roomInput.length < 4) {
+        showToast("4桁のルームコードを入力してください");
+        return;
+      }
+      if (!nameInput) {
+        showToast("プレイヤー名を入力してください");
+        return;
+      }
+
+      playerName = nameInput;
+      const hostPeerId = PEER_PREFIX + roomInput;
+
+      const btn = document.getElementById('btn-join');
+      btn.textContent = "接続中...";
+      btn.disabled = true;
+
+      if (peer) {
+        try { peer.destroy(); } catch(e){}
+      }
+
+      peer = new Peer({ debug: 1 });
+
+      peer.on('open', (myId) => {
+        console.log('Player peer opened:', myId);
+        connectToHost(hostPeerId);
+      });
+
+      peer.on('error', (err) => {
+        console.error('Peer error:', err);
+        btn.textContent = "クイズに参加する！";
+        btn.disabled = false;
+        showToast("接続エラー: " + err.type);
+      });
+    }
+
+    function connectToHost(hostPeerId) {
+      conn = peer.connect(hostPeerId, {
+        reliable: true
+      });
+
+      const connectTimeout = setTimeout(() => {
+        if (!conn || !conn.open) {
+          const btn = document.getElementById('btn-join');
+          btn.textContent = "クイズに参加する！";
+          btn.disabled = false;
+          showToast("ホストが見つかりません。部屋番号を確認してください。");
+        }
+      }, 8000);
+
+      conn.on('open', () => {
+        clearTimeout(connectTimeout);
+        console.log('Connected to Host!');
+        
+        conn.send({
+          type: 'JOIN',
+          name: playerName,
+          avatar: currentAvatar
+        });
+
+        document.getElementById('lobby-avatar-display').textContent = currentAvatar;
+        document.getElementById('lobby-name-display').textContent = playerName;
+        document.getElementById('player-avatar-hud').textContent = currentAvatar;
+        document.getElementById('player-name-hud').textContent = playerName;
+        document.getElementById('player-score-hud').textContent = `${currentScore} pt`;
+
+        switchScreen('screen-lobby');
+      });
+
+      conn.on('data', (data) => {
+        handleHostData(data);
+      });
+
+      conn.on('close', () => {
+        showToast("ホストとの通信が切断されました");
+        switchScreen('screen-login');
+        const btn = document.getElementById('btn-join');
+        btn.textContent = "クイズに参加する！";
+        btn.disabled = false;
+      });
+
+      conn.on('error', (err) => {
+        console.error('Connection error:', err);
+        showToast("通信エラーが発生しました");
+      });
+    }
+
+    function handleHostData(data) {
+      if (!data || !data.type) return;
+
+      switch(data.type) {
+        case 'JOIN_ACCEPTED': {
+          console.log('Join accepted by host');
+          break;
+        }
+
+        case 'QUESTION_START': {
+          currentQIndex = data.qIndex;
+          questionReceivedTime = Date.now();
+          questionTimeLimit = data.timeLimit || 10;
+          currentOptions = data.options || [];
+
+          document.getElementById('q-hint-text').textContent = `Q${data.qIndex + 1}. ${data.question}`;
+
+          // メディア（画像・動画）表示制御
+          const imgWrap = document.getElementById('player-q-img-wrap');
+          const imgEl = document.getElementById('player-q-img');
+          const videoEl = document.getElementById('player-q-video');
+          const gridEl = document.getElementById('player-options-grid');
+
+          if (data.image) {
+            const isVideo = data.mediaType === 'video' || data.image.startsWith('data:video/') || data.image.includes('.mp4') || data.image.includes('.webm');
+            if (isVideo) {
+              if (imgEl) imgEl.classList.add('hidden');
+              if (videoEl) {
+                videoEl.src = data.image;
+                videoEl.classList.remove('hidden');
+                videoEl.play().catch(() => {});
+              }
+            } else {
+              if (videoEl) {
+                videoEl.pause();
+                videoEl.classList.add('hidden');
+                videoEl.src = '';
+              }
+              if (imgEl) {
+                imgEl.src = data.image;
+                imgEl.classList.remove('hidden');
+              }
+            }
+            imgWrap.classList.remove('hidden');
+            gridEl.classList.add('has-image');
+          } else {
+            imgWrap.classList.add('hidden');
+            if (imgEl) { imgEl.src = ''; imgEl.classList.remove('hidden'); }
+            if (videoEl) { videoEl.pause(); videoEl.src = ''; videoEl.classList.add('hidden'); }
+            gridEl.classList.remove('has-image');
+          }
+
+          // 2択 / 3択 / 4択 に応じたボタングリッドの動的生成
+          const count = currentOptions.length;
+          gridEl.classList.remove('grid-2', 'grid-3');
+          if (count === 2) {
+            gridEl.classList.add('grid-2');
+          } else if (count === 3) {
+            gridEl.classList.add('grid-3');
+          }
+
+          const btnColors = ['red', 'blue', 'yellow', 'green'];
+          let buttonsHtml = '';
+          for (let i = 0; i < count; i++) {
+            const colorClass = btnColors[i % btnColors.length];
+            buttonsHtml += `
+              <button class="opt-btn ${colorClass}" onclick="submitAnswer(${i + 1})">
+                <span>${i + 1}</span>
+                <span class="opt-label">${escapeHtml(currentOptions[i] || '')}</span>
+              </button>
+            `;
+          }
+          gridEl.innerHTML = buttonsHtml;
+
+          startPlayerTimerBar(questionTimeLimit);
+
+          switchScreen('screen-answer');
+          playSound('tap');
+          break;
+        }
+
+        case 'QUESTION_RESULT': {
+          cancelPlayerTimer();
+          const isCorr = data.isCorrect;
+          currentScore = data.currentScore || 0;
+          document.getElementById('player-score-hud').textContent = `${currentScore.toLocaleString()} pt`;
+
+          const banner = document.getElementById('result-status-banner');
+          if (isCorr) {
+            banner.textContent = "正解！ 🎉";
+            banner.className = "result-banner correct";
+            playSound('correct');
+          } else {
+            banner.textContent = "不正解... 😢";
+            banner.className = "result-banner wrong";
+            playSound('wrong');
+          }
+
+          document.getElementById('result-rank-text').textContent = `第 ${data.currentRank || 1} 位`;
+          document.getElementById('result-total-players').textContent = `/ ${data.totalPlayers || 1} 人中`;
+          document.getElementById('result-gained-score').textContent = isCorr ? `+${data.earnedScore.toLocaleString()} pt 獲得！` : `+0 pt`;
+          document.getElementById('result-current-score').textContent = `累計: ${currentScore.toLocaleString()} pt`;
+
+          // 解説表示
+          const expBox = document.getElementById('player-explanation-container');
+          const expText = document.getElementById('player-explanation-text');
+          if (data.explanation) {
+            expText.textContent = data.explanation;
+            expBox.style.display = 'block';
+          } else {
+            expBox.style.display = 'none';
+          }
+
+          switchScreen('screen-result');
+          break;
+        }
+
+        case 'FINAL_RANKING': {
+          cancelPlayerTimer();
+          const rankings = data.rankings || [];
+          const myEntry = rankings.find(r => r.name === playerName) || { rank: 1, score: currentScore };
+          
+          document.getElementById('final-rank-val').textContent = `第 ${myEntry.rank} 位`;
+          document.getElementById('final-score-val').textContent = `${(myEntry.score || currentScore).toLocaleString()} pt`;
+
+          switchScreen('screen-final');
+          break;
+        }
+
+        case 'RESET': {
+          currentScore = 0;
+          document.getElementById('player-score-hud').textContent = `0 pt`;
+          switchScreen('screen-lobby');
+          break;
+        }
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // ==========================================
+    // 5. PLAYER INTERACTIONS
+    // ==========================================
+    function submitAnswer(choiceNumber) {
+      playSound('tap');
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+
+      const answerTimeMs = Date.now() - questionReceivedTime;
+      const optText = currentOptions[choiceNumber - 1] || `選択肢${choiceNumber}`;
+      
+      const colors = ['#ef4444', '#3b82f6', '#eab308', '#10b981'];
+      const badge = document.getElementById('selected-answer-display');
+      badge.textContent = `${choiceNumber}. ${optText}`;
+      badge.style.background = colors[choiceNumber - 1] || '#3b82f6';
+      badge.style.color = (choiceNumber === 3) ? '#000' : '#fff';
+
+      if (conn && conn.open) {
+        conn.send({
+          type: 'ANSWER_SUBMIT',
+          answer: choiceNumber,
+          answerTimeMs: answerTimeMs
+        });
+      }
+
+      cancelPlayerTimer();
+      switchScreen('screen-waiting');
+    }
+
+    function startPlayerTimerBar(seconds) {
+      cancelPlayerTimer();
+      const bar = document.getElementById('timer-bar');
+      bar.style.width = '100%';
+      bar.style.backgroundColor = 'var(--accent-yellow)';
+
+      const startTime = Date.now();
+      const totalMs = seconds * 1000;
+
+      timerAnimation = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, totalMs - elapsed);
+        const pct = (remaining / totalMs) * 100;
+        bar.style.width = pct + '%';
+
+        if (pct < 30) {
+          bar.style.backgroundColor = 'var(--accent-pink)';
+        }
+
+        if (remaining <= 0) {
+          cancelPlayerTimer();
+        }
+      }, 50);
+    }
+
+    function cancelPlayerTimer() {
+      if (timerAnimation) {
+        clearInterval(timerAnimation);
+        timerAnimation = null;
+      }
+    }
+
+    // ==========================================
+    // 6. INITIALIZATION & QR CODE AUTO-JOIN
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      // Check ?room=XXXX in URL query from QR Code
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      const roomInput = document.getElementById('input-room');
+      const nameInput = document.getElementById('input-name');
+
+      if (roomParam) {
+        roomInput.value = roomParam;
+        roomInput.disabled = true; // Auto-locked because scanned via QR
+        document.getElementById('label-room-status').innerHTML = `ルームコード: <span style="color:var(--accent-yellow); font-size:16px;">${roomParam}</span> (QR読み取り完了)`;
+        // Focus name input for super smooth join
+        setTimeout(() => { nameInput.focus(); }, 300);
+      }
+
+      const defaultNames = ['たろう', 'はなこ', 'ケン', 'ユウキ', 'アリス', 'ボブ', 'リン', 'ショウ'];
+      const randomName = defaultNames[Math.floor(Math.random() * defaultNames.length)];
+      nameInput.value = randomName;
+
+      window.addEventListener('click', () => {
+        initAudio();
+      }, { once: true });
+    });
+  </script>
+</body>
+</html>
