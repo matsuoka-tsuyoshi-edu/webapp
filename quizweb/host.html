@@ -234,7 +234,7 @@
                 <i class="fa-solid fa-wand-magic-sparkles text-2xl text-pop-yellow"></i>
                 <span>クイズデータ管理</span>
               </h2>
-              <span id="file-status-badge" class="bg-pop-dark text-pop-yellow text-xs px-3 py-1 rounded-full neo-border-sm font-bold">デモ問題待機中</span>
+              <span id="file-status-badge" class="bg-pop-dark text-gray-300 text-xs px-3 py-1 rounded-full neo-border-sm font-bold">問題未セット (0問)</span>
             </div>
 
             <!-- Main Quiz Studio Button -->
@@ -249,9 +249,9 @@
 
           <!-- Quick Actions & Status -->
           <div class="mt-4 pt-3 border-t border-gray-700 flex items-center justify-between">
-            <span class="text-xs font-bold text-gray-300" id="quiz-summary-text">10問のサンプル問題を自動セット済</span>
-            <button onclick="loadSampleData()" class="bg-pop-cyan hover:bg-cyan-300 text-black px-3 py-1.5 rounded-xl text-xs font-black neo-border-sm shadow-neo-sm neo-button flex items-center gap-1">
-              <i class="fa-solid fa-rotate-right"></i><span>標準デモ問題</span>
+            <span class="text-xs font-bold text-gray-400 truncate max-w-[220px]" id="quiz-summary-text">「クイズを作成・編集」から作成または読込</span>
+            <button onclick="loadSampleData()" class="bg-pop-cyan hover:bg-cyan-300 text-black px-3 py-1.5 rounded-xl text-xs font-black neo-border-sm shadow-neo-sm neo-button flex items-center gap-1 shrink-0" title="4択・2択(〇×)の代表的なお手本2問をセット">
+              <i class="fa-solid fa-gift"></i><span>サンプル(2問)</span>
             </button>
           </div>
         </div>
@@ -663,14 +663,16 @@
     </div>
   </div>
 
-  <!-- ==================== IMAGE ZOOM MODAL (NEW) ==================== -->
-  <div id="image-zoom-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 md:p-6 cursor-pointer" onclick="closeImageZoom()">
-    <div class="relative max-w-5xl max-h-[90dvh] bg-pop-dark neo-border shadow-neo-lg rounded-3xl p-3 flex flex-col items-center justify-center" onclick="event.stopPropagation()">
-      <button onclick="closeImageZoom()" class="absolute -top-3 -right-3 w-11 h-11 bg-pop-pink hover:bg-rose-400 text-black rounded-xl neo-border-sm flex items-center justify-center font-black neo-button z-10 text-xl" title="閉じる">
+  <!-- ==================== IMAGE ZOOM MODAL (EXPANDED TO FULL VIEWPORT) ==================== -->
+  <div id="image-zoom-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 cursor-pointer" onclick="closeImageZoom()">
+    <div class="relative w-[96vw] max-w-6xl h-[88dvh] max-h-[88dvh] bg-pop-dark neo-border shadow-neo-lg rounded-3xl p-3 md:p-4 flex flex-col items-center justify-center overflow-hidden" onclick="event.stopPropagation()">
+      <button onclick="closeImageZoom()" class="absolute top-2 right-2 md:top-3 md:right-3 w-10 h-10 md:w-12 md:h-12 bg-pop-pink hover:bg-rose-400 text-black rounded-xl md:rounded-2xl neo-border-sm flex items-center justify-center font-black neo-button z-20 text-lg md:text-xl shadow" title="閉じる">
         ✕
       </button>
-      <img id="zoom-modal-img" src="" class="max-w-full max-h-[82dvh] object-contain rounded-2xl neo-border-sm mx-auto">
-      <video id="zoom-modal-video" src="" controls autoplay playsinline class="hidden max-w-full max-h-[82dvh] object-contain rounded-2xl neo-border-sm mx-auto"></video>
+      <div class="w-full h-full flex items-center justify-center overflow-hidden">
+        <img id="zoom-modal-img" src="" class="w-full h-full object-contain rounded-xl md:rounded-2xl mx-auto drop-shadow-2xl">
+        <video id="zoom-modal-video" src="" controls autoplay playsinline class="hidden w-full h-full object-contain rounded-xl md:rounded-2xl mx-auto"></video>
+      </div>
     </div>
   </div>
 
@@ -693,6 +695,10 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <button onclick="studioLoadSample2Questions()" class="bg-pop-purple hover:bg-purple-600 text-white text-xs font-black px-3 py-1.5 rounded-xl neo-border-sm neo-button flex items-center gap-1.5 shadow-sm" title="4択と2択(〇×)の代表サンプル(2問)をセット">
+            <i class="fa-solid fa-gift text-pop-yellow"></i><span>🎁 サンプル(2問)</span>
+          </button>
+
           <button onclick="studioTriggerImport()" class="bg-pop-dark hover:bg-slate-700 text-pop-cyan text-xs font-black px-3 py-1.5 rounded-xl neo-border-sm neo-button flex items-center gap-1.5 shadow-sm" title="Excel (.xlsx) / CSV または ZIPパッケージから問題を一括読み込み">
             <i class="fa-solid fa-file-import text-pop-yellow"></i><span>📥 Excel/ZIP読込</span>
           </button>
@@ -798,6 +804,30 @@
         q.options[i] = getSanitizedOption(q.options[i], i, count);
       }
     }
+
+    // お手本用サンプル問題（代表的な4択 1問 ＋ 2択〇× 1問 の計2問）
+    const DEFAULT_SAMPLE_2_QUESTIONS = [
+      {
+        id: 1,
+        type: "4choice",
+        question: "太陽系の中で、最も大きくて質量が重い惑星は次のうちどれでしょう？",
+        options: ["火星 (Mars)", "木星 (Jupiter)", "土星 (Saturn)", "金星 (Venus)"],
+        correct: 2,
+        timeLimit: 10,
+        category: "宇宙・天文",
+        explanation: "木星は地球の約1300倍もの体積があり、太陽系最大のガス惑星です！"
+      },
+      {
+        id: 2,
+        type: "2choice",
+        question: "富士山（標高3776m）は日本で一番高い山である。〇か×か？",
+        options: ["〇", "×"],
+        correct: 1,
+        timeLimit: 10,
+        category: "地理",
+        explanation: "正解は〇！富士山は標高3776mで日本一高い山です。"
+      }
+    ];
 
     // Default Sample Questions (10 questions with Explanations)
     const DEFAULT_QUESTIONS = [
@@ -1398,14 +1428,20 @@
 
     function loadSampleData() {
       initAudio();
-      questions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+      questions = JSON.parse(JSON.stringify(DEFAULT_SAMPLE_2_QUESTIONS));
+      questions.forEach(q => sanitizeQuestionOptions(q));
       currentQIndex = 0;
       
       const badge = document.getElementById('file-status-badge');
-      badge.textContent = `デモ問題 ${questions.length}問 ロード完了`;
-      badge.className = "bg-pop-green text-black text-xs px-3 py-1 rounded-full neo-border-sm font-black";
+      if (badge) {
+        badge.textContent = `サンプル ${questions.length}問 セット完了`;
+        badge.className = "bg-pop-green text-black text-xs px-3 py-1 rounded-full neo-border-sm font-black";
+      }
 
-      document.getElementById('quiz-summary-text').textContent = `全 ${questions.length} 問のクイズを待機中`;
+      const sumText = document.getElementById('quiz-summary-text');
+      if (sumText) {
+        sumText.textContent = `お手本サンプル ${questions.length}問 (4択・2択〇×) をセットしました`;
+      }
       playBeep(880, 'triangle', 0.2);
     }
 
@@ -1649,15 +1685,29 @@
       initAudio();
       playBeep(700, 'triangle', 0.15);
 
-      // Deep copy from current questions or sample if empty
-      studioQuestions = JSON.parse(JSON.stringify(questions.length > 0 ? questions : DEFAULT_QUESTIONS));
+      // Deep copy from current questions (start empty if no questions yet)
+      studioQuestions = JSON.parse(JSON.stringify(questions));
       studioQuestions.forEach(q => sanitizeQuestionOptions(q));
-      studioActiveIndex = 0;
+      studioActiveIndex = studioQuestions.length > 0 ? 0 : -1;
 
       renderStudioList();
       renderStudioForm();
 
       document.getElementById('quiz-studio-modal').classList.remove('hidden');
+    }
+
+    function studioLoadSample2Questions() {
+      if (studioQuestions.length > 0) {
+        if (!confirm("現在の編集中の問題を破棄し、お手本サンプル問題（2問）をセットしますか？")) {
+          return;
+        }
+      }
+      studioQuestions = JSON.parse(JSON.stringify(DEFAULT_SAMPLE_2_QUESTIONS));
+      studioQuestions.forEach(q => sanitizeQuestionOptions(q));
+      studioActiveIndex = 0;
+      renderStudioList();
+      renderStudioForm();
+      playBeep(880, 'triangle', 0.2);
     }
 
     function closeQuizStudio() {
@@ -1735,7 +1785,27 @@
       const q = studioQuestions[studioActiveIndex];
 
       if (!q) {
-        panel.innerHTML = `<div class="text-center py-20 text-gray-400 font-bold">問題がありません。「問題を追加」ボタンを押してください。</div>`;
+        panel.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-center p-8 my-auto">
+            <div class="w-20 h-20 bg-pop-purple text-pop-yellow rounded-3xl neo-border shadow-neo flex items-center justify-center text-4xl mb-4">
+              <i class="fa-solid fa-lightbulb"></i>
+            </div>
+            <h3 class="text-2xl font-black text-white mb-2">問題がまだセットされていません</h3>
+            <p class="text-xs md:text-sm text-gray-300 font-bold mb-6 max-w-md leading-relaxed">
+              ゼロからオリジナル問題を作成するか、お手本サンプル(2問)をセットして編集をスタートできます。
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+              <button onclick="studioAddNewQuestion()" class="bg-pop-green hover:bg-emerald-400 text-black font-black text-sm md:text-base px-6 py-3 rounded-2xl neo-border shadow-neo neo-button flex items-center gap-2">
+                <i class="fa-solid fa-plus text-lg"></i>
+                <span>＋ 新しい問題を追加</span>
+              </button>
+              <button onclick="studioLoadSample2Questions()" class="bg-pop-cyan hover:bg-cyan-300 text-black font-black text-sm md:text-base px-6 py-3 rounded-2xl neo-border shadow-neo neo-button flex items-center gap-2">
+                <i class="fa-solid fa-gift text-lg"></i>
+                <span>🎁 サンプルをセット (2問)</span>
+              </button>
+            </div>
+          </div>
+        `;
         return;
       }
 
@@ -2270,7 +2340,9 @@
     function startQuizSequence() {
       initAudio();
       if (questions.length === 0) {
-        loadSampleData();
+        alert("クイズデータがセットされていません。\n「✏️ クイズを作成・編集・読込」ボタンから問題を作成・読み込むか、サンプルをセットしてください。");
+        openQuizStudio();
+        return;
       }
       if (players.size === 0) {
         addBotPlayer();
@@ -2824,11 +2896,11 @@
     function startAutoCeremony() {
       resetRankingReveal();
 
-      // Sequence delays
-      setTimeout(() => { revealNextRank(); }, 600);    // Step 1: 4th+ list
-      setTimeout(() => { revealNextRank(); }, 2600);   // Step 2: 3rd
-      setTimeout(() => { revealNextRank(); }, 4800);   // Step 3: 2nd
-      setTimeout(() => { revealNextRank(); }, 7000);   // Step 4: 1st with Drumroll & Confetti
+      // Sequence delays (Fast tempo: 2/3 of previous duration for exciting speed!)
+      setTimeout(() => { revealNextRank(); }, 400);    // Step 1: 4th+ list
+      setTimeout(() => { revealNextRank(); }, 1800);   // Step 2: 3rd
+      setTimeout(() => { revealNextRank(); }, 3200);   // Step 3: 2nd
+      setTimeout(() => { revealNextRank(); }, 4600);   // Step 4: 1st with Drumroll & Confetti
     }
 
     function revealNextRank() {
@@ -2854,7 +2926,7 @@
         document.getElementById('rank-step-badge').textContent = "ドラムロール中...";
         document.getElementById('btn-next-rank').disabled = true;
 
-        playDrumroll(2.4, () => {
+        playDrumroll(1.5, () => {
           const p1 = document.getElementById('podium-1');
           p1.classList.remove('opacity-0');
           p1.classList.add('animate-podium-pop');
@@ -2889,7 +2961,7 @@
     // 10. WINDOW INITIALIZATION
     // ==========================================
     window.addEventListener('DOMContentLoaded', () => {
-      loadSampleData();
+      // 初期起動時はサンプルを強制セットせず、空の状態で起動（ユーザー要望）
       initPeerHost();
 
       const dropZone = document.getElementById('drop-zone');

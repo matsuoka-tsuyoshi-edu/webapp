@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POP QUIZ SHOW - 取扱説明書・運用マニュアル Ver 3.3.0</title>
+  <title>POP QUIZ SHOW - 取扱説明書・運用マニュアル Ver 3.3.1</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
@@ -28,9 +28,9 @@
   <!-- Header Bar -->
   <header class="max-w-4xl mx-auto bg-[#1E1B2E] text-white p-6 rounded-3xl neo-border neo-shadow mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
     <div>
-      <span class="bg-[#FDCB6E] text-black px-3 py-1 rounded-full text-xs font-black uppercase">Official Guide Ver 3.3.0</span>
+      <span class="bg-[#FDCB6E] text-black px-3 py-1 rounded-full text-xs font-black uppercase">Official Guide Ver 3.3.1</span>
       <h1 class="text-3xl md:text-4xl font-black text-[#FDCB6E] mt-2">POP QUIZ SHOW 取扱説明書</h1>
-      <p class="text-xs text-gray-400 font-bold mt-1">にょーんと伸びる特大縦棒タワーグラフ ＆ 2択〇×完全自動補正！</p>
+      <p class="text-xs text-gray-400 font-bold mt-1">表彰式テンポアップ・初期サンプル0問化・画像特大拡大・縦棒タワーグラフ！</p>
     </div>
     <div class="flex flex-wrap gap-2 no-print">
       <a href="../index.html" class="bg-[#6C5CE7] hover:bg-purple-600 text-white font-black px-4 py-2 rounded-xl text-xs neo-border shadow transition-all">
@@ -44,26 +44,34 @@
 
   <main class="max-w-4xl mx-auto space-y-8">
 
-    <!-- 1. Ver 3.3.0 新機能ハイライト -->
+    <!-- 1. Ver 3.3.1 新機能ハイライト -->
     <section class="bg-gradient-to-r from-purple-900 to-indigo-900 text-white p-6 rounded-3xl neo-border neo-shadow">
-      <span class="bg-[#FDCB6E] text-black font-black px-3 py-1 rounded-full text-xs uppercase mb-2 inline-block">Ver 3.3.0 Major Update</span>
-      <h2 class="text-2xl font-black text-[#FDCB6E] mb-3">Ver 3.3.0 で実現した圧倒的進化！</h2>
+      <span class="bg-[#FDCB6E] text-black font-black px-3 py-1 rounded-full text-xs uppercase mb-2 inline-block">Ver 3.3.1 Major Update</span>
+      <h2 class="text-2xl font-black text-[#FDCB6E] mb-3">Ver 3.3.1 で実現した圧倒的進化！</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold">
+        <div class="bg-black/30 p-3 rounded-xl border border-purple-400/30">
+          <p class="text-yellow-300 font-black text-sm mb-1">⚡ 表彰式テンポアップ（2/3に短縮）</p>
+          <p class="text-gray-200">1位発表まで約6.1秒に高速化！会場の熱気を保ったまま、テンポよく最高潮を迎えられます。</p>
+        </div>
+        <div class="bg-black/30 p-3 rounded-xl border border-purple-400/30">
+          <p class="text-yellow-300 font-black text-sm mb-1">🎁 初期0問化＆スタジオサンプル(2問)ボタン</p>
+          <p class="text-gray-200">起動時は0問で開始し削除の手間を撤廃。必要時のみスタジオからお手本2問をワンクリックでセット可能。</p>
+        </div>
+        <div class="bg-black/30 p-3 rounded-xl border border-purple-400/30">
+          <p class="text-yellow-300 font-black text-sm mb-1">🔍 画像タップ時の特大フル拡大表示</p>
+          <p class="text-gray-200">元画像が小さくても画面いっぱい（96vw × 88dvh）に自動スケールアップ。細部まで鮮明に拡大鑑賞できます。</p>
+        </div>
         <div class="bg-black/30 p-3 rounded-xl border border-purple-400/30">
           <p class="text-yellow-300 font-black text-sm mb-1">📊 にょーんと伸びる特大縦棒タワーグラフ</p>
           <p class="text-gray-200">回答内訳画面の空きスペースを活かし、選択肢カードの上に巨大な縦棒タワーが出現！下から上へバーが滑らかに伸びます。</p>
         </div>
         <div class="bg-black/30 p-3 rounded-xl border border-purple-400/30">
           <p class="text-yellow-300 font-black text-sm mb-1">⭕ 2択（〇×）問題の選択肢1・2完全解消</p>
-          <p class="text-gray-200">プレースホルダーが残ったデータでも自動で「〇」「×」へ安全補正。過去のZIPもそのまま完璧に〇×クイズとして動作！</p>
+          <p class="text-gray-200">プレースホルダーが残ったデータでも自動で「〇」「×」へ安全補正。過去のZIPもそのまま完璧に動作！</p>
         </div>
         <div class="bg-black/30 p-3 rounded-xl border border-purple-400/30">
           <p class="text-yellow-300 font-black text-sm mb-1">🔝 「次の問題へ」上部バナー移動＆解説領域最大化</p>
           <p class="text-gray-200">正解発表バナー右側にボタンを統合。下部フッター撤廃で解説カードが画面下端いっぱい（縦350px超）に広大化！</p>
-        </div>
-        <div class="bg-black/30 p-3 rounded-xl border border-purple-400/30">
-          <p class="text-yellow-300 font-black text-sm mb-1">🖼️ 画像オート拡大＆4択選択肢の完全収容</p>
-          <p class="text-gray-200">小さな画像もメディア枠いっぱいに迫力自動拡大。4択選択肢もスクロールなしで100%整然と収まります。</p>
         </div>
       </div>
     </section>
