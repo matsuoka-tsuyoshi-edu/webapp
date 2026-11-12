@@ -219,7 +219,7 @@
     function forceReloadLatestHost() {
       if (confirm("最新版のデザイン・スクリプトで画面を再読み込みしますか？")) {
         const url = new URL(window.location.href);
-        url.searchParams.set('v', '3.3.3');
+        url.searchParams.set('v', '3.3.4');
         url.searchParams.set('t', Date.now().toString());
         window.location.replace(url.toString());
       }
@@ -537,30 +537,58 @@
           </div>
         </div>
 
-        <!-- STAGE 3: DRAMATIC ANSWER & LARGE EXPLANATION IMPACT (2X EXPANDED SPACE) -->
-        <div id="reveal-stage-answer" class="hidden absolute inset-0 bg-pop-purple/95 rounded-2xl md:rounded-3xl flex flex-col items-center justify-start z-30 transition-all duration-300 p-4 md:p-6 overflow-y-auto gap-3">
-          <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-300/20 via-transparent to-transparent animate-pulse pointer-events-none"></div>
+        <!-- STAGE 3: EDUCATIONAL REVIEW STAGE (Problem & Options Review on Left + Correct & Explanation on Right) -->
+        <div id="reveal-stage-answer" class="hidden absolute inset-0 bg-pop-dark/95 backdrop-blur-md rounded-2xl md:rounded-3xl flex flex-col md:flex-row items-stretch justify-between z-30 transition-all duration-300 p-3 md:p-4 gap-3 md:gap-4 overflow-hidden">
           
-          <span class="bg-pop-yellow text-black font-black px-4 py-1 rounded-full text-xs neo-border-sm tracking-wider uppercase shadow shrink-0">CORRECT ANSWER</span>
-          
-          <!-- Animated Text Card (Correct Answer) - Impactful yet Balanced -->
-          <div id="reveal-answer-text-box" class="bg-pop-yellow text-black border-4 border-black shadow-neo px-6 md:px-10 py-2.5 md:py-3.5 rounded-2xl md:rounded-3xl flex items-center space-x-4 md:space-x-6 animate-reveal-slide max-w-4xl text-center w-full justify-center shrink-0">
-            <div class="w-11 h-11 md:w-14 md:h-14 bg-black text-white rounded-xl neo-border-sm flex items-center justify-center text-2xl md:text-3xl font-black shrink-0" id="reveal-correct-number">2</div>
-            <span class="text-2xl md:text-4xl font-black tracking-wide truncate" id="reveal-correct-text">木星！！</span>
+          <!-- LEFT COLUMN: Problem & Options Review (振り返り出題パネル) -->
+          <div class="w-full md:w-[46%] bg-pop-card neo-border shadow-neo rounded-2xl p-3 md:p-3.5 flex flex-col justify-between overflow-hidden">
+            <div>
+              <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-gray-700">
+                <span class="bg-pop-yellow text-black font-black px-2.5 py-0.5 rounded-full text-[10px] md:text-xs neo-border-sm uppercase tracking-wider flex items-center gap-1">
+                  <i class="fa-solid fa-clipboard-question"></i><span>出題の振り返り</span>
+                </span>
+                <span class="text-[11px] font-black text-pop-cyan" id="reveal-review-qnum">第1問</span>
+              </div>
+              
+              <!-- Question Text with optional thumbnail -->
+              <div class="flex items-center gap-2.5 mb-2">
+                <img id="reveal-review-thumb" src="" alt="問題画像" class="hidden w-12 h-12 md:w-14 md:h-14 object-contain rounded-xl neo-border-sm bg-black shrink-0 cursor-pointer" onclick="zoomQuestionMedia()" title="クリックで拡大">
+                <p class="font-black text-xs md:text-sm lg:text-base text-white leading-snug line-clamp-3" id="reveal-review-qtext">
+                  問題文
+                </p>
+              </div>
+            </div>
+
+            <!-- Options Review List (All options shown, Correct highlighted with Crown) -->
+            <div class="flex-1 flex flex-col justify-center gap-1.5 overflow-y-auto pr-1" id="reveal-review-options-list">
+              <!-- Dynamically populated options cards -->
+            </div>
           </div>
 
-          <!-- Explanation Card (SPACIOUS 2X+ EXPANDED FOR COMFORTABLE READING!) -->
-          <div id="reveal-explanation-box" class="flex-1 min-h-[160px] md:min-h-[220px] max-w-4xl w-full bg-pop-card neo-border shadow-neo p-4 md:p-6 rounded-2xl md:rounded-3xl text-left animate-bounce-once border-2 border-black flex flex-col overflow-y-auto">
-            <div class="text-xs md:text-sm font-black text-pop-cyan uppercase tracking-wider mb-2 flex items-center gap-2 shrink-0">
-              <div class="w-6 h-6 md:w-7 md:h-7 bg-pop-yellow text-black rounded-lg neo-border-sm flex items-center justify-center text-xs md:text-sm font-black">
-                <i class="fa-solid fa-lightbulb"></i>
+          <!-- RIGHT COLUMN: Correct Answer & Explanation (正解＆ワンポイント解説パネル) -->
+          <div class="w-full md:w-[54%] flex flex-col justify-between gap-2.5 overflow-hidden">
+            <!-- Correct Answer Banner Card -->
+            <div id="reveal-answer-text-box" class="bg-pop-yellow text-black neo-border shadow-neo px-4 md:px-6 py-2.5 rounded-2xl flex items-center space-x-3 md:space-x-4 animate-reveal-slide shrink-0">
+              <div class="w-9 h-9 md:w-11 md:h-11 bg-black text-white rounded-xl neo-border-sm flex items-center justify-center text-xl md:text-2xl font-black shrink-0" id="reveal-correct-number">2</div>
+              <div class="flex-1 min-w-0">
+                <span class="text-[10px] md:text-xs font-black uppercase tracking-wider bg-black/10 px-2 py-0.5 rounded-md inline-block">CORRECT ANSWER</span>
+                <div class="text-xl md:text-2xl lg:text-3xl font-black tracking-wide truncate leading-tight" id="reveal-correct-text">木星！！</div>
               </div>
-              <span>ワンポイント解説</span>
             </div>
-            <div class="flex-1 overflow-y-auto pr-1">
-              <p class="text-base md:text-2xl font-bold text-white leading-relaxed pl-1" id="reveal-explanation-text">
-                解説テキストがここに表示されます。
-              </p>
+
+            <!-- Spacious Explanation Card -->
+            <div id="reveal-explanation-box" class="flex-1 bg-pop-card neo-border shadow-neo p-3.5 md:p-4 rounded-2xl text-left border-2 border-black flex flex-col overflow-hidden min-h-0">
+              <div class="text-xs md:text-sm font-black text-pop-cyan uppercase tracking-wider mb-1.5 flex items-center gap-1.5 shrink-0">
+                <div class="w-5 h-5 md:w-6 md:h-6 bg-pop-yellow text-black rounded-lg neo-border-sm flex items-center justify-center text-xs font-black">
+                  <i class="fa-solid fa-lightbulb"></i>
+                </div>
+                <span>ワンポイント解説</span>
+              </div>
+              <div class="flex-1 overflow-y-auto pr-1.5">
+                <p class="text-sm md:text-base lg:text-lg font-bold text-white leading-relaxed" id="reveal-explanation-text">
+                  解説テキストがここに表示されます。
+                </p>
+              </div>
             </div>
           </div>
 
@@ -677,29 +705,29 @@
 
   </main>
 
-  <!-- ==================== QR CODE FULLSCREEN MODAL (NEW) ==================== -->
-  <div id="qr-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 md:p-6" onclick="closeQrModal()">
-    <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl p-6 md:p-8 max-w-2xl w-full text-center relative flex flex-col items-center max-h-[96dvh] overflow-y-auto" onclick="event.stopPropagation()">
-      <button onclick="closeQrModal()" class="absolute top-4 right-4 w-11 h-11 bg-pop-pink text-black rounded-xl neo-border-sm flex items-center justify-center text-xl font-black neo-button" title="閉じる">
+  <!-- ==================== QR CODE FULLSCREEN MODAL (2/3 OPTIMIZED SIZE) ==================== -->
+  <div id="qr-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-3 md:p-4" onclick="closeQrModal()">
+    <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl p-4 md:p-6 max-w-lg w-full text-center relative flex flex-col items-center max-h-[92dvh] overflow-y-auto" onclick="event.stopPropagation()">
+      <button onclick="closeQrModal()" class="absolute top-3 right-3 w-10 h-10 bg-pop-pink text-black rounded-xl neo-border-sm flex items-center justify-center text-lg font-black neo-button" title="閉じる">
         ✕
       </button>
 
-      <span class="bg-pop-yellow text-black px-4 py-1 rounded-full text-xs font-black uppercase neo-border-sm mb-2 inline-block">
+      <span class="bg-pop-yellow text-black px-3 py-0.5 rounded-full text-[11px] font-black uppercase neo-border-sm mb-1 inline-block">
         教室のどこからでもスマホで即参加！
       </span>
-      <h2 class="text-2xl md:text-3xl font-black text-white mb-1">QRコードをスキャンしてね</h2>
-      <p class="text-xs text-gray-300 font-bold mb-3">標準カメラアプリでかざすだけで、コード入力不要で直行できます</p>
+      <h2 class="text-xl md:text-2xl font-black text-white mb-0.5">QRコードをスキャンしてね</h2>
+      <p class="text-[11px] text-gray-300 font-bold mb-2">標準カメラアプリでかざすだけで、コード入力不要で直行できます</p>
 
-      <div class="bg-white p-4 rounded-3xl neo-border inline-block shadow-neo mx-auto my-1" id="modal-qr-container">
-        <!-- Giant QR injected here (480px - 2x size) -->
+      <div class="bg-white p-3 rounded-2xl neo-border inline-block shadow-neo mx-auto my-1" id="modal-qr-container">
+        <!-- Optimized QR injected here (300px - 2/3 size) -->
       </div>
 
-      <div class="mt-3 w-full bg-pop-dark p-3.5 rounded-2xl neo-border-sm flex items-center justify-between">
+      <div class="mt-2.5 w-full bg-pop-dark p-2.5 md:p-3 rounded-xl neo-border-sm flex items-center justify-between">
         <div class="text-left">
-          <span class="text-[10px] text-gray-400 font-black block">手動入力用 部屋番号</span>
-          <span class="text-3xl font-black text-pop-yellow tracking-widest" id="modal-room-code">----</span>
+          <span class="text-[9px] text-gray-400 font-black block">手動入力用 部屋番号</span>
+          <span class="text-2xl md:text-3xl font-black text-pop-yellow tracking-widest" id="modal-room-code">----</span>
         </div>
-        <button onclick="closeQrModal()" class="bg-pop-green text-black font-black text-sm px-6 py-2.5 rounded-xl neo-border-sm neo-button">
+        <button onclick="closeQrModal()" class="bg-pop-green hover:bg-emerald-400 text-black font-black text-xs md:text-sm px-5 py-2 rounded-xl neo-border-sm neo-button">
           閉じる
         </button>
       </div>
@@ -1096,7 +1124,7 @@
     function getPlayerJoinUrl() {
       const currentUrl = window.location.href;
       let baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.3&t=' + Date.now();
+      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.4&t=' + Date.now();
     }
 
     function initPeerHost(retryCount = 0) {
@@ -1181,8 +1209,8 @@
       // 通常バナー用
       renderSingleQr(document.getElementById('qr-container'), 110);
 
-      // 拡大モーダル用 (特大480px)
-      renderSingleQr(document.getElementById('modal-qr-container'), 460);
+      // 拡大モーダル用 (約2/3サイズの300pxでiPad横向きでも下部見切れゼロ)
+      renderSingleQr(document.getElementById('modal-qr-container'), 300);
     }
 
     function openQrModal() {
@@ -2756,9 +2784,9 @@
 
     function triggerDramaticAnswerReveal() {
       if (isAnswerStageRevealed) return;
-      isAnswerStageRevealed = true;
-
       const q = questions[currentQIndex];
+      if (!q) return;
+      isAnswerStageRevealed = true;
       const suspenseStage = document.getElementById('reveal-stage-suspense');
       const answerStage = document.getElementById('reveal-stage-answer');
       const statBadge = document.getElementById('reveal-stat-badge');
@@ -2791,6 +2819,64 @@
         document.getElementById('reveal-correct-number').textContent = corrBadge;
         document.getElementById('reveal-correct-text').textContent = corrOptText + '！！';
 
+        // ★ 教育的振り返りパネル（左側）の動的描画
+        document.getElementById('reveal-review-qnum').textContent = `第${currentQIndex + 1}問`;
+        document.getElementById('reveal-review-qtext').textContent = q.question;
+
+        const thumbEl = document.getElementById('reveal-review-thumb');
+        if (thumbEl) {
+          if (q.media) {
+            thumbEl.src = q.media;
+            thumbEl.classList.remove('hidden');
+          } else {
+            thumbEl.src = '';
+            thumbEl.classList.add('hidden');
+          }
+        }
+
+        const optCount = q.options.length;
+        const reviewOptionsList = document.getElementById('reveal-review-options-list');
+        if (reviewOptionsList) {
+          let listHtml = '';
+          for (let i = 1; i <= optCount; i++) {
+            const isCorr = (i === q.correct);
+            const optBadge = (optCount === 2) ? (i === 1 ? '〇' : '×') : i;
+            const optText = getSanitizedOption(q.options[i - 1], i - 1, optCount);
+            
+            if (isCorr) {
+              listHtml += `
+                <div class="bg-gradient-to-r from-emerald-600/30 to-pop-dark border-2 border-pop-yellow rounded-xl p-2 md:p-2.5 flex items-center justify-between shadow-neo-sm">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-6 h-6 md:w-7 md:h-7 bg-pop-yellow text-black font-black text-xs md:text-sm rounded-lg flex items-center justify-center shrink-0 neo-border-sm">
+                      ${optBadge}
+                    </span>
+                    <span class="font-black text-xs md:text-sm text-pop-yellow truncate">
+                      ${escapeHtml(optText)}
+                    </span>
+                  </div>
+                  <span class="bg-pop-yellow text-black text-[10px] md:text-xs font-black px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                    <i class="fa-solid fa-crown"></i><span>正解</span>
+                  </span>
+                </div>
+              `;
+            } else {
+              listHtml += `
+                <div class="bg-pop-dark/60 border border-gray-700 rounded-xl p-2 md:p-2.5 flex items-center justify-between opacity-70">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-6 h-6 md:w-7 md:h-7 bg-gray-700 text-gray-300 font-black text-xs md:text-sm rounded-lg flex items-center justify-center shrink-0">
+                      ${optBadge}
+                    </span>
+                    <span class="font-bold text-xs md:text-sm text-gray-300 truncate">
+                      ${escapeHtml(optText)}
+                    </span>
+                  </div>
+                </div>
+              `;
+            }
+          }
+          reviewOptionsList.innerHTML = listHtml;
+        }
+
         answerStage.classList.remove('hidden', 'opacity-0');
         playBeep(1200, 'sawtooth', 0.25);
         playCymbalCrash();
@@ -2819,7 +2905,7 @@
           pLabel.classList.add('scale-110');
         }
 
-        // Send results to players
+        // Send results & review details to players
         players.forEach(p => {
           if (!p.isBot && p.conn && p.conn.open) {
             p.conn.send({
@@ -2831,7 +2917,11 @@
               currentScore: p.score,
               currentRank: p.currentRank,
               totalPlayers: players.size,
-              explanation: q.explanation
+              question: q.question,
+              options: q.options,
+              userChoice: p.currentAnswer,
+              explanation: q.explanation || '',
+              media: q.media || null
             });
           }
         });
@@ -2904,14 +2994,9 @@
       }
       container.innerHTML = html;
 
+      // ★ 表彰式開始通知（子機は先生の画面に注目してドキドキ待機！ネタバレ防止）
       broadcast({
-        type: 'FINAL_RANKING',
-        rankings: sortedRankings.map((p, idx) => ({
-          rank: idx + 1,
-          name: p.name,
-          avatar: p.avatar,
-          score: p.score
-        }))
+        type: 'CEREMONY_START'
       });
 
       // ★ 自動でドラマチック表彰式を始動！
@@ -2975,6 +3060,17 @@
           p1.classList.add('animate-podium-pop');
           document.getElementById('rank-step-badge').textContent = "👑 優勝決定！";
           fireConfetti();
+
+          // ★ 先生の画面で1位が決まった最高の瞬間に、子機の手元でも順位を一斉解禁！
+          broadcast({
+            type: 'FINAL_RANKING_REVEAL',
+            rankings: sortedRankings.map((p, idx) => ({
+              rank: idx + 1,
+              name: p.name,
+              avatar: p.avatar,
+              score: p.score
+            }))
+          });
         });
       }
     }

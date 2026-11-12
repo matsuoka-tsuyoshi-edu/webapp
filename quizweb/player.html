@@ -11,6 +11,10 @@
   <title>POP QUIZ - Player</title>
   <!-- PeerJS CDN -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- Canvas Confetti CDN (表彰式の瞬間に手元でも紙吹雪が炸裂！) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <!-- FontAwesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
   <style>
@@ -108,9 +112,19 @@
         height: 40vh !important;
       }
     }
-      flex-direction: column;
-      justify-content: center;
-      position: relative;
+
+    /* 許可されたエリアのみスムーズスクロール（iPad Safari対応） */
+    .allow-scroll {
+      touch-action: pan-y !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    .allow-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .allow-scroll::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 6px;
     }
 
     /* パネル共通 */
@@ -392,16 +406,20 @@
       word-break: break-word;
     }
 
-    /* 5. 結果発表画面 */
+    /* 5. 結果発表・振り返り画面 */
     .result-box {
       text-align: center;
       width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .result-banner {
-      font-size: 42px;
+      font-size: 36px;
       font-weight: 900;
-      text-shadow: 4px 4px 0 var(--border-dark);
-      margin-bottom: 12px;
+      text-shadow: 3px 3px 0 var(--border-dark);
+      margin-bottom: 8px;
       animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .result-banner.correct { color: var(--accent-green); }
@@ -410,6 +428,77 @@
     @keyframes popIn {
       from { transform: scale(0.2); }
       to { transform: scale(1); }
+    }
+
+    /* 手元振り返りコンテナ (iPad横向き・スマホ縦向き両対応 スムーズスクロール) */
+    .review-scroll-container {
+      width: 100%;
+      max-height: calc(100dvh - 36px);
+      padding: 6px 4px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .review-score-bar {
+      background: var(--card-bg);
+      border: 3px solid var(--border-dark);
+      border-radius: 18px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 0 var(--border-dark);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .review-q-card {
+      background: #1e293b;
+      border: 3px solid var(--border-dark);
+      border-radius: 18px;
+      padding: 12px;
+      box-shadow: 0 4px 0 var(--border-dark);
+      text-align: left;
+    }
+
+    .review-opt-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .review-opt-row {
+      border: 2px solid var(--border-dark);
+      border-radius: 14px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 800;
+      background: #0f172a;
+      transition: all 0.2s;
+    }
+    .review-opt-row.is-correct {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: var(--accent-yellow);
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+    }
+    .review-opt-row.is-wrong-choice {
+      background: rgba(244, 63, 94, 0.2);
+      border-color: var(--accent-pink);
+    }
+
+    .review-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 7px;
+      border-radius: 10px;
+      border: 1px solid #000;
+      white-space: nowrap;
     }
     
     .rank-card {
@@ -430,17 +519,58 @@
     .player-explanation-box {
       background: #0f172a;
       border: 2px solid var(--border-dark);
-      border-radius: 16px;
-      padding: 12px;
-      margin-top: 14px;
-      font-size: 13px;
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      font-size: 12px;
       color: #e2e8f0;
       font-weight: 700;
-      line-height: 1.4;
+      line-height: 1.45;
       text-align: left;
     }
 
-    /* 6. 最終結果画面 */
+    /* 6. 表彰式待機画面 (ネタバレ防止・先生の画面に注目！) */
+    .ceremony-wait-card {
+      background: var(--card-bg);
+      border: 4px solid var(--border-dark);
+      border-radius: 28px;
+      padding: 32px 20px;
+      width: 100%;
+      box-shadow: 0 10px 0 var(--border-dark);
+      text-align: center;
+    }
+    .ceremony-wait-icon {
+      font-size: 64px;
+      animation: floatTrophy 2s ease-in-out infinite alternate;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    @keyframes floatTrophy {
+      0% { transform: translateY(0) rotate(-5deg) scale(1); }
+      100% { transform: translateY(-10px) rotate(5deg) scale(1.1); }
+    }
+    .pulse-bar {
+      width: 100%;
+      height: 8px;
+      background: #0f172a;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 20px 0 14px;
+      border: 2px solid var(--border-dark);
+    }
+    .pulse-bar-fill {
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-pink), var(--accent-yellow), var(--accent-cyan));
+      border-radius: 10px;
+      animation: pulseBarMove 1.6s ease-in-out infinite alternate;
+    }
+    @keyframes pulseBarMove {
+      0% { margin-left: 0%; width: 30%; }
+      100% { margin-left: 70%; width: 30%; }
+    }
+
+    /* 7. 最終結果画面 */
     .final-card {
       background: var(--card-bg);
       border: 4px solid var(--border-dark);
@@ -449,6 +579,7 @@
       width: 100%;
       box-shadow: 0 10px 0 var(--border-dark);
       text-align: center;
+      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     #toast-msg {
@@ -619,40 +750,100 @@
       </div>
     </div>
 
-    <!-- 5. 1問ごとの結果画面 -->
+    <!-- 5. 1問ごとの結果＆振り返り画面 (Education Review Screen) -->
     <div id="screen-result" class="screen">
-      <div class="result-box">
-        <div class="result-banner" id="result-status-banner">正解！ 🎉</div>
-        <div class="rank-card">
-          <p style="font-size: 13px; color: #94a3b8; font-weight: 800;">現在のあなたの順位</p>
-          <div class="rank-val" id="result-rank-text">第 2 位</div>
-          <p style="font-size: 13px; color: #94a3b8; font-weight: 800; margin-top: 4px;" id="result-total-players">/ 8 人中</p>
-          <p style="font-size: 20px; font-weight: 900; margin-top: 10px; color: var(--accent-cyan);" id="result-gained-score">+1,250 pt 獲得！</p>
-          <p style="font-size: 14px; font-weight: 800; color: #fff; margin-top: 2px;" id="result-current-score">累計: 1,250 pt</p>
-
-          <!-- 手元解説表示 -->
-          <div class="player-explanation-box" id="player-explanation-container" style="display: none;">
-            <span style="color: var(--accent-yellow); font-weight: 900; display: block; margin-bottom: 2px;">💡 正解の解説:</span>
-            <span id="player-explanation-text">解説テキスト</span>
+      <div class="review-scroll-container allow-scroll">
+        
+        <!-- ヘッダー: 正解/不正解バナー & 獲得点数 -->
+        <div class="review-score-bar">
+          <div class="result-banner" id="result-status-banner" style="margin-bottom: 0; font-size: 26px;">正解！ 🎉</div>
+          <div style="text-align: right;">
+            <div style="font-size: 18px; font-weight: 900; color: var(--accent-cyan);" id="result-gained-score">+1,250 pt</div>
+            <div style="font-size: 11px; font-weight: 800; color: #94a3b8;" id="result-current-score">累計: 1,250 pt</div>
           </div>
+        </div>
+
+        <!-- 振り返りカード: 出題問題 ＆ あなたの回答 ＆ 正解 ＆ 解説 -->
+        <div class="review-q-card">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #334155;">
+            <span style="background: var(--accent-yellow); color: #000; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 10px; border: 1px solid #000;">
+              <i class="fa-solid fa-clipboard-question"></i> 出題の振り返り
+            </span>
+            <span style="font-size: 11px; font-weight: 800; color: var(--accent-cyan);" id="review-player-qnum">第1問</span>
+          </div>
+
+          <!-- 問題文 & サムネイル（画像がある場合タップで拡大可能） -->
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <img id="review-player-thumb" src="" alt="問題画像" style="width: 44px; height: 44px; object-fit: contain; border-radius: 10px; border: 2px solid #000; background: #000; flex-shrink: 0; display: none; cursor: pointer;" onclick="openPlayerReviewImageZoom()" title="タップで拡大">
+            <p style="font-size: 13px; font-weight: 800; color: #fff; line-height: 1.35;" id="review-player-qtext">
+              問題文
+            </p>
+          </div>
+
+          <!-- 選択肢一覧（あなたの回答 ＆ 正解を分かりやすくバッジ表示） -->
+          <div class="review-opt-list" id="review-player-opt-list">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- ワンポイント解説ボックス -->
+          <div class="player-explanation-box" id="player-explanation-container" style="display: none;">
+            <div style="color: var(--accent-yellow); font-weight: 900; margin-bottom: 3px; display: flex; align-items: center; gap: 4px;">
+              <i class="fa-solid fa-lightbulb"></i> ワンポイント解説:
+            </div>
+            <div id="player-explanation-text">解説テキスト</div>
+          </div>
+        </div>
+
+        <!-- 現在の順位バッジ & 待機メッセージ -->
+        <div style="background: #0f172a; border: 2px solid var(--border-dark); border-radius: 16px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="font-size: 12px; font-weight: 800; color: #94a3b8;">
+            現在の順位: <span style="font-size: 18px; font-weight: 900; color: var(--accent-yellow);" id="result-rank-text">第 2 位</span>
+            <span style="font-size: 11px;" id="result-total-players">/ 8 人中</span>
+          </div>
+          <div style="font-size: 11px; font-weight: 800; color: var(--accent-green); display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-spinner fa-spin"></i><span>次の問題を待機中</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 6. 表彰式待機画面 (ネタバレ防止・先生の画面に注目！) -->
+    <div id="screen-ceremony-waiting" class="screen">
+      <div class="ceremony-wait-card">
+        <div class="ceremony-wait-icon">🏆</div>
+        <h2 style="font-size: 24px; font-weight: 900; color: var(--accent-yellow);">表彰式が始まりました！</h2>
+        <p style="font-size: 14px; color: #fff; font-weight: 800; margin-top: 6px;">先生（ホスト）の画面に注目してね！</p>
+        
+        <div class="pulse-bar">
+          <div class="pulse-bar-fill"></div>
+        </div>
+        
+        <p style="font-size: 12px; color: #94a3b8; font-weight: 700;">
+          まもなくドラムロールと共に、あなたの最終順位が手元でも発表されます...
+        </p>
+
+        <div style="margin-top: 20px; padding: 10px 16px; background: #0f172a; border-radius: 14px; border: 2px solid var(--border-dark); display: inline-block;">
+          <span style="font-size: 12px; color: #94a3b8; font-weight: 800;">あなたの獲得スコア: </span>
+          <span style="font-size: 16px; font-weight: 900; color: var(--accent-cyan);" id="ceremony-waiting-score">0 pt</span>
         </div>
       </div>
     </div>
 
-    <!-- 6. 最終結果画面 -->
+    <!-- 7. 最終結果画面 (ホストの1位発表と完全同期してドカンと開示！) -->
     <div id="screen-final" class="screen">
       <div class="final-card">
-        <div style="font-size: 54px; margin-bottom: 8px;">🏆</div>
-        <h2 style="font-size: 26px; font-weight: 900; color: var(--accent-yellow);">全問終了！</h2>
-        <p style="font-size: 14px; color: #94a3b8; font-weight: 800; margin-top: 4px;">お疲れ様でした！あなたの最終結果</p>
+        <div style="font-size: 54px; margin-bottom: 6px; animation: bounce 1.5s infinite;">👑</div>
+        <h2 style="font-size: 26px; font-weight: 900; color: var(--accent-yellow);">最終結果発表！</h2>
+        <p style="font-size: 13px; color: #94a3b8; font-weight: 800; margin-top: 2px;">全問終了！お疲れ様でした！</p>
         
-        <div style="margin: 20px 0; padding: 20px; background: #0f172a; border-radius: 20px; border: 3px solid var(--border-dark);">
-          <div style="font-size: 14px; color: var(--accent-cyan); font-weight: 800;">最終順位</div>
-          <div style="font-size: 56px; font-weight: 900; color: var(--accent-yellow); text-shadow: 3px 3px 0 #000;" id="final-rank-val">第 1 位</div>
-          <div style="font-size: 22px; font-weight: 900; color: #fff; margin-top: 8px;" id="final-score-val">4,800 pt</div>
+        <div style="margin: 18px 0; padding: 18px; background: #0f172a; border-radius: 20px; border: 3px solid var(--border-dark); box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);">
+          <div style="font-size: 13px; color: var(--accent-cyan); font-weight: 800;">あなたの最終順位</div>
+          <div style="font-size: 56px; font-weight: 900; color: var(--accent-yellow); text-shadow: 3px 3px 0 #000; margin: 4px 0;" id="final-rank-val">第 1 位</div>
+          <div style="font-size: 22px; font-weight: 900; color: #fff;" id="final-score-val">4,800 pt</div>
         </div>
 
-        <p style="font-size: 13px; color: var(--accent-green); font-weight: 800;">ホストの画面で表彰式が行われています！</p>
+        <p style="font-size: 13px; color: var(--accent-green); font-weight: 800;">🎉 素晴らしい挑戦でした！ 🎉</p>
       </div>
     </div>
 
@@ -692,9 +883,11 @@
     let questionTimeLimit = 10;
     let timerAnimation = null;
     let currentOptions = [];
+    let mySelectedChoice = null; // 自分が選んだ回答番号 (振り返り用)
+    let currentQuestionMedia = null; // 現在の問題画像URL (振り返り拡大用)
 
     // ==========================================
-    // 2. AUDIO FEEDBACK (Web Audio API)
+    // 2. AUDIO & VISUAL CELEBRATION FEEDBACK
     // ==========================================
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
@@ -705,6 +898,41 @@
       }
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
+      }
+    }
+
+    function playFanfare() {
+      try {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const notes = [
+          { f: 523.25, t: 0, d: 0.14 },    // C5
+          { f: 659.25, t: 0.14, d: 0.14 }, // E5
+          { f: 783.99, t: 0.28, d: 0.14 }, // G5
+          { f: 1046.50, t: 0.42, d: 0.6 }  // C6 (ロングトーン)
+        ];
+        notes.forEach(n => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(n.f, now + n.t);
+          gain.gain.setValueAtTime(0.28, now + n.t);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + n.t + n.d);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + n.t);
+          osc.stop(now + n.t + n.d);
+        });
+      } catch(e){}
+    }
+
+    function firePlayerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        setTimeout(() => {
+          confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 } });
+          confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 } });
+        }, 300);
       }
     }
 
@@ -880,6 +1108,9 @@
           currentQIndex = data.qIndex;
           questionReceivedTime = Date.now();
           questionTimeLimit = data.timeLimit || 10;
+          mySelectedChoice = null;
+          currentQuestionMedia = data.image || null;
+
           currentOptions = (data.options || []).map((opt, idx, arr) => {
             const str = String(opt || '').trim();
             if (arr.length === 2 && (!str || str.startsWith('選択肢') || str.toLowerCase().startsWith('option'))) {
@@ -976,6 +1207,68 @@
           document.getElementById('result-gained-score').textContent = isCorr ? `+${data.earnedScore.toLocaleString()} pt 獲得！` : `+0 pt`;
           document.getElementById('result-current-score').textContent = `累計: ${currentScore.toLocaleString()} pt`;
 
+          // ★ 手元での教育的振り返りパネルの動的描画
+          const qNum = (data.qIndex !== undefined) ? (data.qIndex + 1) : (currentQIndex + 1);
+          document.getElementById('review-player-qnum').textContent = `第${qNum}問`;
+          document.getElementById('review-player-qtext').textContent = data.question || document.getElementById('q-hint-text').textContent;
+
+          // サムネイル表示
+          const thumbEl = document.getElementById('review-player-thumb');
+          const mediaUrl = data.media || currentQuestionMedia;
+          if (thumbEl) {
+            if (mediaUrl) {
+              thumbEl.src = mediaUrl;
+              thumbEl.style.display = 'block';
+            } else {
+              thumbEl.src = '';
+              thumbEl.style.display = 'none';
+            }
+          }
+
+          // 選択肢一覧（自分の選択肢 ＆ 正解選択肢をハイライト）
+          const optListEl = document.getElementById('review-player-opt-list');
+          const opts = data.options || currentOptions || [];
+          const optCount = opts.length;
+          const userChoice = data.userChoice || mySelectedChoice;
+          const corrChoice = data.correctOption;
+
+          let optRowsHtml = '';
+          for (let i = 1; i <= optCount; i++) {
+            const isCorrect = (i === corrChoice);
+            const isMyChoice = (i === userChoice);
+            const optBadge = (optCount === 2) ? (i === 1 ? '〇' : '×') : i;
+            const optText = opts[i - 1] || `選択肢${i}`;
+
+            let rowClass = 'review-opt-row';
+            let badgeHtml = '';
+
+            if (isCorrect && isMyChoice) {
+              rowClass += ' is-correct';
+              badgeHtml = `<span class="review-badge" style="background:#fbbf24; color:#000;"><i class="fa-solid fa-crown"></i> あなたの回答（大正解！）</span>`;
+            } else if (isCorrect) {
+              rowClass += ' is-correct';
+              badgeHtml = `<span class="review-badge" style="background:#10b981; color:#fff;"><i class="fa-solid fa-crown"></i> 正解</span>`;
+            } else if (isMyChoice) {
+              rowClass += ' is-wrong-choice';
+              badgeHtml = `<span class="review-badge" style="background:#f43f5e; color:#fff;"><i class="fa-solid fa-user-check"></i> あなたの回答</span>`;
+            }
+
+            optRowsHtml += `
+              <div class="${rowClass}">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <span style="width: 22px; height: 22px; background: #000; color: #fff; font-size: 11px; font-weight: 900; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid #475569;">
+                    ${optBadge}
+                  </span>
+                  <span style="color: ${isCorrect ? '#fbbf24' : '#e2e8f0'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${escapeHtml(optText)}
+                  </span>
+                </div>
+                <div>${badgeHtml}</div>
+              </div>
+            `;
+          }
+          optListEl.innerHTML = optRowsHtml;
+
           // 解説表示
           const expBox = document.getElementById('player-explanation-container');
           const expText = document.getElementById('player-explanation-text');
@@ -990,6 +1283,17 @@
           break;
         }
 
+        // ★ 表彰式開始通知（先生の画面に注目してドキドキ待機！ネタバレ防止）
+        case 'CEREMONY_START': {
+          cancelPlayerTimer();
+          document.getElementById('ceremony-waiting-score').textContent = `${currentScore.toLocaleString()} pt`;
+          switchScreen('screen-ceremony-waiting');
+          playSound('tap');
+          break;
+        }
+
+        // ★ ホストの1位発表と完全同期してドカンと最終順位開示！
+        case 'FINAL_RANKING_REVEAL':
         case 'FINAL_RANKING': {
           cancelPlayerTimer();
           const rankings = data.rankings || [];
@@ -999,6 +1303,8 @@
           document.getElementById('final-score-val').textContent = `${(myEntry.score || currentScore).toLocaleString()} pt`;
 
           switchScreen('screen-final');
+          playFanfare();
+          firePlayerConfetti();
           break;
         }
 
@@ -1029,6 +1335,8 @@
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
+
+      mySelectedChoice = choiceNumber; // 振り返り用に自分の選択を記録
 
       const answerTimeMs = Date.now() - questionReceivedTime;
       const optText = currentOptions[choiceNumber - 1] || `選択肢${choiceNumber}`;
@@ -1114,6 +1422,27 @@
       modal.style.display = 'flex';
     }
 
+    // 振り返り画面での問題画像タップ拡大
+    function openPlayerReviewImageZoom() {
+      const thumbEl = document.getElementById('review-player-thumb');
+      if (!thumbEl || !thumbEl.src) return;
+
+      const modal = document.getElementById('player-image-zoom-modal');
+      const modalImg = document.getElementById('player-zoom-modal-img');
+      const modalVideo = document.getElementById('player-zoom-modal-video');
+
+      if (modalVideo) {
+        modalVideo.pause();
+        modalVideo.src = '';
+        modalVideo.style.display = 'none';
+      }
+      if (modalImg) {
+        modalImg.src = thumbEl.src;
+        modalImg.style.display = 'block';
+      }
+      modal.style.display = 'flex';
+    }
+
     function closePlayerImageZoom() {
       const modal = document.getElementById('player-image-zoom-modal');
       if (!modal) return;
@@ -1130,7 +1459,7 @@
     // ==========================================
     function forceReloadLatest() {
       const url = new URL(window.location.href);
-      url.searchParams.set('v', '3.3.3');
+      url.searchParams.set('v', '3.3.4');
       url.searchParams.set('t', Date.now().toString());
       window.location.replace(url.toString());
     }
