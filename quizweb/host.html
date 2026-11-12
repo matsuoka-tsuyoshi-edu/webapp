@@ -219,7 +219,7 @@
     function forceReloadLatestHost() {
       if (confirm("最新版のデザイン・スクリプトで画面を再読み込みしますか？")) {
         const url = new URL(window.location.href);
-        url.searchParams.set('v', '3.3.5');
+        url.searchParams.set('v', '3.3.6');
         url.searchParams.set('t', Date.now().toString());
         window.location.replace(url.toString());
       }
@@ -415,12 +415,16 @@
           </div>
         </div>
 
-        <!-- Right: Answer Count Status & Skip Button -->
+        <!-- Right: Answer Count Status & CBT Start / Skip Button -->
         <div class="flex items-center space-x-3 shrink-0">
           <div class="text-right">
             <div class="text-sm md:text-base font-black text-pop-cyan leading-none" id="live-answer-count">0 / 0 人</div>
           </div>
-          <button onclick="skipToReveal()" class="bg-pop-pink hover:bg-rose-400 text-black font-black text-xs px-3 py-1.5 rounded-lg neo-border-sm shadow-neo-sm neo-button flex items-center gap-1">
+          <button id="btn-start-video-q" onclick="startVideoQuestionNow()" class="hidden bg-pop-green hover:bg-emerald-400 text-black font-black text-xs md:text-sm px-4 py-2 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center gap-1.5 animate-pulse">
+            <i class="fa-solid fa-play"></i>
+            <span>問題へ進む（出題開始）</span>
+          </button>
+          <button id="btn-skip-to-reveal" onclick="skipToReveal()" class="bg-pop-pink hover:bg-rose-400 text-black font-black text-xs px-3 py-1.5 rounded-lg neo-border-sm shadow-neo-sm neo-button flex items-center gap-1">
             <i class="fa-solid fa-forward-step"></i>
             <span>今すぐ締め切る</span>
           </button>
@@ -1129,7 +1133,7 @@
     function getPlayerJoinUrl() {
       const currentUrl = window.location.href;
       let baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.5&t=' + Date.now();
+      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.6&t=' + Date.now();
     }
 
     function initPeerHost(retryCount = 0) {
@@ -1613,12 +1617,13 @@
           let imgDataUrl = null;
 
           if (rq.image) {
-            // ZIP内から画像ファイルを探索
+            // ZIP内からメディアファイル（画像または動画）を探索
             const imgFileInZip = zip.file(rq.image) || zip.file(rq.image.replace(/^\/?/, ''));
             if (imgFileInZip) {
               const base64 = await imgFileInZip.async("base64");
               const ext = rq.image.split('.').pop().toLowerCase();
-              const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : (ext === 'webp' ? 'image/webp' : 'image/png');
+              const isVideoExt = (ext === 'mp4' || ext === 'webm');
+              const mime = isVideoExt ? `video/${ext}` : ((ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : (ext === 'webp' ? 'image/webp' : 'image/png'));
               imgDataUrl = `data:${mime};base64,${base64}`;
             }
           }
@@ -1626,10 +1631,13 @@
           const rawOpts = rq.options || (rq.type === '2choice' ? ['〇', '×'] : ['選択肢1', '選択肢2', '選択肢3', '選択肢4']);
           const optCount = rawOpts.length;
           const sanitizedOpts = rawOpts.map((opt, oIdx) => getSanitizedOption(opt, oIdx, optCount));
+          const isVideo = rq.mediaType === 'video' || (rq.image && (rq.image.endsWith('.mp4') || rq.image.endsWith('.webm')));
 
           parsedQuestions.push({
             id: rq.id || (i + 1),
             type: rq.type || (sanitizedOpts.length === 2 ? '2choice' : (sanitizedOpts.length === 3 ? '3choice' : '4choice')),
+            mediaType: rq.mediaType || (isVideo ? 'video' : 'image'),
+            sendVideoToPlayer: !!rq.sendVideoToPlayer,
             question: rq.question || '問題文なし',
             image: imgDataUrl,
             options: sanitizedOpts,
@@ -1854,6 +1862,9 @@
 
       const timeEl = document.getElementById('studio-time-input');
       if (timeEl) q.timeLimit = parseInt(timeEl.value, 10) || 10;
+
+      const sendVideoEl = document.getElementById('studio-send-video-player');
+      if (sendVideoEl) q.sendVideoToPlayer = sendVideoEl.checked;
     }
 
     function renderStudioForm() {
@@ -1964,7 +1975,16 @@
                 `}
                 <div class="text-xs text-gray-300 font-bold flex-1">
                   <p class="text-pop-green">${isVideo ? '🎬 動画が添付されています' : '🖼️ 画像が添付されています'}</p>
-                  <p class="text-[11px] text-gray-400 mt-1">出題画面に大画面で表示され、生徒のスマホにも配信されます。</p>
+                  <p class="text-[11px] text-gray-400 mt-1">${isVideo ? '先生の大画面で自動再生され、学力調査CBTと同じ2段階で出題されます。' : '出題画面に大画面で表示され、生徒のスマホにも配信されます。'}</p>
+                  ${isVideo ? `
+                    <div class="mt-2.5 pt-2 border-t border-gray-700/60 flex items-center justify-between bg-pop-card/60 p-2 rounded-xl neo-border-sm">
+                      <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="studio-send-video-player" ${q.sendVideoToPlayer ? 'checked' : ''} onchange="studioToggleSendVideo(this.checked)" class="w-4 h-4 accent-pop-yellow rounded cursor-pointer">
+                        <span class="text-xs text-pop-yellow font-black">参加者のiPad/スマホにも動画を配信する</span>
+                      </label>
+                      <span class="text-[10px] text-gray-400 font-bold">※通常OFF推奨（先生画面再生で通信負荷ゼロ）</span>
+                    </div>
+                  ` : ''}
                 </div>
               </div>
             ` : `
@@ -2132,12 +2152,22 @@
         if (q) {
           q.image = e.target.result; // Data URL
           q.mediaType = isVideo ? 'video' : 'image';
+          if (isVideo) {
+            q.sendVideoToPlayer = false; // デフォルトは通信負荷ゼロのOFF
+          }
           renderStudioList();
           renderStudioForm();
           playBeep(880, 'sine', 0.15);
         }
       };
       reader.readAsDataURL(file);
+    }
+
+    function studioToggleSendVideo(checked) {
+      const q = studioQuestions[studioActiveIndex];
+      if (q) {
+        q.sendVideoToPlayer = !!checked;
+      }
     }
 
     function studioRemoveImage() {
@@ -2212,6 +2242,7 @@
           id: i + 1,
           type: sq.type || (sq.options.length + 'choice'),
           mediaType: sq.mediaType || (sq.image && sq.image.includes('video') ? 'video' : 'image'),
+          sendVideoToPlayer: !!sq.sendVideoToPlayer,
           question: sq.question,
           image: mediaRelPath,
           options: sq.options,
@@ -2531,17 +2562,102 @@
       const mediaWrap = document.getElementById('question-media-wrap');
       const imgEl = document.getElementById('question-img');
       const videoEl = document.getElementById('question-video');
+      const btnStart = document.getElementById('btn-start-video-q');
+      const btnSkip = document.getElementById('btn-skip-to-reveal');
 
-      if (q.image) {
-        const isVideo = q.mediaType === 'video' || q.image.startsWith('data:video/') || q.image.includes('.mp4') || q.image.includes('.webm');
-        if (isVideo) {
-          if (imgEl) imgEl.classList.add('hidden');
-          if (videoEl) {
-            videoEl.src = q.image;
-            videoEl.classList.remove('hidden');
+      const isVideo = q.mediaType === 'video' || (q.image && (q.image.startsWith('data:video/') || q.image.includes('.mp4') || q.image.includes('.webm')));
+
+      if (isVideo) {
+        // ★ CBT形式 第1段階: 動画視聴ステージ (タイマー停止 & 動画再生 & 視聴案内)
+        if (imgEl) imgEl.classList.add('hidden');
+        if (videoEl) {
+          videoEl.src = q.image;
+          videoEl.classList.remove('hidden');
+          videoEl.controls = true;
+          videoEl.currentTime = 0;
+          videoEl.loop = false;
+          videoEl.play().catch(() => {
+            videoEl.muted = true;
             videoEl.play().catch(() => {});
-          }
-        } else {
+          });
+          videoEl.onended = () => {
+            playBeep(880, 'sine', 0.2);
+            const substatus = document.getElementById('video-watch-substatus');
+            if (substatus) {
+              substatus.innerHTML = '<span class="text-pop-green font-black">🎉 動画の再生が終わりました！「問題へ進む」を押して出題を始めましょう！</span>';
+            }
+            if (btnStart) btnStart.classList.add('animate-bounce');
+          };
+        }
+        if (mediaWrap) mediaWrap.classList.remove('hidden');
+
+        // 問題文エリアには「次の動画を見て、問題に答えましょう」を表示
+        document.getElementById('question-text').innerHTML = `
+          <span class="text-pop-yellow flex items-center gap-2">
+            <i class="fa-solid fa-clapperboard animate-pulse"></i>
+            <span>次の動画を見て、問題に答えましょう</span>
+          </span>
+        `;
+
+        // 選択肢エリアには「動画視聴中」ガイダンスを表示
+        const optionsGrid = document.getElementById('quiz-options-grid');
+        optionsGrid.innerHTML = `
+          <div class="col-span-2 bg-pop-dark neo-border rounded-xl md:rounded-2xl p-3 md:p-4 flex items-center justify-between shadow-neo h-full">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-pop-purple flex items-center justify-center text-xl md:text-2xl text-white animate-pulse shrink-0">
+                <i class="fa-solid fa-film"></i>
+              </div>
+              <div>
+                <div class="text-sm md:text-base font-black text-pop-yellow">🎬 動画をよく見よう！</div>
+                <div class="text-xs text-gray-300 font-bold" id="video-watch-substatus">動画が終わると「問題へ進む」ボタンが点滅します（いつでも出題開始できます）</div>
+              </div>
+            </div>
+            <button onclick="startVideoQuestionNow()" class="bg-pop-green hover:bg-emerald-400 text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl neo-border-sm shadow-neo neo-button flex items-center gap-1.5 shrink-0 animate-bounce">
+              <i class="fa-solid fa-play"></i>
+              <span>問題へ進む</span>
+            </button>
+          </div>
+        `;
+
+        // タイマー停止＆待機表示
+        clearInterval(timerInterval);
+        const circle = document.getElementById('timer-circle');
+        const text = document.getElementById('timer-text');
+        if (circle) {
+          circle.style.strokeDashoffset = 0;
+          circle.classList.remove('text-pop-pink', 'animate-pulse-fast');
+          circle.classList.add('text-gray-500');
+        }
+        if (text) {
+          text.textContent = q.timeLimit || 10;
+          text.classList.remove('text-pop-pink', 'animate-bounce');
+          text.classList.add('text-gray-400');
+        }
+
+        // ボタン切り替え
+        if (btnStart) btnStart.classList.remove('hidden');
+        if (btnSkip) btnSkip.classList.add('hidden');
+
+        document.getElementById('live-answer-count').textContent = '🎥 動画視聴中';
+
+        // 子機へ「動画視聴中待機画面」をブロードキャスト（sendVideoToPlayerがOFFなら動画データは送らず通信量ゼロ！）
+        broadcast({
+          type: 'QUESTION_VIDEO_WATCH',
+          qIndex: currentQIndex,
+          totalQuestions: questions.length,
+          promptText: '次の動画を見て、問題に答えましょう',
+          video: q.sendVideoToPlayer ? q.image : null,
+          mediaType: 'video',
+          timeLimit: q.timeLimit,
+          category: q.category
+        });
+
+      } else {
+        // ★ 通常問題 (画像またはテキスト)
+        if (btnStart) btnStart.classList.add('hidden');
+        if (btnSkip) btnSkip.classList.remove('hidden');
+
+        if (q.image) {
           if (videoEl) {
             videoEl.pause();
             videoEl.classList.add('hidden');
@@ -2551,15 +2667,56 @@
             imgEl.src = q.image;
             imgEl.classList.remove('hidden');
           }
+          if (mediaWrap) mediaWrap.classList.remove('hidden');
+        } else {
+          if (mediaWrap) mediaWrap.classList.add('hidden');
+          if (imgEl) { imgEl.src = ''; imgEl.classList.remove('hidden'); }
+          if (videoEl) { videoEl.pause(); videoEl.src = ''; videoEl.classList.add('hidden'); }
         }
-        if (mediaWrap) mediaWrap.classList.remove('hidden');
-      } else {
-        if (mediaWrap) mediaWrap.classList.add('hidden');
-        if (imgEl) { imgEl.src = ''; imgEl.classList.remove('hidden'); }
-        if (videoEl) { videoEl.pause(); videoEl.src = ''; videoEl.classList.add('hidden'); }
+
+        // Render options (2, 3, or 4 options - Sacred Grid)
+        renderQuizOptions(q.options || []);
+
+        updateLiveAnswerStatus();
+
+        questionStartTime = Date.now();
+        broadcast({
+          type: 'QUESTION_START',
+          qIndex: currentQIndex,
+          totalQuestions: questions.length,
+          question: q.question,
+          image: q.image || null,
+          mediaType: q.mediaType || 'image',
+          options: q.options,
+          timeLimit: q.timeLimit,
+          category: q.category
+        });
+
+        startCountdownTimer(q.timeLimit);
+        simulateBotAnswers();
+      }
+    }
+
+    // ★ CBT形式 第2段階: 本出題＆カウントダウン開始（先生がボタンを押したタイミングでスタート）
+    function startVideoQuestionNow() {
+      const q = questions[currentQIndex];
+      if (!q) return;
+
+      const videoEl = document.getElementById('question-video');
+      if (videoEl) {
+        videoEl.onended = null;
+        videoEl.loop = true; // 出題中もループ再生で振り返り可能に
       }
 
-      // Render options (2, 3, or 4 options - Sacred Grid)
+      const btnStart = document.getElementById('btn-start-video-q');
+      const btnSkip = document.getElementById('btn-skip-to-reveal');
+      if (btnStart) btnStart.classList.add('hidden');
+      if (btnSkip) btnSkip.classList.remove('hidden');
+
+      // 本来の問題文を表示
+      document.getElementById('question-text').textContent = q.question;
+
+      // 選択肢を描画
       renderQuizOptions(q.options || []);
 
       updateLiveAnswerStatus();
@@ -2570,8 +2727,8 @@
         qIndex: currentQIndex,
         totalQuestions: questions.length,
         question: q.question,
-        image: q.image || null,
-        mediaType: q.mediaType || (q.image && q.image.includes('video') ? 'video' : 'image'),
+        image: q.sendVideoToPlayer ? q.image : null,
+        mediaType: 'video',
         options: q.options,
         timeLimit: q.timeLimit,
         category: q.category
@@ -2579,6 +2736,7 @@
 
       startCountdownTimer(q.timeLimit);
       simulateBotAnswers();
+      playBeep(700, 'triangle', 0.15);
     }
 
     function updateLiveAnswerStatus() {
