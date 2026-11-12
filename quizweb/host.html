@@ -209,14 +209,14 @@
     <section id="phase-setup" class="phase-content h-full grid grid-cols-12 gap-6">
       
       <!-- Left Panel: Excel Loader & Quiz Status & QR -->
-      <div class="col-span-5 flex flex-col gap-5">
+      <div class="col-span-5 flex flex-col gap-4">
         <!-- Room Code & QR Banner -->
-        <div class="bg-pop-purple neo-border shadow-neo-lg rounded-3xl p-5 text-center relative overflow-hidden flex flex-row items-center justify-between">
-          <div class="text-left flex-1 pr-3">
-            <span class="bg-pop-yellow text-black px-3 py-0.5 rounded-full text-xs font-black neo-border-sm uppercase tracking-wider inline-block mb-1">子端末の接続コード</span>
-            <div class="text-5xl font-black tracking-widest text-white drop-shadow-[4px_4px_0px_#000]" id="setup-room-code">接続中...</div>
-            <p class="text-xs font-bold text-purple-200 mt-2">カメラで右のQRコードをかざすだけで即参加！</p>
-            <button onclick="openQrModal()" class="mt-2 bg-pop-yellow text-black text-xs font-black px-3 py-1.5 rounded-xl neo-border-sm neo-button inline-flex items-center gap-1 shadow-sm">
+        <div class="bg-pop-purple neo-border shadow-neo-lg rounded-3xl p-3.5 md:p-4 text-center relative overflow-hidden flex flex-row items-center justify-between">
+          <div class="text-left flex-1 pr-2">
+            <span class="bg-pop-yellow text-black px-2.5 py-0.5 rounded-full text-[11px] font-black neo-border-sm uppercase tracking-wider inline-block mb-1">子端末の接続コード</span>
+            <div class="text-4xl md:text-5xl font-black tracking-widest text-white drop-shadow-[4px_4px_0px_#000]" id="setup-room-code">接続中...</div>
+            <p class="text-[11px] font-bold text-purple-200 mt-1.5">カメラで右のQRコードをかざすだけで即参加！</p>
+            <button onclick="openQrModal()" class="mt-1.5 bg-pop-yellow text-black text-xs font-black px-2.5 py-1 rounded-xl neo-border-sm neo-button inline-flex items-center gap-1 shadow-sm">
               <i class="fa-solid fa-magnifying-glass-plus"></i>
               <span>QRコードを画面いっぱいに拡大</span>
             </button>
@@ -227,29 +227,29 @@
         </div>
 
         <!-- Quiz Management: Quiz Studio Only (Clean & Focused) -->
-        <div class="flex-1 bg-pop-card neo-border shadow-neo rounded-3xl p-6 flex flex-col justify-between">
+        <div class="flex-1 bg-pop-card neo-border shadow-neo rounded-3xl p-4 md:p-5 flex flex-col justify-between">
           <div>
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-black flex items-center space-x-2 text-pop-green">
-                <i class="fa-solid fa-wand-magic-sparkles text-2xl text-pop-yellow"></i>
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-base md:text-lg font-black flex items-center space-x-2 text-pop-green">
+                <i class="fa-solid fa-wand-magic-sparkles text-xl text-pop-yellow"></i>
                 <span>クイズデータ管理</span>
               </h2>
-              <span id="file-status-badge" class="bg-pop-dark text-gray-300 text-xs px-3 py-1 rounded-full neo-border-sm font-bold">問題未セット (0問)</span>
+              <span id="file-status-badge" class="bg-pop-dark text-gray-300 text-xs px-2.5 py-1 rounded-full neo-border-sm font-bold">問題未セット (0問)</span>
             </div>
 
             <!-- Main Quiz Studio Button -->
-            <button onclick="openQuizStudio()" class="w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-pop-purple hover:opacity-95 text-white font-black py-5 px-6 rounded-3xl neo-border shadow-neo neo-button flex flex-col items-center justify-center gap-2 group transition-all">
-              <div class="w-14 h-14 bg-pop-yellow text-black rounded-2xl neo-border-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shadow">
+            <button onclick="openQuizStudio()" class="w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-pop-purple hover:opacity-95 text-white font-black py-3.5 md:py-4 px-4 rounded-2xl md:rounded-3xl neo-border shadow-neo neo-button flex flex-col items-center justify-center gap-1.5 group transition-all">
+              <div class="w-11 h-11 md:w-12 md:h-12 bg-pop-yellow text-black rounded-xl neo-border-sm flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow">
                 <i class="fa-solid fa-pen-to-square"></i>
               </div>
-              <span class="text-lg md:text-xl text-pop-yellow font-black">クイズを作成・編集・読込</span>
-              <span class="text-xs text-gray-300 font-bold">クイズスタジオを開く（画像・動画・Excel/ZIP読込）</span>
+              <span class="text-base md:text-lg text-pop-yellow font-black">クイズを作成・編集・読込</span>
+              <span class="text-[11px] text-gray-300 font-bold">クイズスタジオを開く（画像・動画・Excel/ZIP読込）</span>
             </button>
           </div>
 
           <!-- Quick Actions & Status -->
-          <div class="mt-4 pt-3 border-t border-gray-700 flex items-center justify-between">
-            <span class="text-xs font-bold text-gray-400 truncate max-w-[220px]" id="quiz-summary-text">「クイズを作成・編集」から作成または読込</span>
+          <div class="mt-3 pt-2.5 border-t border-gray-700 flex items-center justify-between">
+            <span class="text-xs font-bold text-gray-400 truncate max-w-[200px]" id="quiz-summary-text">「クイズを作成・編集」から作成または読込</span>
             <button onclick="loadSampleData()" class="bg-pop-cyan hover:bg-cyan-300 text-black px-3 py-1.5 rounded-xl text-xs font-black neo-border-sm shadow-neo-sm neo-button flex items-center gap-1 shrink-0" title="4択・2択(〇×)の代表的なお手本2問をセット">
               <i class="fa-solid fa-gift"></i><span>サンプル(2問)</span>
             </button>
@@ -258,16 +258,16 @@
       </div>
 
       <!-- Right Panel: Player Waiting Lobby -->
-      <div class="col-span-7 bg-pop-card neo-border shadow-neo rounded-3xl p-6 flex flex-col justify-between">
+      <div class="col-span-7 bg-pop-card neo-border shadow-neo rounded-3xl p-4 md:p-5 flex flex-col justify-between">
         <div>
           <!-- Lobby Header -->
-          <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+          <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-gray-700">
             <div class="flex items-center space-x-3">
-              <h2 class="text-2xl font-black text-white flex items-center space-x-2">
+              <h2 class="text-xl md:text-2xl font-black text-white flex items-center space-x-2">
                 <i class="fa-solid fa-users text-pop-yellow"></i>
                 <span>参加プレイヤー</span>
               </h2>
-              <span id="player-count" class="bg-pop-pink text-black px-3 py-1 rounded-full text-base font-black neo-border-sm">0名 接続中</span>
+              <span id="player-count" class="bg-pop-pink text-black px-3 py-0.5 rounded-full text-sm md:text-base font-black neo-border-sm">0名 接続中</span>
             </div>
             <div class="flex items-center space-x-2 text-xs font-bold text-pop-green">
               <span class="w-3 h-3 bg-pop-green rounded-full animate-ping"></span>
@@ -276,22 +276,22 @@
           </div>
 
           <!-- Player Grid Display -->
-          <div id="player-grid" class="grid grid-cols-4 gap-3 max-h-[360px] overflow-y-auto pr-2">
-            <div class="col-span-4 text-center py-16 text-gray-400 font-bold">
-              <i class="fa-solid fa-mobile-screen-button text-4xl mb-3 text-pop-yellow animate-bounce"></i>
-              <p>プレイヤーの参加を待っています...</p>
+          <div id="player-grid" class="grid grid-cols-4 gap-2.5 max-h-[240px] md:max-h-[280px] overflow-y-auto pr-2">
+            <div class="col-span-4 text-center py-10 md:py-14 text-gray-400 font-bold">
+              <i class="fa-solid fa-mobile-screen-button text-3xl mb-2 text-pop-yellow animate-bounce"></i>
+              <p class="text-sm md:text-base">プレイヤーの参加を待っています...</p>
               <p class="text-xs text-gray-500 mt-1">カメラでQRコードを読み取るか、コードを入力してね</p>
             </div>
           </div>
         </div>
 
-        <!-- Start Quiz Big Button -->
-        <div class="pt-4 border-t border-gray-700 flex gap-4">
-          <button onclick="addBotPlayer()" class="bg-pop-dark hover:bg-slate-700 text-pop-yellow text-sm font-black px-4 py-4 rounded-2xl neo-border-sm shadow-neo-sm neo-button">
+        <!-- Start Quiz Big Button (Lifted up 50px from bottom for perfect iPad visibility) -->
+        <div class="pt-3 border-t border-gray-700 flex gap-3 md:gap-4 mb-[50px]">
+          <button onclick="addBotPlayer()" class="bg-pop-dark hover:bg-slate-700 text-pop-yellow text-xs md:text-sm font-black px-3.5 md:px-4 py-3 rounded-2xl neo-border-sm shadow-neo-sm neo-button">
             <i class="fa-solid fa-robot mr-1"></i>テスト用Bot追加
           </button>
-          <button onclick="startQuizSequence()" id="start-btn" class="flex-1 bg-pop-green hover:bg-emerald-400 text-black text-2xl font-black py-4 rounded-2xl neo-border shadow-neo-lg neo-button flex items-center justify-center space-x-3">
-            <i class="fa-solid fa-play text-3xl"></i>
+          <button onclick="startQuizSequence()" id="start-btn" class="flex-1 bg-pop-green hover:bg-emerald-400 text-black text-xl md:text-2xl font-black py-3 rounded-2xl neo-border shadow-neo-lg neo-button flex items-center justify-center space-x-2 md:space-x-3">
+            <i class="fa-solid fa-play text-2xl md:text-3xl"></i>
             <span>クイズをスタートする！</span>
           </button>
         </div>
@@ -388,7 +388,7 @@
 
 
     <!-- ==================== PHASE 3: ANSWER REVEAL & STATS (NEW FLOW - EXPANDED CANVAS) ==================== -->
-    <section id="phase-reveal" class="phase-content hidden h-full max-h-full flex flex-col justify-between gap-2 md:gap-2.5 relative overflow-hidden">
+    <section id="phase-reveal" class="phase-content hidden h-full max-h-full flex flex-col justify-between gap-2 md:gap-2.5 relative overflow-hidden pb-[50px]">
       
       <!-- Top Status Banner (Slim & Compact with Action Buttons) -->
       <div class="bg-pop-purple neo-border shadow-neo px-4 py-2 rounded-xl md:rounded-2xl flex items-center justify-between z-10 shrink-0 gap-2">
@@ -529,73 +529,73 @@
 
 
     <!-- ==================== PHASE 4: FINAL RANKING PODIUM (FULLY AUTOMATED) ==================== -->
-    <section id="phase-ranking" class="phase-content hidden h-full grid grid-cols-12 gap-6">
+    <section id="phase-ranking" class="phase-content hidden h-full grid grid-cols-12 gap-5 md:gap-6">
       
       <!-- Left Column: Podium Animation Stage -->
-      <div class="col-span-8 bg-pop-card neo-border shadow-neo rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden">
+      <div class="col-span-8 bg-pop-card neo-border shadow-neo rounded-3xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden">
         
         <div class="flex items-center justify-between z-10">
-          <h2 class="text-3xl font-black text-pop-yellow flex items-center space-x-3">
-            <i class="fa-solid fa-trophy text-4xl text-pop-yellow"></i>
+          <h2 class="text-2xl md:text-3xl font-black text-pop-yellow flex items-center space-x-2 md:space-x-3">
+            <i class="fa-solid fa-trophy text-3xl md:text-4xl text-pop-yellow"></i>
             <span>最終順位発表</span>
           </h2>
           <!-- Controls for Step-by-Step / Re-play Reveal -->
           <div class="flex items-center space-x-2">
-            <button onclick="revealNextRank()" id="btn-next-rank" class="bg-pop-dark text-pop-yellow font-black text-xs px-3 py-2 rounded-xl neo-border-sm neo-button flex items-center space-x-1">
+            <button onclick="revealNextRank()" id="btn-next-rank" class="bg-pop-dark text-pop-yellow font-black text-xs px-2.5 md:px-3 py-1.5 md:py-2 rounded-xl neo-border-sm neo-button flex items-center space-x-1">
               <i class="fa-solid fa-forward-step"></i><span>手動で順位を発表</span>
             </button>
-            <button onclick="startAutoCeremony()" class="bg-pop-purple hover:bg-purple-600 text-white font-black text-xs px-3 py-2 rounded-xl neo-border-sm neo-button flex items-center space-x-1">
+            <button onclick="startAutoCeremony()" class="bg-pop-purple hover:bg-purple-600 text-white font-black text-xs px-2.5 md:px-3 py-1.5 md:py-2 rounded-xl neo-border-sm neo-button flex items-center space-x-1">
               <i class="fa-solid fa-rotate-right mr-1"></i><span>表彰式を最初から再生</span>
             </button>
           </div>
         </div>
 
-        <!-- Podium Display (3rd, 1st, 2nd Container) -->
-        <div class="flex items-end justify-center space-x-4 h-[340px] pt-12 px-4 relative">
+        <!-- Podium Display (3rd, 1st, 2nd Container - Optimized Height) -->
+        <div class="flex items-end justify-center space-x-3 md:space-x-4 h-[280px] md:h-[300px] pt-8 md:pt-10 px-2 md:px-4 relative">
           
           <!-- 2nd Place Podium -->
           <div id="podium-2" class="w-1/3 flex flex-col items-center opacity-0 transition-all duration-500">
-            <div class="mb-3 text-center">
-              <div class="w-20 h-20 bg-gray-300 text-4xl rounded-2xl neo-border shadow-neo flex items-center justify-center mx-auto mb-1" id="podium-2-avatar">
+            <div class="mb-2 text-center">
+              <div class="w-16 h-16 md:w-20 md:h-20 bg-gray-300 text-3xl md:text-4xl rounded-2xl neo-border shadow-neo flex items-center justify-center mx-auto mb-1" id="podium-2-avatar">
                 🐱
               </div>
-              <div class="font-black text-base text-white truncate max-w-[120px]" id="podium-2-name">---</div>
+              <div class="font-black text-sm md:text-base text-white truncate max-w-[110px] md:max-w-[120px]" id="podium-2-name">---</div>
               <div class="text-xs font-black text-pop-cyan" id="podium-2-score">0 pt</div>
             </div>
-            <div class="w-full bg-gray-400 neo-border shadow-neo rounded-t-2xl h-44 flex flex-col items-center justify-start pt-3">
-              <span class="text-5xl font-black text-black opacity-80">2</span>
-              <span class="text-xs font-black text-black">SILVER</span>
+            <div class="w-full bg-gray-400 neo-border shadow-neo rounded-t-2xl h-36 md:h-40 flex flex-col items-center justify-start pt-2 md:pt-3">
+              <span class="text-4xl md:text-5xl font-black text-black opacity-80">2</span>
+              <span class="text-[11px] font-black text-black">SILVER</span>
             </div>
           </div>
 
           <!-- 1st Place Podium -->
           <div id="podium-1" class="w-1/3 flex flex-col items-center opacity-0 z-10 transition-all duration-500">
-            <div class="mb-3 text-center relative">
-              <i class="fa-solid fa-crown text-5xl text-pop-yellow absolute -top-10 left-1/2 -translate-x-1/2 drop-shadow animate-bounce"></i>
-              <div class="w-24 h-24 bg-pop-yellow text-5xl rounded-2xl neo-border shadow-neo-lg flex items-center justify-center mx-auto mb-1 ring-4 ring-pop-yellow" id="podium-1-avatar">
+            <div class="mb-2 text-center relative">
+              <i class="fa-solid fa-crown text-4xl md:text-5xl text-pop-yellow absolute -top-8 md:-top-10 left-1/2 -translate-x-1/2 drop-shadow animate-bounce"></i>
+              <div class="w-20 h-20 md:w-24 md:h-24 bg-pop-yellow text-4xl md:text-5xl rounded-2xl neo-border shadow-neo-lg flex items-center justify-center mx-auto mb-1 ring-4 ring-pop-yellow" id="podium-1-avatar">
                 🦊
               </div>
-              <div class="font-black text-xl text-pop-yellow truncate max-w-[140px]" id="podium-1-name">---</div>
-              <div class="text-sm font-black text-pop-green" id="podium-1-score">0 pt</div>
+              <div class="font-black text-lg md:text-xl text-pop-yellow truncate max-w-[130px] md:max-w-[140px]" id="podium-1-name">---</div>
+              <div class="text-xs md:text-sm font-black text-pop-green" id="podium-1-score">0 pt</div>
             </div>
-            <div class="w-full bg-pop-yellow neo-border shadow-neo-lg rounded-t-2xl h-60 flex flex-col items-center justify-start pt-4">
-              <span class="text-7xl font-black text-black">1</span>
-              <span class="text-sm font-black text-black tracking-widest">CHAMPION</span>
+            <div class="w-full bg-pop-yellow neo-border shadow-neo-lg rounded-t-2xl h-48 md:h-52 flex flex-col items-center justify-start pt-3 md:pt-4">
+              <span class="text-5xl md:text-7xl font-black text-black">1</span>
+              <span class="text-xs md:text-sm font-black text-black tracking-widest">CHAMPION</span>
             </div>
           </div>
 
           <!-- 3rd Place Podium -->
           <div id="podium-3" class="w-1/3 flex flex-col items-center opacity-0 transition-all duration-500">
-            <div class="mb-3 text-center">
-              <div class="w-18 h-18 bg-amber-700 text-3xl rounded-2xl neo-border shadow-neo flex items-center justify-center mx-auto mb-1 p-2" id="podium-3-avatar">
+            <div class="mb-2 text-center">
+              <div class="w-14 h-14 md:w-18 md:h-18 bg-amber-700 text-2xl md:text-3xl rounded-2xl neo-border shadow-neo flex items-center justify-center mx-auto mb-1 p-1 md:p-2" id="podium-3-avatar">
                 🐼
               </div>
-              <div class="font-black text-base text-white truncate max-w-[120px]" id="podium-3-name">---</div>
+              <div class="font-black text-sm md:text-base text-white truncate max-w-[110px] md:max-w-[120px]" id="podium-3-name">---</div>
               <div class="text-xs font-black text-pop-cyan" id="podium-3-score">0 pt</div>
             </div>
-            <div class="w-full bg-amber-800 neo-border shadow-neo rounded-t-2xl h-32 flex flex-col items-center justify-start pt-3">
-              <span class="text-4xl font-black text-white opacity-80">3</span>
-              <span class="text-xs font-black text-white">BRONZE</span>
+            <div class="w-full bg-amber-800 neo-border shadow-neo rounded-t-2xl h-24 md:h-28 flex flex-col items-center justify-start pt-2 md:pt-3">
+              <span class="text-3xl md:text-4xl font-black text-white opacity-80">3</span>
+              <span class="text-[11px] font-black text-white">BRONZE</span>
             </div>
           </div>
 
@@ -604,9 +604,9 @@
       </div>
 
       <!-- Right Column: 4th-8th Rank List & Restart -->
-      <div class="col-span-4 bg-pop-card neo-border shadow-neo rounded-3xl p-6 flex flex-col justify-between">
+      <div class="col-span-4 bg-pop-card neo-border shadow-neo rounded-3xl p-4 md:p-5 flex flex-col justify-between">
         <div>
-          <h3 class="text-xl font-black text-white mb-4 pb-3 border-b border-gray-700 flex items-center justify-between">
+          <h3 class="text-lg md:text-xl font-black text-white mb-3 pb-2.5 border-b border-gray-700 flex items-center justify-between">
             <span class="flex items-center space-x-2">
               <i class="fa-solid fa-list-ol text-pop-cyan"></i>
               <span>4位以下の順位</span>
@@ -617,13 +617,13 @@
           </h3>
 
           <!-- List 4th and below -->
-          <div id="other-ranks-container" class="space-y-2 max-h-[360px] overflow-y-auto pr-1 opacity-0 transition-opacity duration-500">
+          <div id="other-ranks-container" class="space-y-2 max-h-[240px] md:max-h-[260px] overflow-y-auto pr-1 opacity-0 transition-opacity duration-500">
             <!-- Dynamic 4th+ list -->
           </div>
         </div>
 
-        <!-- Restart Button -->
-        <button onclick="restartGame()" class="w-full bg-pop-pink hover:bg-rose-400 text-black text-xl font-black py-4 rounded-2xl neo-border shadow-neo neo-button flex items-center justify-center space-x-2">
+        <!-- Restart Button (Lifted up 50px from bottom for perfect visibility) -->
+        <button onclick="restartGame()" class="w-full bg-pop-pink hover:bg-rose-400 text-black text-lg md:text-xl font-black py-3 rounded-2xl neo-border shadow-neo neo-button flex items-center justify-center space-x-2 mb-[50px]">
           <i class="fa-solid fa-rotate-right"></i>
           <span>次のゲームへ（待機画面へ）</span>
         </button>
