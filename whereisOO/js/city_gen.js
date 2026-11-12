@@ -288,6 +288,32 @@
             description: 'Sports complex with arena roof',
             height: 2.7,
             signText: 'SPORTS GYM'
+        },
+        {
+            id: 'amusement_park',
+            name: 'Amusement Park',
+            jpName: '遊園地',
+            color: '#fff9c4',
+            accentColor: '#e91e63',
+            roofColor: '#d81b60',
+            icon: '🎡',
+            description: 'Lively theme park with giant Ferris wheel and attractions',
+            height: 3.2,
+            signText: 'AMUSEMENT PARK',
+            isAmusementPark: true,
+            isLarge: true
+        },
+        {
+            id: 'city_hall',
+            name: 'City Hall',
+            jpName: '市役所',
+            color: '#eceff1',
+            accentColor: '#1976d2',
+            roofColor: '#37474f',
+            icon: '🏢',
+            description: 'Civic municipal hall with national flag and clock',
+            height: 2.8,
+            signText: 'CITY HALL'
         }
     ];
 
@@ -340,11 +366,12 @@
     }
 
     /**
-     * 指定されたシード値から一意の街データを生成する
+     * 指定されたシード値およびカスタムランドマークから一意の街データを生成する
      * @param {string|number} seedInput シード値
+     * @param {Array} [customLandmarksInput] 教員指定のカスタムランドマーク配列
      * @returns {Object} 街並み完全データオブジェクト
      */
-    function generateCity(seedInput) {
+    function generateCity(seedInput, customLandmarksInput) {
         const seedStr = (seedInput !== undefined && seedInput !== null && seedInput !== '') ? String(seedInput).trim() : '01';
         const rng = new SeededRNG(seedStr);
 
@@ -376,15 +403,14 @@
             }
         }
 
-        // 2. 街区（ブロック）のリスト作成
-        const blocks = [];
+        // 2. 街区（ブロック）のリスト作成 & 2x1 または 1x2 の大型街区を1つだけ生成
         const step = BLOCK_CELL_SIZE + ROAD_WIDTH;
+        const rawBlocks = [];
         for (let bz = 0; bz < BLOCKS_Z; bz++) {
             for (let bx = 0; bx < BLOCKS_X; bx++) {
                 const startX = bx * step + ROAD_WIDTH;
                 const startZ = bz * step + ROAD_WIDTH;
-                blocks.push({
-                    id: `block_${bx}_${bz}`,
+                rawBlocks.push({
                     bx: bx,
                     bz: bz,
                     startX: startX,
@@ -392,25 +418,141 @@
                     endX: startX + BLOCK_CELL_SIZE - 1,
                     endZ: startZ + BLOCK_CELL_SIZE - 1,
                     width: BLOCK_CELL_SIZE,
-                    height: BLOCK_CELL_SIZE,
+                    height: BLOCK_CELL_SIZE
+                });
+            }
+        }
+
+        // 2x1 (横長) または 1x2 (縦長) のペア候補を生成
+        const mergePairs = [];
+        // 横長ペア (2x1)
+        for (let bz = 0; bz < BLOCKS_Z; bz++) {
+            for (let bx = 0; bx < BLOCKS_X - 1; bx++) {
+                mergePairs.push({ type: '2x1', bx1: bx, bz1: bz, bx2: bx + 1, bz2: bz });
+            }
+        }
+        // 縦長ペア (1x2)
+        for (let bz = 0; bz < BLOCKS_Z - 1; bz++) {
+            for (let bx = 0; bx < BLOCKS_X; bx++) {
+                mergePairs.push({ type: '1x2', bx1: bx, bz1: bz, bx2: bx, bz2: bz + 1 });
+            }
+        }
+
+        const chosenPair = rng.choice(mergePairs);
+        const mergedBlock = {
+            id: `block_large_${chosenPair.bx1}_${chosenPair.bz1}`,
+            bx: chosenPair.bx1,
+            bz: chosenPair.bz1,
+            startX: chosenPair.bx1 * step + ROAD_WIDTH,
+            startZ: chosenPair.bz1 * step + ROAD_WIDTH,
+            endX: (chosenPair.type === '2x1') ? ((chosenPair.bx2 * step + ROAD_WIDTH) + BLOCK_CELL_SIZE - 1) : (chosenPair.bx1 * step + ROAD_WIDTH + BLOCK_CELL_SIZE - 1),
+            endZ: (chosenPair.type === '1x2') ? ((chosenPair.bz2 * step + ROAD_WIDTH) + BLOCK_CELL_SIZE - 1) : (chosenPair.bz1 * step + ROAD_WIDTH + BLOCK_CELL_SIZE - 1),
+            width: (chosenPair.type === '2x1') ? (BLOCK_CELL_SIZE * 2 + ROAD_WIDTH) : BLOCK_CELL_SIZE, // 7 または 3
+            height: (chosenPair.type === '1x2') ? (BLOCK_CELL_SIZE * 2 + ROAD_WIDTH) : BLOCK_CELL_SIZE, // 7 または 3
+            isLarge: true,
+            largeType: chosenPair.type,
+            isLandmark: false,
+            landmark: null,
+            building: null
+        };
+
+        // 中間の道路セルを建物セルに上書き（道がなくなり、衝突判定で侵入不可になる）
+        if (chosenPair.type === '2x1') {
+            const midX = mergedBlock.startX + BLOCK_CELL_SIZE;
+            for (let z = mergedBlock.startZ; z <= mergedBlock.endZ; z++) {
+                grid[z][midX] = CELL_BUILDING;
+            }
+        } else {
+            const midZ = mergedBlock.startZ + BLOCK_CELL_SIZE;
+            for (let x = mergedBlock.startX; x <= mergedBlock.endX; x++) {
+                grid[midZ][x] = CELL_BUILDING;
+            }
+        }
+
+        // 残りの単一ブロック (14個) を構築
+        const normalBlocks = [];
+        rawBlocks.forEach(b => {
+            const isPair1 = (b.bx === chosenPair.bx1 && b.bz === chosenPair.bz1);
+            const isPair2 = (b.bx === chosenPair.bx2 && b.bz === chosenPair.bz2);
+            if (!isPair1 && !isPair2) {
+                normalBlocks.push({
+                    id: `block_${b.bx}_${b.bz}`,
+                    bx: b.bx,
+                    bz: b.bz,
+                    startX: b.startX,
+                    startZ: b.startZ,
+                    endX: b.endX,
+                    endZ: b.endZ,
+                    width: b.width,
+                    height: b.height,
+                    isLarge: false,
                     isLandmark: false,
                     landmark: null,
                     building: null
                 });
             }
+        });
+
+        // 3. ランドマークの準備 & 配置
+        // (A) 教員指定カスタムランドマークの正規化 & 🛡️教育安心フィルターによる多層防御サニタイズ
+        const INAPPROPRIATE_EMOJI_REGEX = /[\u{1F3E9}\u{1F51E}\u{1F37A}\u{1F37B}\u{1F377}\u{1F378}\u{1F379}\u{1F376}\u{1F6AC}\u{1F48A}\u{1F489}\u{1F52B}\u{1F4A3}\u{1F52A}\u{2694}\u{1F5E1}\u{1F3B0}\u{1F3B2}\u{1F459}\u{1F48B}\u{1F4A9}\u{1F480}\u{1F595}]/u;
+        const INAPPROPRIATE_WORDS_REGEX = /(ラブホ|風俗|カジノ|パチンコ|スロット|バー|居酒屋|酒|ビール|タバコ|煙草|銃|ピストル|ライフル|武器|ナイフ|包丁|爆弾|薬物|麻薬|毒|殺|死|エッチ|性交|下着|監獄|刑務所|牢屋|love\s*hotel|casino|pachinko|slot\b|bar\b|pub\b|liquor|alcohol|beer|wine|tobacco|cigarette|cigar|gun\b|rifle|weapon|knife|bomb|drug|narcotic|poison|kill|murder|death|dead|prison|jail|gamble|gambling|sex\b|erotic|porn)/i;
+
+        function isEducationallySafe(name, jpName, icon) {
+            const text = `${name || ''} ${jpName || ''}`.toLowerCase();
+            const iconStr = icon || '';
+            if (INAPPROPRIATE_EMOJI_REGEX.test(iconStr) || INAPPROPRIATE_EMOJI_REGEX.test(text)) return false;
+            if (INAPPROPRIATE_WORDS_REGEX.test(text) || INAPPROPRIATE_WORDS_REGEX.test(iconStr)) return false;
+            return true;
         }
 
-        // 3. ランドマークの配置
-        const shuffledBlocks = rng.shuffle(blocks);
-        const availableLandmarks = rng.shuffle(LANDMARK_DEFINITIONS);
+        let customLandmarks = [];
+        if (Array.isArray(customLandmarksInput)) {
+            customLandmarks = customLandmarksInput
+                .filter(c => c && c.name && isEducationallySafe(c.name, c.jpName, c.icon))
+                .map((c, idx) => ({
+                    id: c.id || ('custom_' + idx + '_' + c.name.toLowerCase().replace(/[^a-z0-9]/g, '_')),
+                    name: c.name.trim(),
+                    jpName: (c.jpName || c.name).trim(),
+                    icon: (c.icon || '📍').trim(),
+                    color: c.color || '#e8eaf6',
+                    accentColor: c.accentColor || '#3f51b5',
+                    roofColor: c.roofColor || '#1a237e',
+                    description: c.description || c.name,
+                    height: 2.4,
+                    signText: (c.signText || c.name).toUpperCase().slice(0, 16),
+                    isCustom: true
+                }));
+        }
 
+        // (B) 2x1/1x2の大型ブロックには遊園地 (Amusement Park) を優先配置
+        const amusementParkDef = LANDMARK_DEFINITIONS.find(lm => lm.id === 'amusement_park') || {
+            id: 'amusement_park',
+            name: 'Amusement Park',
+            jpName: '遊園地',
+            icon: '🎡',
+            color: '#fff9c4',
+            accentColor: '#e91e63',
+            roofColor: '#d81b60',
+            height: 3.2,
+            signText: 'AMUSEMENT PARK',
+            isAmusementPark: true,
+            isLarge: true
+        };
+
+        // (C) 標準ランドマーク (遊園地を除く) をシャッフル
+        const standardOthers = LANDMARK_DEFINITIONS.filter(lm => lm.id !== 'amusement_park');
+        const shuffledStandard = rng.shuffle(standardOthers);
+
+        // カスタムランドマークを先頭に優先配置し、残りを標準から補充 (合計7施設)
+        const normalLandmarkPool = customLandmarks.concat(shuffledStandard);
+
+        // シャッフルした通常ブロック14個のうち先頭7個にランドマークを配置
+        const shuffledNormalBlocks = rng.shuffle(normalBlocks);
         const landmarksInCity = [];
-        const numLandmarksToPlace = Math.min(8, availableLandmarks.length, blocks.length);
 
-        for (let i = 0; i < numLandmarksToPlace; i++) {
-            const block = shuffledBlocks[i];
-            const lmDef = availableLandmarks[i];
-
+        // ヘルパー: ブロックにランドマークを割り当てて登録
+        function assignLandmarkToBlock(block, lmDef) {
             block.isLandmark = true;
             block.landmark = Object.assign({}, lmDef);
 
@@ -423,12 +565,34 @@
             const centerX = (block.startX + block.width / 2) * CELL_SIZE;
             const centerZ = (block.startZ + block.height / 2) * CELL_SIZE;
 
-            const frontOptions = [
-                { x: block.startX + 1, z: block.startZ - 1, face: 'North' },
-                { x: block.startX + 1, z: block.endZ + 1, face: 'South' },
-                { x: block.startX - 1, z: block.startZ + 1, face: 'West' },
-                { x: block.endX + 1, z: block.startZ + 1, face: 'East' }
-            ];
+            // 接道 (Front Road) オプション
+            let frontOptions = [];
+            if (block.width > block.height) {
+                // 2x1
+                frontOptions = [
+                    { x: block.startX + 3, z: block.startZ - 1, face: 'North' },
+                    { x: block.startX + 3, z: block.endZ + 1, face: 'South' },
+                    { x: block.startX - 1, z: block.startZ + 1, face: 'West' },
+                    { x: block.endX + 1, z: block.startZ + 1, face: 'East' }
+                ];
+            } else if (block.height > block.width) {
+                // 1x2
+                frontOptions = [
+                    { x: block.startX + 1, z: block.startZ - 1, face: 'North' },
+                    { x: block.startX + 1, z: block.endZ + 1, face: 'South' },
+                    { x: block.startX - 1, z: block.startZ + 3, face: 'West' },
+                    { x: block.endX + 1, z: block.startZ + 3, face: 'East' }
+                ];
+            } else {
+                // 1x1
+                frontOptions = [
+                    { x: block.startX + 1, z: block.startZ - 1, face: 'North' },
+                    { x: block.startX + 1, z: block.endZ + 1, face: 'South' },
+                    { x: block.startX - 1, z: block.startZ + 1, face: 'West' },
+                    { x: block.endX + 1, z: block.startZ + 1, face: 'East' }
+                ];
+            }
+
             const validFronts = frontOptions.filter(f => f.x >= 0 && f.x < GRID_SIZE_X && f.z >= 0 && f.z < GRID_SIZE_Z);
             const frontRoad = validFronts.length > 0 ? rng.choice(validFronts) : { x: block.startX, z: block.startZ - 1, face: 'North' };
 
@@ -442,6 +606,9 @@
                 roofColor: lmDef.roofColor,
                 signText: lmDef.signText,
                 isPark: !!lmDef.isPark,
+                isAmusementPark: !!lmDef.isAmusementPark,
+                isLarge: !!block.isLarge,
+                isCustom: !!lmDef.isCustom,
                 blockId: block.id,
                 startX: block.startX,
                 startZ: block.startZ,
@@ -460,9 +627,18 @@
             landmarksInCity.push(landmarkEntry);
         }
 
-        // 4. 一般建物の生成
-        for (let i = numLandmarksToPlace; i < shuffledBlocks.length; i++) {
-            const block = shuffledBlocks[i];
+        // 大型ブロックに遊園地を配置
+        assignLandmarkToBlock(mergedBlock, amusementParkDef);
+
+        // 通常ブロックにランドマーク7個を配置
+        const numNormalLandmarks = Math.min(7, normalLandmarkPool.length, shuffledNormalBlocks.length);
+        for (let i = 0; i < numNormalLandmarks; i++) {
+            assignLandmarkToBlock(shuffledNormalBlocks[i], normalLandmarkPool[i]);
+        }
+
+        // 4. 残りの通常ブロック (7個) を一般建物に
+        for (let i = numNormalLandmarks; i < shuffledNormalBlocks.length; i++) {
+            const block = shuffledNormalBlocks[i];
             const palette = rng.choice(GENERAL_BUILDING_COLORS);
             const bldgHeight = rng.range(1.5, 3.8);
 
@@ -483,9 +659,12 @@
             };
         }
 
+        // 全ブロックリストを統合 (大型1個 + 通常14個 = 計15街区)
+        const allBlocks = [mergedBlock].concat(shuffledNormalBlocks);
+
         // 5. 街路樹・街灯
         const streetProps = [];
-        blocks.forEach(block => {
+        allBlocks.forEach(block => {
             const corners = [
                 { x: block.startX, z: block.startZ },
                 { x: block.endX, z: block.startZ },
@@ -563,7 +742,7 @@
             worldWidth: GRID_SIZE_X * CELL_SIZE,
             worldDepth: GRID_SIZE_Z * CELL_SIZE,
             grid: grid,
-            blocks: blocks,
+            blocks: allBlocks,
             landmarks: landmarksInCity,
             streetProps: streetProps,
             spawn: spawn,
@@ -632,7 +811,8 @@
         SeededRNG: SeededRNG,
         CELL_SIZE: CELL_SIZE,
         GRID_SIZE_X: GRID_SIZE_X,
-        GRID_SIZE_Z: GRID_SIZE_Z
+        GRID_SIZE_Z: GRID_SIZE_Z,
+        LANDMARK_DEFINITIONS: LANDMARK_DEFINITIONS
     };
 
 })(typeof window !== 'undefined' ? window : this);

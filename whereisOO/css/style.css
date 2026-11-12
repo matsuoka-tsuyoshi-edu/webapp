@@ -1558,27 +1558,40 @@ html, body {
 /* ==========================================================================
    QRコード共有パネル (Lobby QR Code & URL Share Panel)
    ========================================================================== */
+.lobby-subpanels-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    width: 100%;
+    max-width: 960px;
+    margin-top: 20px;
+    margin-bottom: 8px;
+}
+
+.subpanel-item {
+    flex: 1 1 420px;
+    margin-bottom: 0 !important;
+    box-sizing: border-box;
+}
+
 .qr-share-card {
     background: #ffffff;
     border-radius: 18px;
-    padding: 16px 20px;
+    padding: 14px 18px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
     border: 2px solid #81c784;
     width: 100%;
-    max-width: 960px;
     box-sizing: border-box;
-    margin-bottom: 20px;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 20px;
+    gap: 14px;
 }
 
 .qr-code-box {
     background: #f1f8e9;
     border: 2px dashed #4caf50;
     border-radius: 14px;
-    padding: 10px;
+    padding: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1594,27 +1607,34 @@ html, body {
 }
 
 .qr-code-container {
-    width: 130px;
-    height: 130px;
+    width: 110px;
+    height: 110px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: #ffffff;
     border-radius: 8px;
     overflow: hidden;
+    position: relative;
 }
 
 .qr-code-container canvas, .qr-code-container img {
-    width: 100% !important;
-    height: 100% !important;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
     display: block;
 }
 
+/* 万が一canvasとimgが重複生成された場合、imgを非表示にして1つだけに強制 */
+.qr-code-container canvas + img {
+    display: none !important;
+}
+
 .qr-tap-hint {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: bold;
     color: #2e7d32;
-    margin-top: 6px;
+    margin-top: 4px;
     text-align: center;
 }
 
@@ -1719,35 +1739,496 @@ html, body {
 .qr-modal-dialog {
     background: #ffffff;
     border-radius: 24px;
-    padding: 24px 30px;
-    max-width: 480px;
+    padding: 20px 24px 22px;
+    max-width: min(94vw, 580px);
+    max-height: 96dvh;
     width: 100%;
+    box-sizing: border-box;
     text-align: center;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
     animation: popInModal 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.qr-modal-close-x {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    z-index: 10;
 }
 
 .qr-modal-canvas-wrap {
-    width: 260px;
-    height: 260px;
-    margin: 16px auto;
+    width: min(86vw, calc(92dvh - 195px), 520px);
+    height: min(86vw, calc(92dvh - 195px), 520px);
+    min-width: 240px;
+    min-height: 240px;
+    margin: 10px auto;
     background: #ffffff;
-    padding: 12px;
-    border: 3px solid #4caf50;
-    border-radius: 16px;
+    padding: 14px;
+    border: 4px solid #4caf50;
+    border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .qr-modal-canvas-wrap canvas, .qr-modal-canvas-wrap img {
-    width: 100% !important;
-    height: 100% !important;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
     display: block;
+}
+
+.qr-modal-canvas-wrap canvas + img {
+    display: none !important;
 }
 
 @keyframes popInModal {
     from { transform: scale(0.85); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
+}
+
+/* =============================================================
+   教員用ランドマークカスタマイザー (Lobby Landmark Customizer & Modal)
+   ============================================================= */
+.custom-lm-banner-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f1f8e9 100%);
+    border: 2px solid #81c784;
+    border-radius: 18px;
+    padding: 14px 18px;
+    box-shadow: 0 4px 14px rgba(46, 125, 50, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+    box-sizing: border-box;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.custom-lm-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.custom-lm-banner-icon {
+    font-size: 2rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.custom-lm-banner-texts {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.custom-lm-banner-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1b5e20;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.custom-lm-banner-sub {
+    font-size: 0.82rem;
+    color: #455a64;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.custom-lm-banner-right {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 4px;
+}
+
+.btn-open-custom-lm-dialog {
+    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(27, 94, 32, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.btn-open-custom-lm-dialog:hover, .btn-open-custom-lm-dialog:active {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(27, 94, 32, 0.4);
+    background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
+}
+
+.custom-lm-badge {
+    font-size: 0.82rem;
+    background: #e0e0e0;
+    color: #424242;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.custom-lm-badge.active {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #4caf50;
+    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.15);
+}
+
+/* カスタムランドマーク設定モーダル */
+.custom-lm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 16px;
+    touch-action: pan-y;
+}
+
+.custom-lm-modal-overlay.active {
+    display: flex;
+}
+
+.custom-lm-modal-dialog {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 24px;
+    max-width: 680px;
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: popInModal 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.custom-lm-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #e8f5e9;
+    padding-bottom: 10px;
+}
+
+.custom-lm-modal-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1b5e20;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-close-modal-x {
+    background: #f5f5f5;
+    border: none;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #616161;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-close-modal-x:hover {
+    background: #e0e0e0;
+    color: #212121;
+}
+
+/* 教育安心フィルターバッジ */
+.safety-notice-badge {
+    background: #e8f5e9;
+    border: 1px solid #81c784;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    color: #1b5e20;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.35;
+}
+
+/* 安心絵文字パレット */
+.safe-emoji-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    background: #f9fbe7;
+    border: 1px dashed #c0ca33;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.btn-emoji-tile {
+    background: #ffffff;
+    border: 1px solid #dce775;
+    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    font-size: 1.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.btn-emoji-tile:hover, .btn-emoji-tile:active {
+    background: #f0f4c3;
+    transform: scale(1.18);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.custom-lm-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.custom-lm-desc {
+    font-size: 0.88rem;
+    color: #455a64;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.custom-lm-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.custom-lm-subtitle {
+    font-size: 0.88rem;
+    font-weight: bold;
+    color: #2e7d32;
+}
+
+.custom-lm-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.btn-preset-lm {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    border: 1px solid #81c784;
+    color: #2e7d32;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.88rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-preset-lm:hover, .btn-preset-lm:active {
+    background: #2e7d32;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.2);
+}
+
+.custom-lm-form-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.custom-lm-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 110px;
+}
+
+.custom-lm-input-group label {
+    font-size: 0.78rem;
+    font-weight: bold;
+    color: #555;
+}
+
+.custom-lm-input-group input {
+    padding: 8px 10px;
+    border: 1px solid #b0bec5;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+    background: #ffffff;
+}
+
+.custom-lm-input-group input:focus {
+    border-color: #2e7d32;
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+}
+
+.btn-add-lm {
+    background: #2e7d32;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    height: 38px;
+    transition: background 0.15s ease;
+    white-space: nowrap;
+}
+
+.btn-add-lm:hover, .btn-add-lm:active {
+    background: #1b5e20;
+}
+
+.custom-lm-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.btn-reset-lm {
+    background: none;
+    border: none;
+    color: #c62828;
+    font-size: 0.82rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 2px 6px;
+}
+
+.btn-reset-lm:hover {
+    color: #b71c1c;
+}
+
+.custom-lm-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 34px;
+    align-items: center;
+    background: #ffffff;
+    border: 1px dashed #a5d6a7;
+    border-radius: 10px;
+    padding: 8px 12px;
+}
+
+.lm-empty-hint {
+    font-size: 0.82rem;
+    color: #78909c;
+    font-style: italic;
+}
+
+.custom-lm-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #e8f5e9;
+    border: 1px solid #4caf50;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.88rem;
+    font-weight: bold;
+    color: #1b5e20;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.custom-lm-tag-jp {
+    font-size: 0.8rem;
+    color: #558b2f;
+    font-weight: normal;
+}
+
+.btn-del-lm-tag {
+    background: none;
+    border: none;
+    color: #e53935;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+    margin-left: 2px;
+}
+
+.btn-del-lm-tag:hover {
+    color: #b71c1c;
+    transform: scale(1.2);
+}
+
+.custom-lm-hint {
+    font-size: 0.82rem;
+    color: #2e7d32;
+    font-weight: bold;
+    background: #e8f5e9;
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-finish-modal {
+    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 1.05rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(27, 94, 32, 0.25);
+    margin-top: 8px;
+    width: 100%;
+    transition: all 0.15s ease;
+}
+
+.btn-finish-modal:hover, .btn-finish-modal:active {
+    background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
+    transform: translateY(-1px);
 }

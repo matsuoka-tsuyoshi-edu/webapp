@@ -40,35 +40,7 @@
             </div>
         </header>
 
-        <!-- 📲 教室共有用 QRコード＆URL 自動表示パネル -->
-        <section class="qr-share-card" aria-label="教室共有用アクセスQRコード">
-            <div class="qr-code-box" id="btn-qr-box" title="タップで大画面拡大表示 (プロジェクター用)">
-                <div class="qr-code-container" id="lobby-qr-container"></div>
-                <span class="qr-tap-hint">👆 タップで拡大</span>
-            </div>
-            <div class="qr-info-box">
-                <h2 class="qr-title" data-i18n="qr_panel_title">
-                    <span>📲</span> 教室で共有！ 参加用QRコード & URL
-                </h2>
-                <p class="qr-desc" data-i18n="qr_panel_desc">
-                    児童・生徒のiPadカメラでこのQRコードをかざすだけで、すぐにこのロビーに入れます！
-                </p>
-                <div class="qr-url-row">
-                    <input type="text" id="share-url-input" class="qr-url-input" readonly aria-label="アクセスURL">
-                    <button type="button" class="btn-qr-action" id="btn-copy-url" data-i18n="btn_copy_url">
-                        📋 URLをコピー
-                    </button>
-                    <button type="button" class="btn-qr-action btn-qr-zoom" id="btn-zoom-qr" data-i18n="btn_zoom_qr">
-                        🔍 大画面で表示 (プロジェクター用)
-                    </button>
-                </div>
-                <div id="file-protocol-warning" style="display: none; font-size: 0.8rem; color: #d32f2f; font-weight: bold; margin-top: 4px;">
-                    ⚠️ 現在ローカルファイル(file://)で開いています。他のiPadから接続するにはWebサーバー経由（http://...）でアクセスしてください。
-                </div>
-            </div>
-        </section>
-
-        <!-- メインカードコンテナ (リアルタイム通信専用のシンプルUI) -->
+        <!-- ① メインアクションカードコンテナ (iPad A: 地図役 ＆ iPad B: 探検役) -->
         <div class="lobby-cards-container">
 
             <!-- iPad A用 アクションカード -->
@@ -109,7 +81,57 @@
 
         </div>
 
-        <!-- 折りたたみ: 遊び方・英語道案内ガイド -->
+        <!-- ② サブパネル横並びコンテナ (左: 教室共有用QRコード / 右: オリジナル建物設定バナー) -->
+        <div class="lobby-subpanels-container">
+
+            <!-- 📲 教室共有用 QRコード＆URL 自動表示パネル -->
+            <section class="qr-share-card subpanel-item" aria-label="教室共有用アクセスQRコード">
+                <div class="qr-code-box" id="btn-qr-box" title="タップで大画面拡大表示 (プロジェクター用)">
+                    <div class="qr-code-container" id="lobby-qr-container"></div>
+                    <span class="qr-tap-hint">👆 タップで拡大</span>
+                </div>
+                <div class="qr-info-box">
+                    <h2 class="qr-title" data-i18n="qr_panel_title">
+                        <span>📲</span> 教室で共有！ 参加用QRコード & URL
+                    </h2>
+                    <p class="qr-desc" data-i18n="qr_panel_desc">
+                        児童・生徒のiPadカメラでこのQRコードをかざすだけで、すぐにこのロビーに入れます！
+                    </p>
+                    <div class="qr-url-row">
+                        <input type="text" id="share-url-input" class="qr-url-input" readonly aria-label="アクセスURL">
+                        <button type="button" class="btn-qr-action" id="btn-copy-url" data-i18n="btn_copy_url">
+                            📋 URLをコピー
+                        </button>
+                        <button type="button" class="btn-qr-action btn-qr-zoom" id="btn-zoom-qr" data-i18n="btn_zoom_qr">
+                            🔍 大画面で表示 (プロジェクター用)
+                        </button>
+                    </div>
+                    <div id="file-protocol-warning" style="display: none; font-size: 0.8rem; color: #d32f2f; font-weight: bold; margin-top: 4px;">
+                        ⚠️ 現在ローカルファイル(file://)で開いています。他のiPadから接続するにはWebサーバー経由（http://...）でアクセスしてください。
+                    </div>
+                </div>
+            </section>
+
+            <!-- ⚙️ 🏛️ オリジナル建物の設定・追加 (教員用バナーボタン) -->
+            <section class="custom-lm-banner-card subpanel-item" aria-label="建物・ランドマークのカスタマイズ">
+                <div class="custom-lm-banner-left">
+                    <span class="custom-lm-banner-icon">🏛️</span>
+                    <div class="custom-lm-banner-texts">
+                        <span class="custom-lm-banner-title" data-i18n="custom_lm_btn_main">オリジナル建物の設定・追加 (教員用)</span>
+                        <span class="custom-lm-banner-sub" data-i18n="custom_lm_btn_sub">城・水族館・動物園など、教科書や地域の建物を3Dの街に自由に追加！</span>
+                    </div>
+                </div>
+                <div class="custom-lm-banner-right">
+                    <span class="custom-lm-badge" id="custom-lm-count-badge">標準設定</span>
+                    <button type="button" class="btn-open-custom-lm-dialog" id="btn-open-custom-lm-dialog">
+                        <span>✨ ⚙️ 設定する</span>
+                    </button>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ③ 折りたたみ: 遊び方・英語道案内ガイド -->
         <details class="quick-guide-box" style="margin-top: 24px;">
             <summary data-i18n="guide_summary">📖 遊び方・ルール & 会話の流れ</summary>
             <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
@@ -139,22 +161,159 @@
     <!-- 拡大QRコードモーダル (プロジェクター・電子黒板投影用) -->
     <div class="qr-modal-overlay" id="qr-modal-overlay" role="dialog" aria-modal="true" aria-label="QRコード拡大表示">
         <div class="qr-modal-dialog">
-            <h2 style="font-size: 1.35rem; color: #1b5e20; margin-top: 0; margin-bottom: 6px;" data-i18n="zoom_modal_title">
+            <button type="button" class="btn-close-modal-x qr-modal-close-x" id="btn-close-qr-modal-x" aria-label="閉じる">✕</button>
+            <h2 style="font-size: 1.35rem; color: #1b5e20; margin-top: 0; margin-bottom: 4px;" data-i18n="zoom_modal_title">
                 🎉 教室のみんなでアクセス！ 🎉
             </h2>
-            <p style="font-size: 0.95rem; color: #555; margin-bottom: 12px;" data-i18n="zoom_modal_desc">
+            <p style="font-size: 0.95rem; color: #555; margin-bottom: 8px;" data-i18n="zoom_modal_desc">
                 iPadのカメラを画面に向けてスキャンしてね！
             </p>
             <div class="qr-modal-canvas-wrap" id="modal-qr-container"></div>
-            <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <div style="margin-top: 10px; display: flex; gap: 8px; width: 100%; max-width: 520px;">
                 <input type="text" id="modal-url-input" class="qr-url-input" readonly>
                 <button type="button" class="btn-qr-action" id="btn-modal-copy-url" data-i18n="btn_copy_url">
                     📋 URLをコピー
                 </button>
             </div>
-            <button type="button" class="btn btn-primary" id="btn-close-qr-modal" style="width: 100%; margin-top: 16px; font-size: 1.05rem;" data-i18n="btn_close">
+            <button type="button" class="btn btn-primary" id="btn-close-qr-modal" style="width: 100%; max-width: 520px; margin-top: 12px; font-size: 1.05rem;" data-i18n="btn_close">
                 閉じる
             </button>
+        </div>
+    </div>
+
+    <!-- ⚙️ 🏛️ オリジナル建物の設定・追加モーダル (教員用ダイアログ) -->
+    <div class="custom-lm-modal-overlay" id="custom-lm-modal-overlay" role="dialog" aria-modal="true" aria-label="オリジナル建物の設定・追加">
+        <div class="custom-lm-modal-dialog">
+            <div class="custom-lm-modal-header">
+                <h2 class="custom-lm-modal-title">
+                    <span>🏛️</span> <span data-i18n="custom_lm_btn_main">オリジナル建物の設定・追加 (教員用)</span>
+                </h2>
+                <button type="button" class="btn-close-modal-x" id="btn-close-custom-lm-modal" aria-label="閉じる">✕</button>
+            </div>
+
+            <!-- 🛡️ 教育安心フィルター作動中バッジ -->
+            <div class="safety-notice-badge" data-i18n="safety_filter_badge">
+                🛡️ 教育安心フィルター作動中（学校教育に適した建物・絵文字のみ登録できます）
+            </div>
+
+            <div class="custom-lm-body">
+                <p class="custom-lm-desc" data-i18n="landmark_settings_desc">
+                    教科書や地域題材（お城、水族館、動物園等）に合わせて建物を自由に追加できます。
+                </p>
+
+                <!-- 安心絵文字パレット (24種) -->
+                <div class="custom-lm-section">
+                    <div class="custom-lm-subtitle" data-i18n="safe_emoji_palette_title">安心絵文字パレット (タップで入力):</div>
+                    <div class="safe-emoji-palette" id="safe-emoji-palette">
+                        <button type="button" class="btn-emoji-tile" data-emoji="🏯" title="Castle (城)">🏯</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🐬" title="Aquarium (水族館)">🐬</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🦁" title="Zoo (動物園)">🦁</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="⛩️" title="Shrine (神社)">⛩️</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🗼" title="Tower (タワー)">🗼</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🏟️" title="Stadium (スタジアム)">🏟️</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="⛺" title="Camp (キャンプ場)">⛺</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🎨" title="Art Museum (美術館)">🎨</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🍕" title="Pizza Shop (ピザ屋)">🍕</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🦕" title="Dinosaur Museum (恐竜博物館)">🦕</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🎡" title="Ferris Wheel (観覧車)">🎡</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🍦" title="Ice Cream Shop (アイス屋)">🍦</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🚀" title="Space Center (宇宙センター)">🚀</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🚢" title="Port (港・船)">🚢</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🌲" title="Nature Park (自然公園)">🌲</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🚁" title="Heliport (ヘリポート)">🚁</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🐼" title="Panda House (パンダ館)">🐼</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🐧" title="Penguin Park (ペンギン館)">🐧</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="⚽" title="Soccer Field (サッカースタジアム)">⚽</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🎾" title="Tennis Court (テニスコート)">🎾</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🏀" title="Basketball Court (バスケコート)">🏀</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🎪" title="Circus (サーカス)">🎪</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🏪" title="Convenience Store (コンビニ)">🏪</button>
+                        <button type="button" class="btn-emoji-tile" data-emoji="🏥" title="Clinic (クリニック)">🏥</button>
+                    </div>
+                </div>
+
+                <!-- ワンタップ簡単プリセット -->
+                <div class="custom-lm-section">
+                    <div class="custom-lm-subtitle" data-i18n="landmark_preset_title">ワンタップ追加 (よく使われる題材):</div>
+                    <div class="custom-lm-presets">
+                        <button type="button" class="btn-preset-lm" data-name="Castle" data-jp="城" data-icon="🏯">
+                            <span>🏯</span> Castle (城)
+                        </button>
+                        <button type="button" class="btn-preset-lm" data-name="Aquarium" data-jp="水族館" data-icon="🐬">
+                            <span>🐬</span> Aquarium (水族館)
+                        </button>
+                        <button type="button" class="btn-preset-lm" data-name="Zoo" data-jp="動物園" data-icon="🦁">
+                            <span>🦁</span> Zoo (動物園)
+                        </button>
+                        <button type="button" class="btn-preset-lm" data-name="Shrine" data-jp="神社" data-icon="⛩️">
+                            <span>⛩️</span> Shrine (神社)
+                        </button>
+                        <button type="button" class="btn-preset-lm" data-name="Tower" data-jp="タワー" data-icon="🗼">
+                            <span>🗼</span> Tower (タワー)
+                        </button>
+                        <button type="button" class="btn-preset-lm" data-name="Stadium" data-jp="スタジアム" data-icon="🏟️">
+                            <span>🏟️</span> Stadium (スタジアム)
+                        </button>
+                        <button type="button" class="btn-preset-lm" data-name="Camp" data-jp="キャンプ場" data-icon="⛺">
+                            <span>⛺</span> Camp (キャンプ場)
+                        </button>
+                        <button type="button" class="btn-preset-lm" data-name="Art Museum" data-jp="美術館" data-icon="🎨">
+                            <span>🎨</span> Art Museum (美術館)
+                        </button>
+                        <button type="button" class="btn-preset-lm" data-name="Pizza Shop" data-jp="ピザ屋" data-icon="🍕">
+                            <span>🍕</span> Pizza Shop (ピザ屋)
+                        </button>
+                        <button type="button" class="btn-preset-lm" data-name="Dinosaur Museum" data-jp="恐竜博物館" data-icon="🦕">
+                            <span>🦕</span> Dinosaur Museum (恐竜博物館)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 自由入力フォーム -->
+                <div class="custom-lm-section">
+                    <div class="custom-lm-subtitle" data-i18n="landmark_custom_input_title">自由に追加:</div>
+                    <form id="form-custom-lm" class="custom-lm-form" onsubmit="return false;">
+                        <div class="custom-lm-form-row">
+                            <div class="custom-lm-input-group">
+                                <label for="input-lm-en" data-i18n="landmark_label_en">英語名 (例: Castle)</label>
+                                <input type="text" id="input-lm-en" placeholder="例: Castle, Zoo" maxlength="24">
+                            </div>
+                            <div class="custom-lm-input-group">
+                                <label for="input-lm-jp" data-i18n="landmark_label_jp">日本語名 (例: 城)</label>
+                                <input type="text" id="input-lm-jp" placeholder="例: 城, 動物園" maxlength="20">
+                            </div>
+                            <div class="custom-lm-input-group" style="max-width: 90px;">
+                                <label for="input-lm-icon" data-i18n="landmark_label_icon">絵文字 (例: 🏯)</label>
+                                <input type="text" id="input-lm-icon" placeholder="🏯" maxlength="4">
+                            </div>
+                            <button type="button" id="btn-add-custom-lm" class="btn-add-lm" data-i18n="btn_add_landmark">
+                                ＋ 追加
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 現在登録されているランドマーク一覧 -->
+                <div class="custom-lm-section">
+                    <div class="custom-lm-list-header">
+                        <span class="custom-lm-subtitle" data-i18n="landmark_current_list">現在追加中の建物:</span>
+                        <button type="button" id="btn-reset-custom-lm" class="btn-reset-lm" data-i18n="btn_reset_landmarks">
+                            🗑️ 標準に戻す
+                        </button>
+                    </div>
+                    <div id="custom-lm-tags-container" class="custom-lm-tags-container">
+                        <!-- 動的生成 -->
+                    </div>
+                </div>
+
+                <div class="custom-lm-hint" data-i18n="landmark_sync_hint">
+                    💡 部屋をつくると、相手のiPad Bにも自動送信され、3Dの街と看板に反映されます！
+                </div>
+
+                <button type="button" class="btn-finish-modal" id="btn-finish-custom-lm" data-i18n="btn_finish_settings">
+                    ✓ 設定を完了してロビーに戻る
+                </button>
+            </div>
         </div>
     </div>
 
@@ -184,9 +343,13 @@
         function generateQR(container, size) {
             if (!container) return;
             container.innerHTML = '';
-            try {
-                if (typeof QRCode !== 'undefined') {
-                    new QRCode(container, {
+
+            // 1. まずローカルの QRCode ライブラリでの描画を試行
+            if (typeof QRCode !== 'undefined') {
+                try {
+                    // 一時コンテナに生成して検証
+                    const tempDiv = document.createElement('div');
+                    new QRCode(tempDiv, {
                         text: currentUrl,
                         width: size,
                         height: size,
@@ -194,25 +357,48 @@
                         colorLight: "#ffffff",
                         correctLevel: QRCode.CorrectLevel.M
                     });
-                    return;
+
+                    // 確実に1つの要素（canvas優先、なければimg）だけを抽出してセット
+                    const canvas = tempDiv.querySelector('canvas');
+                    const img = tempDiv.querySelector('img');
+
+                    container.innerHTML = '';
+                    if (canvas) {
+                        canvas.style.width = '100%';
+                        canvas.style.height = '100%';
+                        canvas.style.display = 'block';
+                        container.appendChild(canvas);
+                        return; // 成功したので即座に終了（外部フォールバックへ行かない）
+                    } else if (img && img.src) {
+                        img.style.width = '100%';
+                        img.style.height = '100%';
+                        img.style.display = 'block';
+                        container.appendChild(img);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Local QRCode generator failed, fallback to external img', e);
                 }
-            } catch (e) {
-                console.warn('Local QRCode generator failed, fallback to external img', e);
             }
-            // フォールバック: 外部QR画像サービス (オンライン時)
+
+            // 2. ローカル生成に失敗した場合のみ外部サービスを利用（必ずコンテナをクリア）
+            container.innerHTML = '';
             const img = document.createElement('img');
-            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(currentUrl)}`;
+            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&color=1b5e20&data=${encodeURIComponent(currentUrl)}`;
             img.alt = 'QR Code';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.display = 'block';
             container.appendChild(img);
         }
 
         // 初期描画 (ロビー内)
-        generateQR(lobbyQrContainer, 130);
+        generateQR(lobbyQrContainer, 110);
 
-        // モーダル操作
+        // モーダル操作 (520px高解像度プロジェクター・電子黒板拡大モード)
         function openZoomModal() {
             if (!modalQrContainer.hasChildNodes()) {
-                generateQR(modalQrContainer, 260);
+                generateQR(modalQrContainer, 520);
             }
             if (qrModalOverlay) qrModalOverlay.classList.add('active');
         }
@@ -224,15 +410,25 @@
         const btnZoom = document.getElementById('btn-zoom-qr');
         const btnBox = document.getElementById('btn-qr-box');
         const btnClose = document.getElementById('btn-close-qr-modal');
+        const btnCloseX = document.getElementById('btn-close-qr-modal-x');
 
         if (btnZoom) btnZoom.addEventListener('click', openZoomModal);
         if (btnBox) btnBox.addEventListener('click', openZoomModal);
         if (btnClose) btnClose.addEventListener('click', closeZoomModal);
+        if (btnCloseX) btnCloseX.addEventListener('click', closeZoomModal);
         if (qrModalOverlay) {
             qrModalOverlay.addEventListener('click', (e) => {
                 if (e.target === qrModalOverlay) closeZoomModal();
             });
         }
+
+        // ESCキーで各モーダルを素早く閉じる（電子黒板・キーボード操作対応）
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeZoomModal();
+                if (typeof closeCustomLmModal === 'function') closeCustomLmModal();
+            }
+        });
 
         // URLコピー処理
         function copyUrl(btnElement) {
@@ -266,10 +462,221 @@
         if (btnCopy) btnCopy.addEventListener('click', function () { copyUrl(this); });
         if (btnModalCopy) btnModalCopy.addEventListener('click', function () { copyUrl(this); });
 
+        // -------------------------------------------------------------
+        // 教員用カスタムランドマーク管理 & 教育安心フィルター
+        // -------------------------------------------------------------
+        const STORAGE_KEY_CUSTOM_LM = 'whereisoo_custom_landmarks';
+        let customLandmarksList = [];
+
+        // 🛡️ 教育安心フィルター (NG絵文字 & NGワード判定)
+        function checkEducationalSafety(enName, jpName, icon) {
+            const text = `${enName || ''} ${jpName || ''}`.toLowerCase();
+            const iconStr = icon || '';
+
+            // 不適切絵文字の判定 (🏩ラブホテル, 🔞18禁, 🍺🍻🍷🍸🍹🍶酒類, 🚬タバコ, 💊💉薬, 🔫💣🔪⚔️🗡️武器, 🎰🎲賭博, 👙💋💩💀🖕等)
+            const inappropriateEmojiRegex = /[\u{1F3E9}\u{1F51E}\u{1F37A}\u{1F37B}\u{1F377}\u{1F378}\u{1F379}\u{1F376}\u{1F6AC}\u{1F48A}\u{1F489}\u{1F52B}\u{1F4A3}\u{1F52A}\u{2694}\u{1F5E1}\u{1F3B0}\u{1F3B2}\u{1F459}\u{1F48B}\u{1F4A9}\u{1F480}\u{1F595}]/u;
+            if (inappropriateEmojiRegex.test(iconStr) || inappropriateEmojiRegex.test(text)) {
+                return false;
+            }
+
+            // 教育上好ましくないワードの判定 (日英)
+            const inappropriateWordsRegex = /(ラブホ|風俗|カジノ|パチンコ|スロット|バー|居酒屋|酒|ビール|タバコ|煙草|銃|ピストル|ライフル|武器|ナイフ|包丁|爆弾|薬物|麻薬|毒|殺|死|エッチ|性交|下着|監獄|刑務所|牢屋|love\s*hotel|casino|pachinko|slot\b|bar\b|pub\b|liquor|alcohol|beer|wine|tobacco|cigarette|cigar|gun\b|rifle|weapon|knife|bomb|drug|narcotic|poison|kill|murder|death|dead|prison|jail|gamble|gambling|sex\b|erotic|porn)/i;
+            if (inappropriateWordsRegex.test(text) || inappropriateWordsRegex.test(iconStr)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        function loadCustomLandmarks() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY_CUSTOM_LM);
+                if (saved) {
+                    customLandmarksList = JSON.parse(saved);
+                    if (!Array.isArray(customLandmarksList)) customLandmarksList = [];
+                }
+            } catch (e) {
+                console.warn('Failed to load custom landmarks', e);
+                customLandmarksList = [];
+            }
+            renderCustomLandmarksUI();
+        }
+
+        function saveCustomLandmarks() {
+            try {
+                localStorage.setItem(STORAGE_KEY_CUSTOM_LM, JSON.stringify(customLandmarksList));
+            } catch (e) {
+                console.warn('Failed to save custom landmarks', e);
+            }
+            renderCustomLandmarksUI();
+        }
+
+        function renderCustomLandmarksUI() {
+            const countBadge = document.getElementById('custom-lm-count-badge');
+            const tagsContainer = document.getElementById('custom-lm-tags-container');
+            if (!tagsContainer || !countBadge) return;
+
+            const isEn = I18n.getLang() === 'en';
+            if (customLandmarksList.length === 0) {
+                countBadge.textContent = isEn ? 'Standard' : '標準設定';
+                countBadge.className = 'custom-lm-badge';
+                tagsContainer.innerHTML = `<span class="lm-empty-hint">${I18n.t('landmark_empty_hint')}</span>`;
+            } else {
+                countBadge.textContent = isEn 
+                    ? `${customLandmarksList.length} Custom` 
+                    : `カスタム ${customLandmarksList.length}件`;
+                countBadge.className = 'custom-lm-badge active';
+                tagsContainer.innerHTML = '';
+
+                customLandmarksList.forEach((lm, idx) => {
+                    const tag = document.createElement('div');
+                    tag.className = 'custom-lm-tag';
+                    tag.innerHTML = `
+                        <span class="custom-lm-tag-icon">${lm.icon}</span>
+                        <span class="custom-lm-tag-name">${lm.name}</span>
+                        <span class="custom-lm-tag-jp">(${lm.jpName})</span>
+                        <button type="button" class="btn-del-lm-tag" title="削除" data-idx="${idx}">✕</button>
+                    `;
+                    tagsContainer.appendChild(tag);
+                });
+            }
+        }
+
+        function addCustomLandmark(enName, jpName, icon) {
+            const cleanEn = (enName || '').trim();
+            if (!cleanEn) {
+                alert(I18n.getLang() === 'en' ? 'Please enter English name.' : '英語名を入力してください。');
+                return;
+            }
+            const cleanJp = (jpName || '').trim() || cleanEn;
+            const cleanIcon = (icon || '').trim() || '📍';
+
+            // 🛡️ 教育安心フィルターの検証
+            if (!checkEducationalSafety(cleanEn, cleanJp, cleanIcon)) {
+                alert(I18n.t('filter_alert_inappropriate'));
+                return;
+            }
+
+            // 重複チェック
+            const exists = customLandmarksList.some(item => item.name.toLowerCase() === cleanEn.toLowerCase());
+            if (exists) {
+                alert(I18n.getLang() === 'en' ? 'This landmark is already added.' : 'この建物はすでに追加されています。');
+                return;
+            }
+
+            customLandmarksList.push({
+                name: cleanEn,
+                jpName: cleanJp,
+                icon: cleanIcon
+            });
+            saveCustomLandmarks();
+        }
+
+        // モーダル開閉制御
+        const customLmModalOverlay = document.getElementById('custom-lm-modal-overlay');
+        const btnOpenCustomModal = document.getElementById('btn-open-custom-lm-dialog');
+        const btnCloseCustomModal = document.getElementById('btn-close-custom-lm-modal');
+        const btnFinishCustomModal = document.getElementById('btn-finish-custom-lm');
+
+        function openCustomLmModal() {
+            if (customLmModalOverlay) customLmModalOverlay.classList.add('active');
+        }
+
+        function closeCustomLmModal() {
+            if (customLmModalOverlay) customLmModalOverlay.classList.remove('active');
+        }
+
+        if (btnOpenCustomModal) btnOpenCustomModal.addEventListener('click', openCustomLmModal);
+        if (btnCloseCustomModal) btnCloseCustomModal.addEventListener('click', closeCustomLmModal);
+        if (btnFinishCustomModal) btnFinishCustomModal.addEventListener('click', closeCustomLmModal);
+        if (customLmModalOverlay) {
+            customLmModalOverlay.addEventListener('click', (e) => {
+                if (e.target === customLmModalOverlay) closeCustomLmModal();
+            });
+        }
+
+        // 安心絵文字パレットのワンタップ入力
+        const inputIcon = document.getElementById('input-lm-icon');
+        const inputEn = document.getElementById('input-lm-en');
+        const inputJp = document.getElementById('input-lm-jp');
+
+        document.querySelectorAll('.btn-emoji-tile').forEach(tile => {
+            tile.addEventListener('click', function () {
+                const emoji = this.getAttribute('data-emoji');
+                if (inputIcon && emoji) {
+                    inputIcon.value = emoji;
+                    // 入力欄にフォーカスを誘導
+                    if (inputEn && !inputEn.value) {
+                        inputEn.focus();
+                    } else if (inputJp && !inputJp.value) {
+                        inputJp.focus();
+                    }
+                }
+            });
+        });
+
+        // プリセットボタン
+        document.querySelectorAll('.btn-preset-lm').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const en = this.getAttribute('data-name');
+                const jp = this.getAttribute('data-jp');
+                const icon = this.getAttribute('data-icon');
+                addCustomLandmark(en, jp, icon);
+            });
+        });
+
+        const btnAddCustom = document.getElementById('btn-add-custom-lm');
+        if (btnAddCustom) {
+            btnAddCustom.addEventListener('click', () => {
+                addCustomLandmark(inputEn.value, inputJp.value, inputIcon.value);
+                inputEn.value = '';
+                inputJp.value = '';
+                inputIcon.value = '';
+            });
+        }
+
+        const tagsContainer = document.getElementById('custom-lm-tags-container');
+        if (tagsContainer) {
+            tagsContainer.addEventListener('click', (e) => {
+                const delBtn = e.target.closest('.btn-del-lm-tag');
+                if (delBtn) {
+                    const idx = parseInt(delBtn.getAttribute('data-idx'), 10);
+                    if (!isNaN(idx) && idx >= 0 && idx < customLandmarksList.length) {
+                        customLandmarksList.splice(idx, 1);
+                        saveCustomLandmarks();
+                    }
+                }
+            });
+        }
+
+        const btnResetCustom = document.getElementById('btn-reset-custom-lm');
+        if (btnResetCustom) {
+            btnResetCustom.addEventListener('click', () => {
+                if (customLandmarksList.length === 0) return;
+                const msg = I18n.getLang() === 'en' 
+                    ? 'Reset custom landmarks to standard default?' 
+                    : 'カスタム建物の設定を初期化して標準に戻しますか？';
+                if (confirm(msg)) {
+                    customLandmarksList = [];
+                    saveCustomLandmarks();
+                }
+            });
+        }
+
+        loadCustomLandmarks();
+
+        window.addEventListener('languageChanged', () => {
+            renderCustomLandmarksUI();
+        });
+
         window.startHostRoom = function () {
             const roomId = WebRTCSync.generateNumericId();
             const lang = I18n.getLang();
-            window.location.href = `map.html?mode=webrtc&room=${roomId}&seed=${roomId}&lang=${lang}`;
+            let customParam = '';
+            if (customLandmarksList && customLandmarksList.length > 0) {
+                customParam = `&custom=${encodeURIComponent(JSON.stringify(customLandmarksList))}`;
+            }
+            window.location.href = `map.html?mode=webrtc&room=${roomId}&seed=${roomId}&lang=${lang}${customParam}`;
         };
 
         window.joinClientRoom = function () {
@@ -281,7 +688,11 @@
                 return;
             }
             const lang = I18n.getLang();
-            window.location.href = `town.html?mode=webrtc&room=${roomId}&seed=${roomId}&lang=${lang}`;
+            let customParam = '';
+            if (customLandmarksList && customLandmarksList.length > 0) {
+                customParam = `&custom=${encodeURIComponent(JSON.stringify(customLandmarksList))}`;
+            }
+            window.location.href = `town.html?mode=webrtc&room=${roomId}&seed=${roomId}&lang=${lang}${customParam}`;
         };
 
         document.getElementById('input-room-id').addEventListener('keydown', function (e) {

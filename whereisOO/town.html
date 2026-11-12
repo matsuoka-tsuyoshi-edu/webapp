@@ -188,6 +188,15 @@
         let seedParam = params.get('seed') || '01';
         const roomParam = params.get('room') || '';
         const mode = params.get('mode') || (roomParam ? 'webrtc' : 'seed');
+        let customParam = params.get('custom');
+        let currentCustomLandmarks = null;
+        if (customParam) {
+            try {
+                currentCustomLandmarks = JSON.parse(decodeURIComponent(customParam));
+            } catch (e) {
+                console.warn('Failed to parse custom landmarks from URL', e);
+            }
+        }
 
         // DOM要素
         const container = document.getElementById('three-canvas-container');
@@ -302,7 +311,7 @@
         const btnTurnRight = document.getElementById('btn-turn-right');
 
         // 街データ生成
-        let city = CityGen.generateCity(seedParam);
+        let city = CityGen.generateCity(seedParam, currentCustomLandmarks);
         console.log('City generated:', city);
 
         // iPad B側でランダムに目的地を選定（スポーン地点から14m以上離れたランドマークを優先）
@@ -453,12 +462,22 @@
                     sendPositionToHost();
                 },
                 onData: (data) => {
-                    if (data.type === 'INIT' && data.seed && data.seed !== seedParam) {
-                        seedParam = data.seed;
-                        city = CityGen.generateCity(seedParam);
-                        currentGoal = city.pickRandomGoal(null, city.spawn.worldX, city.spawn.worldZ, 14);
-                        updateMissionUI(currentGoal);
-                        rebuildWorld();
+                    if (data.type === 'INIT') {
+                        let needRebuild = false;
+                        if (data.seed && data.seed !== seedParam) {
+                            seedParam = data.seed;
+                            needRebuild = true;
+                        }
+                        if (data.customLandmarks && JSON.stringify(data.customLandmarks) !== JSON.stringify(currentCustomLandmarks)) {
+                            currentCustomLandmarks = data.customLandmarks;
+                            needRebuild = true;
+                        }
+                        if (needRebuild) {
+                            city = CityGen.generateCity(seedParam, currentCustomLandmarks);
+                            currentGoal = city.pickRandomGoal(null, city.spawn.worldX, city.spawn.worldZ, 14);
+                            updateMissionUI(currentGoal);
+                            rebuildWorld();
+                        }
                     } else if (data.type === 'CONTROL_MOVE') {
                         // iPad Aからの移動許可・ブレーキ指示を受信
                         updateMoveLockUI(!!data.allowMove);
@@ -782,7 +801,7 @@
             const signTex = createSignboardTexture(signText, lm.icon, lm.accentColor || '#1565c0', '#ffffff');
             const signMat = new THREE.MeshBasicMaterial({ map: signTex, transparent: true });
 
-            const signW = Math.min(bldgW * 0.85, 4.2);
+            const signW = Math.min(bldgW * 0.85, lm.isLarge ? 6.8 : 4.2);
             const signH = 1.05;
             const signY = Math.min(bldgH * 0.65, 3.8); // 道路から最も読みやすい高さ
             const signGeo = new THREE.PlaneGeometry(signW, signH);
@@ -910,6 +929,139 @@
                 const clockFace = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 2.6), materials.white);
                 clockFace.position.set(0, bldgH + towerH * 0.7, 0);
                 group.add(clockFace);
+            } else if (lm.id === 'city_hall') {
+                // 市役所: 玄関列柱と時計塔・市庁舎フラッグ
+                const pillarMat = new THREE.MeshLambertMaterial({ color: 0x90a4ae });
+                for (let px = -bldgW * 0.35; px <= bldgW * 0.35; px += bldgW * 0.35) {
+                    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.65, bldgH, 0.65), pillarMat);
+                    pillar.position.set(px, bldgH / 2, bldgD / 2 + 0.22);
+                    group.add(pillar);
+                }
+                const towerH = 2.6;
+                const tower = new THREE.Mesh(new THREE.BoxGeometry(3.2, towerH, 3.2), wallMat);
+                tower.position.set(0, bldgH + towerH / 2, 0);
+                group.add(tower);
+                const clockFace = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 3.3), materials.white);
+                clockFace.position.set(0, bldgH + towerH * 0.55, 0);
+                group.add(clockFace);
+                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.2, 8), materials.white);
+                pole.position.set(0, bldgH + towerH + 1.1, 0);
+                group.add(pole);
+                const flag = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.55, 0.05), new THREE.MeshBasicMaterial({ color: 0x1976d2 }));
+                flag.position.set(0.45, bldgH + towerH + 1.7, 0);
+                group.add(flag);
+            } else if (lm.id === 'amusement_park') {
+                // 遊園地 (2x1または1x2大型施設): 巨大観覧車 ＆ サーカス・城パビリオン
+                const isLongX = (bldgW >= bldgD);
+                const fwOffsetX = isLongX ? (bldgW * 0.26) : 0;
+                const fwOffsetZ = isLongX ? 0 : (bldgD * 0.26);
+
+                const fwGroup = new THREE.Group();
+                fwGroup.position.set(fwOffsetX, bldgH + 0.3, fwOffsetZ);
+
+                // 支柱 Aフレーム
+                const legMat = new THREE.MeshLambertMaterial({ color: 0x0288d1 });
+                const legGeo = new THREE.CylinderGeometry(0.18, 0.22, 6.5, 8);
+                const leg1 = new THREE.Mesh(legGeo, legMat);
+                leg1.position.set(-1.8, 3.0, 0);
+                leg1.rotation.z = -0.32;
+                fwGroup.add(leg1);
+                const leg2 = new THREE.Mesh(legGeo, legMat);
+                leg2.position.set(1.8, 3.0, 0);
+                leg2.rotation.z = 0.32;
+                fwGroup.add(leg2);
+
+                // ホイール中心軸
+                const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.8, 16), new THREE.MeshLambertMaterial({ color: 0xffd54f }));
+                hub.position.set(0, 5.8, 0);
+                hub.rotation.x = Math.PI / 2;
+                fwGroup.add(hub);
+
+                // 観覧車スポーク & ゴンドラ
+                const spokeMat = new THREE.MeshBasicMaterial({ color: 0xff4081 });
+                const spokeGeo = new THREE.BoxGeometry(0.12, 9.0, 0.12);
+                const gondolaColors = [0xff1744, 0xffea00, 0x00e676, 0x2979ff, 0xff9100, 0xd500f9, 0x00e5ff, 0x76ff03];
+
+                for (let i = 0; i < 4; i++) {
+                    const spoke = new THREE.Mesh(spokeGeo, spokeMat);
+                    spoke.position.set(0, 5.8, 0);
+                    spoke.rotation.z = (i * Math.PI) / 4;
+                    fwGroup.add(spoke);
+                }
+
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i * Math.PI) / 4;
+                    const gx = Math.cos(angle) * 4.3;
+                    const gy = 5.8 + Math.sin(angle) * 4.3;
+                    const gMat = new THREE.MeshLambertMaterial({ color: gondolaColors[i % gondolaColors.length] });
+                    const gondola = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 0.85), gMat);
+                    gondola.position.set(gx, gy, 0);
+                    fwGroup.add(gondola);
+                }
+                group.add(fwGroup);
+
+                // お城・サーカスタワーパビリオン
+                const towerOffsetX = isLongX ? (-bldgW * 0.26) : 0;
+                const towerOffsetZ = isLongX ? 0 : (-bldgD * 0.26);
+
+                const castleGroup = new THREE.Group();
+                castleGroup.position.set(towerOffsetX, bldgH + 0.3, towerOffsetZ);
+
+                const tMat = new THREE.MeshLambertMaterial({ color: 0xffe082 });
+                const coneMat = new THREE.MeshLambertMaterial({ color: 0xe91e63 });
+                const cTower1 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 4.0, 12), tMat);
+                cTower1.position.set(-1.8, 2.0, 0);
+                castleGroup.add(cTower1);
+                const cone1 = new THREE.Mesh(new THREE.ConeGeometry(1.6, 2.5, 12), coneMat);
+                cone1.position.set(-1.8, 5.2, 0);
+                castleGroup.add(cone1);
+
+                const cTower2 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 4.0, 12), tMat);
+                cTower2.position.set(1.8, 2.0, 0);
+                castleGroup.add(cTower2);
+                const cone2 = new THREE.Mesh(new THREE.ConeGeometry(1.6, 2.5, 12), coneMat);
+                cone2.position.set(1.8, 5.2, 0);
+                castleGroup.add(cone2);
+
+                const arch = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.8, 1.2), new THREE.MeshLambertMaterial({ color: 0xab47bc }));
+                arch.position.set(0, 1.4, 0);
+                castleGroup.add(arch);
+
+                group.add(castleGroup);
+            } else if (lm.isCustom) {
+                // 教員用カスタムランドマーク (城、神社、タワー、水族館、動物園等)
+                const lowerName = (lm.name || '').toLowerCase();
+                if (lm.icon === '🏯' || lowerName.includes('castle')) {
+                    const roof2 = new THREE.Mesh(new THREE.BoxGeometry(bldgW * 0.75, 0.5, bldgD * 0.75), new THREE.MeshLambertMaterial({ color: 0x37474f }));
+                    roof2.position.y = bldgH + 0.8;
+                    group.add(roof2);
+                    const topKeep = new THREE.Mesh(new THREE.BoxGeometry(bldgW * 0.55, 1.8, bldgD * 0.55), wallMat);
+                    topKeep.position.y = bldgH + 1.8;
+                    group.add(topKeep);
+                    const roof3 = new THREE.Mesh(new THREE.ConeGeometry(bldgW * 0.45, 1.8, 4), new THREE.MeshLambertMaterial({ color: 0x263238 }));
+                    roof3.position.y = bldgH + 3.4;
+                    roof3.rotation.y = Math.PI / 4;
+                    group.add(roof3);
+                } else if (lm.icon === '⛩️' || lowerName.includes('shrine')) {
+                    const toriiMat = new THREE.MeshLambertMaterial({ color: 0xd32f2f });
+                    const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 3.2, 8), toriiMat);
+                    p1.position.set(-1.4, 1.6, bldgD / 2 + 0.8);
+                    group.add(p1);
+                    const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 3.2, 8), toriiMat);
+                    p2.position.set(1.4, 1.6, bldgD / 2 + 0.8);
+                    group.add(p2);
+                    const bar = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.35, 0.35), toriiMat);
+                    bar.position.set(0, 3.0, bldgD / 2 + 0.8);
+                    group.add(bar);
+                } else if (lm.icon === '🗼' || lowerName.includes('tower')) {
+                    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.8, 5.0, 8), new THREE.MeshLambertMaterial({ color: 0xe53935 }));
+                    spire.position.set(0, bldgH + 2.5, 0);
+                    group.add(spire);
+                } else if (lm.icon === '🐬' || lowerName.includes('aquarium')) {
+                    const dome = new THREE.Mesh(new THREE.SphereGeometry(2.5, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2), materials.glass);
+                    dome.position.set(0, bldgH + 0.3, 0);
+                    group.add(dome);
+                }
             }
 
             // 四方の壁に看板を設置 (Post Office, Hospital 等)

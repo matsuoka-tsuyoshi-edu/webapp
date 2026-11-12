@@ -148,6 +148,20 @@
         const seedParam = params.get('seed') || '01';
         const roomParam = params.get('room') || '';
         const mode = params.get('mode') || (roomParam ? 'webrtc' : 'seed');
+        let customParam = params.get('custom');
+        let currentCustomLandmarks = null;
+        if (customParam) {
+            try {
+                currentCustomLandmarks = JSON.parse(decodeURIComponent(customParam));
+            } catch (e) {
+                console.warn('Failed to parse custom landmarks from URL', e);
+            }
+        } else {
+            try {
+                const saved = localStorage.getItem('whereisoo_custom_landmarks');
+                if (saved) currentCustomLandmarks = JSON.parse(saved);
+            } catch (e) {}
+        }
 
         const canvas = document.getElementById('map-canvas');
         const ctx = canvas.getContext('2d');
@@ -353,7 +367,7 @@
         const btnWaitNextGoal = document.getElementById('btn-wait-next-goal');
 
         // 街データ生成
-        const city = CityGen.generateCity(seedParam);
+        const city = CityGen.generateCity(seedParam, currentCustomLandmarks);
         console.log('City generated on Map:', city);
 
         let activeGoal = null; // 現在の目的地 (Bから指定される)
@@ -452,7 +466,8 @@
                         updateMoveControlButton();
                         rtcSync.send({
                             type: 'INIT',
-                            seed: city.seed
+                            seed: city.seed,
+                            customLandmarks: currentCustomLandmarks
                         });
                         rtcSync.send({
                             type: 'CONTROL_MOVE',
@@ -704,13 +719,16 @@
                         }
                         ctx.strokeRect(bx, bz, bw, bh);
 
-                        ctx.font = `${Math.floor(cellPix * 0.8)}px sans-serif`;
+                        const iconSize = block.isLarge ? Math.floor(cellPix * 1.15) : Math.floor(cellPix * 0.8);
+                        const nameSize = block.isLarge ? Math.max(10, Math.floor(cellPix * 0.38)) : Math.max(9, Math.floor(cellPix * 0.3));
+
+                        ctx.font = `${iconSize}px sans-serif`;
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillText(lm.icon, bx + bw / 2, bz + bh * 0.35);
 
                         ctx.fillStyle = '#ffffff';
-                        ctx.font = `bold ${Math.max(9, Math.floor(cellPix * 0.3))}px sans-serif`;
+                        ctx.font = `bold ${nameSize}px sans-serif`;
                         ctx.fillText(lm.name, bx + bw / 2, bz + bh * 0.75);
                     }
                 } else if (block.building) {
