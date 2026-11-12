@@ -759,7 +759,13 @@
           currentQIndex = data.qIndex;
           questionReceivedTime = Date.now();
           questionTimeLimit = data.timeLimit || 10;
-          currentOptions = data.options || [];
+          currentOptions = (data.options || []).map((opt, idx, arr) => {
+            const str = String(opt || '').trim();
+            if (arr.length === 2 && (!str || str.startsWith('選択肢') || str.toLowerCase().startsWith('option'))) {
+              return idx === 0 ? '〇' : '×';
+            }
+            return str || `選択肢${idx + 1}`;
+          });
 
           document.getElementById('q-hint-text').textContent = `Q${data.qIndex + 1}. ${data.question}`;
 

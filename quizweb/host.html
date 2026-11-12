@@ -422,50 +422,62 @@
       <!-- MAIN REVEAL CANVAS AREA (Maximum 2x+ Vertical Space for Answer & Explanation!) -->
       <div class="flex-1 relative rounded-2xl md:rounded-3xl overflow-hidden flex flex-col justify-center min-h-0 bg-pop-dark/40 neo-border shadow-neo-lg">
         
-        <!-- STAGE 1: ANSWER DISTRIBUTION GRAPH (Shown FIRST) -->
-        <div id="reveal-stage-graph" class="w-full h-full grid grid-cols-4 gap-3 md:gap-5 items-end p-4 md:p-6 transition-all duration-700">
+        <!-- STAGE 1: ANSWER DISTRIBUTION GRAPH (Shown FIRST - Vertical Towers!) -->
+        <div id="reveal-stage-graph" class="w-full h-full grid grid-cols-4 gap-3 md:gap-5 items-end p-3 md:p-6 transition-all duration-700">
           
           <!-- Option 1 Stat -->
-          <div class="h-full flex flex-col justify-end">
-            <div class="text-center font-black text-pop-pink mb-1.5 text-lg md:text-2xl stat-percent" id="stat-p-1">0% (0人)</div>
-            <div id="stat-card-1" class="bg-pop-card neo-border shadow-neo rounded-xl md:rounded-2xl p-3 md:p-4 flex flex-col justify-between">
-              <span class="font-black text-xs md:text-base text-white truncate" id="stat-label-1">1. 選択肢1</span>
-              <div class="w-full bg-pop-dark rounded-full h-3.5 md:h-4 neo-border-sm overflow-hidden mt-2 md:mt-3">
-                <div id="stat-bar-1" class="bg-pop-pink h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+          <div class="h-full flex flex-col justify-end items-center px-1 md:px-2 relative" id="stat-col-1">
+            <div class="w-full flex-1 flex flex-col justify-end items-center pb-2 relative min-h-0">
+              <div id="stat-p-1" class="font-black text-pop-yellow text-xs sm:text-base md:text-xl lg:text-2xl mb-1.5 transition-all duration-700 whitespace-nowrap">0% (0人)</div>
+              <div id="stat-tower-1" class="w-12 sm:w-16 md:w-24 lg:w-28 max-w-[85%] h-full max-h-[260px] md:max-h-[340px] bg-pop-dark/90 rounded-t-2xl md:rounded-t-3xl neo-border border-b-0 flex flex-col justify-end p-1 shadow-inner relative overflow-hidden">
+                <div id="stat-vbar-1" class="bg-pop-pink w-full rounded-t-xl md:rounded-t-2xl transition-all duration-1000 ease-out relative overflow-hidden" style="height: 0%;"></div>
               </div>
+            </div>
+            <div id="stat-card-1" class="w-full bg-pop-card neo-border shadow-neo rounded-xl md:rounded-2xl p-2 md:p-3 flex items-center gap-2 md:gap-3 shrink-0">
+              <div class="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 bg-black text-white rounded-lg md:rounded-xl neo-border-sm flex items-center justify-center text-xs sm:text-sm md:text-base font-black shrink-0">1</div>
+              <span class="font-black text-xs md:text-base text-white truncate" id="stat-label-1">1. 選択肢1</span>
             </div>
           </div>
 
           <!-- Option 2 Stat -->
-          <div class="h-full flex flex-col justify-end">
-            <div class="text-center font-black text-pop-yellow mb-1.5 text-lg md:text-2xl stat-percent" id="stat-p-2">0% (0人)</div>
-            <div id="stat-card-2" class="bg-pop-card neo-border shadow-neo rounded-xl md:rounded-2xl p-3 md:p-4 flex flex-col justify-between">
-              <span class="font-black text-xs md:text-base text-white truncate" id="stat-label-2">2. 選択肢2</span>
-              <div class="w-full bg-pop-dark rounded-full h-3.5 md:h-4 neo-border-sm overflow-hidden mt-2 md:mt-3">
-                <div id="stat-bar-2" class="bg-pop-blue h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+          <div class="h-full flex flex-col justify-end items-center px-1 md:px-2 relative" id="stat-col-2">
+            <div class="w-full flex-1 flex flex-col justify-end items-center pb-2 relative min-h-0">
+              <div id="stat-p-2" class="font-black text-pop-yellow text-xs sm:text-base md:text-xl lg:text-2xl mb-1.5 transition-all duration-700 whitespace-nowrap">0% (0人)</div>
+              <div id="stat-tower-2" class="w-12 sm:w-16 md:w-24 lg:w-28 max-w-[85%] h-full max-h-[260px] md:max-h-[340px] bg-pop-dark/90 rounded-t-2xl md:rounded-t-3xl neo-border border-b-0 flex flex-col justify-end p-1 shadow-inner relative overflow-hidden">
+                <div id="stat-vbar-2" class="bg-pop-blue w-full rounded-t-xl md:rounded-t-2xl transition-all duration-1000 ease-out relative overflow-hidden" style="height: 0%;"></div>
               </div>
+            </div>
+            <div id="stat-card-2" class="w-full bg-pop-card neo-border shadow-neo rounded-xl md:rounded-2xl p-2 md:p-3 flex items-center gap-2 md:gap-3 shrink-0">
+              <div class="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 bg-black text-white rounded-lg md:rounded-xl neo-border-sm flex items-center justify-center text-xs sm:text-sm md:text-base font-black shrink-0">2</div>
+              <span class="font-black text-xs md:text-base text-white truncate" id="stat-label-2">2. 選択肢2</span>
             </div>
           </div>
 
           <!-- Option 3 Stat -->
-          <div class="h-full flex flex-col justify-end">
-            <div class="text-center font-black text-pop-yellow mb-1.5 text-lg md:text-2xl stat-percent" id="stat-p-3">0% (0人)</div>
-            <div id="stat-card-3" class="bg-pop-card neo-border shadow-neo rounded-xl md:rounded-2xl p-3 md:p-4 flex flex-col justify-between">
-              <span class="font-black text-xs md:text-base text-white truncate" id="stat-label-3">3. 選択肢3</span>
-              <div class="w-full bg-pop-dark rounded-full h-3.5 md:h-4 neo-border-sm overflow-hidden mt-2 md:mt-3">
-                <div id="stat-bar-3" class="bg-pop-yellow h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+          <div class="h-full flex flex-col justify-end items-center px-1 md:px-2 relative" id="stat-col-3">
+            <div class="w-full flex-1 flex flex-col justify-end items-center pb-2 relative min-h-0">
+              <div id="stat-p-3" class="font-black text-pop-yellow text-xs sm:text-base md:text-xl lg:text-2xl mb-1.5 transition-all duration-700 whitespace-nowrap">0% (0人)</div>
+              <div id="stat-tower-3" class="w-12 sm:w-16 md:w-24 lg:w-28 max-w-[85%] h-full max-h-[260px] md:max-h-[340px] bg-pop-dark/90 rounded-t-2xl md:rounded-t-3xl neo-border border-b-0 flex flex-col justify-end p-1 shadow-inner relative overflow-hidden">
+                <div id="stat-vbar-3" class="bg-pop-yellow w-full rounded-t-xl md:rounded-t-2xl transition-all duration-1000 ease-out relative overflow-hidden" style="height: 0%;"></div>
               </div>
+            </div>
+            <div id="stat-card-3" class="w-full bg-pop-card neo-border shadow-neo rounded-xl md:rounded-2xl p-2 md:p-3 flex items-center gap-2 md:gap-3 shrink-0">
+              <div class="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 bg-black text-white rounded-lg md:rounded-xl neo-border-sm flex items-center justify-center text-xs sm:text-sm md:text-base font-black shrink-0">3</div>
+              <span class="font-black text-xs md:text-base text-white truncate" id="stat-label-3">3. 選択肢3</span>
             </div>
           </div>
 
           <!-- Option 4 Stat -->
-          <div class="h-full flex flex-col justify-end">
-            <div class="text-center font-black text-pop-green mb-1.5 text-lg md:text-2xl stat-percent" id="stat-p-4">0% (0人)</div>
-            <div id="stat-card-4" class="bg-pop-card neo-border shadow-neo rounded-xl md:rounded-2xl p-3 md:p-4 flex flex-col justify-between">
-              <span class="font-black text-xs md:text-base text-white truncate" id="stat-label-4">4. 選択肢4</span>
-              <div class="w-full bg-pop-dark rounded-full h-3.5 md:h-4 neo-border-sm overflow-hidden mt-2 md:mt-3">
-                <div id="stat-bar-4" class="bg-pop-green h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+          <div class="h-full flex flex-col justify-end items-center px-1 md:px-2 relative" id="stat-col-4">
+            <div class="w-full flex-1 flex flex-col justify-end items-center pb-2 relative min-h-0">
+              <div id="stat-p-4" class="font-black text-pop-yellow text-xs sm:text-base md:text-xl lg:text-2xl mb-1.5 transition-all duration-700 whitespace-nowrap">0% (0人)</div>
+              <div id="stat-tower-4" class="w-12 sm:w-16 md:w-24 lg:w-28 max-w-[85%] h-full max-h-[260px] md:max-h-[340px] bg-pop-dark/90 rounded-t-2xl md:rounded-t-3xl neo-border border-b-0 flex flex-col justify-end p-1 shadow-inner relative overflow-hidden">
+                <div id="stat-vbar-4" class="bg-pop-green w-full rounded-t-xl md:rounded-t-2xl transition-all duration-1000 ease-out relative overflow-hidden" style="height: 0%;"></div>
               </div>
+            </div>
+            <div id="stat-card-4" class="w-full bg-pop-card neo-border shadow-neo rounded-xl md:rounded-2xl p-2 md:p-3 flex items-center gap-2 md:gap-3 shrink-0">
+              <div class="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 bg-black text-white rounded-lg md:rounded-xl neo-border-sm flex items-center justify-center text-xs sm:text-sm md:text-base font-black shrink-0">4</div>
+              <span class="font-black text-xs md:text-base text-white truncate" id="stat-label-4">4. 選択肢4</span>
             </div>
           </div>
 
@@ -767,6 +779,25 @@
     let questionStartTime = 0;
     let answerCountForQuestion = 0;
     let autoCeremonyTimer = null;
+
+    // 2択(〇×)問題および選択肢プレースホルダーの自動サニタイズ
+    function getSanitizedOption(opt, index, totalCount) {
+      const text = (opt !== undefined && opt !== null) ? String(opt).trim() : '';
+      if (totalCount === 2) {
+        if (!text || text === '選択肢1' || text === '選択肢2' || text === '選択肢 1' || text === '選択肢 2' || text.toLowerCase() === 'option 1' || text.toLowerCase() === 'option 2') {
+          return index === 0 ? '〇' : '×';
+        }
+      }
+      return text || `選択肢${index + 1}`;
+    }
+
+    function sanitizeQuestionOptions(q) {
+      if (!q || !q.options || !Array.isArray(q.options)) return;
+      const count = q.options.length;
+      for (let i = 0; i < count; i++) {
+        q.options[i] = getSanitizedOption(q.options[i], i, count);
+      }
+    }
 
     // Default Sample Questions (10 questions with Explanations)
     const DEFAULT_QUESTIONS = [
@@ -1480,12 +1511,16 @@
             }
           }
 
+          const rawOpts = rq.options || (rq.type === '2choice' ? ['〇', '×'] : ['選択肢1', '選択肢2', '選択肢3', '選択肢4']);
+          const optCount = rawOpts.length;
+          const sanitizedOpts = rawOpts.map((opt, oIdx) => getSanitizedOption(opt, oIdx, optCount));
+
           parsedQuestions.push({
             id: rq.id || (i + 1),
-            type: rq.type || (rq.options.length === 2 ? '2choice' : (rq.options.length === 3 ? '3choice' : '4choice')),
+            type: rq.type || (sanitizedOpts.length === 2 ? '2choice' : (sanitizedOpts.length === 3 ? '3choice' : '4choice')),
             question: rq.question || '問題文なし',
             image: imgDataUrl,
-            options: rq.options || ['選択肢1', '選択肢2'],
+            options: sanitizedOpts,
             correct: parseInt(rq.correct, 10) || 1,
             timeLimit: parseInt(rq.timeLimit, 10) || 10,
             category: rq.category || '一般',
@@ -1616,6 +1651,7 @@
 
       // Deep copy from current questions or sample if empty
       studioQuestions = JSON.parse(JSON.stringify(questions.length > 0 ? questions : DEFAULT_QUESTIONS));
+      studioQuestions.forEach(q => sanitizeQuestionOptions(q));
       studioActiveIndex = 0;
 
       renderStudioList();
@@ -1843,6 +1879,7 @@
     }
 
     function studioAddNewQuestion() {
+      syncCurrentFormToActiveQuestion();
       studioQuestions.push({
         id: studioQuestions.length + 1,
         type: '4choice',
@@ -1902,9 +1939,10 @@
       q.type = type;
 
       if (type === '2choice') {
-        const isDefault = q.options.length >= 2 && q.options[0].startsWith('選択肢') && q.options[1].startsWith('選択肢');
-        q.options = q.options.slice(0, 2);
-        if (q.options.length < 2 || isDefault) {
+        const hasCustomOptions = q.options.length >= 2 && !q.options[0].startsWith('選択肢') && !q.options[1].startsWith('選択肢');
+        if (hasCustomOptions) {
+          q.options = q.options.slice(0, 2);
+        } else {
           q.options = ['〇', '×'];
         }
         if (q.correct > 2) q.correct = 1;
@@ -2167,6 +2205,7 @@
         return;
       }
 
+      studioQuestions.forEach(q => sanitizeQuestionOptions(q));
       questions = JSON.parse(JSON.stringify(studioQuestions));
       currentQIndex = 0;
 
@@ -2295,6 +2334,7 @@
         switchPhase('ranking');
         return;
       }
+      sanitizeQuestionOptions(q);
 
       answerCountForQuestion = 0;
       document.getElementById('live-toast-container').innerHTML = '';
@@ -2454,6 +2494,7 @@
     function setupAndShowGraphFirst() {
       const q = questions[currentQIndex];
       if (!q) return;
+      sanitizeQuestionOptions(q);
 
       isAnswerStageRevealed = false;
       const suspenseStage = document.getElementById('reveal-stage-suspense');
@@ -2480,26 +2521,60 @@
 
       const optCount = q.options.length;
       if (optCount === 2) {
-        graphStage.className = "w-full h-full grid grid-cols-2 gap-8 items-end pb-2 pt-4 transition-all duration-700 max-w-4xl mx-auto";
+        graphStage.className = "w-full h-full grid grid-cols-2 gap-8 items-end p-4 md:p-6 transition-all duration-700 max-w-2xl mx-auto";
       } else if (optCount === 3) {
-        graphStage.className = "w-full h-full grid grid-cols-3 gap-6 items-end pb-2 pt-4 transition-all duration-700";
+        graphStage.className = "w-full h-full grid grid-cols-3 gap-6 items-end p-4 md:p-6 transition-all duration-700 max-w-4xl mx-auto";
       } else {
-        graphStage.className = "w-full h-full grid grid-cols-4 gap-5 items-end pb-2 pt-4 transition-all duration-700";
+        graphStage.className = "w-full h-full grid grid-cols-4 gap-3 md:gap-5 items-end p-3 md:p-6 transition-all duration-700";
       }
 
       const barColors = ['bg-pop-pink', 'bg-pop-blue', 'bg-pop-yellow', 'bg-pop-green'];
       let graphHtml = '';
       for (let i = 1; i <= optCount; i++) {
         const c = barColors[(i - 1) % barColors.length];
+        const optText = q.options[i - 1] || '';
+        const optBadge = (optCount === 2) ? (i === 1 ? '〇' : '×') : i;
+        
         graphHtml += `
-          <div class="h-full flex flex-col justify-end">
-            <div class="text-center font-black text-pop-yellow mb-2 text-xl stat-percent" id="stat-p-${i}">0% (0人)</div>
-            <div id="stat-card-${i}" class="bg-pop-card neo-border shadow-neo rounded-2xl p-4 flex flex-col justify-between">
-              <span class="font-black text-base text-white truncate" id="stat-label-${i}">${i}. ${escapeHtml(q.options[i-1] || '')}</span>
-              <div class="w-full bg-pop-dark rounded-full h-4 neo-border-sm overflow-hidden mt-3">
-                <div id="stat-bar-${i}" class="${c} h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+          <div class="h-full flex flex-col justify-end items-center px-1 md:px-2 relative" id="stat-col-${i}">
+            
+            <!-- 縦棒グラフ領域 (上部の広大な空き空間にそびえ立つタワー！) -->
+            <div class="w-full flex-1 flex flex-col justify-end items-center pb-2 relative min-h-0">
+              
+              <!-- 頂上パーセント＆人数ラベル (バーの伸びに合わせて飛び出す！) -->
+              <div id="stat-p-${i}" class="font-black text-pop-yellow text-xs sm:text-base md:text-xl lg:text-2xl mb-1.5 transition-all duration-700 transform opacity-0 translate-y-3 whitespace-nowrap drop-shadow">
+                0% (0人)
+              </div>
+              
+              <!-- 縦棒タワー枠 (ネオブロータリズム・黒枠) -->
+              <div id="stat-tower-${i}" class="w-12 sm:w-16 md:w-24 lg:w-28 max-w-[85%] h-full max-h-[260px] md:max-h-[340px] bg-pop-dark/90 rounded-t-2xl md:rounded-t-3xl neo-border border-b-0 flex flex-col justify-end p-1 shadow-inner relative overflow-hidden">
+                <!-- 内部グリッド背景線（目盛り感演出） -->
+                <div class="absolute inset-0 flex flex-col justify-between py-2 pointer-events-none opacity-20">
+                  <div class="w-full border-b border-dashed border-white"></div>
+                  <div class="w-full border-b border-dashed border-white"></div>
+                  <div class="w-full border-b border-dashed border-white"></div>
+                  <div class="w-full border-b border-dashed border-white"></div>
+                </div>
+                <!-- ★下から上へにょーーーんと伸びるカラフル縦棒！ -->
+                <div id="stat-vbar-${i}" 
+                     class="${c} w-full rounded-t-xl md:rounded-t-2xl transition-all duration-1000 ease-out relative overflow-hidden flex items-center justify-center shadow-lg" 
+                     style="height: 0%; min-height: 0%;">
+                  <!-- ポップな斜めストライプ模様 -->
+                  <div class="absolute inset-0 opacity-20 bg-[repeating-linear-gradient(45deg,#000,#000_10px,transparent_10px,transparent_20px)] pointer-events-none"></div>
+                </div>
               </div>
             </div>
+
+            <!-- 下部: 解答選択肢カード (固定でどっしり構える) -->
+            <div id="stat-card-${i}" class="w-full bg-pop-card neo-border shadow-neo rounded-xl md:rounded-2xl p-2 md:p-3 flex items-center gap-2 md:gap-3 shrink-0 transition-all">
+              <div class="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 bg-black text-white rounded-lg md:rounded-xl neo-border-sm flex items-center justify-center text-xs sm:text-sm md:text-base font-black shrink-0">
+                ${optBadge}
+              </div>
+              <span class="font-black text-xs md:text-base text-white truncate" id="stat-label-${i}">
+                ${escapeHtml(optText)}
+              </span>
+            </div>
+
           </div>
         `;
       }
@@ -2535,18 +2610,23 @@
         p.currentRank = idx + 1;
       });
 
-      // STEP 1: Animate Graph Bars Smoothly
+      // STEP 1: Animate Vertical Bars ("にょーーーん！"と下から上へ伸びる！)
       setTimeout(() => {
         for (let i = 1; i <= optCount; i++) {
           const count = currentCounts[i - 1] || 0;
           const pct = totalAnswers > 0 ? Math.round((count / totalAnswers) * 100) : 0;
-          const bar = document.getElementById(`stat-bar-${i}`);
+          const vbar = document.getElementById(`stat-vbar-${i}`);
           const pLabel = document.getElementById(`stat-p-${i}`);
-          if (bar) bar.style.width = `${pct}%`;
-          if (pLabel) pLabel.textContent = `${pct}% (${count}人)`;
+          if (vbar) {
+            vbar.style.height = `${pct}%`;
+          }
+          if (pLabel) {
+            pLabel.textContent = `${pct}% (${count}人)`;
+            pLabel.classList.remove('opacity-0', 'translate-y-3');
+          }
         }
         playBeep(880, 'triangle', 0.25);
-      }, 200);
+      }, 250);
 
       // Auto-trigger answer reveal after 4.5 seconds of enjoying the graph
       setTimeout(() => {
@@ -2591,8 +2671,10 @@
         setTimeout(() => suspenseStage.classList.add('hidden'), 300);
 
         // Fill Answer Card
-        document.getElementById('reveal-correct-number').textContent = q.correct;
-        document.getElementById('reveal-correct-text').textContent = (q.options[q.correct - 1] || '---') + '！！';
+        const corrOptText = getSanitizedOption(q.options[q.correct - 1], q.correct - 1, q.options.length);
+        const corrBadge = (q.options.length === 2) ? (q.correct === 1 ? '〇' : '×') : q.correct;
+        document.getElementById('reveal-correct-number').textContent = corrBadge;
+        document.getElementById('reveal-correct-text').textContent = corrOptText + '！！';
 
         answerStage.classList.remove('hidden', 'opacity-0');
         playBeep(1200, 'sawtooth', 0.25);
@@ -2605,8 +2687,22 @@
 
         // Highlight correct option in background graph
         const corrCard = document.getElementById(`stat-card-${q.correct}`);
-        corrCard.className = "bg-pop-blue border-4 border-pop-yellow shadow-neo-lg rounded-2xl p-4 flex flex-col justify-between relative ring-4 ring-pop-yellow";
-        document.getElementById(`stat-p-${q.correct}`).innerHTML = `<i class="fa-solid fa-crown mr-1"></i>` + document.getElementById(`stat-p-${q.correct}`).textContent;
+        if (corrCard) {
+          corrCard.className = "w-full bg-pop-blue border-3 md:border-4 border-pop-yellow shadow-neo-lg rounded-xl md:rounded-2xl p-2 md:p-3 flex items-center gap-2 md:gap-3 shrink-0 ring-4 ring-pop-yellow transition-all";
+        }
+        const corrTower = document.getElementById(`stat-tower-${q.correct}`);
+        if (corrTower) {
+          corrTower.classList.add('ring-4', 'ring-pop-yellow');
+        }
+        const corrVBar = document.getElementById(`stat-vbar-${q.correct}`);
+        if (corrVBar) {
+          corrVBar.className = corrVBar.className.replace(/bg-pop-\w+/, 'bg-pop-yellow text-black');
+        }
+        const pLabel = document.getElementById(`stat-p-${q.correct}`);
+        if (pLabel) {
+          pLabel.innerHTML = `<i class="fa-solid fa-crown text-pop-yellow mr-1 animate-bounce"></i>` + pLabel.textContent;
+          pLabel.classList.add('scale-110');
+        }
 
         // Send results to players
         players.forEach(p => {
@@ -2614,7 +2710,7 @@
             p.conn.send({
               type: 'QUESTION_RESULT',
               correctOption: q.correct,
-              correctText: q.options[q.correct - 1] || '',
+              correctText: corrOptText,
               isCorrect: p.lastCorrect,
               earnedScore: p.lastEarned,
               currentScore: p.score,
