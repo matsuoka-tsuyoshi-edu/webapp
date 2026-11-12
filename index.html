@@ -1,573 +1,112 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>シン・学習アプリ＋１０</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-    <script src="./qrcode.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'"></script>
-    <style>
-        /* --- デザイン設定 --- */
-        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333; display: flex; flex-direction: column; height: 100vh; }
-        header { background-color: #4a90e2; color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
-        header h1 { margin: 0; font-size: 1.4rem; font-weight: bold; }
-        .main-container { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 240px; background-color: #fff; border-right: 1px solid #ddd; overflow-y: auto; padding: 20px; flex-shrink: 0; }
-        .sidebar h3 { font-size: 0.85rem; color: #999; margin-top: 25px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; font-weight: bold; }
-        .sidebar h3:first-child { margin-top: 0; }
-        .sidebar ul { list-style: none; padding: 0; margin: 0; }
-        .sidebar li { margin-bottom: 4px; }
-        .filter-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; color: #555; transition: all 0.2s; }
-        .filter-btn:hover { background-color: #f5f5f5; }
-        .filter-btn.active { background-color: #e6f0fa; color: #4a90e2; font-weight: bold; }
-        .filter-btn.active .count { background-color: #bad6f5; color: #335e8a; }
-        .filter-btn.new-btn { color: #d35400; } /* What's NEW用の強調色 */
-        .filter-btn.new-btn.active { background-color: #fde8cd; color: #d35400; }
-        .filter-btn.new-btn.active .count { background-color: #fbd5aa; color: #8a3800; }
-        .count { font-size: 0.75rem; background: #eee; padding: 2px 8px; border-radius: 12px; color: #777; }
-        .content-area { flex: 1; padding: 30px; overflow-y: auto; background-color: #f4f7f6; }
-        .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
-        .app-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #eaeaea; display: flex; flex-direction: column; height: 100%; }
-        .app-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-        .card-img-area { height: 150px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; border-bottom: 1px solid #f0f0f0; position: relative; }
-        .card-img-area img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; z-index: 2; }
-        .app-card:hover .card-img-area img { transform: scale(1.05); }
-        .default-icon { font-size: 4rem; color: #d1d5db; display: none; z-index: 1; }
-        .card-body { padding: 18px; flex-grow: 1; display: flex; flex-direction: column; }
-        .card-meta { font-size: 0.75rem; margin-bottom: 10px; display: flex; gap: 4px; flex-wrap: wrap; }
-        .tag { background-color: #f0f2f5; color: #555; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem; border: 1px solid #e0e0e0; }
-        .tag.subject { background-color: #e1effe; color: #1e429f; border-color: #c3ddfd; }
-        .card-title { margin: 0 0 8px; font-size: 1.15rem; line-height: 1.4; color: #333; font-weight: bold; }
-        .card-desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; line-height: 1.6; flex-grow: 1; }
-        .card-actions { display: flex; gap: 8px; margin-top: auto; }
-        .card-link { flex: 1; display: block; text-align: center; background-color: #4a90e2; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-size: 0.95rem; font-weight: bold; transition: background 0.2s; }
-        .card-link:hover { background-color: #357abd; }
-        .qr-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            padding: 0 12px;
-            background-color: #fff;
-            color: #4a90e2;
-            border: 1.5px solid #4a90e2;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .qr-btn:hover { background-color: #e6f0fa; }
-        .qr-btn svg { width: 16px; height: 16px; fill: currentColor; }
-
-        /* QRモーダル (iPad横向きや大画面でどーんと表示) */
-        .qr-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.65);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .qr-modal.active { display: flex; }
-        .qr-modal-content {
-            background: white;
-            border-radius: 16px;
-            padding: 24px 28px;
-            max-width: min(92vw, 560px);
-            width: 100%;
-            max-height: 96vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.3);
-            position: relative;
-            box-sizing: border-box;
-            animation: modalFadeIn 0.2s ease-out;
-            overflow-y: auto;
-        }
-        @keyframes modalFadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .modal-close-btn {
-            position: absolute;
-            top: 12px;
-            right: 14px;
-            background: none;
-            border: none;
-            font-size: 2rem;
-            color: #888;
-            cursor: pointer;
-            line-height: 1;
-            padding: 4px 10px;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-        .modal-close-btn:hover { color: #111; background-color: #f0f0f0; }
-        .modal-title {
-            margin: 0 0 12px;
-            font-size: 1.45rem;
-            font-weight: bold;
-            color: #222;
-            padding: 0 30px;
-            word-break: break-all;
-            line-height: 1.3;
-        }
-        .modal-qrcode-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-            background: #fff;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            margin: 0 auto 14px;
-            /* iPad横向き画面の中央にどーんと大きく広がるサイズ */
-            width: min(78vw, 56vh, 440px);
-            height: min(78vw, 56vh, 440px);
-            box-sizing: border-box;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-        }
-        .modal-qrcode-container img, .modal-qrcode-container canvas {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: contain;
-            display: block;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-            image-rendering: pixelated;
-        }
-        .modal-url {
-            font-size: 0.85rem;
-            color: #555;
-            word-break: break-all;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 8px 12px;
-            border-radius: 6px;
-            margin: 0 0 14px;
-            max-height: 48px;
-            overflow-y: auto;
-            text-align: left;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-            width: 100%;
-        }
-        .modal-btn {
-            flex: 1;
-            padding: 11px 14px;
-            font-size: 0.95rem;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            border: 1px solid #cbd5e1;
-            background: #fff;
-            color: #334155;
-            transition: all 0.2s;
-        }
-        .modal-btn:hover { background: #f1f5f9; }
-        .modal-btn.primary {
-            background: #4a90e2;
-            color: #fff;
-            border-color: #4a90e2;
-        }
-        .modal-btn.primary:hover { background: #357abd; }
-
-        /* 横向き（iPad横向きなど）で縦幅が狭い場合でも1画面にすっきり収める調整 */
-        @media (orientation: landscape) and (max-height: 700px) {
-            .qr-modal-content { padding: 14px 20px; }
-            .modal-title { font-size: 1.25rem; margin-bottom: 8px; }
-            .modal-qrcode-container { margin-bottom: 8px; width: min(78vw, 54vh, 380px); height: min(78vw, 54vh, 380px); padding: 10px; }
-            .modal-url { margin-bottom: 8px; padding: 5px 10px; font-size: 0.75rem; }
-            .modal-btn { padding: 8px 10px; font-size: 0.85rem; }
-        }
-
-        #error-msg { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; padding: 20px; margin: 20px; border: 1px solid transparent; border-radius: .25rem; display: none; }
-        @media (max-width: 768px) { .main-container { flex-direction: column; } .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #ddd; padding: 10px; } .sidebar h3 { margin-top: 10px; display: inline-block; margin-right: 10px; border: none; } .sidebar ul { display: inline; } .filter-btn { display: inline-flex; width: auto; padding: 5px 10px; } .content-area { padding: 15px; } }
-    </style>
+  <meta charset="UTF-8">
+  <!-- キャッシュ無効化 (常に最新版を読み込む) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POP QUIZ SHOW - ポータルメニュー</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Fredoka', 'M PLUS Rounded 1c', sans-serif;
+    }
+    .neo-border {
+      border: 4px solid #000;
+    }
+    .neo-shadow {
+      box-shadow: 6px 6px 0px #000;
+    }
+    .neo-btn {
+      transition: all 0.15s ease;
+    }
+    .neo-btn:active {
+      transform: translate(3px, 3px);
+      box-shadow: 3px 3px 0px #000;
+    }
+  </style>
 </head>
-<body>
+<body class="bg-[#141221] text-white min-h-screen flex flex-col items-center justify-center p-6">
 
-<header>
-    <h1>シン・学習アプリ＋１０</h1>
-</header>
-
-<div id="error-msg"></div>
-
-<div class="main-container">
-    <aside class="sidebar" id="sidebar"></aside>
-    <main class="content-area">
-        <div class="app-grid" id="appGrid">Loading...</div>
-    </main>
-</div>
-
-<!-- QRコード表示モーダル -->
-<div id="qr-modal" class="qr-modal" onclick="closeQrModal(event)">
-    <div class="qr-modal-content" onclick="event.stopPropagation()">
-        <button class="modal-close-btn" onclick="closeQrModal()">&times;</button>
-        <h3 id="modal-title" class="modal-title"></h3>
-        <div id="modal-qrcode" class="modal-qrcode-container"></div>
-        <p class="modal-url" id="modal-url"></p>
-        <div class="modal-buttons">
-            <button class="modal-btn" id="copy-btn" onclick="copyUrl()">URLをコピー</button>
-            <button class="modal-btn primary" onclick="downloadQr()">QR画像を保存</button>
-        </div>
+  <div class="max-w-2xl w-full bg-[#1E1B2E] neo-border neo-shadow rounded-3xl p-8 text-center">
+    
+    <!-- Title -->
+    <div class="inline-block bg-[#FDCB6E] text-black px-4 py-1 rounded-full text-xs font-black uppercase mb-3 border-2 border-black">
+      WebRTC Realtime Quiz System
     </div>
-</div>
+    <h1 class="text-4xl md:text-5xl font-black text-[#FDCB6E] tracking-wider mb-2 drop-shadow-[3px_3px_0px_#000]">
+      POP QUIZ SHOW ⚡
+    </h1>
+    <p class="text-gray-300 font-bold text-sm md:text-base mb-8">
+      サーバー設置不要！ブラウザだけで動く1:Nリアルタイム対戦クイズシステム
+    </p>
 
-<script>
-    let appData = [];
-    let finalSubjectList = [];
+    <!-- Navigation Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
+      
+      <!-- Host Launch -->
+      <a href="host.html?v=3.3.8" class="block bg-[#6C5CE7] hover:bg-[#5b4bc4] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-14 h-14 bg-[#FDCB6E] text-black rounded-xl border-2 border-black flex items-center justify-center text-3xl font-black">
+            🖥️
+          </div>
+          <span class="text-xs font-black bg-black text-[#00CEC9] px-2.5 py-1 rounded-md">親機 (iPad / PC)</span>
+        </div>
+        <h2 class="text-2xl font-black text-white group-hover:text-[#FDCB6E] transition-colors">
+          ホスト画面を開く
+        </h2>
+        <p class="text-xs font-bold text-purple-200 mt-2 leading-relaxed">
+          部屋コード・QRコード発行、アプリ内クイズ作成（画像・動画・2択/3択/4択対応）、CBT動画2段階出題、ZIP/Excel保存・読込、リアルタイム演出。
+        </p>
+      </a>
 
-    const IMG_DIR = "./img/"; 
-    const DEFAULT_EXT = ".png"; // 基本はpngとして扱う（失敗したらjpgを試す）
+      <!-- Player Launch -->
+      <a href="player.html?v=3.3.8" class="block bg-[#00B894] hover:bg-[#00a383] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-14 h-14 bg-white text-black rounded-xl border-2 border-black flex items-center justify-center text-3xl font-black">
+            📱
+          </div>
+          <span class="text-xs font-black bg-black text-[#FDCB6E] px-2.5 py-1 rounded-md">子機 (スマホ)</span>
+        </div>
+        <h2 class="text-2xl font-black text-black group-hover:text-white transition-colors">
+          参加者画面を開く
+        </h2>
+        <p class="text-xs font-black text-slate-800 mt-2 leading-relaxed">
+          カメラでQR即参加。CBT動画視聴待機画面＆問題画像の手元表示＆2択/3択/4択に最適化された巨大ボタン回答。
+        </p>
+      </a>
 
-    const STANDARD_SUBJECTS = [
-        "算数",
-        "数学",
-        "国語",
-        "理科",
-        "社会",
-        "英語",
-        "音楽",
-        "体育",
-        "道徳"
-    ];
+    </div>
 
-    // 学年の定義（ここに tokushi があるか確認してください）
-    const GRADE_MAP = {
-        'grades1': '小1', 'grades2': '小2', 'grades3': '小3',
-        'grades4': '小4', 'grades5': '小5', 'grades6': '小6',
-        'gradejh1': '中1', 'gradejh2': '中2', 'gradejh3': '中3',
-        'tokushi': '特別支援' // ← これがサイドバー表示用
-    };
+    <!-- Quick Utilities -->
+    <div class="bg-[#2A2640] rounded-2xl p-4 neo-border flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-bold">
+      <div class="flex flex-wrap items-center gap-2 text-gray-200">
+        <i class="fa-solid fa-box-archive text-yellow-400 text-lg"></i>
+        <span>サンプル・テンプレート:</span>
+        <a href="sample_quiz_with_images.zip" download class="bg-[#FDCB6E] hover:bg-amber-300 text-black px-2.5 py-1 rounded-lg neo-border-sm text-[11px] font-black inline-flex items-center gap-1">
+          <i class="fa-solid fa-file-zipper"></i>画像付きZIP
+        </a>
+        <a href="sample_quiz.xlsx" download class="bg-[#00B894] hover:bg-emerald-400 text-black px-2.5 py-1 rounded-lg neo-border-sm text-[11px] font-black inline-flex items-center gap-1">
+          <i class="fa-solid fa-file-excel"></i>Excel (.xlsx)
+        </a>
+        <a href="sample_quiz.csv" download class="text-[#00CEC9] underline hover:text-white">CSV版</a>
+      </div>
+      <div class="flex items-center space-x-2 text-gray-300 shrink-0">
+        <i class="fa-solid fa-book text-yellow-400 text-lg"></i>
+        <span>マニュアル: <a href="manual/manual.html" class="text-[#FDCB6E] underline hover:text-white">Web版操作説明書</a></span>
+      </div>
+    </div>
 
-    // 並び順の重み付け
-    const GRADE_ORDER = {
-        '小1': 1, '小2': 2, '小3': 3, '小4': 4, '小5': 5, '小6': 6,
-        '中1': 7, '中2': 8, '中3': 9,
-        '特別支援': 10
-    };
+    <!-- Footer Note -->
+    <div class="mt-6 text-gray-400 text-xs font-bold">
+      ※本アプリはWebRTC (PeerJS) を利用し、サーバー代ゼロで高速P2P通信を行います。
+    </div>
 
-    async function loadExcelData() {
-        try {
-            const response = await fetch('./list.xlsx?' + new Date().getTime());
-            if (!response.ok) throw new Error(`list.xlsx が見つかりません`);
-
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer);
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(sheet);
-            
-            appData = jsonData.map((row, index) => {
-                let rawPath = row.path ? String(row.path).trim() : "";
-                let folderName = "";
-                let finalPath = "#";
-
-                if (rawPath) {
-                    if (/^https?:\/\//i.test(rawPath)) {
-                        finalPath = rawPath;
-                        try {
-                            const urlObj = new URL(rawPath);
-                            const segments = urlObj.pathname.split('/').filter(Boolean);
-                            if (segments.length > 0) {
-                                let last = segments[segments.length - 1];
-                                if (last.toLowerCase() === 'index.html' || last.toLowerCase() === 'index.htm') {
-                                    folderName = segments.length > 1 ? segments[segments.length - 2] : '';
-                                } else {
-                                    folderName = last.replace(/\.[^/.]+$/, '');
-                                }
-                            }
-                        } catch (e) {
-                            const parts = rawPath.split('/').filter(Boolean);
-                            folderName = parts[parts.length - 1] || "";
-                        }
-                    } else if (rawPath.startsWith('./') && rawPath.endsWith('.html')) {
-                        finalPath = rawPath;
-                        const parts = rawPath.split('/');
-                        folderName = parts[parts.length - 1].replace('.html', '');
-                    } else {
-                        finalPath = `./${rawPath}/index.html`;
-                        folderName = rawPath;
-                    }
-                }
-
-                let finalImage = "";
-                if (row.image) {
-                    // Excelで指定があればそれを使う
-                    finalImage = (row.image.startsWith('./') || /^https?:\/\//i.test(row.image)) 
-                        ? row.image 
-                        : IMG_DIR + row.image;
-                } else {
-                    // 指定がなければ一旦 .png とする（ロード失敗時に onerror で .jpg を試す）
-                    finalImage = IMG_DIR + folderName + DEFAULT_EXT;
-                }
-
-                const myGrades = [];
-                for (const [colKey, label] of Object.entries(GRADE_MAP)) {
-                    if (row[colKey]) myGrades.push(label);
-                }
-
-                return {
-                    id: index,
-                    title: row.title || "No Title",
-                    path: finalPath,
-                    image: finalImage,
-                    desc: row.desc || "",
-                    gradeList: myGrades, 
-                    subject: row.subject ? row.subject.trim() : "その他" 
-                };
-            });
-
-            const allSubjectsInData = [...new Set(appData.map(d => d.subject))];
-            
-            const extraSubjects = allSubjectsInData.filter(s => 
-                !STANDARD_SUBJECTS.includes(s) && s !== "その他"
-            ).sort(); 
-
-            finalSubjectList = [...STANDARD_SUBJECTS, ...extraSubjects, "その他"];
-
-            renderSidebar();
-            filterBy('all', null, document.querySelector('.filter-btn')); 
-
-        } catch (error) {
-            console.error(error);
-            const errorDiv = document.getElementById('error-msg');
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML = `<strong>エラー</strong><br>${error.message}`;
-        }
-    }
-
-    function renderGrid(data) {
-        const grid = document.getElementById('appGrid');
-        grid.innerHTML = ''; 
-        if(data.length === 0) { grid.innerHTML = '<p style="color:#666;">該当する教材はありません。</p>'; return; }
-
-        data.forEach(item => {
-            // ★ここが画像切り替えのミソです
-            const imgTag = `<img src="${item.image}" alt="${item.title}" 
-                            onerror="if(this.src.endsWith('.png')){ this.src = this.src.replace('.png', '.jpg'); } else { this.style.display='none'; this.nextElementSibling.style.display='block'; }">`;
-            
-            const defaultIcon = `<div class="default-icon">📱</div>`;
-            const gradeTags = item.gradeList.map(g => `<span class="tag">${g}</span>`).join('');
-            const subjectTag = `<span class="tag subject">${item.subject}</span>`;
-
-            grid.innerHTML += `
-                <div class="app-card">
-                    <div class="card-img-area">${imgTag}${defaultIcon}</div>
-                    <div class="card-body">
-                        <div class="card-meta">${subjectTag}${gradeTags}</div>
-                        <h2 class="card-title">${item.title}</h2>
-                        <p class="card-desc">${item.desc}</p>
-                        <div class="card-actions">
-                            <a href="${item.path}" class="card-link">アプリを開く</a>
-                            <button type="button" class="qr-btn" onclick="openQrModal(${item.id})" title="QRコードを表示">
-                                <svg viewBox="0 0 24 24">
-                                    <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v3h-3v-3zm-5 0h3v3h-3v-3zm2 5h3v3h-3v-3zm3 0h3v3h-3v-3zm-5-2h2v2h-2v-2zm7 0h2v2h-2v-2z"/>
-                                </svg>
-                                QR
-                            </button>
-                        </div>
-                    </div>
-                </div>`;
-        });
-    }
-
-    function renderSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const gradeCounts = {};
-        for (const label of Object.values(GRADE_MAP)) { gradeCounts[label] = 0; }
-        const subjectCounts = {};
-
-        appData.forEach(item => {
-            item.gradeList.forEach(g => { if (gradeCounts[g] !== undefined) gradeCounts[g]++; });
-            subjectCounts[item.subject] = (subjectCounts[item.subject] || 0) + 1;
-        });
-
-        // 「すべて表示」と「What's NEW」ボタンを作成
-        let html = `<ul>
-            <li><button class="filter-btn active" onclick="filterBy('all', null, this)">すべて表示 <span class="count">${appData.length}</span></button></li>
-            <li><button class="filter-btn new-btn" onclick="filterBy('new', null, this)">✨ What's NEW <span class="count">10</span></button></li>
-        </ul>`;
-        
-        html += `<h3>学年</h3><ul>`;
-        // 定義順（小1...特別支援）に表示
-        Object.values(GRADE_MAP).forEach(label => {
-            html += `<li><button class="filter-btn" onclick="filterBy('grade', '${label}', this)">${label} <span class="count">${gradeCounts[label]}</span></button></li>`;
-        });
-        html += `</ul>`;
-
-        html += `<h3>教科</h3><ul>`;
-        finalSubjectList.forEach(s => {
-            if (subjectCounts[s]) {
-                html += `<li><button class="filter-btn" onclick="filterBy('subject', '${s}', this)">${s} <span class="count">${subjectCounts[s]}</span></button></li>`;
-            }
-        });
-        html += `</ul>`;
-
-        sidebar.innerHTML = html;
-    }
-
-    function getMinGradeValue(app) {
-        if (!app.gradeList || app.gradeList.length === 0) return 99;
-        const values = app.gradeList.map(g => GRADE_ORDER[g] || 99);
-        return Math.min(...values);
-    }
-
-    function getSubjectWeight(subject) {
-        const index = finalSubjectList.indexOf(subject);
-        return index === -1 ? 999 : index;
-    }
-
-    window.filterBy = function(type, value, btnElement) {
-        if (btnElement) {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btnElement.classList.add('active');
-        }
-
-        let filtered = [];
-        if (type === 'all') {
-            filtered = [...appData]; 
-        } else if (type === 'new') {
-            // 末尾10件を取得し、逆順にする（最新を先頭へ）
-            filtered = [...appData].slice(-10).reverse();
-        } else if (type === 'grade') {
-            filtered = appData.filter(item => item.gradeList.includes(value));
-        } else { 
-            filtered = appData.filter(item => item[type] === value);
-        }
-
-        // ソート処理
-        // What's NEWの場合はソートせず、新着順（逆順）のまま表示
-        if (type === 'new') {
-            // Do nothing (keep reverse order)
-        } else if (type === 'subject' || type === 'all') {
-            filtered.sort((a, b) => {
-                const gradeDiff = getMinGradeValue(a) - getMinGradeValue(b);
-                if (gradeDiff !== 0) return gradeDiff;
-                return getSubjectWeight(a.subject) - getSubjectWeight(b.subject);
-            });
-        } else if (type === 'grade') {
-            filtered.sort((a, b) => {
-                return getSubjectWeight(a.subject) - getSubjectWeight(b.subject);
-            });
-        }
-
-        renderGrid(filtered);
-    };
-
-    // --- QRコードモーダル制御 ---
-    let currentQrUrl = "";
-    let currentQrTitle = "";
-
-    function openQrModal(id) {
-        const item = appData.find(d => d.id === id);
-        if (!item) return;
-
-        // 相対パスの場合は完全な絶対URLに解決する
-        const fullUrl = new URL(item.path, window.location.href).href;
-        currentQrUrl = fullUrl;
-        currentQrTitle = item.title;
-
-        document.getElementById('modal-title').textContent = item.title;
-        document.getElementById('modal-url').textContent = fullUrl;
-
-        const qrContainer = document.getElementById('modal-qrcode');
-        qrContainer.innerHTML = '';
-
-        if (typeof QRCode !== 'undefined') {
-            // 拡大時や印刷時にもシャープになるよう高解像度(512x512)で生成
-            new QRCode(qrContainer, {
-                text: fullUrl,
-                width: 512,
-                height: 512,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M
-            });
-        } else {
-            qrContainer.innerHTML = '<p style="color:#d9534f;font-size:0.85rem;">QRコードライブラリの読み込みに失敗しました</p>';
-        }
-
-        document.getElementById('qr-modal').classList.add('active');
-    }
-
-    function closeQrModal(e) {
-        if (e && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) return;
-        document.getElementById('qr-modal').classList.remove('active');
-    }
-
-    function copyUrl() {
-        if (!currentQrUrl) return;
-        const btn = document.getElementById('copy-btn');
-        const origText = btn.textContent;
-
-        const updateBtn = () => {
-            btn.textContent = 'コピー完了！';
-            setTimeout(() => { btn.textContent = origText; }, 1500);
-        };
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(currentQrUrl).then(updateBtn).catch(() => fallbackCopy(currentQrUrl, updateBtn));
-        } else {
-            fallbackCopy(currentQrUrl, updateBtn);
-        }
-    }
-
-    function fallbackCopy(text, callback) {
-        const tempInput = document.createElement('textarea');
-        tempInput.value = text;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-        if (callback) callback();
-    }
-
-    function downloadQr() {
-        const qrContainer = document.getElementById('modal-qrcode');
-        const img = qrContainer.querySelector('img');
-        const canvas = qrContainer.querySelector('canvas');
-        let dataUrl = "";
-
-        if (img && img.src && img.src.startsWith('data:image/')) {
-            dataUrl = img.src;
-        } else if (canvas) {
-            dataUrl = canvas.toDataURL('image/png');
-        }
-
-        if (dataUrl) {
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = `QR_${currentQrTitle || 'app'}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } else {
-            alert('QRコード画像の保存に失敗しました。');
-        }
-    }
-
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const modal = document.getElementById('qr-modal');
-            if (modal && modal.classList.contains('active')) {
-                modal.classList.remove('active');
-            }
-        }
-    });
-
-    loadExcelData();
-</script>
+  </div>
 
 </body>
 </html>
