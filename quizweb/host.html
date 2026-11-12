@@ -219,7 +219,7 @@
     function forceReloadLatestHost() {
       if (confirm("最新版のデザイン・スクリプトで画面を再読み込みしますか？")) {
         const url = new URL(window.location.href);
-        url.searchParams.set('v', '3.3.4');
+        url.searchParams.set('v', '3.3.5');
         url.searchParams.set('t', Date.now().toString());
         window.location.replace(url.toString());
       }
@@ -550,9 +550,14 @@
                 <span class="text-[11px] font-black text-pop-cyan" id="reveal-review-qnum">第1問</span>
               </div>
               
-              <!-- Question Text with optional thumbnail -->
+              <!-- Question Text with optional thumbnail (Click to Zoom Modal) -->
               <div class="flex items-center gap-2.5 mb-2">
-                <img id="reveal-review-thumb" src="" alt="問題画像" class="hidden w-12 h-12 md:w-14 md:h-14 object-contain rounded-xl neo-border-sm bg-black shrink-0 cursor-pointer" onclick="zoomQuestionMedia()" title="クリックで拡大">
+                <div class="relative group shrink-0">
+                  <img id="reveal-review-thumb" src="" alt="問題画像" class="hidden w-14 h-14 md:w-16 md:h-16 object-contain rounded-xl neo-border-sm bg-black cursor-pointer hover:scale-105 transition-transform" onclick="zoomQuestionMedia()" title="クリックで特大拡大">
+                  <div class="pointer-events-none absolute -bottom-1 -right-1 bg-pop-yellow text-black text-[9px] font-black px-1 rounded neo-border-sm shadow-xs hidden group-hover:block">
+                    🔍 拡大
+                  </div>
+                </div>
                 <p class="font-black text-xs md:text-sm lg:text-base text-white leading-snug line-clamp-3" id="reveal-review-qtext">
                   問題文
                 </p>
@@ -1124,7 +1129,7 @@
     function getPlayerJoinUrl() {
       const currentUrl = window.location.href;
       let baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.4&t=' + Date.now();
+      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.5&t=' + Date.now();
     }
 
     function initPeerHost(retryCount = 0) {
@@ -2416,9 +2421,13 @@
         return;
       }
       if (players.size === 0) {
-        addBotPlayer();
-        addBotPlayer();
-        addBotPlayer();
+        if (confirm("参加プレイヤーがまだ0名です。\nテスト用にBot（3名）を追加してクイズを開始しますか？\n\n・[OK]: Botを追加して開始\n・[キャンセル]: 人間の参加を待機する")) {
+          addBotPlayer();
+          addBotPlayer();
+          addBotPlayer();
+        } else {
+          return;
+        }
       }
 
       currentQIndex = 0;
@@ -2438,10 +2447,33 @@
       const container = document.getElementById('quiz-options-grid');
       const count = options.length;
 
-      // Adjust grid columns and heights to prevent any overflow
+      // 2択（〇×）のときは特大シンボルで枠いっぱいに見やすく表示！
       if (count === 2) {
-        container.className = "grid grid-cols-2 gap-3 h-16 md:h-20 shrink-0";
-      } else if (count === 3) {
+        container.className = "grid grid-cols-2 gap-3 md:gap-4 h-20 md:h-24 shrink-0";
+        let html = '';
+        for (let i = 0; i < 2; i++) {
+          const isMaru = (i === 0);
+          const symbol = isMaru ? '〇' : '×';
+          const bg = isMaru ? 'bg-pop-pink text-white' : 'bg-pop-blue text-white';
+          const symbolColor = isMaru ? 'text-pop-yellow' : 'text-pop-cyan';
+          const optText = options[i] || (isMaru ? '〇' : '×');
+          const isPureOX = (optText === '〇' || optText === '×' || optText === '○' || optText === '✕');
+
+          html += `
+            <div class="${bg} neo-border shadow-neo rounded-2xl px-4 py-2 flex items-center justify-center space-x-3 md:space-x-4 relative overflow-hidden h-full">
+              <span class="text-4xl md:text-6xl font-black ${symbolColor} drop-shadow-[3px_3px_0px_#000] leading-none shrink-0">
+                ${symbol}
+              </span>
+              ${!isPureOX ? `<span class="text-xl md:text-2xl font-black truncate">${escapeHtml(optText)}</span>` : ''}
+            </div>
+          `;
+        }
+        container.innerHTML = html;
+        return;
+      }
+
+      // Adjust grid columns and heights to prevent any overflow
+      if (count === 3) {
         container.className = "grid grid-cols-3 gap-2.5 md:gap-3 h-16 md:h-20 shrink-0";
       } else {
         container.className = "grid grid-cols-2 gap-2 md:gap-2.5 h-24 md:h-28 shrink-0";
@@ -2823,10 +2855,11 @@
         document.getElementById('reveal-review-qnum').textContent = `第${currentQIndex + 1}問`;
         document.getElementById('reveal-review-qtext').textContent = q.question;
 
+        const qImage = q.image || q.media;
         const thumbEl = document.getElementById('reveal-review-thumb');
         if (thumbEl) {
-          if (q.media) {
-            thumbEl.src = q.media;
+          if (qImage) {
+            thumbEl.src = qImage;
             thumbEl.classList.remove('hidden');
           } else {
             thumbEl.src = '';
@@ -2905,6 +2938,13 @@
           pLabel.classList.add('scale-110');
         }
 
+        // 終盤戦の順位伏せ（ワクワクシークレット演出: 3問以上の場合はラスト2問から、2問以下の場合は最終問題で発動）
+        const isLastQ = (currentQIndex >= questions.length - 1);
+        const isSecretRank = questions.length >= 3 ? (currentQIndex >= questions.length - 2) : isLastQ;
+        if (isSecretRank) {
+          statBadge.innerHTML = `<span class="animate-pulse text-pop-pink"><i class="fa-solid fa-lock mr-1"></i>順位シークレット中！</span>`;
+        }
+
         // Send results & review details to players
         players.forEach(p => {
           if (!p.isBot && p.conn && p.conn.open) {
@@ -2921,7 +2961,12 @@
               options: q.options,
               userChoice: p.currentAnswer,
               explanation: q.explanation || '',
-              media: q.media || null
+              media: qImage || null,
+              image: qImage || null,
+              isSecretRank: isSecretRank,
+              isLastQuestion: isLastQ,
+              qIndex: currentQIndex,
+              totalQuestions: questions.length
             });
           }
         });

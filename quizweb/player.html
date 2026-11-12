@@ -366,6 +366,45 @@
     .opt-btn.blue { background: #3b82f6; }
     .opt-btn.yellow { background: #eab308; color: #000; }
     .opt-btn.green { background: #10b981; }
+
+    /* ★ 2択（〇×）専用の特大シンボルボタン（枠いっぱいに巨大表示！） */
+    .opt-btn.btn-ox {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 4px !important;
+      overflow: hidden !important;
+    }
+    .opt-btn.btn-ox .ox-big-symbol {
+      font-size: 88px;
+      line-height: 0.95;
+      font-weight: 900;
+      display: block;
+      transform: scale(1.1);
+      text-shadow: 4px 4px 0 #000;
+    }
+    .opt-btn.btn-ox .ox-sub-text {
+      font-size: 14px;
+      font-weight: 900;
+      margin-top: 2px;
+      text-shadow: 2px 2px 0 #000;
+      max-width: 90%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* iPad 横向き時の2択ボタングリッド */
+    @media (orientation: landscape) and (min-width: 600px) {
+      .options-grid.grid-2 {
+        grid-template-columns: 1fr 1fr !important;
+        grid-gap: 16px !important;
+      }
+      .opt-btn.btn-ox .ox-big-symbol {
+        font-size: 96px !important;
+      }
+    }
     .opt-label {
       font-size: 15px;
       margin-top: 4px;
@@ -1159,24 +1198,43 @@
           // 2択 / 3択 / 4択 に応じたボタングリッドの動的生成
           const count = currentOptions.length;
           gridEl.classList.remove('grid-2', 'grid-3');
-          if (count === 2) {
-            gridEl.classList.add('grid-2');
-          } else if (count === 3) {
-            gridEl.classList.add('grid-3');
-          }
 
-          const btnColors = ['red', 'blue', 'yellow', 'green'];
-          let buttonsHtml = '';
-          for (let i = 0; i < count; i++) {
-            const colorClass = btnColors[i % btnColors.length];
-            buttonsHtml += `
-              <button class="opt-btn ${colorClass}" onclick="submitAnswer(${i + 1})">
-                <span>${i + 1}</span>
-                <span class="opt-label">${escapeHtml(currentOptions[i] || '')}</span>
-              </button>
-            `;
+          if (count === 2) {
+            // ★ 2択（〇×）専用：ボタン枠いっぱいに超特大の「〇」「×」をドカンと表示！
+            gridEl.classList.add('grid-2');
+            let buttonsHtml = '';
+            for (let i = 0; i < 2; i++) {
+              const isMaru = (i === 0);
+              const symbol = isMaru ? '〇' : '×';
+              const colorClass = isMaru ? 'red' : 'blue';
+              const optText = currentOptions[i] || symbol;
+              const isPureOX = (optText === '〇' || optText === '×' || optText === '○' || optText === '✕');
+
+              buttonsHtml += `
+                <button class="opt-btn btn-ox ${colorClass}" onclick="submitAnswer(${i + 1})">
+                  <span class="ox-big-symbol">${symbol}</span>
+                  ${!isPureOX ? `<span class="ox-sub-text">${escapeHtml(optText)}</span>` : ''}
+                </button>
+              `;
+            }
+            gridEl.innerHTML = buttonsHtml;
+          } else {
+            if (count === 3) {
+              gridEl.classList.add('grid-3');
+            }
+            const btnColors = ['red', 'blue', 'yellow', 'green'];
+            let buttonsHtml = '';
+            for (let i = 0; i < count; i++) {
+              const colorClass = btnColors[i % btnColors.length];
+              buttonsHtml += `
+                <button class="opt-btn ${colorClass}" onclick="submitAnswer(${i + 1})">
+                  <span>${i + 1}</span>
+                  <span class="opt-label">${escapeHtml(currentOptions[i] || '')}</span>
+                </button>
+              `;
+            }
+            gridEl.innerHTML = buttonsHtml;
           }
-          gridEl.innerHTML = buttonsHtml;
 
           startPlayerTimerBar(questionTimeLimit);
 
@@ -1202,8 +1260,14 @@
             playSound('wrong');
           }
 
-          document.getElementById('result-rank-text').textContent = `第 ${data.currentRank || 1} 位`;
-          document.getElementById('result-total-players').textContent = `/ ${data.totalPlayers || 1} 人中`;
+          // ★ 終盤戦の順位「？」シークレット演出（表彰式への期待感をMAXに！）
+          if (data.isSecretRank) {
+            document.getElementById('result-rank-text').innerHTML = `<span style="color:#fbbf24; text-shadow:0 0 10px rgba(251,191,36,0.6); animation:pulse 1.2s infinite alternate;">第 ❓ 位</span>`;
+            document.getElementById('result-total-players').innerHTML = `<span style="color:#f43f5e; font-weight:900; margin-left:4px; font-size:11px;">(🔒 表彰式で発表！)</span>`;
+          } else {
+            document.getElementById('result-rank-text').textContent = `第 ${data.currentRank || 1} 位`;
+            document.getElementById('result-total-players').textContent = `/ ${data.totalPlayers || 1} 人中`;
+          }
           document.getElementById('result-gained-score').textContent = isCorr ? `+${data.earnedScore.toLocaleString()} pt 獲得！` : `+0 pt`;
           document.getElementById('result-current-score').textContent = `累計: ${currentScore.toLocaleString()} pt`;
 
@@ -1212,9 +1276,9 @@
           document.getElementById('review-player-qnum').textContent = `第${qNum}問`;
           document.getElementById('review-player-qtext').textContent = data.question || document.getElementById('q-hint-text').textContent;
 
-          // サムネイル表示
+          // サムネイル表示 (画像・動画を確実に検知)
           const thumbEl = document.getElementById('review-player-thumb');
-          const mediaUrl = data.media || currentQuestionMedia;
+          const mediaUrl = data.image || data.media || currentQuestionMedia;
           if (thumbEl) {
             if (mediaUrl) {
               thumbEl.src = mediaUrl;
@@ -1343,7 +1407,14 @@
       
       const colors = ['#ef4444', '#3b82f6', '#eab308', '#10b981'];
       const badge = document.getElementById('selected-answer-display');
-      badge.textContent = `${choiceNumber}. ${optText}`;
+      
+      if (currentOptions.length === 2) {
+        const symbol = (choiceNumber === 1 ? '〇' : '×');
+        const isPureOX = (optText === '〇' || optText === '×' || optText === '○' || optText === '✕');
+        badge.innerHTML = `<span style="font-size: 32px; font-weight: 900; margin-right: 6px;">${symbol}</span>${!isPureOX ? escapeHtml(optText) : ''}`;
+      } else {
+        badge.textContent = `${choiceNumber}. ${optText}`;
+      }
       badge.style.background = colors[choiceNumber - 1] || '#3b82f6';
       badge.style.color = (choiceNumber === 3) ? '#000' : '#fff';
 
@@ -1459,7 +1530,7 @@
     // ==========================================
     function forceReloadLatest() {
       const url = new URL(window.location.href);
-      url.searchParams.set('v', '3.3.4');
+      url.searchParams.set('v', '3.3.5');
       url.searchParams.set('t', Date.now().toString());
       window.location.replace(url.toString());
     }
