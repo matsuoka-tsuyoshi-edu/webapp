@@ -219,7 +219,7 @@
     function forceReloadLatestHost() {
       if (confirm("最新版のデザイン・スクリプトで画面を再読み込みしますか？")) {
         const url = new URL(window.location.href);
-        url.searchParams.set('v', '3.3.6');
+        url.searchParams.set('v', '3.3.7');
         url.searchParams.set('t', Date.now().toString());
         window.location.replace(url.toString());
       }
@@ -1133,7 +1133,7 @@
     function getPlayerJoinUrl() {
       const currentUrl = window.location.href;
       let baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.6&t=' + Date.now();
+      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.7&t=' + Date.now();
     }
 
     function initPeerHost(retryCount = 0) {
@@ -1615,28 +1615,64 @@
         for (let i = 0; i < rawQuestions.length; i++) {
           const rq = rawQuestions[i];
           let imgDataUrl = null;
+          let isVideo = (rq.mediaType === 'video');
 
           if (rq.image) {
-            // ZIP内からメディアファイル（画像または動画）を探索
-            const imgFileInZip = zip.file(rq.image) || zip.file(rq.image.replace(/^\/?/, ''));
+            // パスの正規化（\ を / に、先頭の ./ や / を除去）
+            const normPath = String(rq.image).replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\//, '');
+            const filename = normPath.split('/').pop();
+            const ext = filename.split('.').pop().toLowerCase();
+
+            // ZIP内からメディアファイル（画像または動画）を徹底探索
+            let imgFileInZip = zip.file(normPath) || 
+                               zip.file(rq.image) || 
+                               zip.file(`media/${filename}`) || 
+                               zip.file(`images/${filename}`) ||
+                               zip.file(filename);
+
+            // もし見つからない場合、大文字小文字を無視してZIP内の全エントリから探索
+            if (!imgFileInZip) {
+              const zipFiles = Object.keys(zip.files);
+              const foundKey = zipFiles.find(k => k.toLowerCase().endsWith(filename.toLowerCase()));
+              if (foundKey) {
+                imgFileInZip = zip.file(foundKey);
+              }
+            }
+
             if (imgFileInZip) {
               const base64 = await imgFileInZip.async("base64");
-              const ext = rq.image.split('.').pop().toLowerCase();
-              const isVideoExt = (ext === 'mp4' || ext === 'webm');
-              const mime = isVideoExt ? `video/${ext}` : ((ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : (ext === 'webp' ? 'image/webp' : 'image/png'));
-              imgDataUrl = `data:${mime};base64,${base64}`;
+              
+              // 動画かどうかの判定：mediaTypeがvideo、または拡張子が動画、またはフォルダがmedia/
+              const isVideoByExt = ['mp4', 'webm', 'mov', 'quicktime', 'm4v', 'ogv'].includes(ext);
+              const isVideoByPath = normPath.startsWith('media/') || (rq.mediaType === 'video');
+              if (isVideoByExt || isVideoByPath) {
+                isVideo = true;
+                let mime = 'video/mp4';
+                if (ext === 'webm') mime = 'video/webm';
+                else if (ext === 'ogv') mime = 'video/ogg';
+                else mime = 'video/mp4'; // mp4, mov, quicktime, m4v
+                imgDataUrl = `data:${mime};base64,${base64}`;
+              } else {
+                let mime = 'image/png';
+                if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
+                else if (ext === 'webp') mime = 'image/webp';
+                else if (ext === 'gif') mime = 'image/gif';
+                else if (ext === 'svg') mime = 'image/svg+xml';
+                imgDataUrl = `data:${mime};base64,${base64}`;
+              }
+            } else {
+              console.warn(`ZIP内のメディアファイルが見つかりませんでした: ${rq.image}`);
             }
           }
 
           const rawOpts = rq.options || (rq.type === '2choice' ? ['〇', '×'] : ['選択肢1', '選択肢2', '選択肢3', '選択肢4']);
           const optCount = rawOpts.length;
           const sanitizedOpts = rawOpts.map((opt, oIdx) => getSanitizedOption(opt, oIdx, optCount));
-          const isVideo = rq.mediaType === 'video' || (rq.image && (rq.image.endsWith('.mp4') || rq.image.endsWith('.webm')));
 
           parsedQuestions.push({
             id: rq.id || (i + 1),
             type: rq.type || (sanitizedOpts.length === 2 ? '2choice' : (sanitizedOpts.length === 3 ? '3choice' : '4choice')),
-            mediaType: rq.mediaType || (isVideo ? 'video' : 'image'),
+            mediaType: isVideo ? 'video' : 'image',
             sendVideoToPlayer: !!rq.sendVideoToPlayer,
             question: rq.question || '問題文なし',
             image: imgDataUrl,
@@ -1807,7 +1843,8 @@
       studioQuestions.forEach((q, idx) => {
         const isActive = idx === studioActiveIndex;
         const typeLabel = q.options.length === 2 ? '2択' : (q.options.length === 3 ? '3択' : '4択');
-        const hasImg = !!q.image;
+        const isVid = q.mediaType === 'video' || (q.image && (q.image.startsWith('data:video/') || q.image.includes('.mp4') || q.image.includes('.webm') || q.image.includes('.mov')));
+        const mediaBadge = !q.image ? '' : (isVid ? '<span class="text-[10px] font-black bg-pop-purple text-white px-1.5 py-0.5 rounded shadow-sm">🎬 動画有</span>' : '<span class="text-[10px] font-black bg-pop-green text-black px-1.5 py-0.5 rounded">🖼️ 画像有</span>');
 
         html += `
           <div onclick="studioSelectQuestion(${idx})" class="p-3 rounded-2xl neo-border-sm cursor-pointer transition-all ${isActive ? 'bg-pop-purple text-white shadow-neo-sm ring-2 ring-pop-yellow' : 'bg-pop-dark hover:bg-slate-800 text-gray-200'}">
@@ -1815,7 +1852,7 @@
               <span class="font-black text-xs text-pop-yellow">Q.${String(idx + 1).padStart(2, '0')}</span>
               <div class="flex items-center gap-1">
                 <span class="text-[10px] font-black bg-black/50 px-1.5 py-0.5 rounded text-pop-cyan">${typeLabel}</span>
-                ${hasImg ? '<span class="text-[10px] font-black bg-pop-green text-black px-1.5 py-0.5 rounded">画像有</span>' : ''}
+                ${mediaBadge}
                 <span class="text-[10px] font-black bg-pop-pink text-black px-1.5 py-0.5 rounded">正解: ${q.correct}</span>
               </div>
             </div>
@@ -1922,7 +1959,7 @@
         `;
       }
 
-      const isVideo = q.mediaType === 'video' || (q.image && q.image.startsWith('data:video/'));
+      const isVideo = q.mediaType === 'video' || (q.image && (q.image.startsWith('data:video/') || q.image.includes('.mp4') || q.image.includes('.webm') || q.image.includes('.mov') || q.image.includes('.quicktime')));
 
       panel.innerHTML = `
         <div class="space-y-4">
@@ -1989,11 +2026,11 @@
               </div>
             ` : `
               <div onclick="studioTriggerImageUpload()" class="border-2 border-dashed border-gray-600 hover:border-pop-green rounded-2xl p-3 text-center cursor-pointer bg-pop-dark/50 hover:bg-pop-dark transition-all flex items-center justify-center gap-3">
-                <input type="file" id="studio-img-input" class="hidden" accept="image/*,video/mp4,video/webm" onchange="studioHandleImageUpload(event)">
+                <input type="file" id="studio-img-input" class="hidden" accept="image/*,video/mp4,video/webm,video/quicktime,video/mov,video/*" onchange="studioHandleImageUpload(event)">
                 <i class="fa-solid fa-file-arrow-up text-2xl text-pop-green"></i>
                 <div class="text-left">
-                  <p class="text-xs font-bold text-gray-200">クリックして画像または動画を添付 (PNG, JPG, MP4, WebM)</p>
-                  <p class="text-[10px] text-gray-400">※動画は25MB以内を推奨します</p>
+                  <p class="text-xs font-bold text-gray-200">クリックして画像または動画を添付 (PNG, JPG, MP4, WebM, MOV)</p>
+                  <p class="text-[10px] text-pop-yellow font-bold">※動画はクイズのテンポ維持のため【10秒以内（最大12秒・15MB以内）】推奨</p>
                 </div>
               </div>
             `}
@@ -2140,27 +2177,57 @@
       const file = event.target.files[0];
       if (!file) return;
 
-      const isVideo = file.type.startsWith('video/');
-      const maxSizeMB = isVideo ? 30 : 10;
+      const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogv)$/i.test(file.name);
+      const maxSizeMB = isVideo ? 15 : 10;
       if (file.size > maxSizeMB * 1024 * 1024) {
-        alert(`ファイルサイズが大きすぎます (${(file.size / 1024 / 1024).toFixed(1)}MB)。快適な動作のため ${maxSizeMB}MB 以下のファイルをご使用ください。`);
+        alert(`ファイルサイズが大きすぎます (${(file.size / 1024 / 1024).toFixed(1)}MB)。\n快適な動作のため ${maxSizeMB}MB 以下のファイルをご使用ください。`);
+        event.target.value = '';
+        return;
       }
 
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const q = studioQuestions[studioActiveIndex];
-        if (q) {
-          q.image = e.target.result; // Data URL
-          q.mediaType = isVideo ? 'video' : 'image';
-          if (isVideo) {
-            q.sendVideoToPlayer = false; // デフォルトは通信負荷ゼロのOFF
+      const processUpload = () => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const q = studioQuestions[studioActiveIndex];
+          if (q) {
+            q.image = e.target.result; // Data URL
+            q.mediaType = isVideo ? 'video' : 'image';
+            if (isVideo) {
+              q.sendVideoToPlayer = false; // デフォルトは通信負荷ゼロのOFF
+            }
+            renderStudioList();
+            renderStudioForm();
+            playBeep(880, 'sine', 0.15);
           }
-          renderStudioList();
-          renderStudioForm();
-          playBeep(880, 'sine', 0.15);
-        }
+        };
+        reader.readAsDataURL(file);
       };
-      reader.readAsDataURL(file);
+
+      if (isVideo) {
+        // ★ 10秒程度（最大12秒まで）の再生時間チェック
+        const videoTemp = document.createElement('video');
+        videoTemp.preload = 'metadata';
+        const fileUrl = URL.createObjectURL(file);
+        videoTemp.src = fileUrl;
+
+        videoTemp.onloadedmetadata = function() {
+          URL.revokeObjectURL(fileUrl);
+          const duration = videoTemp.duration;
+          if (duration && duration > 12.5) {
+            alert(`⚠️ 動画の長さが長すぎます (${duration.toFixed(1)}秒)。\n\nクイズのテンポを保ち、ファイル容量を抑えるため、動画は【10秒以内（最大12秒まで）】のものをご使用ください。`);
+            event.target.value = '';
+            return;
+          }
+          processUpload();
+        };
+
+        videoTemp.onerror = function() {
+          URL.revokeObjectURL(fileUrl);
+          processUpload();
+        };
+      } else {
+        processUpload();
+      }
     }
 
     function studioToggleSendVideo(checked) {
@@ -2223,15 +2290,31 @@
 
       for (let i = 0; i < studioQuestions.length; i++) {
         const sq = studioQuestions[i];
+        const isVideo = sq.mediaType === 'video' || (sq.image && (sq.image.startsWith('data:video/') || sq.image.includes('.mp4') || sq.image.includes('.webm') || sq.image.includes('.mov') || sq.image.includes('.quicktime')));
         let mediaRelPath = null;
 
         if (sq.image && sq.image.startsWith('data:')) {
           const parts = sq.image.split(',');
           const mimeMatch = parts[0].match(/:(.*?);/);
-          const mime = mimeMatch ? mimeMatch[1] : (sq.mediaType === 'video' ? 'video/mp4' : 'image/png');
-          const ext = mime.split('/')[1] || (sq.mediaType === 'video' ? 'mp4' : 'png');
+          const rawMime = mimeMatch ? mimeMatch[1].toLowerCase() : (isVideo ? 'video/mp4' : 'image/png');
+          
+          let ext = 'png';
+          let folder = 'images';
+          if (isVideo) {
+            folder = 'media';
+            if (rawMime.includes('webm')) ext = 'webm';
+            else if (rawMime.includes('quicktime') || rawMime.includes('mov')) ext = 'mov';
+            else ext = 'mp4';
+          } else {
+            folder = 'images';
+            if (rawMime.includes('jpeg') || rawMime.includes('jpg')) ext = 'jpg';
+            else if (rawMime.includes('webp')) ext = 'webp';
+            else if (rawMime.includes('gif')) ext = 'gif';
+            else if (rawMime.includes('svg')) ext = 'svg';
+            else ext = 'png';
+          }
+
           const base64Data = parts[1];
-          const folder = sq.mediaType === 'video' ? 'media' : 'images';
           mediaRelPath = `${folder}/q${i + 1}.${ext}`;
           zip.file(mediaRelPath, base64Data, { base64: true });
         } else if (sq.image) {
@@ -2241,7 +2324,7 @@
         exportQuestions.push({
           id: i + 1,
           type: sq.type || (sq.options.length + 'choice'),
-          mediaType: sq.mediaType || (sq.image && sq.image.includes('video') ? 'video' : 'image'),
+          mediaType: isVideo ? 'video' : 'image',
           sendVideoToPlayer: !!sq.sendVideoToPlayer,
           question: sq.question,
           image: mediaRelPath,
