@@ -2,7 +2,12 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- キャッシュ無効化 (常に最新版の画面・デザインを強制読み込み) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <!-- iPad Safari / iOS 完全固定ビューポート (ズーム・拡大縮小の完全抑止) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
   <title>POP QUIZ - Player</title>
   <!-- PeerJS CDN -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -31,23 +36,78 @@
       font-family: 'M PLUS Rounded 1c', 'Fredoka', sans-serif;
     }
 
-    body {
+    /* 画面ガチッと固定 (スクロール・バウンス・ゴムバンド効果の完全無効化) */
+    html, body {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: auto;
+      touch-action: none;
       background-color: var(--bg);
       color: var(--text);
-      min-height: 100dvh;
+    }
+
+    body {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 16px;
-      overflow: hidden;
+      padding: 12px;
+    }
+
+    /* 入力フォームのみタッチ・入力・キーボード操作を許可 */
+    input, select, textarea {
+      touch-action: auto !important;
+      user-select: text !important;
+      -webkit-user-select: text !important;
+      -webkit-touch-callout: default !important;
     }
 
     .container {
       width: 100%;
-      max-width: 480px;
+      max-width: 500px;
+      height: 100%;
       height: 100dvh;
       display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+
+    /* iPad 横向き (Landscape) 最適化 */
+    @media (orientation: landscape) and (min-width: 600px) {
+      .container {
+        max-width: 720px;
+      }
+      .question-hint-box {
+        margin-top: 56px !important;
+        margin-bottom: 8px !important;
+        padding: 8px 14px !important;
+        font-size: 14px !important;
+      }
+      #player-q-img-wrap {
+        max-height: 105px !important;
+        margin-bottom: 6px !important;
+      }
+      .timer-bar-wrap {
+        margin-bottom: 8px !important;
+      }
+      .options-grid {
+        height: 50vh !important;
+      }
+      .options-grid.has-image {
+        height: 40vh !important;
+      }
+    }
       flex-direction: column;
       justify-content: center;
       position: relative;
@@ -410,7 +470,34 @@
     }
   </style>
   <script>
-    // iPad/Mobile double-tap zoom prevention
+    // =================================================================
+    // iOS Safari / iPad 横向き 完全固定スクリプト (ガチッとロック)
+    // =================================================================
+
+    // 1. iOS Safariのピンチイン・ピンチアウト（ズーム）ジェスチャーを完全防止
+    document.addEventListener('gesturestart', function (e) {
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('gesturechange', function (e) {
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('gestureend', function (e) {
+      e.preventDefault();
+    }, { passive: false });
+
+    // 2. ドラッグスクロール＆ゴムバンド・バウンスの完全防止
+    document.addEventListener('touchmove', function (e) {
+      if (e.touches.length > 1) {
+        e.preventDefault(); // 2本指以上は無条件ブロック
+        return;
+      }
+      // allow-scroll クラスを持つ要素内部以外はスクロールを完全無効化
+      if (!e.target.closest('.allow-scroll')) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    // 3. ダブルタップによるズーム防止
     let lastTouchEnd = 0;
     document.addEventListener('touchend', function (event) {
       const now = Date.now();
@@ -418,6 +505,13 @@
         event.preventDefault();
       }
       lastTouchEnd = now;
+    }, { passive: false });
+
+    // 4. マウスホイール/トラックパッドスクロールの防止
+    window.addEventListener('wheel', function (e) {
+      if (!e.target.closest('.allow-scroll')) {
+        e.preventDefault();
+      }
     }, { passive: false });
   </script>
 </head>
@@ -455,6 +549,13 @@
         </div>
 
         <button class="btn-submit" id="btn-join" onclick="joinRoom()">クイズに参加する！</button>
+
+        <!-- キャッシュクリア＆最新版強制再読込ボタン -->
+        <div style="margin-top: 14px; text-align: center;">
+          <button onclick="forceReloadLatest()" type="button" style="background: none; border: none; color: #94a3b8; font-size: 11px; font-weight: 800; text-decoration: underline; cursor: pointer; padding: 4px;">
+            🔄 画面を最新に更新する（キャッシュクリア）
+          </button>
+        </div>
       </div>
     </div>
 
@@ -486,10 +587,13 @@
         問題文がここに表示されます
       </div>
 
-      <!-- 問題メディア表示枠 (画像または動画) -->
-      <div id="player-q-img-wrap" class="hidden" style="width: 100%; max-height: 140px; margin-bottom: 10px; border-radius: 16px; overflow: hidden; border: 3px solid var(--border-dark); background: #000; flex-shrink: 0;">
+      <!-- 問題メディア表示枠 (画像または動画) - タップで特大拡大表示 -->
+      <div id="player-q-img-wrap" class="hidden" style="width: 100%; max-height: 140px; margin-bottom: 10px; border-radius: 16px; overflow: hidden; border: 3px solid var(--border-dark); background: #000; flex-shrink: 0; position: relative; cursor: pointer;" onclick="openPlayerImageZoom()" title="タップで拡大">
         <img id="player-q-img" src="" alt="問題画像" style="width: 100%; height: 100%; object-fit: contain;">
         <video id="player-q-video" src="" autoplay muted loop playsinline class="hidden" style="width: 100%; height: 100%; object-fit: contain;"></video>
+        <div style="position: absolute; bottom: 4px; right: 6px; background: rgba(0,0,0,0.7); color: #fbbf24; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 10px; border: 1px solid rgba(251,191,36,0.6); pointer-events: none;">
+          🔍 タップで拡大
+        </div>
       </div>
 
       <div class="timer-bar-wrap">
@@ -552,6 +656,22 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ==================== PLAYER IMAGE ZOOM MODAL (タップで特大拡大・再タップで閉じる) ==================== -->
+  <div id="player-image-zoom-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); z-index: 99999; flex-direction: column; items-center; justify-content: center; padding: 10px; cursor: pointer;" onclick="closePlayerImageZoom()">
+    <div style="position: relative; width: 96vw; max-width: 860px; height: 90dvh; max-height: 90dvh; background: #1e293b; border: 4px solid #000; border-radius: 24px; padding: 12px; display: flex; flex-direction: column; items-center; justify-content: center; box-shadow: 0 10px 0 #000; overflow: hidden; margin: auto;" onclick="event.stopPropagation(); closePlayerImageZoom();">
+      <button onclick="closePlayerImageZoom()" style="position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; background: #f43f5e; color: #000; border-radius: 14px; border: 3px solid #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; cursor: pointer; z-index: 20; box-shadow: 0 4px 0 #000;" title="閉じる">
+        ✕
+      </button>
+      <div style="position: absolute; top: 14px; left: 16px; background: #fbbf24; color: #000; font-size: 11px; font-weight: 900; padding: 3px 12px; border-radius: 12px; border: 2px solid #000; pointer-events: none; z-index: 20;">
+        タップして閉じる
+      </div>
+      <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+        <img id="player-zoom-modal-img" src="" alt="拡大画像" style="width: 100%; height: 100%; object-fit: contain; border-radius: 16px;">
+        <video id="player-zoom-modal-video" src="" controls autoplay playsinline style="display: none; width: 100%; height: 100%; object-fit: contain; border-radius: 16px;"></video>
+      </div>
+    </div>
   </div>
 
   <div id="toast-msg">メッセージ</div>
@@ -638,6 +758,7 @@
     // 3. SCREEN SWITCHING
     // ==========================================
     function switchScreen(screenId) {
+      closePlayerImageZoom();
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       const target = document.getElementById(screenId);
       if (target) {
@@ -963,7 +1084,59 @@
     }
 
     // ==========================================
-    // 6. INITIALIZATION & QR CODE AUTO-JOIN
+    // 6. IMAGE ZOOM MODAL (タップで拡大・再タップで閉じる)
+    // ==========================================
+    function openPlayerImageZoom() {
+      const wrap = document.getElementById('player-q-img-wrap');
+      if (wrap.classList.contains('hidden')) return;
+
+      const imgEl = document.getElementById('player-q-img');
+      const videoEl = document.getElementById('player-q-video');
+      const modal = document.getElementById('player-image-zoom-modal');
+      const modalImg = document.getElementById('player-zoom-modal-img');
+      const modalVideo = document.getElementById('player-zoom-modal-video');
+
+      if (!videoEl.classList.contains('hidden') && videoEl.src) {
+        modalImg.style.display = 'none';
+        modalVideo.src = videoEl.src;
+        modalVideo.style.display = 'block';
+        modalVideo.play().catch(() => {});
+      } else if (imgEl.src) {
+        modalVideo.pause();
+        modalVideo.src = '';
+        modalVideo.style.display = 'none';
+        modalImg.src = imgEl.src;
+        modalImg.style.display = 'block';
+      } else {
+        return;
+      }
+
+      modal.style.display = 'flex';
+    }
+
+    function closePlayerImageZoom() {
+      const modal = document.getElementById('player-image-zoom-modal');
+      if (!modal) return;
+      const modalVideo = document.getElementById('player-zoom-modal-video');
+      if (modalVideo) {
+        modalVideo.pause();
+        modalVideo.src = '';
+      }
+      modal.style.display = 'none';
+    }
+
+    // ==========================================
+    // 7. CACHE CLEAR & FORCE RELOAD LATEST
+    // ==========================================
+    function forceReloadLatest() {
+      const url = new URL(window.location.href);
+      url.searchParams.set('v', '3.3.3');
+      url.searchParams.set('t', Date.now().toString());
+      window.location.replace(url.toString());
+    }
+
+    // ==========================================
+    // 8. INITIALIZATION & QR CODE AUTO-JOIN
     // ==========================================
     window.addEventListener('DOMContentLoaded', () => {
       // Check ?room=XXXX in URL query from QR Code

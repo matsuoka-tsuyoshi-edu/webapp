@@ -2,6 +2,10 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <!-- キャッシュ無効化 (常に最新版を読み込む) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>POP QUIZ SHOW - ポータルメニュー</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -45,7 +49,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
       
       <!-- Host Launch -->
-      <a href="host.html" class="block bg-[#6C5CE7] hover:bg-[#5b4bc4] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
+      <a href="host.html?v=3.3.3" class="block bg-[#6C5CE7] hover:bg-[#5b4bc4] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
         <div class="flex items-center justify-between mb-3">
           <div class="w-14 h-14 bg-[#FDCB6E] text-black rounded-xl border-2 border-black flex items-center justify-center text-3xl font-black">
             🖥️
@@ -61,7 +65,7 @@
       </a>
 
       <!-- Player Launch -->
-      <a href="player.html" class="block bg-[#00B894] hover:bg-[#00a383] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
+      <a href="player.html?v=3.3.3" class="block bg-[#00B894] hover:bg-[#00a383] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
         <div class="flex items-center justify-between mb-3">
           <div class="w-14 h-14 bg-white text-black rounded-xl border-2 border-black flex items-center justify-center text-3xl font-black">
             📱

@@ -2,7 +2,12 @@
 <html lang="ja" class="h-full">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- キャッシュ無効化 (常に最新版の画面・デザインを強制読み込み) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <!-- iPad Safari / iOS 完全固定ビューポート (ズーム・拡大縮小の完全抑止) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
   <title>POP QUIZ SHOW - Host System</title>
   
   <!-- Tailwind CSS CDN -->
@@ -174,10 +179,33 @@
     html, body, button, div, img, video {
       touch-action: manipulation;
       -webkit-touch-callout: none;
+      overscroll-behavior: none;
     }
   </style>
   <script>
-    // iPad Safari double-tap zoom prevention
+    // =================================================================
+    // iPad Safari 横向き 完全固定スクリプト (ガチッとロック)
+    // =================================================================
+
+    // 1. iOS Safariのピンチイン・ピンチアウト（ズーム）ジェスチャーを完全防止
+    document.addEventListener('gesturestart', function (e) {
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('gesturechange', function (e) {
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('gestureend', function (e) {
+      e.preventDefault();
+    }, { passive: false });
+
+    // 2. 2本指以上のタッチ操作をブロック
+    document.addEventListener('touchmove', function (e) {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    // 3. ダブルタップによるズーム拡大を防止
     let lastTouchEnd = 0;
     document.addEventListener('touchend', function (event) {
       const now = Date.now();
@@ -186,6 +214,16 @@
       }
       lastTouchEnd = now;
     }, { passive: false });
+
+    // 4. キャッシュクリア＆最新版強制再読込関数
+    function forceReloadLatestHost() {
+      if (confirm("最新版のデザイン・スクリプトで画面を再読み込みしますか？")) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('v', '3.3.3');
+        url.searchParams.set('t', Date.now().toString());
+        window.location.replace(url.toString());
+      }
+    }
   </script>
 </head>
 <body class="flex flex-col h-full min-h-screen w-full bg-[#141221] text-white overflow-hidden">
@@ -197,10 +235,15 @@
     <p class="text-lg text-gray-300">本クイズホスト画面は iPad の横向き（Landscape）表示に最適化されています。</p>
   </div>
 
-  <!-- Floating Sound Control (Clean & Minimal) -->
-  <button id="sound-btn" onclick="toggleSound()" class="fixed top-3 right-3 z-50 w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-cyan text-lg neo-button hover:bg-slate-800" title="サウンド切り替え">
-    <i class="fa-solid fa-volume-high" id="sound-icon"></i>
-  </button>
+  <!-- Floating Controls (Sound & Force Cache Reload) -->
+  <div class="fixed top-3 right-3 z-50 flex items-center space-x-2">
+    <button onclick="forceReloadLatestHost()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-yellow text-base neo-button hover:bg-slate-800" title="最新版に更新（キャッシュクリア再読込）">
+      <i class="fa-solid fa-rotate"></i>
+    </button>
+    <button id="sound-btn" onclick="toggleSound()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-cyan text-lg neo-button hover:bg-slate-800" title="サウンド切り替え">
+      <i class="fa-solid fa-volume-high" id="sound-icon"></i>
+    </button>
+  </div>
 
   <!-- MAIN CONTENT CONTAINER (100dvh Dynamic Viewport) -->
   <main class="flex-1 h-full min-h-0 relative overflow-hidden p-3 md:p-4 flex flex-col">
@@ -1049,11 +1092,11 @@
       return Math.floor(1000 + Math.random() * 9000).toString();
     }
 
-    // 先生のiPadの現在URLを逐一チェックして参加用URLを組み立てる
+    // 先生のiPadの現在URLを逐一チェックして参加用URLを組み立てる (キャッシュバスター自動付与で常に最新版を子機に配布)
     function getPlayerJoinUrl() {
       const currentUrl = window.location.href;
       let baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-      return baseUrl + 'player.html?room=' + roomCode;
+      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.3&t=' + Date.now();
     }
 
     function initPeerHost(retryCount = 0) {
