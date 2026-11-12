@@ -219,7 +219,7 @@
     function forceReloadLatestHost() {
       if (confirm("最新版のデザイン・スクリプトで画面を再読み込みしますか？")) {
         const url = new URL(window.location.href);
-        url.searchParams.set('v', '3.3.7');
+        url.searchParams.set('v', '3.3.8');
         url.searchParams.set('t', Date.now().toString());
         window.location.replace(url.toString());
       }
@@ -545,37 +545,40 @@
         <div id="reveal-stage-answer" class="hidden absolute inset-0 bg-pop-dark/95 backdrop-blur-md rounded-2xl md:rounded-3xl flex flex-col md:flex-row items-stretch justify-between z-30 transition-all duration-300 p-3 md:p-4 gap-3 md:gap-4 overflow-hidden">
           
           <!-- LEFT COLUMN: Problem & Options Review (振り返り出題パネル) -->
-          <div class="w-full md:w-[46%] bg-pop-card neo-border shadow-neo rounded-2xl p-3 md:p-3.5 flex flex-col justify-between overflow-hidden">
-            <div>
-              <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-gray-700">
+          <div class="w-full md:w-[48%] bg-pop-card neo-border shadow-neo rounded-2xl p-3 md:p-3.5 flex flex-col justify-between overflow-hidden">
+            <div class="flex flex-col min-h-0 shrink-0">
+              <div class="flex items-center justify-between mb-1.5 pb-1 border-b border-gray-700">
                 <span class="bg-pop-yellow text-black font-black px-2.5 py-0.5 rounded-full text-[10px] md:text-xs neo-border-sm uppercase tracking-wider flex items-center gap-1">
                   <i class="fa-solid fa-clipboard-question"></i><span>出題の振り返り</span>
                 </span>
                 <span class="text-[11px] font-black text-pop-cyan" id="reveal-review-qnum">第1問</span>
               </div>
               
-              <!-- Question Text with optional thumbnail (Click to Zoom Modal) -->
-              <div class="flex items-center gap-2.5 mb-2">
-                <div class="relative group shrink-0">
-                  <img id="reveal-review-thumb" src="" alt="問題画像" class="hidden w-14 h-14 md:w-16 md:h-16 object-contain rounded-xl neo-border-sm bg-black cursor-pointer hover:scale-105 transition-transform" onclick="zoomQuestionMedia()" title="クリックで特大拡大">
-                  <div class="pointer-events-none absolute -bottom-1 -right-1 bg-pop-yellow text-black text-[9px] font-black px-1 rounded neo-border-sm shadow-xs hidden group-hover:block">
-                    🔍 拡大
-                  </div>
-                </div>
-                <p class="font-black text-xs md:text-sm lg:text-base text-white leading-snug line-clamp-3" id="reveal-review-qtext">
+              <!-- Question Text -->
+              <div class="mb-2">
+                <p class="font-black text-xs md:text-sm lg:text-base text-white leading-snug line-clamp-2 md:line-clamp-3" id="reveal-review-qtext">
                   問題文
                 </p>
+              </div>
+
+              <!-- ★ 大型メディア（動画・画像）サムネイル＆プレビュー枠（大幅拡大・クリックで特大プレビューモーダル） -->
+              <div id="reveal-review-media-wrap" class="hidden relative group w-full h-32 md:h-40 lg:h-48 max-h-[190px] rounded-xl neo-border-sm bg-black overflow-hidden mb-2 cursor-pointer flex items-center justify-center shrink-0 shadow-md" onclick="zoomQuestionMedia()" title="クリックで特大プレビュー">
+                <img id="reveal-review-thumb" src="" alt="問題画像" class="hidden w-full h-full object-contain">
+                <video id="reveal-review-video" src="" autoplay muted loop playsinline class="hidden w-full h-full object-contain"></video>
+                <div class="absolute bottom-1.5 right-1.5 bg-black/80 hover:bg-black text-pop-yellow text-[10px] md:text-xs font-black px-2 py-0.5 rounded-lg border border-pop-yellow/60 shadow flex items-center gap-1 backdrop-blur-xs transition-transform group-hover:scale-105 pointer-events-none">
+                  <i class="fa-solid fa-expand"></i><span>特大拡大</span>
+                </div>
               </div>
             </div>
 
             <!-- Options Review List (All options shown, Correct highlighted with Crown) -->
-            <div class="flex-1 flex flex-col justify-center gap-1.5 overflow-y-auto pr-1" id="reveal-review-options-list">
+            <div class="flex-1 flex flex-col justify-center gap-1.5 overflow-y-auto pr-1 min-h-0" id="reveal-review-options-list">
               <!-- Dynamically populated options cards -->
             </div>
           </div>
 
           <!-- RIGHT COLUMN: Correct Answer & Explanation (正解＆ワンポイント解説パネル) -->
-          <div class="w-full md:w-[54%] flex flex-col justify-between gap-2.5 overflow-hidden">
+          <div class="w-full md:w-[52%] flex flex-col justify-between gap-2.5 overflow-hidden">
             <!-- Correct Answer Banner Card -->
             <div id="reveal-answer-text-box" class="bg-pop-yellow text-black neo-border shadow-neo px-4 md:px-6 py-2.5 rounded-2xl flex items-center space-x-3 md:space-x-4 animate-reveal-slide shrink-0">
               <div class="w-9 h-9 md:w-11 md:h-11 bg-black text-white rounded-xl neo-border-sm flex items-center justify-center text-xl md:text-2xl font-black shrink-0" id="reveal-correct-number">2</div>
@@ -1133,7 +1136,7 @@
     function getPlayerJoinUrl() {
       const currentUrl = window.location.href;
       let baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.7&t=' + Date.now();
+      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.8&t=' + Date.now();
     }
 
     function initPeerHost(retryCount = 0) {
@@ -1461,6 +1464,13 @@
       const targetTab = document.getElementById(`tab-${phaseName}`);
       if (targetTab) {
         targetTab.className = 'phase-tab px-4 py-2 rounded-xl text-sm font-black transition-all flex items-center space-x-2 bg-pop-purple text-white neo-border-sm';
+      }
+
+      // 振り返りステージの動画プレビューを安全に停止＆クリーンアップ
+      const revVideo = document.getElementById('reveal-review-video');
+      if (revVideo && phaseName !== 'reveal') {
+        revVideo.pause();
+        revVideo.src = '';
       }
 
       if (phaseName === 'quiz') {
@@ -3097,14 +3107,40 @@
         document.getElementById('reveal-review-qtext').textContent = q.question;
 
         const qImage = q.image || q.media;
+        const isVideoQ = q.mediaType === 'video' || (qImage && (qImage.startsWith('data:video/') || qImage.includes('.mp4') || qImage.includes('.webm')));
+        const wrapEl = document.getElementById('reveal-review-media-wrap');
         const thumbEl = document.getElementById('reveal-review-thumb');
-        if (thumbEl) {
+        const videoEl = document.getElementById('reveal-review-video');
+
+        if (wrapEl) {
           if (qImage) {
-            thumbEl.src = qImage;
-            thumbEl.classList.remove('hidden');
+            wrapEl.classList.remove('hidden');
+            if (isVideoQ) {
+              if (thumbEl) { thumbEl.src = ''; thumbEl.classList.add('hidden'); }
+              if (videoEl) {
+                videoEl.src = qImage;
+                videoEl.classList.remove('hidden');
+                videoEl.play().catch(() => {});
+              }
+            } else {
+              if (videoEl) {
+                videoEl.pause();
+                videoEl.src = '';
+                videoEl.classList.add('hidden');
+              }
+              if (thumbEl) {
+                thumbEl.src = qImage;
+                thumbEl.classList.remove('hidden');
+              }
+            }
           } else {
-            thumbEl.src = '';
-            thumbEl.classList.add('hidden');
+            wrapEl.classList.add('hidden');
+            if (thumbEl) { thumbEl.src = ''; thumbEl.classList.add('hidden'); }
+            if (videoEl) {
+              videoEl.pause();
+              videoEl.src = '';
+              videoEl.classList.add('hidden');
+            }
           }
         }
 
@@ -3186,6 +3222,12 @@
           statBadge.innerHTML = `<span class="animate-pulse text-pop-pink"><i class="fa-solid fa-lock mr-1"></i>順位シークレット中！</span>`;
         }
 
+        // ★ 子機への正解発表配信：動画Base64データは巨大（数MB〜数十MB）なため、
+        // 子機へは一切送信せず media: null にする！（先生・出題者の大画面のみで再生・確認）
+        // これにより正解発表の一斉ブロードキャスト遅延を完全解消し、手元振り返り画面を一瞬で表示！
+        const isVideoForPlayer = q.mediaType === 'video' || (qImage && (qImage.startsWith('data:video/') || qImage.includes('.mp4') || qImage.includes('.webm')));
+        const playerMedia = isVideoForPlayer ? null : (qImage || null);
+
         // Send results & review details to players
         players.forEach(p => {
           if (!p.isBot && p.conn && p.conn.open) {
@@ -3202,8 +3244,9 @@
               options: q.options,
               userChoice: p.currentAnswer,
               explanation: q.explanation || '',
-              media: qImage || null,
-              image: qImage || null,
+              media: playerMedia,
+              image: playerMedia,
+              mediaType: isVideoForPlayer ? 'video' : (playerMedia ? 'image' : null),
               isSecretRank: isSecretRank,
               isLastQuestion: isLastQ,
               qIndex: currentQIndex,

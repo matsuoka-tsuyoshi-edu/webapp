@@ -1357,9 +1357,10 @@
           document.getElementById('review-player-qnum').textContent = `第${qNum}問`;
           document.getElementById('review-player-qtext').textContent = data.question || document.getElementById('q-hint-text').textContent;
 
-          // サムネイル表示 (画像・動画を確実に検知)
+          // サムネイル表示 (画像のみ手元表示。動画の場合は先生の大画面に集中させるため非表示)
           const thumbEl = document.getElementById('review-player-thumb');
-          const mediaUrl = data.image || data.media || currentQuestionMedia;
+          const isVideoData = (data.mediaType === 'video') || (data.media && (data.media.startsWith('data:video/') || data.media.includes('.mp4') || data.media.includes('.webm')));
+          const mediaUrl = isVideoData ? null : (data.image || data.media || (currentQuestionMedia && !currentQuestionMedia.startsWith('data:video/') && !currentQuestionMedia.includes('.mp4') && !currentQuestionMedia.includes('.webm') ? currentQuestionMedia : null));
           if (thumbEl) {
             if (mediaUrl) {
               thumbEl.src = mediaUrl;
@@ -1611,7 +1612,7 @@
     // ==========================================
     function forceReloadLatest() {
       const url = new URL(window.location.href);
-      url.searchParams.set('v', '3.3.7');
+      url.searchParams.set('v', '3.3.8');
       url.searchParams.set('t', Date.now().toString());
       window.location.replace(url.toString());
     }
