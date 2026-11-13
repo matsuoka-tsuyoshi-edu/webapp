@@ -161,8 +161,63 @@ html, body {
   height: 70px;
   border-radius: 50%;
   cursor: pointer;
-  filter: drop-shadow(0 0 16px rgba(254, 240, 138, 0.6));
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ピン留め比較用の月レイヤー */
+#pinned-moons-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.pinned-moon-item {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+
+.pinned-moon-item .moon-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pinned-moon-tag {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.9);
+  color: #fde047;
+  border: 1.5px solid #38bdf8;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.btn-remove-pin {
+  background: rgba(239, 68, 68, 0.85);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
 }
 
 .moon-body:active {
@@ -382,22 +437,59 @@ html, body {
   line-height: 1;
 }
 
+.btn-time-format {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 3px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  align-self: center;
+  transition: all 0.15s;
+}
+
+.btn-time-format.active-24h {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+
+.header-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .btn-edit-date {
   background: #e0f2fe;
   color: #0369a1;
   border: 1px solid #bae6fd;
   border-radius: 10px;
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 6px 10px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
+}
+
+.btn-calendar-open {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
 }
 
 .btn-edit-date:active {
   background: #bae6fd;
+}
+
+.btn-calendar-open:active {
+  background: #fde68a;
 }
 
 /* ドロップダウン日時エディタ (展開時) */
@@ -493,6 +585,7 @@ html, body {
 }
 
 #astro-card {
+  position: relative;
   background: var(--card-bg);
   border-radius: 16px;
   padding: 8px 14px;
@@ -503,6 +596,27 @@ html, body {
   flex-direction: column;
   gap: 6px;
   min-width: 300px;
+}
+
+#astro-card.collapsed {
+  min-width: auto;
+  padding: 7px 12px;
+}
+
+#astro-card.collapsed .card-title {
+  border-bottom: none;
+  padding-bottom: 0;
+  gap: 10px;
+}
+
+#astro-card.collapsed #astro-card-body {
+  display: none;
+}
+
+#astro-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .card-title {
@@ -516,13 +630,134 @@ html, body {
   padding-bottom: 6px;
 }
 
-.location-tag {
-  font-size: 11px;
-  font-weight: normal;
-  color: #64748b;
+.card-title-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-toggle-astro-data {
   background: #f1f5f9;
-  padding: 2px 6px;
-  border-radius: 6px;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-toggle-astro-data:active {
+  background: #e2e8f0;
+}
+
+.location-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #0369a1;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  padding: 2px 7px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.location-tag-btn:active {
+  background: #bae6fd;
+  transform: scale(0.97);
+}
+
+#location-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid #cbd5e1;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 60;
+  width: 340px;
+  max-width: 92vw;
+}
+
+#location-picker-dropdown.active {
+  display: flex;
+}
+
+.loc-picker-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.loc-picker-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.loc-picker-row label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #64748b;
+}
+
+.loc-picker-row select {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+  width: 100%;
+}
+
+.loc-manual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.loc-col-name {
+  grid-column: 1 / -1;
+}
+
+.picker-col input {
+  font-size: 14px;
+  font-weight: bold;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+  width: 100%;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.picker-col input:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+}
+
+.loc-picker-note {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
 }
 
 .astro-data-row {
@@ -743,9 +978,9 @@ html, body {
 /* タイムスライダー (24時間シークバー) */
 .timeline-container {
   flex: 1;
-  min-width: 140px;
-  max-width: 260px;
-  margin: 0 10px;
+  min-width: 110px;
+  max-width: 210px;
+  margin: 0 8px;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -840,17 +1075,23 @@ html, body {
   background: rgba(255, 255, 255, 0.1);
   color: #cbd5e1;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 5px 8px;
-  border-radius: 12px;
-  font-size: 11px;
+  padding: 5px 7px;
+  border-radius: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.btn-pill.btn-pill-danger {
+  background: rgba(220, 38, 38, 0.25);
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.5);
 }
 
 .btn-pill.active {
@@ -960,7 +1201,7 @@ html, body {
   width: 170px;
   height: 170px;
   margin: 6px 0 14px;
-  filter: drop-shadow(0 0 30px rgba(254, 240, 138, 0.5));
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
 }
 
 #modal-moon-svg {
@@ -1101,6 +1342,404 @@ html, body {
   margin-top: 4px;
   text-align: center;
   line-height: 1.35;
+}
+
+/* ==========================================================================
+   別画面モーダル共通 (2つの月の比較 & 月齢カレンダー)
+   ========================================================================== */
+.app-modal {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: var(--app-height, 100dvh);
+  background: rgba(10, 15, 30, 0.88);
+  backdrop-filter: blur(12px);
+  z-index: 110;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.app-modal.active {
+  display: flex;
+}
+
+.modal-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  flex-wrap: wrap;
+}
+
+.modal-header-bar h2 {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fef08a;
+  margin: 0;
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-header-close {
+  position: static;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}
+
+/* --- 2つの月をくらべるモーダル --- */
+.compare-modal-card {
+  background: linear-gradient(155deg, #1e293b, #0f172a);
+  border: 2px solid #334155;
+  border-radius: 20px;
+  padding: 12px 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+  width: 100%;
+  max-width: 960px;
+  max-height: 94%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  color: #f8fafc;
+}
+
+.btn-compare-toggle-info,
+.btn-compare-sync-time {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-compare-toggle-info.active {
+  background: #f59e0b;
+  color: #0f172a;
+  border-color: #fde047;
+}
+
+.compare-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.compare-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1.5px solid rgba(56, 189, 248, 0.35);
+  border-radius: 16px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#compare-card-b {
+  border-color: rgba(250, 204, 21, 0.4);
+}
+
+.compare-card-badge {
+  align-self: flex-start;
+  background: #0284c7;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.compare-card-badge.badge-b {
+  background: #d97706;
+}
+
+.compare-date-controls {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr 0.9fr 1fr;
+  gap: 6px;
+}
+
+.compare-date-controls select {
+  background: #1e293b;
+  color: #fff;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  padding: 5px 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.compare-quick-days {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.btn-comp-step,
+.btn-comp-now {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-comp-now {
+  background: rgba(37, 99, 235, 0.35);
+  border-color: rgba(96, 165, 250, 0.6);
+  margin-left: auto;
+}
+
+.compare-visuals {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 10px;
+  background: #020617;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.compare-moon-box {
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+}
+
+.compare-sky-wrapper {
+  flex: 1;
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.compare-sky-box {
+  width: 100%;
+  height: 92px;
+  background: linear-gradient(to bottom, #0b132b, #1e293b);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.compare-sky-dirs {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.compare-info-box {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+.compare-modal-card.hide-compare-info .compare-info-box {
+  display: none;
+}
+
+.compare-info-title {
+  font-weight: 800;
+  color: #fde047;
+  font-size: 14px;
+}
+
+.compare-info-sub {
+  font-size: 11px;
+  color: #cbd5e1;
+  margin-top: 2px;
+}
+
+.compare-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-compare-action {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+/* --- 月齢カレンダーモーダル --- */
+.calendar-modal-card {
+  background: linear-gradient(155deg, #1e293b, #0f172a);
+  border: 2px solid #334155;
+  border-radius: 20px;
+  padding: 12px 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+  width: 100%;
+  max-width: 980px;
+  max-height: 94%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #f8fafc;
+}
+
+.calendar-header-bar {
+  padding-bottom: 6px;
+}
+
+.calendar-nav-group,
+.calendar-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-cal-nav,
+.cal-select,
+.btn-cal-mode {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cal-select option {
+  background: #0f172a;
+  color: #fff;
+}
+
+.cal-hour-label {
+  font-size: 11px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.btn-cal-mode.active {
+  background: #f59e0b;
+  color: #0f172a;
+  border-color: #fde047;
+}
+
+.cal-selection-status {
+  font-size: 11px;
+  color: #93c5fd;
+  font-weight: 700;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.weekday-sun { color: #fca5a5; }
+.weekday-sat { color: #93c5fd; }
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.cal-day-empty {
+  min-height: 70px;
+}
+
+.cal-day-cell {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 4px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  min-height: 76px;
+  transition: transform 0.12s, border-color 0.15s;
+}
+
+.cal-day-cell:active {
+  transform: scale(0.96);
+}
+
+.cal-day-cell.is-current-sim {
+  border-color: #38bdf8;
+  background: rgba(14, 116, 144, 0.25);
+}
+
+.cal-day-cell.is-picked {
+  border-color: #facc15;
+  background: rgba(234, 179, 8, 0.22);
+}
+
+.cal-day-top {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cal-day-num.sun { color: #fca5a5; }
+.cal-day-num.sat { color: #93c5fd; }
+
+.cal-age-mini {
+  font-size: 9.5px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.cal-moon-icon {
+  width: 34px;
+  height: 34px;
+}
+
+.cal-phase-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #fde047;
+  background: rgba(250, 204, 21, 0.14);
+  border-radius: 6px;
+  padding: 0 5px;
+  white-space: nowrap;
 }
 
 /* ==========================================================================

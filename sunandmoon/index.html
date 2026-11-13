@@ -18,6 +18,9 @@
       
       <!-- 天体レイヤー (太陽 & 月) -->
       <div id="celestial-layer">
+        <!-- 比較用に空に残した月（ピン留め） -->
+        <div id="pinned-moons-layer"></div>
+
         <!-- 太陽 -->
         <div id="sun-element" class="celestial-body sun-body" title="太陽">
           <div class="sun-glow"></div>
@@ -151,10 +154,16 @@
         <div class="time-main">
           <button id="ampm-badge" class="ampm-badge am" title="タップで午前/午後切り替え">午前</button>
           <div id="time-digits" class="time-digits">10 : 30</div>
+          <button id="btn-time-format" class="btn-time-format" type="button" title="午前・午後表示と24時間表示を切り替え">24h表示</button>
         </div>
-        <button id="btn-edit-date" class="btn-edit-date">
-          <span>📅 日時を変更</span>
-        </button>
+        <div class="header-action-buttons">
+          <button id="btn-edit-date" class="btn-edit-date" type="button">
+            <span>📅 日時変更</span>
+          </button>
+          <button id="btn-open-calendar-top" class="btn-edit-date btn-calendar-open" type="button" title="月齢カレンダーを開く">
+            <span>🗓️ カレンダー</span>
+          </button>
+        </div>
       </div>
 
       <!-- 日時変更ドロップダウンメニュー -->
@@ -172,7 +181,7 @@
             <label for="select-day">日</label>
             <select id="select-day"></select>
           </div>
-          <div class="picker-col">
+          <div id="picker-col-ampm" class="picker-col">
             <label for="select-ampm">午前 / 午後</label>
             <select id="select-ampm">
               <option value="am">午前</option>
@@ -200,62 +209,99 @@
       <div id="astro-card">
         <div class="card-title">
           <span>☀️ 太陽と 🌙 月のデータ</span>
-          <span class="location-tag">大分県佐伯市</span>
-        </div>
-
-        <!-- 太陽の出入 -->
-        <div class="astro-data-row">
-          <div class="astro-icon-col">
-            <div class="icon-sun-mini"></div>
-            <span class="astro-name">太陽</span>
-          </div>
-          <div class="astro-times">
-            <div class="time-item">
-              <span>日の出</span>
-              <span id="sun-rise-text">--:--</span>
-            </div>
-            <div class="time-item">
-              <span>一番高いとき</span>
-              <span id="sun-transit-text">--:--</span>
-            </div>
-            <div class="time-item">
-              <span>日の入り</span>
-              <span id="sun-set-text">--:--</span>
-            </div>
+          <div class="card-title-right">
+            <button id="btn-location-picker" class="location-tag-btn" type="button" title="観測する地域（市町村・都市・緯度経度）を変更">
+              <span>📍</span>
+              <span id="location-name-text">大分県佐伯市</span>
+              <span>▾</span>
+            </button>
+            <button id="btn-toggle-astro-data" class="btn-toggle-astro-data" type="button" title="データの詳細を隠す／表示する">▲ かくす</button>
           </div>
         </div>
 
-        <!-- 月の出入 (タップで拡大可能) -->
-        <div id="moon-data-row" class="astro-data-row clickable-moon-data" title="タップで月を大きく表示">
-          <div class="astro-icon-col">
-            <div class="icon-moon-mini" id="mini-moon-icon"></div>
-            <span class="astro-name">月</span>
+        <div id="astro-card-body">
+          <!-- 太陽の出入 -->
+          <div class="astro-data-row">
+            <div class="astro-icon-col">
+              <div class="icon-sun-mini"></div>
+              <span class="astro-name">太陽</span>
+            </div>
+            <div class="astro-times">
+              <div class="time-item">
+                <span>日の出</span>
+                <span id="sun-rise-text">--:--</span>
+              </div>
+              <div class="time-item">
+                <span>一番高いとき</span>
+                <span id="sun-transit-text">--:--</span>
+              </div>
+              <div class="time-item">
+                <span>日の入り</span>
+                <span id="sun-set-text">--:--</span>
+              </div>
+            </div>
           </div>
-          <div class="astro-times">
-            <div class="time-item">
-              <span>月の出</span>
-              <span id="moon-rise-text">--:--</span>
+
+          <!-- 月の出入 (タップで拡大可能) -->
+          <div id="moon-data-row" class="astro-data-row clickable-moon-data" title="タップで月を大きく表示">
+            <div class="astro-icon-col">
+              <div class="icon-moon-mini" id="mini-moon-icon"></div>
+              <span class="astro-name">月</span>
             </div>
-            <div class="time-item">
-              <span>一番高いとき</span>
-              <span id="moon-transit-text">--:--</span>
+            <div class="astro-times">
+              <div class="time-item">
+                <span>月の出</span>
+                <span id="moon-rise-text">--:--</span>
+              </div>
+              <div class="time-item">
+                <span>一番高いとき</span>
+                <span id="moon-transit-text">--:--</span>
+              </div>
+              <div class="time-item">
+                <span>月の入り</span>
+                <span id="moon-set-text">--:--</span>
+              </div>
             </div>
-            <div class="time-item">
-              <span>月の入り</span>
-              <span id="moon-set-text">--:--</span>
+          </div>
+
+          <!-- 月齢 & 形状バッジ (タップで拡大可能) -->
+          <div id="moon-badge-btn" class="moon-phase-badge clickable-moon-data" title="タップで月を大きく表示">
+            <div class="moon-badge-left">
+              <span id="moon-shape-name" class="moon-shape-name">上弦の月</span>
+              <span id="moon-altitude-status" class="moon-status-tag">地上</span>
+            </div>
+            <div class="moon-badge-right">
+              <span id="moon-age-text" class="moon-age-text">月齢 7.2</span>
+              <span class="zoom-icon-hint">🔍拡大</span>
             </div>
           </div>
         </div>
 
-        <!-- 月齢 & 形状バッジ (タップで拡大可能) -->
-        <div id="moon-badge-btn" class="moon-phase-badge clickable-moon-data" title="タップで月を大きく表示">
-          <div class="moon-badge-left">
-            <span id="moon-shape-name" class="moon-shape-name">上弦の月</span>
-            <span id="moon-altitude-status" class="moon-status-tag">地上</span>
+        <!-- 観測地点（地域・緯度経度）変更ドロップダウン -->
+        <div id="location-picker-dropdown">
+          <div class="loc-picker-title">📍 観測する場所（地域・緯度経度）の設定</div>
+          <div class="loc-picker-row">
+            <label for="select-location-preset">地域リストから選ぶ</label>
+            <select id="select-location-preset"></select>
           </div>
-          <div class="moon-badge-right">
-            <span id="moon-age-text" class="moon-age-text">月齢 7.2</span>
-            <span class="zoom-icon-hint">🔍拡大</span>
+          <div class="loc-manual-grid">
+            <div class="picker-col loc-col-name">
+              <label for="input-loc-name">表示名（学校名なども可）</label>
+              <input type="text" id="input-loc-name" value="大分県佐伯市" placeholder="例: 大分県佐伯市">
+            </div>
+            <div class="picker-col">
+              <label for="input-loc-lat">北緯 (°)</label>
+              <input type="number" id="input-loc-lat" step="0.01" min="-89.5" max="89.5" value="32.96">
+            </div>
+            <div class="picker-col">
+              <label for="input-loc-lon">東経 (°)</label>
+              <input type="number" id="input-loc-lon" step="0.01" min="-180" max="180" value="131.90">
+            </div>
+          </div>
+          <div class="loc-picker-note">※地域を選ぶと緯度・経度が自動で入ります。数値を直接手入力することもできます。</div>
+          <div class="picker-buttons">
+            <button id="btn-reset-location" class="btn-picker-today" type="button">佐伯市に戻す</button>
+            <button id="btn-apply-location" class="btn-picker-apply" type="button">この場所に設定</button>
           </div>
         </div>
       </div>
@@ -293,12 +339,12 @@
         <div class="timeline-slider-wrapper">
           <input type="range" id="time-slider" min="0" max="1439" step="1" value="630">
         </div>
-        <div class="timeline-ticks">
-          <span>0時(夜)</span>
-          <span>6時(朝)</span>
-          <span>12時(正午)</span>
-          <span>18時(夕)</span>
-          <span>24時(夜)</span>
+        <div id="timeline-ticks" class="timeline-ticks">
+          <span>午前0時</span>
+          <span>午前6時</span>
+          <span>正午</span>
+          <span>午後6時</span>
+          <span>午後12時</span>
         </div>
       </div>
 
@@ -327,6 +373,18 @@
         </button>
         <button id="btn-toggle-space-view" class="btn-pill" title="宇宙から見た地球と月の位置関係を表示">
           <span>🪐 宇宙視点</span>
+        </button>
+        <button id="btn-pin-moon" class="btn-pill" type="button" title="いまの月を空に残して別の日と比べる">
+          <span>📌 月をのこす</span>
+        </button>
+        <button id="btn-clear-pins" class="btn-pill btn-pill-danger" type="button" style="display:none;" title="空に残した月をすべて消す">
+          <span>🗑️ ピン消去</span>
+        </button>
+        <button id="btn-open-compare" class="btn-pill" type="button" title="2つの日付の月を並べて比べる">
+          <span>🔍 くらべる</span>
+        </button>
+        <button id="btn-open-calendar" class="btn-pill" type="button" title="月齢カレンダーを別画面で開く">
+          <span>🗓️ カレンダー</span>
         </button>
       </div>
     </div>
@@ -360,6 +418,117 @@
         </div>
 
         <div class="modal-instruction">※画面のどこかをタップすると戻ります</div>
+      </div>
+    </div>
+
+    <!-- 9. 2つの月をくらべるモーダル -->
+    <div id="compare-modal" class="app-modal">
+      <div class="compare-modal-card">
+        <div class="modal-header-bar">
+          <h2>🔍 2つの月をくらべて観察しよう</h2>
+          <div class="modal-header-actions">
+            <button id="btn-compare-toggle-info" class="btn-compare-toggle-info" type="button">💡 名前・データをかくす</button>
+            <button id="btn-compare-sync-time" class="btn-compare-sync-time" type="button">⌚ 時刻を①にそろえる</button>
+            <button id="btn-close-compare" class="btn-close-modal modal-header-close" type="button">✕</button>
+          </div>
+        </div>
+
+        <div class="compare-columns">
+          <!-- 左：月① -->
+          <div id="compare-card-a" class="compare-card">
+            <div class="compare-card-badge">① の月</div>
+            <div class="compare-date-controls">
+              <select id="comp-a-year"></select>
+              <select id="comp-a-month"></select>
+              <select id="comp-a-day"></select>
+              <select id="comp-a-hour"></select>
+            </div>
+            <div class="compare-quick-days">
+              <button type="button" class="btn-comp-step" data-target="a" data-days="-1">-1日</button>
+              <button type="button" class="btn-comp-step" data-target="a" data-days="1">+1日</button>
+              <button type="button" class="btn-comp-step" data-target="a" data-days="3">+3日</button>
+              <button type="button" class="btn-comp-step" data-target="a" data-days="7">+7日</button>
+              <button type="button" class="btn-comp-now" data-target="a">今の空</button>
+            </div>
+            <div class="compare-visuals">
+              <div id="comp-a-moon-svg" class="compare-moon-box"></div>
+              <div class="compare-sky-wrapper">
+                <div id="comp-a-sky-svg" class="compare-sky-box"></div>
+                <div class="compare-sky-dirs"><span>東</span><span>南</span><span>西</span></div>
+              </div>
+            </div>
+            <div id="comp-a-info" class="compare-info-box"></div>
+          </div>
+
+          <!-- 右：月② -->
+          <div id="compare-card-b" class="compare-card">
+            <div class="compare-card-badge badge-b">② の月</div>
+            <div class="compare-date-controls">
+              <select id="comp-b-year"></select>
+              <select id="comp-b-month"></select>
+              <select id="comp-b-day"></select>
+              <select id="comp-b-hour"></select>
+            </div>
+            <div class="compare-quick-days">
+              <button type="button" class="btn-comp-step" data-target="b" data-days="-1">-1日</button>
+              <button type="button" class="btn-comp-step" data-target="b" data-days="1">+1日</button>
+              <button type="button" class="btn-comp-step" data-target="b" data-days="3">+3日</button>
+              <button type="button" class="btn-comp-step" data-target="b" data-days="7">+7日</button>
+              <button type="button" class="btn-comp-now" data-target="b">今の空</button>
+            </div>
+            <div class="compare-visuals">
+              <div id="comp-b-moon-svg" class="compare-moon-box"></div>
+              <div class="compare-sky-wrapper">
+                <div id="comp-b-sky-svg" class="compare-sky-box"></div>
+                <div class="compare-sky-dirs"><span>東</span><span>南</span><span>西</span></div>
+              </div>
+            </div>
+            <div id="comp-b-info" class="compare-info-box"></div>
+          </div>
+        </div>
+
+        <div class="compare-footer">
+          <button id="btn-compare-pin-both" class="btn-compare-action" type="button">📌 この2つの月をメインの空に重ねて表示する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10. 月齢カレンダーモーダル -->
+    <div id="calendar-modal" class="app-modal">
+      <div class="calendar-modal-card">
+        <div class="modal-header-bar calendar-header-bar">
+          <div class="calendar-nav-group">
+            <button id="btn-cal-prev-month" class="btn-cal-nav" type="button">◀ 前の月</button>
+            <select id="cal-select-year" class="cal-select"></select>
+            <select id="cal-select-month" class="cal-select"></select>
+            <button id="btn-cal-next-month" class="btn-cal-nav" type="button">次の月 ▶</button>
+          </div>
+          <div class="calendar-tools-group">
+            <label class="cal-hour-label" for="cal-select-hour">見る時刻:</label>
+            <select id="cal-select-hour" class="cal-select">
+              <option value="18">18時(夕方)</option>
+              <option value="20" selected>20時(夜)</option>
+              <option value="21">21時(夜)</option>
+              <option value="0">0時(真夜中)</option>
+              <option value="6">6時(朝)</option>
+              <option value="12">12時(昼)</option>
+            </select>
+            <button id="btn-cal-mode-compare" class="btn-cal-mode" type="button">🔍 2つの日を選んでくらべる</button>
+            <span id="cal-selection-status" class="cal-selection-status">日付をタップするとその空へ移動</span>
+            <button id="btn-close-calendar" class="btn-close-modal modal-header-close" type="button">✕</button>
+          </div>
+        </div>
+
+        <div class="calendar-weekdays">
+          <div class="weekday-sun">日</div>
+          <div>月</div>
+          <div>火</div>
+          <div>水</div>
+          <div>木</div>
+          <div>金</div>
+          <div class="weekday-sat">土</div>
+        </div>
+        <div id="calendar-grid" class="calendar-grid"></div>
       </div>
     </div>
 

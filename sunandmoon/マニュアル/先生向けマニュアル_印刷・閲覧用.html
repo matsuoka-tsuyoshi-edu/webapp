@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>先生向け操作マニュアル｜月と太陽のうごきシミュレーター</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --ink: #1e293b;
+      --muted: #475569;
+      --accent: #1d4ed8;
+      --accent-soft: #eff6ff;
+      --border: #cbd5e1;
+      --warn-bg: #fffbeb;
+      --warn-border: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.75;
+    }
+    .page {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 12px;
+      padding: 36px 40px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+    }
+    header {
+      border-bottom: 3px solid var(--accent);
+      padding-bottom: 16px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 4px 0;
+      color: #0f172a;
+    }
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    .print-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 0.92rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .print-btn:hover { opacity: 0.92; }
+    h2 {
+      font-size: 1.2rem;
+      color: var(--accent);
+      border-left: 5px solid var(--accent);
+      padding-left: 12px;
+      margin-top: 30px;
+      margin-bottom: 12px;
+    }
+    h3 {
+      font-size: 1.02rem;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      color: #0f172a;
+    }
+    p, li { font-size: 0.96rem; }
+    .callout {
+      background: var(--accent-soft);
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 14px 0;
+    }
+    .warn {
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn-border);
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin: 14px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px 0;
+      font-size: 0.93rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: bold;
+      width: 24%;
+    }
+    ol, ul { padding-left: 22px; }
+    li { margin-bottom: 6px; }
+    footer {
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: right;
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page { box-shadow: none; padding: 12mm; max-width: none; }
+      .print-btn { display: none; }
+      h2 { break-after: avoid; }
+      table, .callout, .warn { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1>月と太陽のうごきシミュレーター｜先生向け操作マニュアル</h1>
+        <p class="subtitle">小学6年理科「月の形と太陽」｜iPad Safari 横向き提示対応（v1.2）</p>
+      </div>
+      <button class="print-btn" onclick="window.print()">このマニュアルを印刷 / PDF保存</button>
+    </header>
+
+    <div class="callout">
+      <strong>授業設計上のこだわり：</strong>
+      ① クレーター・グラデーションなしのくっきり<strong>ベタ塗り月</strong>で後ろの席からも満ち欠けが明瞭、② 地平線の「南（みなみ）」表記（「南中」不使用）、③ データカード折りたたみ・月拡大解説の初期非表示・比較データの隠蔽対応で「子どもが考え発表する授業」を支援します。
+    </div>
+
+    <h2>1. 画面の構成と役割</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>画面のエリア</th>
+          <th>主な表示内容とできること</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>左上：日時カード</th>
+          <td>現在の「年・月・日・曜日」「時刻」を大きく表示します。<strong>「24h表示／午前・午後」</strong>の切り替えボタン、日時変更リスト、カレンダーボタンを搭載しています。</td>
+        </tr>
+        <tr>
+          <th>右上：出入り・月齢カード</th>
+          <td>その日の太陽・月の「出」「入り」「一番高いとき」の時刻と月齢を表示します。<strong>「📍 大分県佐伯市 ▾」</strong>から大分県全18市町村・九州各県庁所在地・日本主要都市や緯度経度手入力への変更、<strong>「▲ かくす」</strong>での詳細データ非表示が行えます。</td>
+        </tr>
+        <tr>
+          <th>中央：空と地平線</th>
+          <td>左が「東」、中央が「南」、右が「西」です。ベタ塗りの見やすい太陽・月が動き、「📌 月をのこす」で複数の日付の月を同じ空に並べることもできます。</td>
+        </tr>
+        <tr>
+          <th>月をタップ：拡大モーダル</th>
+          <td>空に浮かぶ月をタップすると大きく拡大表示されます。「ヒント・解説をみる」を押すまで解説文は隠れています。</td>
+        </tr>
+        <tr>
+          <th>別画面①：🔍 くらべる</th>
+          <td>2つの日付（①の月・②の月）を左右に並べて、月の形・東〜南〜西の見える位置・出入りデータを同時に比べられます（名前・データ非表示機能付き）。</td>
+        </tr>
+        <tr>
+          <th>別画面②：🗓️ カレンダー</th>
+          <td>1か月分の月の形・月齢・新月/上弦/満月/下弦を7列カレンダーで一覧できます。タップでその空へ移動したり、2日を選んで比較画面を開けます。</td>
+        </tr>
+        <tr>
+          <th>下部：コントローラ</th>
+          <td>再生／一時停止、再生速度、1コマ送り、「軌道」「とうか」「宇宙視点」「📌 月をのこす」「🔍 くらべる」「🗓️ カレンダー」を操作できます。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>2. 基本の操作方法</h2>
+    <h3>手順①：iPad Safari（横向き）で開く</h3>
+    <ol>
+      <li>配布フォルダにある <code>index.html</code> を Safari で開きます（校内Webサーバー等からアクセス）。</li>
+      <li>iPad を <strong>横向き</strong> にして提示してください。URLバーやタブが表示されていても、下のコントローラまで1画面に収まります。</li>
+    </ol>
+
+    <h3>手順②：見たい日付・時刻に設定する</h3>
+    <ol>
+      <li>左上の日時カード内の変更ボタンをタップします。</li>
+      <li>「年」「月」「日」「午前／午後」「時」「分」を選択して <strong>適用</strong> を押します（月を選ぶと28日〜31日の日数が自動調整されます）。</li>
+      <li>現在時刻に戻したいときは、ピッカー内の「今日」ボタンをタップしてください。</li>
+    </ol>
+
+    <h3>手順③：再生して動きを観察する</h3>
+    <ol>
+      <li>画面下の再生ボタンを押すと時間が進み始めます。</li>
+      <li>「通り道」をオンにすると、太陽や月が空を横切る軌道（アーチ）が表示され、どの季節・月相でも滑らかな軌道で比較できます。</li>
+    </ol>
+
+    <h3>手順④：月をタップして拡大し、子どもに考えさせる</h3>
+    <ol>
+      <li>空に出ている月をタップして大きく表示します。</li>
+      <li>解説はまだ隠れているため、「どちら側が光っているかな？」「太陽はどっちにあるかな？」と児童に発問して発表させます。</li>
+      <li>まとめの場面で <strong>「ヒント・解説をみる」</strong> をタップして解説を開きます。</li>
+    </ol>
+
+    <h3>手順⑤：2つの日付の月をくらべる・月齢カレンダーを使う</h3>
+    <ol>
+      <li><strong>「🔍 くらべる」</strong> を開くと、①と②の月を左右に並べて形と見える位置を比較できます。「⌚ 時刻を①にそろえる」や「💡 名前・データをかくす」も活用できます。</li>
+      <li>同じ空の上で位置の違いを重ねて見せたいときは、1つ目の日時で <strong>「📌 月をのこす」</strong> を押してから別の日へ移動するか、比較画面の「📌 この2つの月をメインの空に重ねて表示する」を押します。</li>
+      <li><strong>「🗓️ カレンダー」</strong> では1か月の満ち欠けを一覧でき、「🔍 2つの日を選んでくらべる」モードで2日タップするとそのまま比較画面へ移れます。</li>
+    </ol>
+
+    <h2>3. 授業活用のポイント</h2>
+    <ul>
+      <li><strong>1日の動きの確認</strong>：上弦の月や下弦の月の日を選び、朝から夜まで再生すると、月も太陽と同じように東から南を通り西へ動くことが確認できます。</li>
+      <li><strong>日による変化の確認</strong>：時刻を夕方（午後6時ごろ）などに固定し、日付だけを2〜3日ずつ進めていくと、月の形（満ち欠け）と見える位置が日々変わる様子が比較できます。</li>
+      <li><strong>「宇宙から見た図」の併用</strong>：下のボタンから小さな宇宙図を開くと、太陽・地球・月の位置関係と地上からの見え方を同時に説明できます。</li>
+    </ul>
+
+    <div class="warn">
+      <strong>うまく表示されないときの確認：</strong>
+      もし画面の縦横切り替え直後にレイアウトが崩れたように見える場合は、Safari を一度再読み込みするか、iPad を一度縦→横へ回転させてください（画面サイズを自動再計測します）。
+    </div>
+
+    <footer>
+      月と太陽のうごきシミュレーター（v1.0）｜小学6年理科 授業提示用資料
+    </footer>
+  </div>
+</body>
+</html>
