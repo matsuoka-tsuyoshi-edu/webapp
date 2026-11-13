@@ -1,0 +1,1118 @@
+/* ==========================================================================
+   小学6年理科「月と太陽」シミュレーション - スタイルシート (style.css)
+   iPad Safari 横向き (ランドスケープ) 最適化デザイン
+   ========================================================================== */
+
+:root {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --sun-color: #f59e0b;
+  --sun-glow: rgba(251, 191, 36, 0.6);
+  --moon-color: #fef08a;
+  --moon-dark: #1e293b;
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --card-border: rgba(255, 255, 255, 0.6);
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --accent-gold: #fbbf24;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.16);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.25);
+  --font-family: "BIZ UDPGothic", "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-family);
+  background-color: #0f172a;
+  color: var(--text-main);
+  touch-action: manipulation;
+}
+
+/* アプリケーション全体コンテナ (iPad Safari URL/タブバー対応) */
+#app-container {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: var(--app-height, 100dvh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   背景 & 空 (Sky Canvas / Background)
+   ========================================================================== */
+#sky-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  transition: background 0.8s ease;
+  overflow: hidden;
+}
+
+/* 星空用キャンバス */
+#stars-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* 軌道線キャンバス (通り道) */
+#path-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* 天体配置レイヤー */
+#celestial-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   天体スタイル (太陽 & 月)
+   ========================================================================== */
+.celestial-body {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.15s ease-out, opacity 0.3s ease;
+}
+
+/* 太陽 */
+.sun-body {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff7ed 15%, #fbbf24 60%, #f97316 100%);
+  box-shadow: 0 0 40px #f59e0b, 0 0 80px #ea580c, 0 0 120px rgba(251, 146, 60, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sun-glow {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(253, 230, 138, 0.4) 0%, rgba(245, 158, 11, 0) 70%);
+  animation: pulse-sun 3s infinite alternate ease-in-out;
+  pointer-events: none;
+}
+
+.sun-label, .moon-label {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.75);
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+}
+
+@keyframes pulse-sun {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(1.2); opacity: 1; }
+}
+
+/* 月 */
+.moon-body {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  cursor: pointer;
+  filter: drop-shadow(0 0 16px rgba(254, 240, 138, 0.6));
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.moon-body:active {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+.moon-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 月の「タップしてね」ヒント吹き出し */
+.moon-hint {
+  position: absolute;
+  top: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #facc15;
+  color: #713f12;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 14px;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  animation: bounce-hint 1.8s infinite ease-in-out;
+  pointer-events: none;
+}
+
+.moon-hint::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px 6px 0;
+  border-style: solid;
+  border-color: #facc15 transparent;
+  display: block;
+  width: 0;
+}
+
+@keyframes bounce-hint {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-6px); }
+}
+
+/* ==========================================================================
+   景観レイヤー (地面・山・ビル・学校・木)
+   ========================================================================== */
+#landscape-container {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  width: 100%;
+  height: 34%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+#landscape-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* ビルの夜景の窓 */
+.window-light {
+  transition: fill 0.8s ease, opacity 0.8s ease;
+}
+
+/* ==========================================================================
+   方角表示バー (東・南・西)
+   ========================================================================== */
+#direction-bar {
+  position: absolute;
+  bottom: 66px; /* コントロールバーの上 */
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 36px;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.direction-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.82);
+  color: #fff;
+  padding: 4px 14px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.direction-indicator.south {
+  background: rgba(220, 38, 38, 0.85); /* 南は目立たせる */
+  border-color: #fca5a5;
+  transform: scale(1.06);
+}
+
+.dir-kanji {
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  line-height: 1.15;
+}
+
+.dir-ruby {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.9;
+  margin-top: -1px;
+}
+
+/* ==========================================================================
+   UIオーバーレイ (ヘッダー: 左上・右上)
+   ========================================================================== */
+.ui-overlay {
+  position: absolute;
+  top: 8px;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+/* 左上：日時パネル */
+#datetime-card {
+  left: 14px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 8px 14px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 310px;
+}
+
+.date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.date-display {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.2px;
+}
+
+.day-nav-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-day-nav {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-day-nav:active {
+  background: #e2e8f0;
+  transform: scale(0.96);
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 6px;
+}
+
+.time-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ampm-badge {
+  background: #3b82f6;
+  color: white;
+  padding: 3px 9px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
+.ampm-badge.pm {
+  background: #f97316;
+}
+
+.time-digits {
+  font-size: 28px;
+  font-weight: 900;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.btn-edit-date {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-edit-date:active {
+  background: #bae6fd;
+}
+
+/* ドロップダウン日時エディタ (展開時) */
+#datetime-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid #cbd5e1;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 50;
+  min-width: 340px;
+}
+
+#datetime-picker-dropdown.active {
+  display: flex;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.picker-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.picker-col label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #64748b;
+}
+
+.picker-col select {
+  font-size: 15px;
+  font-weight: bold;
+  padding: 8px 6px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+}
+
+.picker-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btn-picker-apply {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-picker-today {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   右上：天体データボード ＆ 宇宙視点ミニビュー（右カラム）
+   ========================================================================== */
+#right-column {
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  pointer-events: auto;
+}
+
+#astro-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 8px 14px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 300px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 6px;
+}
+
+.location-tag {
+  font-size: 11px;
+  font-weight: normal;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.astro-data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 2px 4px;
+}
+
+.clickable-moon-data {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.clickable-moon-data:active {
+  transform: scale(0.97);
+  background: rgba(254, 240, 138, 0.2);
+}
+
+.astro-icon-col {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 72px;
+}
+
+.icon-sun-mini {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fde047, #ea580c);
+  box-shadow: 0 0 6px #f59e0b;
+}
+
+.icon-moon-mini {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fef08a;
+  border: 1px solid #ca8a04;
+  overflow: hidden;
+}
+
+.astro-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.astro-times {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.time-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.time-item span:first-child {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.time-item span:last-child {
+  font-family: monospace;
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+/* 月齢バッジ */
+.moon-phase-badge {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  color: #fef08a;
+  padding: 6px 12px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.moon-badge-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.moon-status-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #16a34a;
+  color: #fff;
+}
+
+.moon-status-tag.underground {
+  background: #475569;
+  color: #cbd5e1;
+}
+
+.moon-badge-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.moon-age-text {
+  color: #fde047;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.zoom-icon-hint {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fef08a;
+  padding: 2px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.moon-shape-name {
+  color: #fff;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   下部コントロールバー (時間シークバー・再生ボタン)
+   ========================================================================== */
+#control-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  background: rgba(15, 23, 42, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  z-index: 20;
+}
+
+/* 再生・一時停止・コマ送り */
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  transition: transform 0.1s, background 0.15s;
+}
+
+.btn-circle:active {
+  transform: scale(0.94);
+  background: var(--primary-hover);
+}
+
+.btn-circle svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.btn-step {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-step:active {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.btn-step svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+/* タイムスライダー (24時間シークバー) */
+.timeline-container {
+  flex: 1;
+  min-width: 140px;
+  max-width: 260px;
+  margin: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.timeline-slider-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+#time-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #0f172a 0%, #3b82f6 25%, #60a5fa 50%, #f97316 75%, #0f172a 100%);
+  outline: none;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+#time-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid #2563eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+#time-slider::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+  background: #eff6ff;
+}
+
+.timeline-ticks {
+  display: flex;
+  justify-content: space-between;
+  color: #94a3b8;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 0 2px;
+  white-space: nowrap;
+}
+
+.timeline-ticks span {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* クイック時間ジャンプボタン */
+.quick-time-buttons {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-quick-time {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 5px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-quick-time:active {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  transform: scale(0.96);
+}
+
+/* スピード・表示オプション */
+.options-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.btn-pill {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 5px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-pill.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #60a5fa;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+}
+
+.btn-pill:active {
+  transform: scale(0.95);
+}
+
+.speed-select {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 5px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  min-width: 78px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.speed-select option {
+  background: #1e293b;
+  color: #fff;
+}
+
+.speed-select option {
+  background: #1e293b;
+  color: #fff;
+}
+
+/* ==========================================================================
+   月の拡大表示モーダル (タップ時)
+   ========================================================================== */
+#moon-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 15, 30, 0.85);
+  backdrop-filter: blur(16px);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.25s ease-out;
+}
+
+#moon-modal.active {
+  display: flex;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content-card {
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 2px solid #334155;
+  border-radius: 24px;
+  padding: 18px 28px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 640px;
+  max-height: 92%;
+  overflow-y: auto;
+  width: 90%;
+  position: relative;
+  color: #fff;
+}
+
+.btn-close-modal {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.btn-close-modal:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.modal-moon-preview-wrapper {
+  width: 170px;
+  height: 170px;
+  margin: 6px 0 14px;
+  filter: drop-shadow(0 0 30px rgba(254, 240, 138, 0.5));
+}
+
+#modal-moon-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.modal-moon-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.modal-moon-ruby {
+  font-size: 14px;
+  color: #94a3b8;
+  font-weight: bold;
+}
+
+.modal-moon-name {
+  font-size: 32px;
+  font-weight: 900;
+  color: #fde047;
+  letter-spacing: 1px;
+}
+
+.modal-tags {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-tag {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+/* ヒント・解説トグルボタン (子どもが考える時間を作る) */
+.btn-toggle-explanation {
+  background: rgba(254, 240, 138, 0.15);
+  color: #fef08a;
+  border: 1px dashed rgba(254, 240, 138, 0.5);
+  padding: 8px 18px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-toggle-explanation:hover {
+  background: rgba(254, 240, 138, 0.25);
+  border-style: solid;
+}
+
+.btn-toggle-explanation:active {
+  transform: scale(0.97);
+}
+
+.btn-toggle-explanation.opened {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-explanation-box {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 16px 20px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #cbd5e1;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-instruction {
+  margin-top: 14px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ==========================================================================
+   宇宙視点ミニビュー (Earth-Moon Orbit View)
+   ========================================================================== */
+#space-view-panel {
+  position: static;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  padding: 8px 10px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+  z-index: 15;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: 190px;
+}
+
+#space-view-panel.active {
+  display: flex;
+}
+
+.space-view-header {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+#space-canvas {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: #020617;
+}
+
+.space-view-caption {
+  font-size: 9.5px;
+  color: #94a3b8;
+  margin-top: 4px;
+  text-align: center;
+  line-height: 1.35;
+}
+
+/* ==========================================================================
+   アニメーション & レスポンシブ対応
+   ========================================================================== */
+@media (max-width: 900px) {
+  #datetime-card, #astro-card {
+    min-width: 260px;
+    padding: 8px 12px;
+  }
+  .date-display { font-size: 16px; }
+  .time-digits { font-size: 26px; }
+  .direction-indicator { padding: 4px 12px; }
+  .dir-kanji { font-size: 16px; }
+}

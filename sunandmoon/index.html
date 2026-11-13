@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>小学6年 理科「月と太陽」シミュレーション</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app-container">
+
+    <!-- 1. 背景・空・星・軌跡レイヤー -->
+    <div id="sky-viewport">
+      <canvas id="stars-canvas"></canvas>
+      <canvas id="path-canvas"></canvas>
+      
+      <!-- 天体レイヤー (太陽 & 月) -->
+      <div id="celestial-layer">
+        <!-- 太陽 -->
+        <div id="sun-element" class="celestial-body sun-body" title="太陽">
+          <div class="sun-glow"></div>
+          <div class="sun-label">太陽</div>
+        </div>
+
+        <!-- 月 -->
+        <div id="moon-element" class="celestial-body moon-body" title="月（タップで大きく表示）">
+          <!-- JSで動的にSVGを挿入 -->
+          <div id="moon-hint" class="moon-hint">タップして拡大！</div>
+          <div class="moon-label">月</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 地面・建物景観レイヤー (SVG) -->
+    <div id="landscape-container">
+      <svg id="landscape-svg" viewBox="0 0 1200 360" preserveAspectRatio="none">
+        <defs>
+          <!-- 遠山のグラデーション -->
+          <linearGradient id="mountainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#334155" stop-opacity="0.8" />
+            <stop offset="100%" stop-color="#1e293b" stop-opacity="0.95" />
+          </linearGradient>
+          <!-- 地面のグラデーション -->
+          <linearGradient id="groundGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#15803d" />
+            <stop offset="25%" stop-color="#166534" />
+            <stop offset="100%" stop-color="#14532d" />
+          </linearGradient>
+        </defs>
+
+        <!-- 遠くの山々 -->
+        <path d="M 0 220 Q 200 130 420 210 T 800 190 T 1200 210 L 1200 360 L 0 360 Z" fill="url(#mountainGrad)" />
+
+        <!-- 建物群・学校・ビル (シルエット & 窓) -->
+        <!-- 左側のビル群 (東側) -->
+        <rect x="50" y="160" width="48" height="90" fill="#1e293b" rx="2" />
+        <rect class="window-light" x="58" y="172" width="10" height="12" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="78" y="172" width="10" height="12" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="58" y="194" width="10" height="12" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="78" y="194" width="10" height="12" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="58" y="216" width="10" height="12" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="78" y="216" width="10" height="12" rx="1" fill="#1e293b" />
+
+        <rect x="110" y="130" width="60" height="120" fill="#0f172a" rx="3" />
+        <rect class="window-light" x="120" y="145" width="12" height="14" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="145" y="145" width="12" height="14" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="120" y="170" width="12" height="14" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="145" y="170" width="12" height="14" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="120" y="195" width="12" height="14" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="145" y="195" width="12" height="14" rx="1" fill="#1e293b" />
+
+        <!-- 木々 -->
+        <circle cx="200" cy="235" r="18" fill="#14532d" />
+        <circle cx="220" cy="230" r="22" fill="#166534" />
+        <circle cx="242" cy="236" r="16" fill="#14532d" />
+
+        <!-- 中央の学校校舎 (時計台付き) -->
+        <rect x="520" y="170" width="160" height="80" fill="#334155" rx="3" />
+        <!-- 時計塔 -->
+        <rect x="585" y="130" width="30" height="40" fill="#1e293b" rx="2" />
+        <polygon points="582,130 600,105 618,130" fill="#dc2626" />
+        <circle cx="600" cy="148" r="8" fill="#f8fafc" />
+        <line x1="600" y1="148" x2="600" y2="143" stroke="#0f172a" stroke-width="1.5" />
+        <line x1="600" y1="148" x2="604" y2="148" stroke="#0f172a" stroke-width="1.5" />
+        <!-- 学校の窓 -->
+        <rect class="window-light" x="535" y="185" width="18" height="18" rx="2" fill="#1e293b" />
+        <rect class="window-light" x="565" y="185" width="18" height="18" rx="2" fill="#1e293b" />
+        <rect class="window-light" x="620" y="185" width="18" height="18" rx="2" fill="#1e293b" />
+        <rect class="window-light" x="650" y="185" width="18" height="18" rx="2" fill="#1e293b" />
+        <rect class="window-light" x="535" y="215" width="18" height="18" rx="2" fill="#1e293b" />
+        <rect class="window-light" x="565" y="215" width="18" height="18" rx="2" fill="#1e293b" />
+        <rect class="window-light" x="620" y="215" width="18" height="18" rx="2" fill="#1e293b" />
+        <rect class="window-light" x="650" y="215" width="18" height="18" rx="2" fill="#1e293b" />
+
+        <!-- 体育館の屋根アーチ -->
+        <path d="M 690 250 L 690 205 Q 740 175 790 205 L 790 250 Z" fill="#1e293b" />
+
+        <!-- 右側の街並み (西側) -->
+        <circle cx="850" cy="235" r="20" fill="#14532d" />
+        <rect x="910" y="150" width="55" height="100" fill="#1e293b" rx="2" />
+        <rect class="window-light" x="922" y="165" width="12" height="12" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="942" y="165" width="12" height="12" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="922" y="190" width="12" height="12" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="942" y="190" width="12" height="12" rx="1" fill="#1e293b" />
+
+        <rect x="980" y="120" width="65" height="130" fill="#0f172a" rx="3" />
+        <rect class="window-light" x="992" y="135" width="14" height="14" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="1018" y="135" width="14" height="14" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="992" y="160" width="14" height="14" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="1018" y="160" width="14" height="14" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="992" y="185" width="14" height="14" rx="1" fill="#1e293b" />
+        <rect class="window-light" x="1018" y="185" width="14" height="14" rx="1" fill="#1e293b" />
+
+        <circle cx="1090" cy="232" r="24" fill="#166534" />
+
+        <!-- 手前の地面 (草地) -->
+        <rect x="0" y="245" width="1200" height="115" fill="url(#groundGrad)" />
+        <!-- 地面の縁取りライン -->
+        <line x1="0" y1="245" x2="1200" y2="245" stroke="#4ade80" stroke-width="3" opacity="0.8" />
+      </svg>
+    </div>
+
+    <!-- 3. 方角表示バー (東・南・西) -->
+    <div id="direction-bar">
+      <div class="direction-indicator east">
+        <span class="dir-kanji">東</span>
+        <span class="dir-ruby">ひがし</span>
+      </div>
+      <div class="direction-indicator south">
+        <span class="dir-kanji">南</span>
+        <span class="dir-ruby">みなみ</span>
+      </div>
+      <div class="direction-indicator west">
+        <span class="dir-kanji">西</span>
+        <span class="dir-ruby">にし</span>
+      </div>
+    </div>
+
+    <!-- 4. UIヘッダー: 左上（日時パネル） -->
+    <div id="datetime-card" class="ui-overlay">
+      <div class="date-row">
+        <div id="date-display" class="date-display">2026年 10月 18日 (日)</div>
+        <div class="day-nav-buttons">
+          <button id="btn-prev-day" class="btn-day-nav" title="1日前">◀ 前の日</button>
+          <button id="btn-next-day" class="btn-day-nav" title="1日後">次の日 ▶</button>
+        </div>
+      </div>
+      <div class="time-row">
+        <div class="time-main">
+          <button id="ampm-badge" class="ampm-badge am" title="タップで午前/午後切り替え">午前</button>
+          <div id="time-digits" class="time-digits">10 : 30</div>
+        </div>
+        <button id="btn-edit-date" class="btn-edit-date">
+          <span>📅 日時を変更</span>
+        </button>
+      </div>
+
+      <!-- 日時変更ドロップダウンメニュー -->
+      <div id="datetime-picker-dropdown">
+        <div class="picker-grid">
+          <div class="picker-col">
+            <label for="select-year">年</label>
+            <select id="select-year"></select>
+          </div>
+          <div class="picker-col">
+            <label for="select-month">月</label>
+            <select id="select-month"></select>
+          </div>
+          <div class="picker-col">
+            <label for="select-day">日</label>
+            <select id="select-day"></select>
+          </div>
+          <div class="picker-col">
+            <label for="select-ampm">午前 / 午後</label>
+            <select id="select-ampm">
+              <option value="am">午前</option>
+              <option value="pm">午後</option>
+            </select>
+          </div>
+          <div class="picker-col">
+            <label for="select-hour">時</label>
+            <select id="select-hour"></select>
+          </div>
+          <div class="picker-col">
+            <label for="select-minute">分</label>
+            <select id="select-minute"></select>
+          </div>
+        </div>
+        <div class="picker-buttons">
+          <button id="btn-today-date" class="btn-picker-today">今日に戻る</button>
+          <button id="btn-apply-date" class="btn-picker-apply">変更を適用</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. UIヘッダー: 右上（右カラム：天体データボード ＆ 宇宙視点ミニビュー） -->
+    <div id="right-column" class="ui-overlay">
+      <div id="astro-card">
+        <div class="card-title">
+          <span>☀️ 太陽と 🌙 月のデータ</span>
+          <span class="location-tag">大分県佐伯市</span>
+        </div>
+
+        <!-- 太陽の出入 -->
+        <div class="astro-data-row">
+          <div class="astro-icon-col">
+            <div class="icon-sun-mini"></div>
+            <span class="astro-name">太陽</span>
+          </div>
+          <div class="astro-times">
+            <div class="time-item">
+              <span>日の出</span>
+              <span id="sun-rise-text">--:--</span>
+            </div>
+            <div class="time-item">
+              <span>一番高いとき</span>
+              <span id="sun-transit-text">--:--</span>
+            </div>
+            <div class="time-item">
+              <span>日の入り</span>
+              <span id="sun-set-text">--:--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 月の出入 (タップで拡大可能) -->
+        <div id="moon-data-row" class="astro-data-row clickable-moon-data" title="タップで月を大きく表示">
+          <div class="astro-icon-col">
+            <div class="icon-moon-mini" id="mini-moon-icon"></div>
+            <span class="astro-name">月</span>
+          </div>
+          <div class="astro-times">
+            <div class="time-item">
+              <span>月の出</span>
+              <span id="moon-rise-text">--:--</span>
+            </div>
+            <div class="time-item">
+              <span>一番高いとき</span>
+              <span id="moon-transit-text">--:--</span>
+            </div>
+            <div class="time-item">
+              <span>月の入り</span>
+              <span id="moon-set-text">--:--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 月齢 & 形状バッジ (タップで拡大可能) -->
+        <div id="moon-badge-btn" class="moon-phase-badge clickable-moon-data" title="タップで月を大きく表示">
+          <div class="moon-badge-left">
+            <span id="moon-shape-name" class="moon-shape-name">上弦の月</span>
+            <span id="moon-altitude-status" class="moon-status-tag">地上</span>
+          </div>
+          <div class="moon-badge-right">
+            <span id="moon-age-text" class="moon-age-text">月齢 7.2</span>
+            <span class="zoom-icon-hint">🔍拡大</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. 宇宙視点ミニビューパネル (トグルで表示) -->
+      <div id="space-view-panel">
+        <div class="space-view-header">
+          <span>🪐 宇宙から見た地球と月</span>
+        </div>
+        <canvas id="space-canvas" width="150" height="150"></canvas>
+        <div class="space-view-caption">
+          地球を中心に月が反時計回りに公転しています。<br>右側から太陽の光が当たっています。
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. 下部コントロールバー -->
+    <div id="control-panel">
+      <!-- 再生操作 -->
+      <div class="playback-controls">
+        <button id="btn-step-back" class="btn-step" title="1時間もどす">
+          <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+        </button>
+        <button id="btn-play-pause" class="btn-circle" title="再生 / 一時停止">
+          <svg id="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="icon-pause" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button id="btn-step-forward" class="btn-step" title="1時間すすめる">
+          <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+        </button>
+      </div>
+
+      <!-- 24時間タイムスライダー -->
+      <div class="timeline-container">
+        <div class="timeline-slider-wrapper">
+          <input type="range" id="time-slider" min="0" max="1439" step="1" value="630">
+        </div>
+        <div class="timeline-ticks">
+          <span>0時(夜)</span>
+          <span>6時(朝)</span>
+          <span>12時(正午)</span>
+          <span>18時(夕)</span>
+          <span>24時(夜)</span>
+        </div>
+      </div>
+
+      <!-- クイックジャンプボタン -->
+      <div class="quick-time-buttons">
+        <button class="btn-quick-time" data-hour="6" title="朝 6:00へ移動">🌅 朝</button>
+        <button class="btn-quick-time" data-hour="12" title="昼 12:00へ移動">☀️ 昼</button>
+        <button class="btn-quick-time" data-hour="18" title="夕方 18:00へ移動">🌇 夕</button>
+        <button class="btn-quick-time" data-hour="21" title="夜 21:00へ移動">🌙 夜</button>
+      </div>
+
+      <!-- オプション切り替え -->
+      <div class="options-group">
+        <select id="select-speed" class="speed-select" title="時間の進むスピード">
+          <option value="1">1分/秒</option>
+          <option value="5">5分/秒</option>
+          <option value="15" selected>15分/秒</option>
+          <option value="60">1時間/秒</option>
+          <option value="180">3時間/秒</option>
+        </select>
+        <button id="btn-toggle-path" class="btn-pill active" title="太陽と月の通り道（軌道）の表示">
+          <span>〰 軌道</span>
+        </button>
+        <button id="btn-toggle-underground" class="btn-pill" title="地面の下（地球の裏側）の天体を透かして表示">
+          <span>🌏 とうか</span>
+        </button>
+        <button id="btn-toggle-space-view" class="btn-pill" title="宇宙から見た地球と月の位置関係を表示">
+          <span>🪐 宇宙視点</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 8. 月の大拡大モーダル (タップ時) -->
+    <div id="moon-modal">
+      <div class="modal-content-card">
+        <button id="btn-close-modal" class="btn-close-modal">✕</button>
+        
+        <div class="modal-moon-title">
+          <span id="modal-moon-ruby" class="modal-moon-ruby">じょうげんのつき</span>
+          <span id="modal-moon-name" class="modal-moon-name">上弦の月</span>
+        </div>
+
+        <div class="modal-moon-preview-wrapper">
+          <div id="modal-moon-svg"></div>
+        </div>
+
+        <div class="modal-tags">
+          <div id="modal-moon-age" class="modal-tag">月齢 7.2</div>
+          <div id="modal-moon-phase" class="modal-tag">光る割合: 50%</div>
+        </div>
+
+        <!-- ヒント・解説トグルボタン (子どもが自分で考える場を作るため最初は非表示) -->
+        <button id="btn-toggle-explanation" class="btn-toggle-explanation" type="button">
+          <span>💡 ヒント・解説をみる ▾</span>
+        </button>
+
+        <div id="modal-explanation" class="modal-explanation-box" style="display: none;">
+          <!-- JSで解説文を挿入 -->
+        </div>
+
+        <div class="modal-instruction">※画面のどこかをタップすると戻ります</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- スクリプト読み込み -->
+  <script src="astro.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
