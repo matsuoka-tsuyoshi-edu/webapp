@@ -1298,13 +1298,38 @@
   }
 
   // ==========================================================================
-  // 観測地点（大分県全市町村・九州県庁所在地・日本主要都市・手入力）
+  // 観測地点（佐伯市内小学校15校・大分県全市町村・九州県庁所在地・日本主要都市・手入力）
   // ==========================================================================
+  function formatCoord(val) {
+    return Number(val).toFixed(4).replace(/00$/, '');
+  }
+
   const LOCATION_PRESETS = [
     {
-      group: '大分県の市町村（全18市町村）',
+      group: '🏫 佐伯市・市内小学校（全15校）',
       items: [
-        { id: 'oita-saiki', name: '大分県佐伯市', lat: 32.96, lon: 131.90 },
+        { id: 'oita-saiki', name: '大分県佐伯市', lat: 32.9600, lon: 131.9000 },
+        { id: 'saiki-umeryokuho', name: '佐伯市立宇目緑豊小学校', lat: 32.8571, lon: 131.6733 },
+        { id: 'saiki-shinonome', name: '佐伯市立東雲小学校', lat: 33.0465, lon: 131.9257 },
+        { id: 'saiki-yahata', name: '佐伯市立八幡小学校', lat: 33.0035, lon: 131.8919 },
+        { id: 'saiki-saikihigashi', name: '佐伯市立佐伯東小学校', lat: 32.9648, lon: 131.8985 },
+        { id: 'saiki-saiki', name: '佐伯市立佐伯小学校', lat: 32.9577, lon: 131.8929 },
+        { id: 'saiki-tomachidai', name: '佐伯市立渡町台小学校', lat: 32.9584, lon: 131.9085 },
+        { id: 'saiki-tsuruoka', name: '佐伯市立鶴岡小学校', lat: 32.9609, lon: 131.8749 },
+        { id: 'saiki-kirihata', name: '佐伯市立切畑小学校', lat: 32.9534, lon: 131.8381 },
+        { id: 'saiki-kamino', name: '佐伯市立上野小学校', lat: 32.9704, lon: 131.8340 },
+        { id: 'saiki-meiji', name: '佐伯市立明治小学校', lat: 32.9819, lon: 131.8495 },
+        { id: 'saiki-honjo', name: '佐伯市立本匠小学校', lat: 32.9555, lon: 131.8025 },
+        { id: 'saiki-naokawa', name: '佐伯市立直川小学校', lat: 32.8978, lon: 131.7767 },
+        { id: 'saiki-yonouzu', name: '佐伯市立米水津小学校', lat: 32.9219, lon: 131.9798 },
+        { id: 'saiki-matsuura', name: '佐伯市立松浦小学校', lat: 32.9454, lon: 131.9614 },
+        { id: 'saiki-kamaeshonan', name: '佐伯市立蒲江翔南学園', lat: 32.8030, lon: 131.9430 }
+      ]
+    },
+    {
+      group: '🏠 大分県の市町村（全18市町村）',
+      items: [
+        { id: 'oita-saiki-city', name: '大分県佐伯市', lat: 32.96, lon: 131.90 },
         { id: 'oita-oita', name: '大分県大分市', lat: 33.24, lon: 131.61 },
         { id: 'oita-beppu', name: '大分県別府市', lat: 33.28, lon: 131.49 },
         { id: 'oita-nakatsu', name: '大分県中津市', lat: 33.60, lon: 131.19 },
@@ -1384,7 +1409,7 @@
       grp.items.forEach(item => {
         const opt = document.createElement('option');
         opt.value = item.id;
-        opt.textContent = `${item.name} (${item.lat.toFixed(2)}°, ${item.lon.toFixed(2)}°)`;
+        opt.textContent = `${item.name} (${formatCoord(item.lat)}°, ${formatCoord(item.lon)}°)`;
         optgroup.appendChild(opt);
       });
       elements.selectLocationPreset.appendChild(optgroup);
@@ -1402,13 +1427,13 @@
     const obs = AstroCalc.getObserver();
     if (elements.locationNameText) elements.locationNameText.textContent = obs.name;
     if (elements.inputLocName) elements.inputLocName.value = obs.name;
-    if (elements.inputLocLat) elements.inputLocLat.value = Number(obs.lat).toFixed(2);
-    if (elements.inputLocLon) elements.inputLocLon.value = Number(obs.lon).toFixed(2);
+    if (elements.inputLocLat) elements.inputLocLat.value = formatCoord(obs.lat);
+    if (elements.inputLocLon) elements.inputLocLon.value = formatCoord(obs.lon);
 
     let matchedId = 'custom';
     for (const grp of LOCATION_PRESETS) {
       const found = grp.items.find(
-        item => item.name === obs.name && Math.abs(item.lat - obs.lat) < 0.01 && Math.abs(item.lon - obs.lon) < 0.01
+        item => item.name === obs.name && Math.abs(item.lat - obs.lat) < 0.0005 && Math.abs(item.lon - obs.lon) < 0.0005
       );
       if (found) {
         matchedId = found.id;
@@ -1691,8 +1716,8 @@
         const preset = findLocationPresetById(elements.selectLocationPreset.value);
         if (preset) {
           elements.inputLocName.value = preset.name;
-          elements.inputLocLat.value = preset.lat.toFixed(2);
-          elements.inputLocLon.value = preset.lon.toFixed(2);
+          elements.inputLocLat.value = formatCoord(preset.lat);
+          elements.inputLocLon.value = formatCoord(preset.lon);
         }
       });
     }
