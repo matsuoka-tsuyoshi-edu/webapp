@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>ほしぞらナビ つかいかたマニュアル</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #ffffff;
+      --accent: #2563eb;
+      --gold: #f59e0b;
+      --text: #1e293b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px 16px 60px;
+      font-family: "BIZ UDPGothic", "Hiragino Maru Gothic ProN", sans-serif;
+      background: linear-gradient(180deg, #09132c 0%, #1e3a8a 100%);
+      color: var(--text);
+      line-height: 1.8;
+    }
+    .container { max-width: 880px; margin: 0 auto; }
+    .hero {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 24px;
+      padding: 24px 28px;
+      text-align: center;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+      margin-bottom: 20px;
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 26px; color: #0f172a; }
+    .hero p { margin: 0 0 14px; font-size: 15px; color: #475569; }
+    .back-btn {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    }
+    .section-card {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 20px;
+      padding: 20px 24px;
+      margin-bottom: 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+    .section-card h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      color: #1d4ed8;
+      border-bottom: 2px solid #dbeafe;
+      padding-bottom: 6px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .tip-box {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+    .tip-box h3 { margin: 0 0 6px; font-size: 16px; color: #0f172a; }
+    .highlight-box {
+      background: #fefce8;
+      border: 2px solid #fde047;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-top: 12px;
+    }
+    ruby rt { font-size: 0.62em; color: #475569; }
+    .diagram-wrap { text-align: center; margin: 12px 0; }
+    .badge {
+      display: inline-block;
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      color: #1d4ed8;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+    .badge-neon {
+      display: inline-block;
+      background: #0f172a;
+      border: 1.5px solid #39ff14;
+      color: #39ff14;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <h1>🌟 ほしぞらナビ つかいかたガイド</h1>
+      <p>
+        <ruby>星座<rt>せいざ</rt></ruby>の<ruby>線<rt>せん</rt></ruby>だけのシンプルな<ruby>夜空<rt>よぞら</rt></ruby>から、<ruby>星<rt>ほし</rt></ruby>の<ruby>動<rt>うご</rt></ruby>きのひみつを<ruby>自分<rt>じぶん</rt></ruby>で<ruby>発見<rt>はっけん</rt></ruby>しよう！
+      </p>
+      <a href="../index.html?v=20261113_7" class="back-btn">🔭 アプリにもどる</a>
+    </header>
+
+    <section class="section-card">
+      <h2>1. まずはそのまま星をながめよう（名前をあとからON！）</h2>
+      <div class="grid-2">
+        <div class="tip-box">
+          <h3>✨ 最初は「星座の線」だけ！</h3>
+          <p>
+            アプリを開いたときは、自分で<ruby>考<rt>かんが</rt></ruby>えて<ruby>発見<rt>はっけん</rt></ruby>できるように、名前はかくれています。まずは「どんな形かな？」「どっちに動くかな？」と<ruby>予想<rt>よそう</rt></ruby>してみよう！
+          </p>
+        </div>
+        <div class="tip-box">
+          <h3>🏷️ 答え合わせボタン</h3>
+          <p>
+            下の <span class="badge">🏷️ 星座名</span> や <span class="badge">⭐ 星の名前</span>、<span class="badge">📐 大三角・目印</span> をおすと、名前や大三角をいつでも表示できます。気になったことはインターネットや<ruby>図書館<rt>としょかん</rt></ruby>の本でも調べてみよう！
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h2>2. 星座をえらんで「蛍光色」で残そう！</h2>
+      <div class="grid-2">
+        <div class="tip-box">
+          <h3>👆 ① 星座の線をタップしてえらぶ</h3>
+          <p>
+            気になる星座の線をタップ（クリック）すると、その星座が水色に光ってえらばれます。
+          </p>
+        </div>
+        <div class="tip-box">
+          <h3>📌 ② 「この星座をのこす」をおす</h3>
+          <p>
+            <span class="badge-neon">📌 この星座をのこす</span> をおすと、その星座が<ruby>蛍光色<rt>けいこうしょく</rt></ruby>になり、<ruby>日付<rt>ひづけ</rt></ruby>と<ruby>時間<rt>じかん</rt></ruby>といっしょに空に残ります！そのまま <span class="badge">▶</span>（再生）や <span class="badge">▶▶</span>（1時間すすめる）をおすと、続きがアニメーションで動きます！
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h2>3. 東西南北（360°）ぐるっと見るには？</h2>
+      <div class="grid-2">
+        <div class="tip-box">
+          <h3>👆 指やマウスでドラッグ！</h3>
+          <p>
+            <ruby>夜空<rt>よぞら</rt></ruby>を<ruby>指<rt>ゆび</rt></ruby>（またはマウス）で<ruby>左右<rt>さゆう</rt></ruby>にスライドすると、<ruby>北<rt>きた</rt></ruby>・<ruby>東<rt>ひがし</rt></ruby>・<ruby>南<rt>みなみ</rt></ruby>・<ruby>西<rt>にし</rt></ruby>へ 360°ぐるっと<ruby>回転<rt>かいてん</rt></ruby>できます。緩やかなプラネタリウムドームなので、真上の空もゆがまずきれいに見えます！
+          </p>
+        </div>
+        <div class="tip-box">
+          <h3>🧭 方角ボタンでワンタップ！</h3>
+          <p>
+            <ruby>地面<rt>じめん</rt></ruby>のすぐ<ruby>上<rt>うえ</rt></ruby>にある <span class="badge">🧭 北</span> <span class="badge">🧭 東</span> <span class="badge">🧭 南</span> <span class="badge">🧭 西</span> をおすと、その<ruby>方角<rt>ほうがく</rt></ruby>へすぐ<ruby>向<rt>む</rt></ruby>きます。<span class="badge">🌌 全天マップ</span> で<ruby>頭<rt>あたま</rt></ruby>の<ruby>真上<rt>まうえ</rt></ruby>からの<ruby>星空<rt>ほしぞら</rt></ruby>も<ruby>見<rt>み</rt></ruby>られます。
+          </p>
+        </div>
+      </div>
+
+      <div class="diagram-wrap">
+        <svg width="460" height="120" viewBox="0 0 460 120" xmlns="http://www.w3.org/2000/svg" style="max-width:100%; background:#0f172a; border-radius:14px;">
+          <text x="70" y="34" fill="#93c5fd" font-size="14" font-weight="bold" text-anchor="middle">北の空</text>
+          <text x="70" y="56" fill="#fef08a" font-size="12" text-anchor="middle">↺ 北極星を中心に</text>
+          <text x="70" y="76" fill="#fef08a" font-size="12" text-anchor="middle">反時計回り！</text>
+          <text x="180" y="34" fill="#fde047" font-size="14" font-weight="bold" text-anchor="middle">東の空</text>
+          <text x="180" y="60" fill="#e2e8f0" font-size="12" text-anchor="middle">↗ ななめ上へ</text>
+          <text x="180" y="78" fill="#e2e8f0" font-size="12" text-anchor="middle">のぼるよ！</text>
+          <text x="290" y="34" fill="#fca5a5" font-size="14" font-weight="bold" text-anchor="middle">南の空</text>
+          <text x="290" y="60" fill="#e2e8f0" font-size="12" text-anchor="middle">→ 左(東)から右(西)へ</text>
+          <text x="290" y="78" fill="#e2e8f0" font-size="12" text-anchor="middle">大きな弧をえがく！</text>
+          <text x="400" y="34" fill="#fde047" font-size="14" font-weight="bold" text-anchor="middle">西の空</text>
+          <text x="400" y="60" fill="#e2e8f0" font-size="12" text-anchor="middle">↘ ななめ下へ</text>
+          <text x="400" y="78" fill="#e2e8f0" font-size="12" text-anchor="middle">しずむよ！</text>
+        </svg>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h2>4. 太陽と月のデータ・月を大きく見る！</h2>
+      <div class="grid-2">
+        <div class="tip-box">
+          <h3>☀️🌙 太陽と月のデータ（白夜・極夜もわかる！）</h3>
+          <p>
+            右上の「見る場所」カードにある <span class="badge">☀️🌙 太陽と月のデータ ▼ ひらく</span> をおすと、日の出・日の入り・月の出・月の入り・<ruby>南中<rt>なんちゅう</rt></ruby>（一番高いとき）・月齢がわかります。北極点や南極の昭和基地をえらぶと、「<ruby>白夜<rt>びゃくや</rt></ruby>（1日中しずまない）」や「<ruby>極夜<rt>きょくや</rt></ruby>（1日中のぼらない）」も調べられます！
+          </p>
+        </div>
+        <div class="tip-box">
+          <h3>🌙 空の月をタップして拡大 ＆ 月をのこす！</h3>
+          <p>
+            夜空に出ている「月」をタップするか、<span class="badge">🔍 拡大</span> をおすと、月を大きく観察して月齢や光っている割合が見られます。<span class="badge-neon">📌 月をのこす</span> をおすと、今の時刻と形で空に月を残せるので、時間ごとの月の動きや満ち欠けをくらべられます！さらに、<span class="badge">〰 通り道</span> をONにすると、太陽や月が空に出ている間の通り道もくっきり線で見えます！
+          </p>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top: 12px;">
+        <div class="tip-box">
+          <h3>🗓️ 月齢カレンダー（1か月の満ち欠け）</h3>
+          <p>
+            左上の <span class="badge">🗓️ カレンダー</span> をおすと、1か月分の月の形と月齢がずらりと並びます。気になる日付をタップすると、その日の月と星空へすぐジャンプできるよ！
+          </p>
+        </div>
+        <div class="tip-box">
+          <h3>🪐 惑星（わくせい）を見てみよう！</h3>
+          <p>
+            ふだんはOFFになっている <span class="badge">🪐 惑星</span> をおすと、水星・金星・火星・木星・土星が夜空のどこにあるか調べられます。星座や月とどんなふうに動くのか観察して、図書館やインターネットで調べてみよう！
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h2>5. くらべる・海外の星空を見る</h2>
+      <div class="grid-2">
+        <div class="tip-box">
+          <h3>🔍 くらべる（4方向・世界）</h3>
+          <p>
+            <span class="badge">🔍 くらべる</span> をおすと、「北・東・南・西の4方向を同時再生」したり、「佐伯市とシドニーなど海外の星空」を並べてくらべられます！
+          </p>
+        </div>
+        <div class="tip-box">
+          <h3>✈️ 海外の星空を見てみよう</h3>
+          <p>
+            右上の <span class="badge">大分県佐伯市 ▾</span> から「✈️ 世界の星空」をえらぶと、北極点・赤道（シンガポール）・南半球（シドニー）などの星空が見られます！
+          </p>
+        </div>
+      </div>
+
+      <div class="highlight-box">
+        <strong>💡 自由研究のおすすめ：</strong><br>
+        「大分県佐伯市」と「オーストラリアのシドニー」をくらべてみよう！オリオン座の向きや、<ruby>南十字星<rt>みなみじゅうじせい</rt></ruby>、星が回る向きがどうちがうか発見できるよ！
+      </div>
+    </section>
+  </div>
+</body>
+</html>

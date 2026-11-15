@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ほしぞらナビ - 星座と星の動きシミュレーション</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=20261113_7">
+</head>
+<body>
+  <div id="app-root">
+    <!-- 星空メインビューポート -->
+    <main id="sky-viewport" aria-label="星空シミュレーション画面">
+      <canvas id="sky-canvas"></canvas>
+
+      <!-- タップ判定・ラベルオーバーレイ -->
+      <div id="sky-labels-layer"></div>
+
+      <!-- 選択中の星座アクションバー（星座線タップで出現） -->
+      <div id="selected-const-bar" class="selected-const-bar hidden">
+        <span id="selected-const-name" class="selected-const-title">✨ オリオン座</span>
+        <button type="button" id="btn-stamp-selected" class="btn-stamp-neon">📌 この星座をのこす</button>
+        <button type="button" id="btn-deselect-const" class="icon-close-sm" aria-label="選択解除">✕</button>
+      </div>
+
+      <!-- 360度 方位バッジバー（地平線上） -->
+      <div id="horizon-compass-bar" aria-hidden="true"></div>
+
+      <!-- ワンタップ方角スイッチ（地平線のすぐ上） -->
+      <div id="direction-quick-bar" role="group" aria-label="見る方角をえらぶ">
+        <button type="button" class="dir-btn" data-az="0">🧭 北 <small>0°</small></button>
+        <button type="button" class="dir-btn" data-az="90">🧭 東 <small>90°</small></button>
+        <button type="button" class="dir-btn active" data-az="180">🧭 南 <small>180°</small></button>
+        <button type="button" class="dir-btn" data-az="270">🧭 西 <small>270°</small></button>
+        <button type="button" id="btn-toggle-dome" class="dir-btn dir-btn-dome" title="頭の真上からの全天マップ">🌌 全天マップ</button>
+      </div>
+    </main>
+
+    <!-- 上部ヘッダーカード（左：日時・季節 / 右：観測地点・星空データ） -->
+    <header id="top-hud">
+      <!-- 左カード：日時・季節 -->
+      <section id="hud-left-card" class="hud-card hud-left" aria-label="日時と季節の操作">
+        <div class="hud-date-row">
+          <div class="date-text-wrap">
+            <span id="display-date" class="date-main">2026年 11月 13日 (金)</span>
+          </div>
+          <div class="hud-left-top-actions">
+            <div class="day-step-btns">
+              <button type="button" id="btn-prev-day" class="btn-pill-sm">◀ 前の日</button>
+              <button type="button" id="btn-next-day" class="btn-pill-sm">次の日 ▶</button>
+            </div>
+            <button type="button" id="btn-toggle-time-hud" class="btn-pill-xs">▲ かくす</button>
+          </div>
+        </div>
+
+        <div class="hud-time-row">
+          <div class="clock-group">
+            <span id="display-ampm" class="ampm-badge">午後</span>
+            <span id="display-time" class="time-main">8 : 00</span>
+            <button type="button" id="btn-toggle-24h" class="btn-pill-xs">24h表示</button>
+          </div>
+          <div class="hud-action-btns">
+            <button type="button" id="btn-open-datetime" class="btn-pill-accent">📅 日時変更</button>
+            <button type="button" id="btn-open-calendar" class="btn-pill-accent">🗓️ カレンダー</button>
+            <a href="manual/index.html?v=20261113_7" target="_blank" rel="noopener" id="btn-open-manual" class="btn-pill-manual">📖 つかいかた</a>
+          </div>
+        </div>
+
+        <!-- 季節ワンタップジャンプ -->
+        <div class="season-jump-row" role="group" aria-label="季節ごとの代表的な星空へ移動">
+          <span class="season-jump-label">季節:</span>
+          <button type="button" class="season-btn" data-month="4" data-day="15">🌸 春</button>
+          <button type="button" class="season-btn" data-month="8" data-day="1">🌻 夏</button>
+          <button type="button" class="season-btn" data-month="10" data-day="15">🍁 秋</button>
+          <button type="button" class="season-btn" data-month="1" data-day="15">⛄ 冬</button>
+        </div>
+      </section>
+
+      <!-- 右カード：観測地点・星空データ -->
+      <section class="hud-card hud-right" aria-label="観測地点と星空のデータ">
+        <div class="hud-data-header">
+          <span class="data-title">📍 見る場所</span>
+          <button type="button" id="btn-open-location" class="location-pill">
+            <span id="display-location-name">大分県佐伯市</span> ▾
+          </button>
+          <button type="button" id="btn-toggle-data" class="btn-pill-xs">▲ かくす</button>
+        </div>
+        <div id="hud-data-body" class="hud-data-body">
+          <div class="data-row">
+            <span class="data-chip" id="display-latlon">北緯 32.96° / 東経 131.90°</span>
+          </div>
+
+          <!-- 太陽と月のデータ（初期は折りたたみ） -->
+          <div class="astro-accordion">
+            <button type="button" id="btn-toggle-astro" class="astro-accordion-btn" aria-expanded="false">
+              <span>☀️🌙 太陽と月のデータ</span>
+              <span id="astro-accordion-arrow">▼ ひらく</span>
+            </button>
+            <div id="astro-collapse-body" class="astro-collapse-body hidden">
+              <!-- 太陽 -->
+              <div class="astro-row" id="astro-sun-row">
+                <div class="astro-icon-label"><span class="dot-sun"></span> 太陽</div>
+                <div class="astro-times-grid" id="sun-times-content">
+                  <div><small>日の出</small><strong id="sun-rise-text">--:--</strong></div>
+                  <div><small>一番高いとき</small><strong id="sun-transit-text">--:--</strong></div>
+                  <div><small>日の入り</small><strong id="sun-set-text">--:--</strong></div>
+                </div>
+              </div>
+              <!-- 月 -->
+              <div class="astro-row" id="astro-moon-row">
+                <div class="astro-icon-label"><span class="dot-moon"></span> 月</div>
+                <div class="astro-times-grid" id="moon-times-content">
+                  <div><small>月の出</small><strong id="moon-rise-text">--:--</strong></div>
+                  <div><small>一番高いとき</small><strong id="moon-transit-text">--:--</strong></div>
+                  <div><small>月の入り</small><strong id="moon-set-text">--:--</strong></div>
+                </div>
+              </div>
+              <!-- 月ステータス（タップで拡大） -->
+              <div class="moon-status-bar" id="btn-open-moon-zoom-bar" role="button" tabindex="0">
+                <span id="moon-phase-name-chip" class="moon-phase-chip">三日月</span>
+                <span id="moon-horizon-badge" class="moon-horizon-badge">地上</span>
+                <span id="moon-age-chip" class="moon-age-chip">月齢 3.5</span>
+                <button type="button" id="btn-open-moon-zoom" class="btn-moon-zoom">🔍 拡大</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <!-- 下部コントロールパネル -->
+    <footer id="control-panel" aria-label="時間と表示のコントロール">
+      <!-- 再生とタイムスライダー行 -->
+      <div class="ctrl-row ctrl-timeline-row">
+        <div class="playback-btns">
+          <button type="button" id="btn-step-back" class="btn-ctrl-round" title="1時間もどす">◀◀</button>
+          <button type="button" id="btn-play-pause" class="btn-ctrl-play" title="再生 / 一時停止">▶</button>
+          <button type="button" id="btn-step-fwd" class="btn-ctrl-round" title="1時間すすめる">▶▶</button>
+        </div>
+
+        <div class="slider-wrap">
+          <input type="range" id="time-slider" min="0" max="1439" step="1" value="1200" aria-label="時刻スライダー">
+          <div class="slider-ticks" aria-hidden="true">
+            <span>午前0時</span>
+            <span>午前6時</span>
+            <span>正午</span>
+            <span>午後6時</span>
+            <span>午後12時</span>
+          </div>
+        </div>
+
+        <div class="preset-times">
+          <button type="button" class="btn-time-preset" data-minutes="1080">🌇 18時</button>
+          <button type="button" class="btn-time-preset" data-minutes="1200">🌃 20時</button>
+          <button type="button" class="btn-time-preset" data-minutes="0">🌌 0時</button>
+          <button type="button" class="btn-time-preset" data-minutes="240">🌅 4時</button>
+          <button type="button" class="btn-time-preset" data-minutes="720">☀️ 12時</button>
+        </div>
+
+        <select id="play-speed-select" class="speed-select" aria-label="再生の速さ">
+          <option value="5">5分/秒</option>
+          <option value="15" selected>15分/秒</option>
+          <option value="30">30分/秒</option>
+          <option value="60">1時間/秒</option>
+          <option value="180">3時間/秒</option>
+        </select>
+        <button type="button" id="btn-toggle-ctrl-row" class="btn-pill-ctrl-collapse">▼ かくす</button>
+      </div>
+
+      <!-- 表示切替ボタン行 -->
+      <div id="ctrl-toggles-row" class="ctrl-row ctrl-toggles-row">
+        <button type="button" id="toggle-lines" class="btn-toggle active">― 星座線</button>
+        <button type="button" id="toggle-const-names" class="btn-toggle">🏷️ 星座名</button>
+        <button type="button" id="toggle-star-names" class="btn-toggle">⭐ 星の名前</button>
+        <button type="button" id="toggle-asterisms" class="btn-toggle">📐 大三角・目印</button>
+        <button type="button" id="toggle-planets" class="btn-toggle">🪐 惑星</button>
+        <button type="button" id="toggle-trails" class="btn-toggle">〰 通り道</button>
+        <button type="button" id="btn-stamp-const" class="btn-stamp-main" disabled title="星座の線をタップして選んでから押してね">📌 星座をのこす</button>
+        <button type="button" id="btn-stamp-moon" class="btn-stamp-moon">📌 月をのこす</button>
+        <button type="button" id="btn-clear-stamps" class="btn-stamp-clear hidden">🗑️ けす (<span id="stamp-count">0</span>)</button>
+        <button type="button" id="toggle-underground" class="btn-toggle">🌏 とうか</button>
+        <button type="button" id="toggle-daystars" class="btn-toggle">🌤️ 昼も星</button>
+        <button type="button" id="btn-open-compare" class="btn-feature">🔍 くらべる</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ========== モーダル 1: 観測地点選択（学校・大分・日本・海外・自由入力） ========== -->
+  <div id="modal-location" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-loc-title">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h2 id="modal-loc-title">📍 見る場所をえらぶ（日本・世界）</h2>
+        <button type="button" class="modal-close" data-close="modal-location">✕</button>
+      </div>
+      <div class="modal-tabs" id="location-category-tabs">
+        <button type="button" class="loc-tab active" data-group="0">🏫 佐伯市の学校</button>
+        <button type="button" class="loc-tab" data-group="1">🏠 大分県</button>
+        <button type="button" class="loc-tab" data-group="2">🗾 九州・沖縄</button>
+        <button type="button" class="loc-tab" data-group="3">🗼 日本の都市</button>
+        <button type="button" class="loc-tab loc-tab-world" data-group="4">✈️ 世界の星空</button>
+        <button type="button" class="loc-tab" data-group="custom">🌐 じゆうに入力</button>
+      </div>
+      <div class="modal-body modal-scroll" id="location-list-container"></div>
+    </div>
+  </div>
+
+  <!-- ========== モーダル 2: 日時変更 ========== -->
+  <div id="modal-datetime" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-dt-title">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h2 id="modal-dt-title">📅 日時をかえる</h2>
+        <button type="button" class="modal-close" data-close="modal-datetime">✕</button>
+      </div>
+      <div class="modal-body modal-scroll">
+        <div class="dt-form-grid">
+          <label>年<select id="dt-year"></select></label>
+          <label>月<select id="dt-month"></select></label>
+          <label>日<select id="dt-day"></select></label>
+          <label>時<select id="dt-hour"></select></label>
+          <label>分<select id="dt-minute"></select></label>
+        </div>
+        <div class="dt-quick-actions">
+          <button type="button" id="btn-dt-today" class="btn-secondary">今日（午後8時）にもどる</button>
+          <button type="button" id="btn-dt-apply" class="btn-primary">この日時にする</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== モーダル 3: 星・星座図鑑 ========== -->
+  <div id="modal-star-info" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="star-info-title">
+    <div class="modal-card modal-md">
+      <div class="modal-header">
+        <h2 id="star-info-title">⭐ 星と星座のひみつ</h2>
+        <button type="button" class="modal-close" data-close="modal-star-info">✕</button>
+      </div>
+      <div class="modal-body modal-scroll" id="star-info-body"></div>
+    </div>
+  </div>
+
+  <!-- ========== モーダル 4: くらべる（4方向同時比較 / 日本と世界比較） ========== -->
+  <div id="modal-compare" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="compare-title">
+    <div class="modal-card modal-xl">
+      <div class="modal-header">
+        <h2 id="compare-title">🔍 星空をくらべてみよう！</h2>
+        <div class="compare-mode-tabs">
+          <button type="button" class="cmp-tab active" data-cmpmode="4dir">🧭 北・東・南・西 4方向くらべ</button>
+          <button type="button" class="cmp-tab" data-cmpmode="world">🌏 日本と世界の星空くらべ</button>
+        </div>
+        <button type="button" class="modal-close" data-close="modal-compare">✕</button>
+      </div>
+      <div class="modal-body modal-scroll">
+        <div class="compare-controls-bar">
+          <button type="button" id="cmp-step-back" class="btn-pill-sm">◀ 1時間まえ</button>
+          <button type="button" id="cmp-play-pause" class="btn-pill-accent">▶ 4方向どうじ再生</button>
+          <button type="button" id="cmp-step-fwd" class="btn-pill-sm">1時間あと ▶</button>
+          <span id="cmp-current-time" class="cmp-time-badge">2026年 11月 13日 午後 8:00</span>
+        </div>
+
+        <div id="compare-4dir-grid" class="compare-grid-4">
+          <div class="cmp-pane">
+            <div class="cmp-pane-title">🧭 北の空</div>
+            <canvas id="cmp-canvas-0" width="380" height="230"></canvas>
+          </div>
+          <div class="cmp-pane">
+            <div class="cmp-pane-title">🧭 東の空</div>
+            <canvas id="cmp-canvas-90" width="380" height="230"></canvas>
+          </div>
+          <div class="cmp-pane">
+            <div class="cmp-pane-title">🧭 南の空</div>
+            <canvas id="cmp-canvas-180" width="380" height="230"></canvas>
+          </div>
+          <div class="cmp-pane">
+            <div class="cmp-pane-title">🧭 西の空</div>
+            <canvas id="cmp-canvas-270" width="380" height="230"></canvas>
+          </div>
+        </div>
+
+        <div id="compare-world-grid" class="compare-grid-2 hidden">
+          <div class="cmp-pane">
+            <div class="cmp-world-header">
+              <select id="cmp-world-loc-a" class="cmp-loc-select"></select>
+              <select id="cmp-world-dir-a" class="cmp-dir-select">
+                <option value="180">南の空</option>
+                <option value="0">北の空</option>
+                <option value="90">東の空</option>
+                <option value="270">西の空</option>
+              </select>
+            </div>
+            <canvas id="cmp-canvas-world-a" width="460" height="280"></canvas>
+            <div id="cmp-world-info-a" class="cmp-world-info"></div>
+          </div>
+          <div class="cmp-pane">
+            <div class="cmp-world-header">
+              <select id="cmp-world-loc-b" class="cmp-loc-select"></select>
+              <select id="cmp-world-dir-b" class="cmp-dir-select">
+                <option value="180">南の空</option>
+                <option value="0">北の空</option>
+                <option value="90">東の空</option>
+                <option value="270">西の空</option>
+              </select>
+            </div>
+            <canvas id="cmp-canvas-world-b" width="460" height="280"></canvas>
+            <div id="cmp-world-info-b" class="cmp-world-info"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== モーダル 5: 月の拡大ポップアップ ========== -->
+  <div id="modal-moon-zoom" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="moon-zoom-title">
+    <div class="modal-card modal-md">
+      <div class="modal-header">
+        <h2 id="moon-zoom-title">🌙 月のくわしい観察</h2>
+        <button type="button" class="modal-close" data-close="modal-moon-zoom">✕</button>
+      </div>
+      <div class="modal-body modal-scroll">
+        <div class="moon-zoom-hero">
+          <div class="moon-zoom-canvas-wrap">
+            <canvas id="moon-zoom-canvas" width="210" height="210"></canvas>
+            <span id="moon-zoom-hemi-badge" class="moon-hemi-badge hidden">🌏 南半球では上下が逆に見えるよ</span>
+          </div>
+          <div class="moon-zoom-stats">
+            <div class="moon-zoom-name-row">
+              <strong id="mz-phase-name">三日月</strong>
+              <span id="mz-horizon-status" class="moon-horizon-badge">地上</span>
+            </div>
+            <div class="moon-zoom-grid">
+              <div class="mz-stat"><span>月齢</span><strong id="mz-age">3.5</strong></div>
+              <div class="mz-stat"><span>光っている割合</span><strong id="mz-illum">15%</strong></div>
+              <div class="mz-stat"><span>いまの空の位置</span><strong id="mz-pos">方位 240° / 高さ 25°</strong></div>
+            </div>
+            <div class="moon-zoom-times" id="mz-times-summary">
+              月の出: --:-- ／ 一番高いとき: --:-- ／ 月の入り: --:--
+            </div>
+            <div class="moon-zoom-actions">
+              <button type="button" id="btn-moon-zoom-stamp" class="btn-stamp-moon">📌 この月をのこす</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== モーダル 6: 月齢カレンダー ========== -->
+  <div id="modal-calendar" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="calendar-modal-title">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h2 id="calendar-modal-title">🗓️ 月齢カレンダー</h2>
+        <button type="button" class="modal-close" data-close="modal-calendar">✕</button>
+      </div>
+      <div class="modal-body modal-scroll">
+        <div class="calendar-toolbar">
+          <div class="calendar-nav">
+            <button type="button" id="cal-prev-month" class="btn-cal-nav">◀ 前の月</button>
+            <strong id="cal-month-title" class="cal-month-title">2026年 11月</strong>
+            <button type="button" id="cal-next-month" class="btn-cal-nav">次の月 ▶</button>
+          </div>
+          <div class="calendar-hour-wrap">
+            <label for="cal-hour-select">みる時刻:</label>
+            <select id="cal-hour-select" class="cal-hour-select">
+              <option value="18">18:00（夕方）</option>
+              <option value="20" selected>20:00（夜）</option>
+              <option value="0">0:00（真夜中）</option>
+              <option value="6">6:00（朝方）</option>
+              <option value="12">12:00（ひる）</option>
+            </select>
+          </div>
+        </div>
+        <p class="calendar-hint">📅 日付をタップすると、その日の月と星空にジャンプするよ！</p>
+        <div class="cal-weekdays">
+          <span class="sun">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="sat">土</span>
+        </div>
+        <div id="cal-grid" class="cal-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="astro.js?v=20261113_7"></script>
+  <script src="app.js?v=20261113_7"></script>
+</body>
+</html>
