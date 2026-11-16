@@ -2,11 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>小学6年 理科「月と太陽」シミュレーション</title>
-  <link rel="stylesheet" href="style.css">
+  <title>太陽と月 v1.6</title>
+  <link id="app-stylesheet" rel="stylesheet" href="style.css?v=1.6">
 </head>
 <body>
   <div id="app-container">
@@ -22,15 +25,15 @@
         <div id="pinned-moons-layer"></div>
 
         <!-- 太陽 -->
-        <div id="sun-element" class="celestial-body sun-body" title="太陽">
+        <div id="sun-element" class="celestial-body sun-body" title="太陽（左右にドラッグして動かせます）">
           <div class="sun-glow"></div>
           <div class="sun-label">太陽</div>
         </div>
 
         <!-- 月 -->
-        <div id="moon-element" class="celestial-body moon-body" title="月（タップで大きく表示）">
+        <div id="moon-element" class="celestial-body moon-body" title="月（ドラッグで移動／タップで大きく表示）">
           <!-- JSで動的にSVGを挿入 -->
-          <div id="moon-hint" class="moon-hint">タップして拡大！</div>
+          <div id="moon-hint" class="moon-hint">ドラッグで移動・タップで拡大！</div>
           <div class="moon-label">月</div>
         </div>
       </div>
@@ -208,7 +211,7 @@
     <div id="right-column" class="ui-overlay">
       <div id="astro-card">
         <div class="card-title">
-          <span>☀️ 太陽と 🌙 月のデータ</span>
+          <span class="app-brand-title">☀️🌙 太陽と月 <span id="app-version-badge" class="app-version-badge">v1.6</span></span>
           <div class="card-title-right">
             <button id="btn-location-picker" class="location-tag-btn" type="button" title="観測する地域（市町村・都市・緯度経度）を変更">
               <span>📍</span>
@@ -393,7 +396,9 @@
     <div id="moon-modal">
       <div class="modal-content-card">
         <button id="btn-close-modal" class="btn-close-modal">✕</button>
-        
+
+        <div id="modal-moon-datetime" class="modal-moon-datetime">2026年 10月 18日 (日) 午前10:30</div>
+
         <div class="modal-moon-title">
           <span id="modal-moon-ruby" class="modal-moon-ruby">じょうげんのつき</span>
           <span id="modal-moon-name" class="modal-moon-name">上弦の月</span>
@@ -406,6 +411,18 @@
         <div class="modal-tags">
           <div id="modal-moon-age" class="modal-tag">月齢 7.2</div>
           <div id="modal-moon-phase" class="modal-tag">光る割合: 50%</div>
+        </div>
+
+        <div class="modal-interactive-controls">
+          <div class="modal-day-step-group">
+            <button id="btn-modal-prev-3day" class="btn-modal-day-step" type="button" title="同じ時刻のまま3日前へ">◀◀ 3日前</button>
+            <button id="btn-modal-prev-day" class="btn-modal-day-step" type="button" title="同じ時刻のまま前の日へ">◀ 前の日</button>
+            <button id="btn-modal-next-day" class="btn-modal-day-step" type="button" title="同じ時刻のまま次の日へ">次の日 ▶</button>
+            <button id="btn-modal-next-3day" class="btn-modal-day-step" type="button" title="同じ時刻のまま3日後へ">3日後 ▶▶</button>
+          </div>
+          <button id="btn-modal-pin-moon" class="btn-modal-pin-moon" type="button" title="いま表示している月を空に残します">
+            📌 この月を空にのこす
+          </button>
         </div>
 
         <!-- ヒント・解説トグルボタン (子どもが自分で考える場を作るため最初は非表示) -->
@@ -534,8 +551,23 @@
 
   </div>
 
-  <!-- スクリプト読み込み -->
-  <script src="astro.js"></script>
-  <script src="app.js"></script>
+  <!-- スクリプト読み込み（キャッシュ回避ローダー：読み込みのたびに最新ファイルを取得） -->
+  <script>
+    (function() {
+      var bust = 'v=1.6&t=' + Date.now();
+      var cssLink = document.getElementById('app-stylesheet');
+      if (cssLink) {
+        cssLink.href = 'style.css?' + bust;
+      }
+      var astroScript = document.createElement('script');
+      astroScript.src = 'astro.js?' + bust;
+      astroScript.onload = function() {
+        var appScript = document.createElement('script');
+        appScript.src = 'app.js?' + bust;
+        document.body.appendChild(appScript);
+      };
+      document.body.appendChild(astroScript);
+    })();
+  </script>
 </body>
 </html>

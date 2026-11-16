@@ -1,5 +1,5 @@
 /**
- * 小学6年理科「月と太陽」シミュレーション - アプリケーション本体 (app.js)
+ * 小学6年理科「太陽と月」シミュレーション v1.6 - アプリケーション本体 (app.js)
  */
 
 (function () {
@@ -61,6 +61,7 @@
     btnTodayDate: document.getElementById('btn-today-date'),
 
     // 右上天体ボード
+    appVersionBadge: document.getElementById('app-version-badge'),
     astroCard: document.getElementById('astro-card'),
     astroCardBody: document.getElementById('astro-card-body'),
     btnToggleAstroData: document.getElementById('btn-toggle-astro-data'),
@@ -105,11 +106,17 @@
     // 月拡大モーダル
     moonModal: document.getElementById('moon-modal'),
     btnCloseModal: document.getElementById('btn-close-modal'),
+    modalMoonDatetime: document.getElementById('modal-moon-datetime'),
     modalMoonSvg: document.getElementById('modal-moon-svg'),
     modalMoonRuby: document.getElementById('modal-moon-ruby'),
     modalMoonName: document.getElementById('modal-moon-name'),
     modalMoonAge: document.getElementById('modal-moon-age'),
     modalMoonPhase: document.getElementById('modal-moon-phase'),
+    btnModalPrev3Day: document.getElementById('btn-modal-prev-3day'),
+    btnModalPrevDay: document.getElementById('btn-modal-prev-day'),
+    btnModalNextDay: document.getElementById('btn-modal-next-day'),
+    btnModalNext3Day: document.getElementById('btn-modal-next-3day'),
+    btnModalPinMoon: document.getElementById('btn-modal-pin-moon'),
     btnToggleExplanation: document.getElementById('btn-toggle-explanation'),
     modalExplanation: document.getElementById('modal-explanation'),
 
@@ -312,6 +319,27 @@
       ctx.shadowColor = '#ffffff';
       ctx.fill();
     }
+  }
+
+  // --- 月から見た太陽の方向角（ラジアン）を連続的に計算 ---
+  // 太陽時角が真夜中(±180°)を跨いで screenAz が 360°→0° に折り返す際や、
+  // 地平線下の高度圧縮によって月の傾き角が急変（反転）するのを防ぐ
+  function computeAngleToSun(moonScreenAz, moonAlt, sunScreenAz, sunAlt, elongation) {
+    let elong = elongation % 360;
+    if (elong < 0) elong += 360;
+    const isWaxing = elong <= 180;
+
+    // 方位角（時角）の差分を -180°〜+180° の最短角度差に正規化
+    let deltaAz = sunScreenAz - moonScreenAz;
+    while (deltaAz > 180.0) deltaAz -= 360.0;
+    while (deltaAz < -180.0) deltaAz += 360.0;
+
+    // 満ちていく月(上弦側)は太陽が西側(右: +)、欠けていく月(下弦側)は東側(左: -)
+    const horizDeg = isWaxing ? Math.max(15.0, Math.abs(deltaAz)) : -Math.max(15.0, Math.abs(deltaAz));
+    // 画面上では下方向が +Y なので、太陽の方が低い(sunAlt < moonAlt)ときに vertDeg > 0
+    const vertDeg = moonAlt - sunAlt;
+
+    return Math.atan2(vertDeg, horizDeg);
   }
 
   // --- 月のSVG満ち欠け形状の生成関数 (クレーター・グラデーションなしのくっきりベタ塗り) ---
@@ -596,6 +624,10 @@
   }
 
   // --- メイン画面の空に月をピン留め比較描画 ---
+  function getPinKey(dateObj) {
+    return `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}-${dateObj.getHours()}-${dateObj.getMinutes()}`;
+  }
+
   function addPinnedMoon(dateObj) {
     if (!dateObj || isNaN(dateObj.getTime())) return;
     const jd = AstroCalc.getJulianDay(dateObj);
@@ -604,7 +636,7 @@
     const phaseInfo = AstroCalc.getMoonPhaseInfo(moonPos.age, moonPos.elongation);
 
     // 同じ年月日・時分は重複登録しない
-    const key = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}-${dateObj.getHours()}-${dateObj.getMinutes()}`;
+    const key = getPinKey(dateObj);
     if (state.pinnedMoons.some(p => p.key === key)) return;
 
     if (state.pinnedMoons.length >= 6) {
@@ -641,8 +673,7 @@
 
     state.pinnedMoons.forEach((pin, idx) => {
       const coords = azAltToScreenCoords(pin.screenAz, pin.alt, width, height);
-      const sunCoords = azAltToScreenCoords(pin.sunScreenAz, pin.sunAlt, width, height);
-      const angleToSun = Math.atan2(sunCoords.y - coords.y, sunCoords.x - coords.x);
+      const angleToSun = computeAngleToSun(pin.screenAz, pin.alt, pin.sunScreenAz, pin.sunAlt, pin.elongation);
 
       const item = document.createElement('div');
       item.className = 'pinned-moon-item';
@@ -755,9 +786,9 @@
     elements.sunElement.style.left = `${sunCoords.x}px`;
     elements.sunElement.style.top = `${sunCoords.y}px`;
 
-    // 地平線下の場合の表示制御
+    // 地平線下の場合の表示制御（ドラッグ中はポインター追跡維持のため薄く残す）
     if (sunPos.alt < 0) {
-      if (state.showUnderground) {
+      if (state.showUnderground || elements.sunElement.classList.contains('dragging')) {
         elements.sunElement.style.opacity = '0.35';
         elements.sunElement.style.display = 'block';
       } else {
@@ -769,10 +800,8 @@
       elements.sunElement.style.display = 'block';
     }
 
-    // 太陽の方向ベクトル（月が光る向きを計算）
-    const dx = sunCoords.x - moonCoords.x;
-    const dy = sunCoords.y - moonCoords.y;
-    const angleToSun = Math.atan2(dy, dx);
+    // 太陽の方向ベクトル（月が光る向きを連続角度差から計算）
+    const angleToSun = computeAngleToSun(moonPos.screenAz, moonPos.alt, sunPos.screenAz, sunPos.alt, moonPos.elongation);
 
     // 月のSVG更新 & 配置 (moon-hint と moon-label を保持)
     let moonSvgWrap = elements.moonElement.querySelector('.moon-svg-wrap');
@@ -785,7 +814,7 @@
     elements.moonElement.style.top = `${moonCoords.y}px`;
 
     if (moonPos.alt < 0) {
-      if (state.showUnderground) {
+      if (state.showUnderground || elements.moonElement.classList.contains('dragging')) {
         elements.moonElement.style.opacity = '0.45';
         elements.moonElement.style.display = 'block';
       } else {
@@ -1474,13 +1503,44 @@
     updateSimulation(true);
   }
 
+  function formatFullDateTimeForModal(dt) {
+    if (!dt || isNaN(dt.getTime())) return '';
+    const y = dt.getFullYear();
+    const m = dt.getMonth() + 1;
+    const d = dt.getDate();
+    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+    const dow = dayNames[dt.getDay()];
+    const h24 = dt.getHours();
+    const mStr = String(dt.getMinutes()).padStart(2, '0');
+    if (state.use24Hour) {
+      return `${y}年 ${m}月 ${d}日 (${dow}) ${String(h24).padStart(2, '0')}:${mStr}`;
+    }
+    const ampm = h24 >= 12 ? '午後' : '午前';
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return `${y}年 ${m}月 ${d}日 (${dow}) ${ampm}${h12}:${mStr}`;
+  }
+
+  function updateModalPinButtonState() {
+    if (!elements.btnModalPinMoon) return;
+    const key = getPinKey(state.currentDate);
+    const alreadyPinned = state.pinnedMoons.some(p => p.key === key);
+    const countText = state.pinnedMoons.length > 0 ? `（現在${state.pinnedMoons.length}個）` : '';
+    elements.btnModalPinMoon.classList.toggle('is-pinned', alreadyPinned);
+    elements.btnModalPinMoon.textContent = alreadyPinned
+      ? `✅ 空にのこしました${countText}`
+      : `📌 この月を空にのこす${countText}`;
+  }
+
   // --- 月の拡大モーダルを開く ---
-  function openMoonModal() {
+  function openMoonModal(preserveExplanationState = false) {
     const jd = AstroCalc.getJulianDay(state.currentDate);
     const moonPos = AstroCalc.getMoonPosition(jd);
     const sunPos = AstroCalc.getSunPosition(jd);
     const moonPhaseInfo = AstroCalc.getMoonPhaseInfo(moonPos.age, moonPos.elongation);
 
+    if (elements.modalMoonDatetime) {
+      elements.modalMoonDatetime.textContent = formatFullDateTimeForModal(state.currentDate);
+    }
     elements.modalMoonSvg.innerHTML = renderMoonSVG(moonPos.elongation, null, true);
     elements.modalMoonRuby.textContent = moonPhaseInfo.ruby;
     elements.modalMoonName.textContent = moonPhaseInfo.name;
@@ -1506,15 +1566,18 @@
       <p style="color: #fde047;">${sunRelation}</p>
     `;
 
-    // 子どもたちが自分で考え発表する場を作るため、解説は初期状態で非表示
-    if (elements.modalExplanation) {
-      elements.modalExplanation.style.display = 'none';
-    }
-    if (elements.btnToggleExplanation) {
-      elements.btnToggleExplanation.classList.remove('opened');
-      elements.btnToggleExplanation.innerHTML = '<span>💡 ヒント・解説をみる ▾</span>';
+    // 子どもたちが自分で考え発表する場を作るため、初期起動時は解説非表示（日付移動時は開閉を維持）
+    if (!preserveExplanationState) {
+      if (elements.modalExplanation) {
+        elements.modalExplanation.style.display = 'none';
+      }
+      if (elements.btnToggleExplanation) {
+        elements.btnToggleExplanation.classList.remove('opened');
+        elements.btnToggleExplanation.innerHTML = '<span>💡 ヒント・解説をみる ▾</span>';
+      }
     }
 
+    updateModalPinButtonState();
     elements.moonModal.classList.add('active');
   }
 
@@ -1524,10 +1587,11 @@
 
   // --- イベントリスナーの登録 ---
   function registerEventListeners() {
-    // 再生 / 一時停止
-    elements.btnPlayPause.addEventListener('click', () => {
-      state.isPlaying = !state.isPlaying;
-      if (state.isPlaying) {
+    let suppressNextMoonClick = false;
+
+    function setPlaying(playing) {
+      state.isPlaying = playing;
+      if (playing) {
         elements.iconPlay.style.display = 'none';
         elements.iconPause.style.display = 'block';
         elements.btnPlayPause.style.background = '#dc2626'; // 赤色
@@ -1536,26 +1600,96 @@
         elements.iconPause.style.display = 'none';
         elements.btnPlayPause.style.background = '#2563eb'; // 青色
       }
+    }
+
+    // 再生 / 一時停止
+    elements.btnPlayPause.addEventListener('click', () => {
+      setPlaying(!state.isPlaying);
     });
 
     // コマ戻し / コマ送り (1時間)
     elements.btnStepBack.addEventListener('click', () => {
-      state.isPlaying = false;
-      elements.iconPlay.style.display = 'block';
-      elements.iconPause.style.display = 'none';
-      elements.btnPlayPause.style.background = '#2563eb';
+      setPlaying(false);
       state.currentDate = new Date(state.currentDate.getTime() - 60 * 60 * 1000);
       updateSimulation();
     });
 
     elements.btnStepForward.addEventListener('click', () => {
-      state.isPlaying = false;
-      elements.iconPlay.style.display = 'block';
-      elements.iconPause.style.display = 'none';
-      elements.btnPlayPause.style.background = '#2563eb';
+      setPlaying(false);
       state.currentDate = new Date(state.currentDate.getTime() + 60 * 60 * 1000);
       updateSimulation();
     });
+
+    // 太陽・月を直接ドラッグして時間を前後に動かす
+    function setupCelestialDrag(el, bodyType) {
+      if (!el) return;
+      let activePointerId = null;
+      let startX = 0;
+      let startY = 0;
+      let startTimeMs = 0;
+      let isDragging = false;
+      const DRAG_THRESHOLD_PX = 6;
+      const minutesPerDeg = bodyType === 'sun' ? 4.0 : (1490.3 / 360.0);
+
+      el.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        activePointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
+        startTimeMs = state.currentDate.getTime();
+        isDragging = false;
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch (_) {}
+      });
+
+      el.addEventListener('pointermove', (e) => {
+        if (activePointerId !== e.pointerId) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (!isDragging) {
+          if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+          isDragging = true;
+          setPlaying(false);
+          el.classList.add('dragging');
+          if (bodyType === 'moon' && elements.moonHint) {
+            elements.moonHint.style.display = 'none';
+          }
+        }
+        const { width } = getViewportSize();
+        const safeWidth = Math.max(1, width);
+        const deltaDeg = (dx / safeWidth) * AZ_SPAN;
+        const deltaMinutes = deltaDeg * minutesPerDeg;
+        state.currentDate = new Date(startTimeMs + deltaMinutes * 60 * 1000);
+        updateSimulation();
+      });
+
+      function finishDrag(e) {
+        if (activePointerId !== e.pointerId) return;
+        const wasDragging = isDragging;
+        activePointerId = null;
+        isDragging = false;
+        el.classList.remove('dragging');
+        try {
+          if (el.hasPointerCapture && el.hasPointerCapture(e.pointerId)) {
+            el.releasePointerCapture(e.pointerId);
+          }
+        } catch (_) {}
+        if (wasDragging) {
+          if (bodyType === 'moon') {
+            suppressNextMoonClick = true;
+            setTimeout(() => { suppressNextMoonClick = false; }, 120);
+          }
+          updateSimulation();
+        }
+      }
+
+      el.addEventListener('pointerup', finishDrag);
+      el.addEventListener('pointercancel', finishDrag);
+    }
+
+    setupCelestialDrag(elements.sunElement, 'sun');
+    setupCelestialDrag(elements.moonElement, 'moon');
 
     // タイムスライダー操作 (0 ~ 1440分)
     elements.timeSlider.addEventListener('input', (e) => {
@@ -1916,11 +2050,63 @@
     // 月タップで拡大モーダル（空の月、または右上カードの月・月齢バッジ）
     elements.moonElement.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (suppressNextMoonClick) {
+        suppressNextMoonClick = false;
+        return;
+      }
       openMoonModal();
       if (elements.moonHint) {
         elements.moonHint.style.display = 'none'; // 一度タップしたらヒント消去
       }
     });
+
+    // 拡大モーダル内：同じ時刻のまま 3日前 / 前の日 / 次の日 / 3日後 ＆ この月を空にのこす
+    function stepModalDays(offsetDays) {
+      setPlaying(false);
+      const dt = state.currentDate;
+      state.currentDate = new Date(
+        dt.getFullYear(),
+        dt.getMonth(),
+        dt.getDate() + offsetDays,
+        dt.getHours(),
+        dt.getMinutes(),
+        0
+      );
+      updateSimulation(true);
+      openMoonModal(true);
+    }
+
+    if (elements.btnModalPrev3Day) {
+      elements.btnModalPrev3Day.addEventListener('click', (e) => {
+        e.stopPropagation();
+        stepModalDays(-3);
+      });
+    }
+    if (elements.btnModalPrevDay) {
+      elements.btnModalPrevDay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        stepModalDays(-1);
+      });
+    }
+    if (elements.btnModalNextDay) {
+      elements.btnModalNextDay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        stepModalDays(1);
+      });
+    }
+    if (elements.btnModalNext3Day) {
+      elements.btnModalNext3Day.addEventListener('click', (e) => {
+        e.stopPropagation();
+        stepModalDays(3);
+      });
+    }
+    if (elements.btnModalPinMoon) {
+      elements.btnModalPinMoon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        addPinnedMoon(state.currentDate);
+        updateModalPinButtonState();
+      });
+    }
 
     if (elements.moonBadgeBtn) {
       elements.moonBadgeBtn.addEventListener('click', (e) => {
