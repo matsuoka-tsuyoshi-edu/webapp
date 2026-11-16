@@ -336,6 +336,22 @@
         background: #475569;
         border-left-color: var(--accent-yellow);
     }
+    .block.wait-action {
+        background: #3b0764;
+        border-left-color: #c084fc;
+    }
+    .block.random-action {
+        background: #064e3b;
+        border-left-color: #34d399;
+    }
+    .block.shield-action {
+        background: #083344;
+        border-left-color: #06b6d4;
+    }
+    .block.conditional.energy-cond {
+        background: #4c0519;
+        border-left-color: #f43f5e;
+    }
     .block input[type="text"] {
         width: 45px;
         background: rgba(255, 255, 255, 0.18);
@@ -529,6 +545,82 @@
     .hud-box .hud-sub {
         font-size: 0.75rem;
         color: var(--text-muted);
+    }
+    .hud-energy-container {
+        width: 130px;
+        margin-top: 4px;
+    }
+    .hud-energy-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.65rem;
+        font-family: var(--font-sf);
+        margin-bottom: 2px;
+        opacity: 0.85;
+    }
+    .hud-energy-bar-bg {
+        width: 100%;
+        height: 6px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 3px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .hud-energy-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #39ff14, #00f3ff);
+        border-radius: 3px;
+        transition: width 0.25s ease, background-color 0.25s ease;
+    }
+    .hud-box.opponent .hud-energy-bar-fill {
+        background: linear-gradient(90deg, #ff007f, #ffff00);
+    }
+    .hud-action-tag {
+        font-size: 0.68rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #e2e8f0;
+        max-width: 140px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: 'M PLUS Rounded 1c', sans-serif;
+        margin-top: 3px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        display: inline-block;
+    }
+    .speed-btn-group {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.35);
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--panel-border);
+    }
+    .speed-btn {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--text-muted);
+        padding: 4px 9px;
+        font-size: 0.72rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: var(--font-sf);
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .speed-btn:hover {
+        border-color: var(--accent-cyan);
+        color: var(--text-color);
+        background: rgba(0, 243, 255, 0.08);
+    }
+    .speed-btn.active {
+        background: rgba(0, 243, 255, 0.2);
+        border-color: var(--accent-cyan);
+        color: var(--accent-cyan);
+        box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
     }
 
     #hud-timer-container {
@@ -730,9 +822,12 @@
             <div id="ind-step-3" class="step-indicator" onclick="goToStep(3)">3. 試合会場</div>
         </div>
 
-        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: right;">
-            <div>機体タイプ: <span id="header-robot-type" style="color: var(--accent-green)">NORMAL</span></div>
-            <div>ロボ名: <span id="header-robot-name" style="color: var(--accent-cyan)">マイロボ1</span></div>
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <button id="sound-toggle-btn" class="icon-btn" style="width: 38px; height: 38px; font-size: 1.1rem;" data-tooltip="サウンド ON/OFF">🔊</button>
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: right;">
+                <div>機体タイプ: <span id="header-robot-type" style="color: var(--accent-green)">NORMAL</span> <span style="display: inline-block; background: rgba(0,243,255,0.15); color: var(--accent-cyan); font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--accent-cyan); font-weight: bold; margin-left: 4px; letter-spacing: 0.5px;">v2.0</span></div>
+                <div>ロボ名: <span id="header-robot-name" style="color: var(--accent-cyan)">マイロボ1</span></div>
+            </div>
         </div>
     </header>
 
@@ -771,6 +866,13 @@
                                     <p>重量級で押す力は強いが、動きが遅い</p>
                                 </div>
                             </div>
+                            <div class="type-card" data-type="technical">
+                                <div class="type-icon">🟣</div>
+                                <div class="type-card-text">
+                                    <h3>テクニカル</h3>
+                                    <p>弾幕射撃と回避に優れた知性派タイプ</p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- パラメータゲージ -->
@@ -802,14 +904,21 @@
                                     </div>
                                     <div class="param-bar-bg"><div id="bar-weight" class="param-bar-fill" style="width: 50%; background: var(--accent-green);"></div></div>
                                 </div>
+                                <div class="param-row">
+                                    <div class="param-label-row">
+                                        <span>エナジー (耐久力)</span>
+                                        <span id="txt-energy" style="color: #ffff00">100</span>
+                                    </div>
+                                    <div class="param-bar-bg"><div id="bar-energy" class="param-bar-fill" style="width: 65%; background: #ffff00;"></div></div>
+                                </div>
                             </div>
 
                             <!-- 試合ルール説明 -->
                             <div class="settings-card" style="margin-top: 15px; padding: 12px; font-size: 0.8rem; line-height: 1.4; border-color: rgba(255, 0, 127, 0.3);">
                                 <div class="settings-title" style="font-size: 0.85rem; color: var(--accent-magenta); margin-bottom: 6px;">📜 試合ルール</div>
                                 <ul style="margin: 0; padding-left: 18px; color: var(--accent-cyan); text-align: left;">
-                                    <li style="margin-bottom: 4px;"><strong>勝利条件</strong>: 相手ロボットを土俵（青い線の円）の外に押し出す。</li>
-                                    <li style="margin-bottom: 4px;"><strong>反則負け</strong>: 移動や旋回を行わず、位置も向きも完全に<strong>3秒以上停止</strong>した場合は「反則負け」になります（両者動かない場合は両者反則負け）。</li>
+                                    <li style="margin-bottom: 4px;"><strong>勝利条件</strong>: 相手を土俵の外に押し出す、または<strong>エナジーを削り切る (K.O.)</strong>！</li>
+                                    <li style="margin-bottom: 4px;"><strong>反則負け</strong>: 移動や旋回を行わず、位置も向きも完全に<strong>3秒以上停止</strong>した場合は「反則負け」になります。</li>
                                     <li><strong>引き分け</strong>: 30秒経過しても決着がつかない場合は引き分けです。</li>
                                 </ul>
                             </div>
@@ -831,6 +940,15 @@
                         
                         <!-- アイコンツールバー -->
                         <div class="icon-toolbar">
+                            <div class="menu-container">
+                                <button id="menu-preset-btn" class="icon-btn" data-tooltip="作戦サンプル" style="border-color: rgba(255, 255, 0, 0.3); background: rgba(255, 255, 0, 0.05); color: #ffff00;">💡</button>
+                                <div id="preset-menu" class="dropdown-menu">
+                                    <div class="menu-item" data-preset="charge">⚡ 猪突猛進（突撃型）</div>
+                                    <div class="menu-item" data-preset="sniper">☄️ スナイパー（射撃型）</div>
+                                    <div class="menu-item" data-preset="counter">🛡️ 土俵際カウンター（反撃型）</div>
+                                    <div class="menu-item" data-preset="spin">🌀 トリッキー（旋回撹乱型）</div>
+                                </div>
+                            </div>
                             <div class="menu-container">
                                 <button id="menu-save-btn" class="icon-btn" data-tooltip="マイロボをセーブ">💾</button>
                                 <div id="save-menu" class="dropdown-menu">
@@ -860,6 +978,9 @@
                             <div class="block" data-command="turnToEnemy">あいての ほうこうを むく</div>
                             <div class="block action" data-command="dash">フルパワーで 突撃する</div>
                             <div class="block projectile-action" data-command="shoot">たまを 撃つ ☄️</div>
+                            <div class="block shield-action" data-command="shield">シールドを はる 🛡️</div>
+                            <div class="block wait-action" data-command="wait">すこし <input type="text" value="30" readonly> まつ</div>
+                            <div class="block random-action" data-command="turnRandom">ランダムに まわる 🎲</div>
                             
                             <div class="block conditional" data-command="ifCollision">
                                 もし ぶつかったら
@@ -877,6 +998,20 @@
 
                             <div class="block conditional" data-command="ifNearEdge">
                                 もし 土俵の はしなら
+                                <div class="droppable-slot" data-slot="then"></div>
+                                そうでなければ
+                                <div class="droppable-slot" data-slot="else"></div>
+                            </div>
+
+                            <div class="block conditional energy-cond" data-command="ifLowEnergy">
+                                もし じぶんが ピンチなら (HP30%以下)
+                                <div class="droppable-slot" data-slot="then"></div>
+                                そうでなければ
+                                <div class="droppable-slot" data-slot="else"></div>
+                            </div>
+
+                            <div class="block conditional energy-cond" data-command="ifEnemyLowEnergy">
+                                もし あいてが ピンチなら
                                 <div class="droppable-slot" data-slot="then"></div>
                                 そうでなければ
                                 <div class="droppable-slot" data-slot="else"></div>
@@ -927,10 +1062,30 @@
                                 <div id="hud-my-status" class="hud-box">
                                     <span class="hud-name">自分</span>
                                     <span class="hud-sub">NORMAL</span>
+                                    <div class="hud-energy-container">
+                                        <div class="hud-energy-label">
+                                            <span>ENERGY</span>
+                                            <span id="hud-my-energy-val">100 / 100</span>
+                                        </div>
+                                        <div class="hud-energy-bar-bg">
+                                            <div id="hud-my-energy-bar" class="hud-energy-bar-fill" style="width: 100%;"></div>
+                                        </div>
+                                    </div>
+                                    <div id="hud-my-action" class="hud-action-tag">待機中</div>
                                 </div>
                                 <div id="hud-opp-status" class="hud-box opponent">
                                     <span class="hud-name">相手</span>
                                     <span class="hud-sub">NORMAL</span>
+                                    <div class="hud-energy-container">
+                                        <div class="hud-energy-label">
+                                            <span>ENERGY</span>
+                                            <span id="hud-opp-energy-val">100 / 100</span>
+                                        </div>
+                                        <div class="hud-energy-bar-bg">
+                                            <div id="hud-opp-energy-bar" class="hud-energy-bar-fill" style="width: 100%;"></div>
+                                        </div>
+                                    </div>
+                                    <div id="hud-opp-action" class="hud-action-tag">待機中</div>
                                 </div>
                             </div>
                             <div id="canvas-container">
@@ -950,6 +1105,7 @@
                                             <option value="ai-easy">初号機 (スピードタイプ)</option>
                                             <option value="ai-normal" selected>弐号機 (ノーマルタイプ)</option>
                                             <option value="ai-hard">参号機 (パワータイプ)</option>
+                                            <option value="ai-technical">四号機 (テクニカルタイプ)</option>
                                         </select>
                                     </div>
                                     <div>
@@ -963,6 +1119,15 @@
                                         <input type="file" id="import-opponent-file-input" accept=".json" style="display: none;">
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- 試合速度コントロール -->
+                            <div class="speed-btn-group">
+                                <span style="font-size: 0.72rem; color: var(--text-muted); margin-right: 4px;">⚡ 速度:</span>
+                                <button class="speed-btn" data-speed="0.5">0.5x</button>
+                                <button class="speed-btn active" data-speed="1.0">1.0x</button>
+                                <button class="speed-btn" data-speed="1.5">1.5x</button>
+                                <button class="speed-btn" data-speed="2.0">2.0x</button>
                             </div>
 
                             <!-- 試合開始コントロール -->
@@ -1026,6 +1191,112 @@
 
 <script>
     // ==========================================
+    // 0. サウンドシステム (Web Audio API)
+    // ==========================================
+    class SoundEngine {
+        constructor() {
+            this.ctx = null;
+            this.enabled = true;
+        }
+        init() {
+            if (!this.ctx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) this.ctx = new AudioCtx();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        }
+        toggle() {
+            this.enabled = !this.enabled;
+            return this.enabled;
+        }
+        playBeep(freq, type = 'sine', duration = 0.1, gainVal = 0.1) {
+            if (!this.enabled) return;
+            try {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            } catch(e) {}
+        }
+        playGong() {
+            if (!this.enabled) return;
+            this.playBeep(260, 'sine', 0.8, 0.25);
+            setTimeout(() => this.playBeep(390, 'triangle', 0.9, 0.2), 30);
+        }
+        playHit() {
+            if (!this.enabled) return;
+            this.playBeep(120, 'square', 0.12, 0.2);
+            setTimeout(() => this.playBeep(80, 'triangle', 0.18, 0.25), 20);
+        }
+        playDash() {
+            if (!this.enabled) return;
+            this.playBeep(440, 'sawtooth', 0.25, 0.15);
+        }
+        playShoot() {
+            if (!this.enabled) return;
+            try {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            } catch(e) {}
+        }
+        playBulletHit() {
+            if (!this.enabled) return;
+            this.playBeep(180, 'square', 0.2, 0.2);
+        }
+        playShield() {
+            if (!this.enabled) return;
+            this.playBeep(600, 'sine', 0.15, 0.15);
+            setTimeout(() => this.playBeep(900, 'sine', 0.2, 0.18), 40);
+        }
+        playKoExplosion() {
+            if (!this.enabled) return;
+            this.playBeep(70, 'sawtooth', 0.6, 0.35);
+            setTimeout(() => this.playBeep(45, 'square', 0.8, 0.4), 30);
+        }
+        playEdgeWarning() {
+            if (!this.enabled) return;
+            this.playBeep(700, 'sine', 0.1, 0.12);
+            setTimeout(() => this.playBeep(700, 'sine', 0.1, 0.12), 120);
+        }
+        playWin() {
+            if (!this.enabled) return;
+            const notes = [523.25, 659.25, 783.99, 1046.5];
+            notes.forEach((freq, idx) => {
+                setTimeout(() => this.playBeep(freq, 'triangle', 0.3, 0.22), idx * 120);
+            });
+        }
+        playLose() {
+            if (!this.enabled) return;
+            const notes = [440, 415.3, 392, 349.2];
+            notes.forEach((freq, idx) => {
+                setTimeout(() => this.playBeep(freq, 'sawtooth', 0.25, 0.18), idx * 150);
+            });
+        }
+    }
+    const sound = new SoundEngine();
+
+    // ==========================================
     // 1. 基本設定と定数定義
     // ==========================================
     const LOCAL_STORAGE_KEY = 'robosumou_my_robots';
@@ -1036,6 +1307,7 @@
             speed: 6.0,
             force: 1.0,
             weight: 1.0,
+            maxEnergy: 100,
             color: '#39ff14', // ネオングリーン
             icon: '🟢',
             label: 'ノーマル'
@@ -1045,6 +1317,7 @@
             speed: 9.0,
             force: 0.7,
             weight: 0.6,
+            maxEnergy: 80,
             color: '#00f3ff', // ネオンシアン
             icon: '🔵',
             label: 'スピード'
@@ -1054,10 +1327,75 @@
             speed: 4.0,
             force: 1.6,
             weight: 1.7,
+            maxEnergy: 130,
             color: '#ff007f', // ネオンレッド
             icon: '🔴',
             label: 'パワー'
+        },
+        technical: {
+            type: 'technical',
+            speed: 7.5,
+            force: 1.1,
+            weight: 0.9,
+            maxEnergy: 90,
+            color: '#a855f7', // ネオンパープル
+            icon: '🟣',
+            label: 'テクニカル'
         }
+    };
+
+    // 初心者向け作戦プリセット
+    const PRESET_PROGRAMS = {
+        charge: [
+            { command: 'turnToEnemy' },
+            { command: 'dash' },
+            { command: 'forward', value: 160 }
+        ],
+        sniper: [
+            { command: 'turnToEnemy' },
+            { command: 'shoot' },
+            {
+                command: 'ifEnemyAhead',
+                then: [
+                    { command: 'shoot' },
+                    { command: 'backward', value: 40 }
+                ],
+                else: [
+                    { command: 'turnRight', value: 45 }
+                ]
+            }
+        ],
+        counter: [
+            {
+                command: 'ifLowEnergy',
+                then: [
+                    { command: 'shield' },
+                    { command: 'turnToEnemy' },
+                    { command: 'shoot' }
+                ],
+                else: [
+                    {
+                        command: 'ifNearEdge',
+                        then: [
+                            { command: 'turnRight', value: 180 },
+                            { command: 'dash' },
+                            { command: 'forward', value: 120 }
+                        ],
+                        else: [
+                            { command: 'turnToEnemy' },
+                            { command: 'forward', value: 60 }
+                        ]
+                    }
+                ]
+            }
+        ],
+        spin: [
+            { command: 'shield' },
+            { command: 'turnRandom' },
+            { command: 'forward', value: 50 },
+            { command: 'turnToEnemy' },
+            { command: 'shoot' }
+        ]
     };
 
     let currentRobotType = 'normal';
@@ -1073,6 +1411,30 @@
     const startBattleBtn = document.getElementById('start-battle-btn');
     const resetBattleBtn = document.getElementById('reset-battle-btn');
     const battleStatusMsg = document.getElementById('battle-status-msg');
+    const soundToggleBtn = document.getElementById('sound-toggle-btn');
+    const menuPresetBtn = document.getElementById('menu-preset-btn');
+    const presetMenu = document.getElementById('preset-menu');
+    const hudMyAction = document.getElementById('hud-my-action');
+    const hudOppAction = document.getElementById('hud-opp-action');
+    const hudMyEnergyVal = document.getElementById('hud-my-energy-val');
+    const hudMyEnergyBar = document.getElementById('hud-my-energy-bar');
+    const hudOppEnergyVal = document.getElementById('hud-opp-energy-val');
+    const hudOppEnergyBar = document.getElementById('hud-opp-energy-bar');
+    let simSpeedMultiplier = 1.0;
+
+    // サウンドON/OFF切り替え
+    if (soundToggleBtn) {
+        soundToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const enabled = sound.toggle();
+            soundToggleBtn.textContent = enabled ? '🔊' : '🔇';
+            soundToggleBtn.style.opacity = enabled ? '1' : '0.5';
+            logDebug(`サウンドを ${enabled ? '有効' : 'ミュート'} にしました。`);
+        });
+    }
+
+    // 初回操作時のオーディオアンロック
+    document.addEventListener('pointerdown', () => sound.init(), { once: true });
     
     // 実況ログ・システムログの初期化
     const debugConsole = document.getElementById('debug-console');
@@ -1160,10 +1522,15 @@
         const speedPercent = Math.min((template.speed / 10) * 100, 100);
         const forcePercent = Math.min((template.force / 2) * 100, 100);
         const weightPercent = Math.min((template.weight / 2) * 100, 100);
+        const energyPercent = Math.min(((template.maxEnergy || 100) / 150) * 100, 100);
 
         document.getElementById('bar-speed').style.width = speedPercent + '%';
         document.getElementById('bar-force').style.width = forcePercent + '%';
         document.getElementById('bar-weight').style.width = weightPercent + '%';
+        const barEnergy = document.getElementById('bar-energy');
+        const txtEnergy = document.getElementById('txt-energy');
+        if (barEnergy) barEnergy.style.width = energyPercent + '%';
+        if (txtEnergy) txtEnergy.textContent = template.maxEnergy || 100;
 
         document.getElementById('txt-speed').textContent = template.speed;
         document.getElementById('txt-force').textContent = template.force;
@@ -1476,6 +1843,32 @@
     const opponentSavedSelect = document.getElementById('opponent-saved-select');
 
     // トグル制御 (STEP 2)
+    if (menuPresetBtn) {
+        menuPresetBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const active = presetMenu.style.display === 'block';
+            closeAllMenus();
+            if (!active) presetMenu.style.display = 'block';
+        });
+
+        presetMenu.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const presetKey = item.dataset.preset;
+                const prog = PRESET_PROGRAMS[presetKey];
+                if (prog) {
+                    if (workspace.children.length > 0 && !confirm('現在のプログラムを上書きして作戦サンプルを読み込みますか？')) {
+                        closeAllMenus();
+                        return;
+                    }
+                    buildWorkspace(prog, workspace);
+                    sound.playBeep(520, 'sine', 0.15);
+                    logDebug(`作戦サンプル「${item.textContent.trim()}」をワークスペースに展開しました。`);
+                    closeAllMenus();
+                }
+            });
+        });
+    }
+
     menuSaveBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const active = saveMenu.style.display === 'block';
@@ -1510,6 +1903,7 @@
     });
 
     function closeAllMenus() {
+        if (presetMenu) presetMenu.style.display = 'none';
         saveMenu.style.display = 'none';
         loadMenu.style.display = 'none';
         saveMenu3.style.display = 'none';
@@ -1766,6 +2160,10 @@
     let simInterval = null;
     let particles = [];
     let projectiles = [];
+    let confetti = [];
+    let damageTexts = [];
+    let shockwaves = [];
+    let screenShake = 0;
     let fileOpponent = null;
     
     let state = {
@@ -1838,8 +2236,92 @@
                     }
                 ]
             }
+        ],
+        technical: [
+            {
+                command: 'ifLowEnergy',
+                then: [
+                    { command: 'shield' },
+                    { command: 'backward', value: 80 },
+                    { command: 'turnToEnemy' },
+                    { command: 'shoot' }
+                ],
+                else: [
+                    {
+                        command: 'ifNearEdge',
+                        then: [
+                            { command: 'backward', value: 100 },
+                            { command: 'turnRight', value: 90 }
+                        ],
+                        else: [
+                            { command: 'turnToEnemy' },
+                            {
+                                command: 'ifEnemyAhead',
+                                then: [
+                                    { command: 'shoot' },
+                                    { command: 'wait', value: 10 },
+                                    { command: 'dash' }
+                                ],
+                                else: [
+                                    { command: 'forward', value: 70 },
+                                    { command: 'turnRandom' }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
         ]
     };
+
+    function updateEnergyHud() {
+        if (!state.players || state.players.length < 2) return;
+        const [p1, p2] = state.players;
+        if (hudMyEnergyVal) hudMyEnergyVal.textContent = `${Math.max(0, Math.round(p1.energy))} / ${p1.maxEnergy}`;
+        if (hudMyEnergyBar) {
+            const pct1 = Math.max(0, Math.min(100, (p1.energy / p1.maxEnergy) * 100));
+            hudMyEnergyBar.style.width = pct1 + '%';
+            if (pct1 <= 30) {
+                hudMyEnergyBar.style.background = '#ff0055';
+            } else {
+                hudMyEnergyBar.style.background = 'linear-gradient(90deg, #39ff14, #00f3ff)';
+            }
+        }
+        if (hudOppEnergyVal) hudOppEnergyVal.textContent = `${Math.max(0, Math.round(p2.energy))} / ${p2.maxEnergy}`;
+        if (hudOppEnergyBar) {
+            const pct2 = Math.max(0, Math.min(100, (p2.energy / p2.maxEnergy) * 100));
+            hudOppEnergyBar.style.width = pct2 + '%';
+            if (pct2 <= 30) {
+                hudOppEnergyBar.style.background = '#ff0055';
+            } else {
+                hudOppEnergyBar.style.background = 'linear-gradient(90deg, #ff007f, #ffff00)';
+            }
+        }
+    }
+
+    function createDamageText(x, y, text, color = '#ff0055') {
+        damageTexts.push({
+            x: x + (Math.random() - 0.5) * 12,
+            y: y,
+            text: text,
+            color: color,
+            alpha: 1.0,
+            vy: -1.6,
+            life: 45
+        });
+    }
+
+    function createShockwave(x, y, color = '#ffffff', maxR = 90) {
+        shockwaves.push({
+            x: x,
+            y: y,
+            radius: 5,
+            maxRadius: maxR,
+            color: color,
+            alpha: 0.9,
+            life: 25
+        });
+    }
 
     function resetSimulation() {
         logDebug('シミュレーションをリセットします。');
@@ -1856,6 +2338,12 @@
         state.lastTurnTime = { player: 0, opponent: 0 };
         particles = [];
         projectiles = [];
+        confetti = [];
+        damageTexts = [];
+        shockwaves = [];
+        screenShake = 0;
+        if (hudMyAction) hudMyAction.textContent = '待機中';
+        if (hudOppAction) hudOppAction.textContent = '待機中';
         
         document.getElementById('hud-timer-container').textContent = '30.0s';
         document.getElementById('hud-timer-container').style.color = 'var(--accent-magenta)';
@@ -1869,7 +2357,7 @@
             currentRobotType = 'normal';
         }
         const p1Prog = serializeProgram(workspace);
-        logDebug(`自分の機体設定: 名「${robotName}」(タイプ: ${currentRobotType}, 速度: ${myTemplate.speed}, ブロック数: ${p1Prog ? p1Prog.length : 0})`);
+        logDebug(`自分の機体設定: 名「${robotName}」(タイプ: ${currentRobotType}, 速度: ${myTemplate.speed}, エナジー: ${myTemplate.maxEnergy || 100}, ブロック数: ${p1Prog ? p1Prog.length : 0})`);
         
         const player1 = {
             id: 'player',
@@ -1882,6 +2370,10 @@
             speed: myTemplate.speed,
             force: myTemplate.force,
             weight: myTemplate.weight,
+            maxEnergy: myTemplate.maxEnergy || 100,
+            energy: myTemplate.maxEnergy || 100,
+            isShielding: 0,
+            damageCooldown: 0,
             color: myTemplate.color,
             isColliding: false,
             
@@ -1936,6 +2428,10 @@
                 oppName = '参号機';
                 oppType = 'power';
                 oppProgram = AI_PROGRAMS.hard;
+            } else if (opponentType === 'ai-technical') {
+                oppName = '四号機';
+                oppType = 'technical';
+                oppProgram = AI_PROGRAMS.technical;
             }
             logDebug(`対戦相手に「${oppName}」を設定しました。(タイプ: ${oppType}, ブロック数: ${oppProgram ? oppProgram.length : 0})`);
         }
@@ -1952,6 +2448,10 @@
             speed: oppTemplate.speed,
             force: oppTemplate.force,
             weight: oppTemplate.weight,
+            maxEnergy: oppTemplate.maxEnergy || 100,
+            energy: oppTemplate.maxEnergy || 100,
+            isShielding: 0,
+            damageCooldown: 0,
             color: oppTemplate.color,
             isColliding: false,
             
@@ -1981,6 +2481,7 @@
         document.getElementById('hud-opp-status').style.borderColor = oppTemplate.color;
         document.getElementById('hud-opp-status').style.color = oppTemplate.color;
 
+        updateEnergyHud();
         drawArena();
         
         // 試合前の実況アナウンス
@@ -2056,8 +2557,33 @@
                 player.ip++;
                 if (player.shootCooldown === 0) {
                     fireProjectile(player);
+                    updateHudAction(player, '☄️ たま発射');
                 }
                 continue;
+            }
+            else if (cmd === 'shield') {
+                player.ip++;
+                player.isShielding = 90; // 90フレーム(約1.5秒)持続
+                player.currentAction = { command: 'shield', progress: 0, total: 25 };
+                sound.playShield();
+                createShockwave(player.x, player.y, '#00f3ff', 55);
+                updateHudAction(player, '🛡️ シールド展開');
+                break;
+            }
+            else if (cmd === 'wait') {
+                player.ip++;
+                const frames = Math.max(1, value || 30);
+                player.currentAction = { command: 'wait', progress: 0, total: frames };
+                updateHudAction(player, `⏳ まつ (${frames}コマ)`);
+                break;
+            }
+            else if (cmd === 'turnRandom') {
+                player.ip++;
+                const randAngle = (Math.floor(Math.random() * 8) + 1) * 45;
+                const turnCmd = Math.random() > 0.5 ? 'turnRight' : 'turnLeft';
+                player.currentAction = { command: turnCmd, progress: 0, total: randAngle };
+                updateHudAction(player, `🎲 ランダム旋回 (${randAngle}°)`);
+                break;
             }
             else if (cmd === 'turnToEnemy') {
                 player.ip++;
@@ -2065,6 +2591,7 @@
                 if (Math.abs(diff) >= 2) {
                     const turnCmd = diff > 0 ? 'turnRight' : 'turnLeft';
                     player.currentAction = { command: turnCmd, progress: 0, total: Math.round(Math.abs(diff)) };
+                    updateHudAction(player, '🎯 敵を向く');
                     break;
                 }
                 continue;
@@ -2074,19 +2601,25 @@
 
                 if (cmd === 'forward') {
                     player.currentAction = { command: 'forward', progress: 0, total: value };
+                    updateHudAction(player, `⬆️ 前進 (${value})`);
                 } else if (cmd === 'backward') {
                     player.currentAction = { command: 'backward', progress: 0, total: value };
+                    updateHudAction(player, `⬇️ 後退 (${value})`);
                 } else if (cmd === 'turnRight') {
                     player.currentAction = { command: 'turnRight', progress: 0, total: value };
+                    updateHudAction(player, `↪️ 右旋回 (${value}°)`);
                 } else if (cmd === 'turnLeft') {
                     player.currentAction = { command: 'turnLeft', progress: 0, total: value };
+                    updateHudAction(player, `↩️ 左旋回 (${value}°)`);
                 } else if (cmd === 'dash') {
                     player.isDashing = 60;
                     player.currentAction = { command: 'dash', progress: 0, total: 20 };
+                    sound.playDash();
+                    updateHudAction(player, '⚡ フルパワー突撃');
                 }
                 break;
             } 
-            else if (cmd === 'ifCollision' || cmd === 'ifEnemyAhead' || cmd === 'ifNearEdge') {
+            else if (cmd === 'ifCollision' || cmd === 'ifEnemyAhead' || cmd === 'ifNearEdge' || cmd === 'ifLowEnergy' || cmd === 'ifEnemyLowEnergy') {
                 let conditionMet = false;
                 if (cmd === 'ifCollision') {
                     conditionMet = player.isColliding;
@@ -2097,6 +2630,10 @@
                 } else if (cmd === 'ifNearEdge') {
                     const distFromCenter = getDistance(player.x, player.y, CANVAS_CENTER.x, CANVAS_CENTER.y);
                     conditionMet = distFromCenter > 280;
+                } else if (cmd === 'ifLowEnergy') {
+                    conditionMet = (player.energy / player.maxEnergy) <= 0.35;
+                } else if (cmd === 'ifEnemyLowEnergy') {
+                    conditionMet = (opponent.energy / opponent.maxEnergy) <= 0.35;
                 }
 
                 const subProg = conditionMet ? instruction.then : instruction.else;
@@ -2118,12 +2655,23 @@
         }
     }
 
+    function updateHudAction(player, label) {
+        const el = (player.id === 'player') ? hudMyAction : hudOppAction;
+        if (el) el.textContent = label;
+    }
+
     function progressAction(player) {
         const act = player.currentAction;
         let speedMultiplier = player.isDashing > 0 ? 1.6 : 1.0;
         const currentSpeed = player.speed * speedMultiplier;
 
-        if (act.command === 'forward') {
+        if (act.command === 'wait') {
+            act.progress += 1;
+            if (act.progress >= act.total) player.currentAction = null;
+        } else if (act.command === 'shield') {
+            act.progress += 1;
+            if (act.progress >= act.total) player.currentAction = null;
+        } else if (act.command === 'forward') {
             const step = Math.min(currentSpeed, act.total - act.progress);
             const rad = player.angle * Math.PI / 180;
             player.x += Math.cos(rad) * step;
@@ -2158,6 +2706,7 @@
     }
 
     function fireProjectile(player) {
+        sound.playShoot();
         const rad = player.angle * Math.PI / 180;
         const startX = player.x + Math.cos(rad) * (player.radius + 10);
         const startY = player.y + Math.sin(rad) * (player.radius + 10);
@@ -2214,14 +2763,30 @@
         state.isRunning = true;
         logDebug('シミュレーションを開始しました。');
         logDebug('実況: 🟢 さぁ、はっけよい、のこった！！');
+        sound.playGong();
         let lastTime = performance.now();
+        let loopFrameCount = 0;
 
         function loop(timestamp) {
             if (!state.isRunning) return;
-            const dt = (timestamp - lastTime) / 1000;
+            const rawDt = (timestamp - lastTime) / 1000;
             lastTime = timestamp;
+            const dt = Math.min(rawDt, 0.1) * simSpeedMultiplier;
+            loopFrameCount++;
 
-            updatePhysics();
+            // 速度に応じた物理更新ステップ
+            if (simSpeedMultiplier === 0.5) {
+                if (loopFrameCount % 2 === 0) updatePhysics();
+            } else if (simSpeedMultiplier === 1.5) {
+                updatePhysics();
+                if (loopFrameCount % 2 === 0) updatePhysics();
+            } else if (simSpeedMultiplier === 2.0) {
+                updatePhysics();
+                updatePhysics();
+            } else {
+                updatePhysics();
+            }
+
             drawArena();
             updateTimer(dt);
 
@@ -2261,11 +2826,83 @@
         }
     }
 
+    function checkKo(player) {
+        if (!state.isRunning) return;
+        if (player.energy <= 0) {
+            player.energy = 0;
+            updateEnergyHud();
+            createKoExplosion(player.x, player.y);
+            sound.playKoExplosion();
+            screenShake = 24;
+            
+            const winner = state.players.find(p => p.id !== player.id);
+            logDebug(`実況: 💥 K.O.！！「${player.name}」のエナジーゼロ！機能停止ーーー！！`);
+            logDebug(`実況: 🏆「${winner.name}」のK.O.勝利！！`);
+            
+            if (winner.id === 'player') {
+                endBattle('🎉 K.O.しょうり！！ (相手機能停止) 🎉', 'var(--accent-green)');
+            } else {
+                endBattle('💥 K.O.まけ... (機能停止) 💥', 'var(--accent-magenta)');
+            }
+        }
+    }
+
+    function createKoExplosion(x, y) {
+        createShockwave(x, y, '#ff0055', 150);
+        createShockwave(x, y, '#ffff00', 100);
+        for (let i = 0; i < 45; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 9;
+            particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: 3.5 + Math.random() * 6.5,
+                life: 1.3,
+                decay: 0.02 + Math.random() * 0.025,
+                color: Math.random() > 0.4 ? '#ff0055' : '#ffff00'
+            });
+        }
+    }
+
     function updatePhysics() {
         const [p1, p2] = state.players;
 
         executeRobotBrain(p1, p2);
         executeRobotBrain(p2, p1);
+
+        // シールド時間の減衰
+        if (p1.isShielding > 0) p1.isShielding--;
+        if (p2.isShielding > 0) p2.isShielding--;
+
+        // ピンチ状態の煙・スパーク放出
+        state.players.forEach(p => {
+            if (p.energy / p.maxEnergy <= 0.35 && Math.random() < 0.3) {
+                particles.push({
+                    x: p.x + (Math.random() - 0.5) * 16,
+                    y: p.y + (Math.random() - 0.5) * 16,
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: -1.5 - Math.random() * 2,
+                    size: 3.5 + Math.random() * 4.5,
+                    life: 0.7,
+                    decay: 0.035,
+                    color: 'rgba(90, 90, 90, 0.7)'
+                });
+                if (Math.random() < 0.4) {
+                    particles.push({
+                        x: p.x + (Math.random() - 0.5) * 20,
+                        y: p.y + (Math.random() - 0.5) * 20,
+                        vx: (Math.random() - 0.5) * 4,
+                        vy: (Math.random() - 0.5) * 4,
+                        size: 2,
+                        life: 0.5,
+                        decay: 0.06,
+                        color: Math.random() > 0.5 ? '#00f3ff' : '#ffff00'
+                    });
+                }
+            }
+        });
 
         p1.x += p1.vx; p1.y += p1.vy;
         p2.x += p2.vx; p2.y += p2.vy;
@@ -2289,15 +2926,32 @@
             if (dist < bullet.radius + target.radius) {
                 createHitSparks(bullet.x, bullet.y, bullet.color);
 
-                const impulse = 12.0 / target.weight;
-                const rad = Math.atan2(bullet.vy, bullet.vx);
-                target.vx += Math.cos(rad) * impulse;
-                target.vy += Math.sin(rad) * impulse;
+                // シールド展開中の判定
+                if (target.isShielding > 0) {
+                    createShockwave(bullet.x, bullet.y, '#00f3ff', 45);
+                    createDamageText(target.x, target.y - 30, 'GUARD!', '#00f3ff');
+                    sound.playHit();
+                    logDebug(`実況: 🛡️「${target.name}」がシールドで弾を完全に防いだ！`);
+                } else {
+                    sound.playBulletHit();
+                    const damage = 20;
+                    target.energy = Math.max(0, target.energy - damage);
+                    createDamageText(target.x, target.y - 30, `-${damage}`, '#ff0055');
+                    createShockwave(target.x, target.y, '#ff0055', 60);
+                    screenShake = 8;
+                    updateEnergyHud();
 
-                target.currentAction = null;
+                    const impulse = 12.0 / target.weight;
+                    const rad = Math.atan2(bullet.vy, bullet.vx);
+                    target.vx += Math.cos(rad) * impulse;
+                    target.vy += Math.sin(rad) * impulse;
 
-                // 弾の直撃実況
-                logDebug(`実況: 🎯「${target.name}」に飛び道具が直撃！ノックバック！`);
+                    target.currentAction = null;
+
+                    // 弾の直撃実況
+                    logDebug(`実況: 🎯「${target.name}」に飛び道具が直撃！ノックバック＆エナジー20減少！`);
+                    checkKo(target);
+                }
 
                 projectiles.splice(i, 1);
                 continue;
@@ -2317,18 +2971,47 @@
         const wasColliding = p1.isColliding || p2.isColliding;
 
         if (distance < minDist) {
+            const p1Dashing = p1.isDashing > 0;
+            const p2Dashing = p2.isDashing > 0;
+
             if (!wasColliding) {
-                const p1Dashing = p1.isDashing > 0;
-                const p2Dashing = p2.isDashing > 0;
-                if (p1Dashing && p2Dashing) {
-                    logDebug(`実況: 💥 おおっと！両者フルパワーで正面衝突！すさまじい火花が飛び散る！`);
-                } else if (p1Dashing) {
-                    logDebug(`実況: 💥「${p1.name}」が怒涛の突撃！「${p2.name}」に激しくぶつかった！`);
-                } else if (p2Dashing) {
-                    logDebug(`実況: 💥「${p2.name}」がダッシュで突撃！「${p1.name}」ががっちり受け止める！`);
+                sound.playHit();
+                
+                // 激突ダメージの計算
+                let dmg1to2 = p1Dashing ? 25 : 8;
+                let dmg2to1 = p2Dashing ? 25 : 8;
+
+                if (p2.isShielding > 0) {
+                    dmg1to2 = 0;
+                    createDamageText(p2.x, p2.y - 30, 'GUARD!', '#00f3ff');
                 } else {
-                    logDebug(`実況: 💥 おおっと、はげしいぶつかり合いだ！`);
+                    p2.energy = Math.max(0, p2.energy - dmg1to2);
+                    createDamageText(p2.x, p2.y - 30, `-${dmg1to2}`, p1Dashing ? '#ff007f' : '#ffff00');
                 }
+
+                if (p1.isShielding > 0) {
+                    dmg2to1 = 0;
+                    createDamageText(p1.x, p1.y - 30, 'GUARD!', '#00f3ff');
+                } else {
+                    p1.energy = Math.max(0, p1.energy - dmg2to1);
+                    createDamageText(p1.x, p1.y - 30, `-${dmg2to1}`, p2Dashing ? '#ff007f' : '#ffff00');
+                }
+
+                screenShake = (p1Dashing || p2Dashing) ? 14 : 6;
+                updateEnergyHud();
+
+                if (p1Dashing && p2Dashing) {
+                    logDebug(`実況: 💥 おおっと！両者フルパワーで正面衝突！すさまじい火花とお互いに大ダメージ！`);
+                } else if (p1Dashing) {
+                    logDebug(`実況: 💥「${p1.name}」が怒涛の突撃！「${p2.name}」に強烈な激突ダメージ！`);
+                } else if (p2Dashing) {
+                    logDebug(`実況: 💥「${p2.name}」がダッシュで突撃！「${p1.name}」に強烈な激突ダメージ！`);
+                } else {
+                    logDebug(`実況: 💥 おおっと、はげしいぶつかり合い！エナジー削り合いだ！`);
+                }
+
+                checkKo(p1);
+                checkKo(p2);
             }
 
             p1.isColliding = true;
@@ -2343,9 +3026,11 @@
             if (nowTime - state.lastEdgeWarningTime > 2500) { // 2.5秒の間隔
                 if (dist1 > DOHYO_RADIUS - 60) {
                     logDebug(`実況: ⚠️ あぶない！「${p1.name}」が土俵際まで追い詰められた！こらえられるか！？`);
+                    sound.playEdgeWarning();
                     state.lastEdgeWarningTime = nowTime;
                 } else if (dist2 > DOHYO_RADIUS - 60) {
                     logDebug(`実況: ⚠️ チャンス！「${p2.name}」が土俵際に押し出されそうだ！`);
+                    sound.playEdgeWarning();
                     state.lastEdgeWarningTime = nowTime;
                 }
             }
@@ -2526,6 +3211,56 @@
         logDebug(`シミュレーションが終了しました: ${message}`);
         battleStatusMsg.textContent = message;
         battleStatusMsg.style.color = color;
+
+        if (message.includes('かち') || message.includes('勝ち')) {
+            sound.playWin();
+            createConfetti();
+        } else if (message.includes('まけ') || message.includes('負け') || message.includes('引き分け')) {
+            sound.playLose();
+        }
+    }
+
+    function createConfetti() {
+        confetti = [];
+        const colors = ['#00f3ff', '#ff007f', '#39ff14', '#ffff00', '#ffffff', '#a855f7'];
+        for (let i = 0; i < 90; i++) {
+            confetti.push({
+                x: CANVAS_CENTER.x + (Math.random() - 0.5) * 500,
+                y: CANVAS_CENTER.y - 120 - Math.random() * 280,
+                vx: (Math.random() - 0.5) * 6,
+                vy: 2 + Math.random() * 4.5,
+                w: 7 + Math.random() * 6,
+                h: 5 + Math.random() * 5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rot: Math.random() * 360,
+                vRot: (Math.random() - 0.5) * 12,
+                life: 160
+            });
+        }
+
+        let confettiAnimId = null;
+        function runConfettiLoop() {
+            if (confetti.length === 0 || state.isRunning) return;
+            updateConfetti();
+            drawArena();
+            if (confetti.length > 0) {
+                confettiAnimId = requestAnimationFrame(runConfettiLoop);
+            }
+        }
+        requestAnimationFrame(runConfettiLoop);
+    }
+
+    function updateConfetti() {
+        for (let i = confetti.length - 1; i >= 0; i--) {
+            const c = confetti[i];
+            c.x += c.vx;
+            c.y += c.vy;
+            c.rot += c.vRot;
+            c.life--;
+            if (c.life <= 0 || c.y > canvas.height) {
+                confetti.splice(i, 1);
+            }
+        }
     }
 
     // ==========================================
@@ -2533,6 +3268,16 @@
     // ==========================================
     function drawArena() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+
+        // 画面シェイク
+        if (screenShake > 0) {
+            const shakeX = (Math.random() - 0.5) * screenShake;
+            const shakeY = (Math.random() - 0.5) * screenShake;
+            ctx.translate(shakeX, shakeY);
+            screenShake *= 0.88;
+            if (screenShake < 0.5) screenShake = 0;
+        }
 
         // 1. 土俵
         ctx.save();
@@ -2590,6 +3335,21 @@
 
         // 3. ロボットの描画
         state.players.forEach(p => {
+            // シールドエフェクト
+            if (p.isShielding > 0) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius + 15, 0, Math.PI * 2);
+                ctx.strokeStyle = '#00f3ff';
+                ctx.lineWidth = 3;
+                ctx.fillStyle = 'rgba(0, 243, 255, 0.2)';
+                ctx.shadowColor = '#00f3ff';
+                ctx.shadowBlur = 16;
+                ctx.stroke();
+                ctx.fill();
+                ctx.restore();
+            }
+
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.rotate(p.angle * Math.PI / 180);
@@ -2669,10 +3429,25 @@
 
             ctx.restore();
 
+            // 頭上ミニHPバー
+            const barW = 46;
+            const barH = 5;
+            const barX = p.x - barW / 2;
+            const barY = p.y - p.radius - 24;
+            const ratio = Math.max(0, Math.min(1, p.energy / p.maxEnergy));
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(barX, barY, barW, barH);
+            ctx.fillStyle = ratio <= 0.3 ? '#ff0055' : p.color;
+            ctx.fillRect(barX, barY, barW * ratio, barH);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(barX, barY, barW, barH);
+
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 14px var(--font-sf)';
+            ctx.font = 'bold 13px var(--font-sf)';
             ctx.textAlign = 'center';
-            ctx.fillText(p.name, p.x, p.y - p.radius - 14);
+            ctx.fillText(p.name, p.x, p.y - p.radius - 10);
         });
 
         // 4. パーティクルの描画
@@ -2682,6 +3457,55 @@
             ctx.fillStyle = pt.color;
             ctx.fill();
         });
+
+        // 5. 衝撃波リング
+        for (let i = shockwaves.length - 1; i >= 0; i--) {
+            const sw = shockwaves[i];
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = sw.color;
+            ctx.lineWidth = 4 * (sw.life / 25);
+            ctx.globalAlpha = sw.alpha;
+            ctx.stroke();
+            ctx.restore();
+            
+            sw.radius += (sw.maxRadius - sw.radius) * 0.22;
+            sw.alpha -= 0.04;
+            sw.life--;
+            if (sw.life <= 0 || sw.alpha <= 0) shockwaves.splice(i, 1);
+        }
+
+        // 6. ダメージテキスト
+        for (let i = damageTexts.length - 1; i >= 0; i--) {
+            const dt = damageTexts[i];
+            ctx.save();
+            ctx.font = '900 16px var(--font-sf)';
+            ctx.fillStyle = dt.color;
+            ctx.shadowColor = dt.color;
+            ctx.shadowBlur = 8;
+            ctx.globalAlpha = dt.alpha;
+            ctx.textAlign = 'center';
+            ctx.fillText(dt.text, dt.x, dt.y);
+            ctx.restore();
+
+            dt.y += dt.vy;
+            dt.alpha -= 0.022;
+            dt.life--;
+            if (dt.life <= 0 || dt.alpha <= 0) damageTexts.splice(i, 1);
+        }
+
+        // 7. 紙吹雪の描画
+        confetti.forEach(c => {
+            ctx.save();
+            ctx.translate(c.x, c.y);
+            ctx.rotate(c.rot * Math.PI / 180);
+            ctx.fillStyle = c.color;
+            ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+            ctx.restore();
+        });
+
+        ctx.restore();
     }
 
     function createSparks(x, y) {
@@ -2753,6 +3577,49 @@
 
     resetBattleBtn.addEventListener('click', () => {
         resetSimulation();
+    });
+
+    // 試合速度切り替えボタンのイベント登録
+    document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            simSpeedMultiplier = parseFloat(btn.dataset.speed) || 1.0;
+            logDebug(`試合速度を ${simSpeedMultiplier}x に設定しました。`);
+        });
+    });
+
+    // キーボードショートカット
+    window.addEventListener('keydown', (e) => {
+        // 入力フォーム操作中はショートカット無効
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+        if (e.code === 'Space') {
+            e.preventDefault();
+            const currentStep = document.querySelector('.step-indicator.active');
+            if (currentStep && currentStep.id === 'ind-step-3') {
+                if (state.isRunning) {
+                    stopSimulation();
+                    logDebug('試合を一時停止しました。');
+                } else {
+                    startSimulation();
+                }
+            }
+        } else if (e.key === 'r' || e.key === 'R') {
+            resetSimulation();
+        } else if (e.key === 'm' || e.key === 'M') {
+            if (soundToggleBtn) soundToggleBtn.click();
+        } else if (e.key === 'Escape') {
+            closeAllMenus();
+            if (keypadModal) keypadModal.style.display = 'none';
+            if (savedListModal) savedListModal.style.display = 'none';
+        } else if (e.key === '1') {
+            goToStep(1);
+        } else if (e.key === '2') {
+            goToStep(2);
+        } else if (e.key === '3') {
+            goToStep(3);
+        }
     });
 
     // 初期起動
