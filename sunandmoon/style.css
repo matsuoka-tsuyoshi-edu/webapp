@@ -38,10 +38,10 @@ html, body {
   font-family: var(--font-family);
   background-color: #0f172a;
   color: var(--text-main);
-  touch-action: manipulation;
+  touch-action: none;
 }
 
-/* アプリケーション全体コンテナ (iPad Safari URL/タブバー対応) */
+/* アプリケーション全体コンテナ (iPad Safari URL/タブバー対応・ピンチ拡大防止) */
 #app-container {
   position: fixed;
   inset: 0;
@@ -50,6 +50,7 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  touch-action: none;
 }
 
 /* ==========================================================================
@@ -1041,6 +1042,7 @@ html, body {
   outline: none;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.3);
+  touch-action: pan-x;
 }
 
 #time-slider::-webkit-slider-thumb {
@@ -1208,6 +1210,7 @@ html, body {
   max-width: 640px;
   max-height: 92%;
   overflow-y: auto;
+  touch-action: pan-y;
   width: 90%;
   position: relative;
   color: #fff;
@@ -1526,6 +1529,7 @@ html, body {
   flex-direction: column;
   gap: 10px;
   overflow-y: auto;
+  touch-action: pan-y;
   color: #f8fafc;
 }
 
@@ -1720,6 +1724,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  touch-action: pan-y;
   color: #f8fafc;
 }
 
@@ -1789,6 +1794,7 @@ html, body {
   grid-template-columns: repeat(7, 1fr);
   gap: 5px;
   overflow-y: auto;
+  touch-action: pan-y;
   padding-right: 2px;
 }
 

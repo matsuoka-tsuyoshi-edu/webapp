@@ -1,5 +1,5 @@
 /**
- * 小学6年理科「太陽と月」シミュレーション v1.6 - アプリケーション本体 (app.js)
+ * 小学6年理科「太陽と月」シミュレーション v1.7 - アプリケーション本体 (app.js)
  */
 
 (function () {
@@ -175,10 +175,12 @@
     }
   }
 
-  // 実際の表示領域サイズ取得 (iPad SafariのURLバー・タブバー分を除外)
+  // 実際の表示領域サイズ取得 (iPad SafariのURLバー・タブバー分を除外、ピンチ拡大時は崩れ防止のためinnerWidth/Height優先)
   function getViewportSize() {
-    const width = window.visualViewport ? Math.round(window.visualViewport.width) : window.innerWidth;
-    const height = window.visualViewport ? Math.round(window.visualViewport.height) : window.innerHeight;
+    const vv = window.visualViewport;
+    const isUnscaled = vv && Math.abs((vv.scale || 1) - 1) < 0.05;
+    const width = isUnscaled ? Math.round(vv.width) : window.innerWidth;
+    const height = isUnscaled ? Math.round(vv.height) : window.innerHeight;
     return { width, height };
   }
 
@@ -335,11 +337,11 @@
     while (deltaAz < -180.0) deltaAz += 360.0;
 
     // 満ちていく月(上弦側)は太陽が西側(右: +)、欠けていく月(下弦側)は東側(左: -)
-    const horizDeg = isWaxing ? Math.max(15.0, Math.abs(deltaAz)) : -Math.max(15.0, Math.abs(deltaAz));
-    // 画面上では下方向が +Y なので、太陽の方が低い(sunAlt < moonAlt)ときに vertDeg > 0
-    const vertDeg = moonAlt - sunAlt;
+    // 月の出・月の入りで角度が急変（クリンッと回転）しないよう、穏やかな傾きに抑える
+    const horizDeg = isWaxing ? Math.max(60.0, Math.abs(deltaAz)) : -Math.max(60.0, Math.abs(deltaAz));
+    const rawVert = Math.max(0.0, moonAlt - sunAlt) * 0.35;
 
-    return Math.atan2(vertDeg, horizDeg);
+    return Math.atan2(rawVert, horizDeg);
   }
 
   // --- 月のSVG満ち欠け形状の生成関数 (クレーター・グラデーションなしのくっきりベタ塗り) ---
@@ -416,7 +418,7 @@
       rotateDeg = isWaxing ? sunAngleDeg : sunAngleDeg - 180.0;
       while (rotateDeg > 180) rotateDeg -= 360;
       while (rotateDeg < -180) rotateDeg += 360;
-      rotateDeg = Math.max(-55, Math.min(55, rotateDeg));
+      rotateDeg = Math.max(-22, Math.min(22, rotateDeg));
     }
 
     return `
@@ -2152,6 +2154,29 @@
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', resizeCanvases);
     }
+
+    // iPad Safari 等でのピンチイン・ピンチアウトおよびダブルタップ拡大による画面崩れを防止
+    const preventZoomGesture = (e) => {
+      e.preventDefault();
+    };
+    document.addEventListener('gesturestart', preventZoomGesture, { passive: false });
+    document.addEventListener('gesturechange', preventZoomGesture, { passive: false });
+    document.addEventListener('gestureend', preventZoomGesture, { passive: false });
+    document.addEventListener('touchmove', (e) => {
+      if ((e.touches && e.touches.length > 1) || (e.scale && e.scale !== 1)) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+    document.addEventListener('dblclick', preventZoomGesture, { passive: false });
+    let lastTouchEndTime = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      const isInteractiveControl = e.target && e.target.closest && e.target.closest('button, input, select, option, a, label');
+      if (!isInteractiveControl && now - lastTouchEndTime <= 300 && e.touches && e.touches.length === 0) {
+        e.preventDefault();
+      }
+      lastTouchEndTime = now;
+    }, { passive: false });
 
     // キーボードショートカット (電子黒板やキーボード付きiPad向け、入力中は無効)
     window.addEventListener('keydown', (e) => {
