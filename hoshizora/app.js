@@ -50,12 +50,16 @@
     document.addEventListener(
       'touchend',
       e => {
+        const interactive = e.target && e.target.closest
+          ? e.target.closest('button, a, input, select, textarea, label, [role="button"]')
+          : null;
+        if (interactive) {
+          lastTouchEnd = Date.now();
+          return;
+        }
         const now = Date.now();
         if (now - lastTouchEnd <= 300) {
-          const tag = (e.target && e.target.tagName) || '';
-          if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') {
-            e.preventDefault();
-          }
+          e.preventDefault();
         }
         lastTouchEnd = now;
       },
@@ -219,6 +223,7 @@
     compareDirB: 180,
     // ヒット判定キャッシュ（画面座標）
     renderedSegments: [],
+    renderedLabelHits: [],
     renderedMoon: null
   };
 
@@ -947,7 +952,93 @@
       drawPanoramaLandscape(targetCtx, width, height, horizonY, domeScale, centerAz, showUnderground, loc);
     }
 
-    return { sunPos, moonPos, moonPhase, lighting, collectedHits, segmentsForHit, renderedMoon };
+    // 9. 星座名・星の名前をCanvasへ直接描画（毎フレームDOM生成によるタップ阻害を防止）
+    let labelHits = [];
+    if (collectHits && (showConstNames || showStarNames) && collectedHits.length > 0) {
+      labelHits = drawSkyLabelsOnCanvas(targetCtx, width, height, collectedHits);
+    }
+
+    return { sunPos, moonPos, moonPhase, lighting, collectedHits, labelHits, segmentsForHit, renderedMoon };
+  }
+
+  function traceRoundedRect(cCtx, x, y, w, h, r) {
+    const rad = Math.min(r, w / 2, h / 2);
+    cCtx.beginPath();
+    cCtx.moveTo(x + rad, y);
+    cCtx.lineTo(x + w - rad, y);
+    cCtx.quadraticCurveTo(x + w, y, x + w, y + rad);
+    cCtx.lineTo(x + w, y + h - rad);
+    cCtx.quadraticCurveTo(x + w, y + h, x + w - rad, y + h);
+    cCtx.lineTo(x + rad, y + h);
+    cCtx.quadraticCurveTo(x, y + h, x, y + h - rad);
+    cCtx.lineTo(x, y + rad);
+    cCtx.quadraticCurveTo(x, y, x + rad, y);
+    cCtx.closePath();
+  }
+
+  function drawSkyLabelsOnCanvas(cCtx, width, height, hits) {
+    const sorted = hits.slice().sort((a, b) => {
+      if (a.kind === 'star' && b.kind !== 'star') return -1;
+      if (a.kind !== 'star' && b.kind === 'star') return 1;
+      return (b.isMajor ? 1 : 0) - (a.isMajor ? 1 : 0);
+    });
+
+    const placed = [];
+    const labelHits = [];
+    cCtx.save();
+    cCtx.textAlign = 'center';
+    cCtx.textBaseline = 'middle';
+
+    sorted.forEach(item => {
+      if (item.x < 30 || item.x > width - 30 || item.y < 105 || item.y > height - 140) return;
+      if (placed.some(p => Math.abs(p.x - item.x) < 76 && Math.abs(p.y - item.y) < 22)) return;
+      placed.push(item);
+
+      const isStar = item.kind === 'star';
+      const fontSize = (isStar && item.isMajor) ? 12 : 11;
+      cCtx.font = `700 ${fontSize}px "BIZ UDPGothic", sans-serif`;
+      const tw = cCtx.measureText(item.label).width + 14;
+      const th = 20;
+      const rx = item.x - tw / 2;
+      const ry = item.y - th / 2;
+
+      traceRoundedRect(cCtx, rx, ry, tw, th, 10);
+      if (isStar && item.isMajor) {
+        cCtx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+        cCtx.strokeStyle = 'rgba(250, 204, 21, 0.65)';
+        cCtx.fill();
+        cCtx.lineWidth = 1;
+        cCtx.stroke();
+        cCtx.fillStyle = '#fef08a';
+      } else if (isStar) {
+        cCtx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+        cCtx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+        cCtx.fill();
+        cCtx.lineWidth = 1;
+        cCtx.stroke();
+        cCtx.fillStyle = '#f8fafc';
+      } else {
+        cCtx.fillStyle = 'rgba(12, 74, 110, 0.68)';
+        cCtx.strokeStyle = 'rgba(56, 189, 248, 0.60)';
+        cCtx.fill();
+        cCtx.lineWidth = 1;
+        cCtx.stroke();
+        cCtx.fillStyle = '#7dd3fc';
+      }
+      cCtx.fillText(item.label, item.x, item.y + 0.5);
+
+      labelHits.push({
+        kind: item.kind,
+        id: item.id,
+        x1: rx - 4,
+        y1: ry - 4,
+        x2: rx + tw + 4,
+        y2: ry + th + 4
+      });
+    });
+
+    cCtx.restore();
+    return labelHits;
   }
 
   function drawSunBody(cCtx, x, y, isBelow) {
@@ -1134,7 +1225,14 @@
     { az: 315, kanji: '北西', kana: '', cls: 'is-sub' }
   ];
 
+  let lastCompassKey = '';
   function updateCompassBar(width, height) {
+    const key = state.viewMode === 'dome'
+      ? 'dome'
+      : `${width}_${height}_${state.viewAzimuth.toFixed(2)}`;
+    if (key === lastCompassKey) return;
+    lastCompassKey = key;
+
     if (state.viewMode === 'dome') {
       el.compassBar.innerHTML = '';
       return;
@@ -1153,8 +1251,12 @@
     el.compassBar.innerHTML = html.join('');
   }
 
+  let lastDirActiveKey = '';
   function updateDirectionButtonsUI() {
     const az = Astro.normDeg(state.viewAzimuth);
+    const key = `${state.viewMode}_${Math.round(az * 2)}`;
+    if (key === lastDirActiveKey) return;
+    lastDirActiveKey = key;
     document.querySelectorAll('.dir-btn[data-az]').forEach(btn => {
       const bAz = Number(btn.dataset.az);
       const diff = Math.abs(shortestAzDiff(bAz, az));
@@ -1162,14 +1264,25 @@
     });
   }
 
-  function updateBottomBarsPosition() {
+  let lastBottomLayoutKey = '';
+  function updateBottomBarsPosition(force) {
     if (!el.controlPanel || !el.directionQuickBar || !el.compassBar) return;
+    const hasStamps = (state.stamps.length + state.moonStamps.length) > 0;
+    const key = `${window.innerWidth}_${state.ctrlCollapsed}_${hasStamps}_${state.selectedConstellationId || ''}`;
+    if (!force && key === lastBottomLayoutKey) return;
+    lastBottomLayoutKey = key;
     const panelH = el.controlPanel.offsetHeight || 86;
     el.directionQuickBar.style.bottom = `${panelH + 8}px`;
     el.compassBar.style.bottom = `${panelH + 46}px`;
   }
 
+  let lastSelectedUIKey = '';
   function updateSelectedConstellationUI() {
+    const cnt = state.stamps.length + state.moonStamps.length;
+    const key = `${state.selectedConstellationId || ''}_${cnt}`;
+    if (key === lastSelectedUIKey) return;
+    lastSelectedUIKey = key;
+
     const con = state.selectedConstellationId ? Astro.CONSTELLATION_MAP[state.selectedConstellationId] : null;
     if (con) {
       el.selectedBar.classList.remove('hidden');
@@ -1182,7 +1295,6 @@
       el.btnStampMain.textContent = '📌 星座をのこす';
     }
 
-    const cnt = state.stamps.length + state.moonStamps.length;
     el.stampCount.textContent = String(cnt);
     el.btnClearStamps.classList.toggle('hidden', cnt === 0);
   }
@@ -1336,41 +1448,6 @@
     openModal('modal-moon-zoom');
   }
 
-  function updateLabelsOverlay(hits) {
-    if ((!state.showConstNames && !state.showStarNames) || !hits || hits.length === 0) {
-      el.labelsLayer.innerHTML = '';
-      return;
-    }
-
-    const sorted = hits.slice().sort((a, b) => {
-      if (a.kind === 'star' && b.kind !== 'star') return -1;
-      if (a.kind !== 'star' && b.kind === 'star') return 1;
-      return (b.isMajor ? 1 : 0) - (a.isMajor ? 1 : 0);
-    });
-
-    const placed = [];
-    const fragments = [];
-    const w = el.viewport.clientWidth;
-    const h = el.viewport.clientHeight;
-
-    sorted.forEach(item => {
-      if (item.x < 30 || item.x > w - 30 || item.y < 105 || item.y > h - 140) return;
-      const tooClose = placed.some(p => Math.abs(p.x - item.x) < 76 && Math.abs(p.y - item.y) < 22);
-      if (tooClose) return;
-      placed.push(item);
-
-      const cls = item.kind === 'star'
-        ? `sky-hit-chip star-chip${item.isMajor ? ' is-major' : ''}`
-        : 'sky-hit-chip const-chip';
-
-      fragments.push(
-        `<button type="button" class="${cls}" data-kind="${item.kind}" data-id="${item.id}" style="left:${item.x.toFixed(1)}px;top:${item.y.toFixed(1)}px">${item.label}</button>`
-      );
-    });
-
-    el.labelsLayer.innerHTML = fragments.join('');
-  }
-
   // ==========================================================
   // 6. 比較モーダル描画
   // ==========================================================
@@ -1521,6 +1598,7 @@
     });
 
     state.renderedSegments = info.segmentsForHit;
+    state.renderedLabelHits = info.labelHits || [];
     state.renderedMoon = info.renderedMoon;
     updateCompassBar(w, h);
     updateDirectionButtonsUI();
@@ -1528,7 +1606,6 @@
     updateBottomBarsPosition();
     updateHUD(info);
     updateAstroAccordion(info);
-    updateLabelsOverlay(info.collectedHits);
     renderCompareModal();
     if (state.moonZoomOpen) renderMoonZoomModal();
   }
@@ -1952,13 +2029,25 @@
       dragging = false;
       try { el.viewport.releasePointerCapture(e.pointerId); } catch (_) {}
 
-      // ドラッグではなくタップ/クリックだった場合：まず月、次に星座線を選択
+      // ドラッグではなくタップ/クリックだった場合：月 -> 星座名/星名ラベル -> 星座線の順に判定
       if (!dragMoved) {
         const rect = el.canvas.getBoundingClientRect();
         const px = e.clientX - rect.left;
         const py = e.clientY - rect.top;
         if (state.renderedMoon && Math.hypot(px - state.renderedMoon.x, py - state.renderedMoon.y) <= state.renderedMoon.r + 8) {
           openMoonZoomModal();
+          return;
+        }
+        const labelHit = state.renderedLabelHits.find(
+          h => px >= h.x1 && px <= h.x2 && py >= h.y1 && py <= h.y2
+        );
+        if (labelHit) {
+          if (labelHit.kind === 'constellation') {
+            state.selectedConstellationId = labelHit.id;
+            renderAll();
+          } else {
+            openStarInfoModal(labelHit.kind, labelHit.id);
+          }
           return;
         }
         const hitConstId = findConstellationAtPoint(px, py);
@@ -2008,18 +2097,6 @@
     });
 
     el.viewport.addEventListener('pointercancel', () => { dragging = false; });
-
-    // ラベルタップ時
-    el.labelsLayer.addEventListener('click', e => {
-      const chip = e.target.closest('.sky-hit-chip');
-      if (!chip) return;
-      if (chip.dataset.kind === 'constellation') {
-        state.selectedConstellationId = chip.dataset.id;
-        renderAll();
-      } else {
-        openStarInfoModal(chip.dataset.kind, chip.dataset.id);
-      }
-    });
 
     // 選択中アクションバー & スタンプ（星座＋月）
     document.getElementById('btn-stamp-selected').addEventListener('click', stampSelectedConstellation);
@@ -2209,7 +2286,10 @@
       });
     });
 
-    window.addEventListener('resize', renderAll);
+    window.addEventListener('resize', () => {
+      renderAll();
+      updateBottomBarsPosition(true);
+    });
     initDatetimeModal();
   }
 
@@ -2218,7 +2298,7 @@
     bindEvents();
     renderAll();
     requestAnimationFrame(() => {
-      updateBottomBarsPosition();
+      updateBottomBarsPosition(true);
       requestAnimationFrame(animateLoop);
     });
   }
