@@ -1,0 +1,2066 @@
+/* ==========================================================================
+   ひかりと地球・月 v1.2 - スタイルシート (style.css)
+   宇宙から見た太陽・地球・月の動きと光の当たり方（iPad Safari 横向き最適化）
+   ========================================================================== */
+
+:root {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --card-bg: rgba(255, 255, 255, 0.94);
+  --card-border: rgba(255, 255, 255, 0.7);
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+  --font-family: "BIZ UDPGothic", "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-family);
+  background-color: #020617;
+  color: var(--text-main);
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+/* アプリケーション全体コンテナ (iPad Safari URL/タブバー対応・ピンチ拡大防止) */
+#app-container {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: var(--app-height, 100dvh);
+  overflow: hidden;
+  touch-action: none;
+  background-color: #020617;
+}
+
+/* ==========================================================================
+   1. 宇宙3Dキャンバス領域
+   ========================================================================== */
+#space-viewport {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #020617;
+  overflow: hidden;
+  touch-action: none;
+  z-index: 1;
+}
+
+#space-main-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+
+#space-main-canvas.is-dragging {
+  cursor: grabbing;
+}
+
+/* 宇宙空間にピン留めした天体の削除・情報タグレイヤー */
+#pinned-badges-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.pinned-space-tag {
+  position: absolute;
+  transform: translate(-50%, 0);
+  background: rgba(15, 23, 42, 0.92);
+  color: #fde047;
+  border: 1.5px solid #38bdf8;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+}
+
+.btn-remove-pin {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 900;
+}
+
+/* ==========================================================================
+   2. UIオーバーレイ共通 (左上・右上カード)
+   ========================================================================== */
+.ui-overlay {
+  position: absolute;
+  top: 8px;
+  z-index: 15;
+  pointer-events: auto;
+}
+
+/* ==========================================================================
+   左上：佐伯（指定地点）から見た空と月の形カード
+   ========================================================================== */
+#earth-observer-card {
+  left: 12px;
+  width: 340px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1.5px solid rgba(56, 189, 248, 0.5);
+  border-radius: 16px;
+  padding: 8px 12px;
+  box-shadow: var(--shadow-md);
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+#earth-observer-card.collapsed {
+  width: auto;
+  padding: 7px 11px;
+}
+
+#earth-observer-card.collapsed #observer-card-body {
+  display: none;
+}
+
+.observer-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.observer-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.observer-card-title {
+  font-size: 12.5px;
+  font-weight: 900;
+  color: #bae6fd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.observer-timezone-pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  background: #1e293b;
+  color: #fde047;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: 999px;
+  padding: 1px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#observer-card-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: stretch;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding-top: 7px;
+}
+
+.saiki-moon-preview-btn {
+  background: #020617;
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 12px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  text-align: left;
+  color: #f8fafc;
+  transition: transform 0.12s, border-color 0.15s;
+}
+
+.saiki-moon-preview-btn:active {
+  transform: scale(0.97);
+  border-color: #fde047;
+}
+
+.saiki-moon-svg {
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+}
+
+.moon-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.saiki-moon-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.saiki-moon-name {
+  font-size: 13px;
+  font-weight: 900;
+  color: #fde047;
+  line-height: 1.2;
+}
+
+.saiki-moon-sub {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.zoom-icon-hint-sm {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #7dd3fc;
+  margin-top: 2px;
+}
+
+.saiki-sky-preview {
+  background: #020617;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 5px 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3px;
+}
+
+.saiki-sky-svg {
+  width: 100%;
+  height: 54px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.saiki-sky-dirs {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.saiki-sky-status-row {
+  display: flex;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   3. 右上：日付・時刻ダイアログ ＆ 地域設定・出入り時刻
+   ========================================================================== */
+#right-column {
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+#astro-card {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 7px 11px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: auto;
+  max-width: calc(100vw - 24px);
+}
+
+#astro-card.collapsed {
+  width: auto;
+  min-width: 0;
+}
+
+#astro-card.collapsed #astro-card-body {
+  display: none;
+}
+
+.card-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 5px;
+}
+
+.app-brand-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12.5px;
+  font-weight: 900;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.app-version-badge {
+  display: inline-block;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 1px 4px;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.card-title-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.location-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #0369a1;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  padding: 2px 6px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 134px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.location-tag-btn:active {
+  background: #bae6fd;
+}
+
+.btn-toggle-astro-data {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#earth-observer-card .btn-toggle-astro-data {
+  background: rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.date-display {
+  font-size: 14.5px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+
+.day-nav-buttons {
+  display: flex;
+  gap: 3px;
+}
+
+.btn-day-nav {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 3px 6px;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-day-nav.btn-day-today {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
+.btn-day-nav:active {
+  background: #e2e8f0;
+  transform: scale(0.96);
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 5px;
+}
+
+.time-main {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ampm-badge {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  padding: 3px 7px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ampm-badge.pm {
+  background: #f97316;
+}
+
+.time-digits {
+  font-size: 20px;
+  font-weight: 900;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.btn-time-format {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 2px 5px;
+  font-size: 9.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-time-format.active-24h {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+
+.header-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-edit-date {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 4px 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-calendar-open {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+#astro-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 5px;
+}
+
+.astro-data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 2px 4px;
+}
+
+.clickable-moon-data {
+  cursor: pointer;
+  transition: transform 0.12s, background 0.15s;
+}
+
+.clickable-moon-data:active {
+  transform: scale(0.98);
+  background: rgba(254, 240, 138, 0.25);
+}
+
+.astro-icon-col {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 52px;
+}
+
+.icon-sun-mini {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #facc15;
+  border: 2px solid #f59e0b;
+}
+
+.icon-moon-mini {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fde047;
+  border: 1.5px solid #ca8a04;
+}
+
+.astro-name {
+  font-size: 13px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.astro-times {
+  display: flex;
+  gap: 8px;
+}
+
+.time-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.time-item span:first-child {
+  font-size: 9.5px;
+  color: #64748b;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.time-item span:last-child {
+  font-family: monospace;
+  font-size: 11.5px;
+  color: #0f172a;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.moon-phase-badge {
+  background: #0f172a;
+  color: #fef08a;
+  padding: 5px 10px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.moon-badge-left, .moon-badge-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.moon-shape-name {
+  color: #ffffff;
+  font-size: 12.5px;
+}
+
+.moon-status-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #16a34a;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.moon-status-tag.underground {
+  background: #475569;
+  color: #cbd5e1;
+}
+
+.moon-age-text {
+  color: #fde047;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.zoom-icon-hint {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fef08a;
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* 日時変更ドロップダウン（右揃えで画面はみ出し防止） */
+#datetime-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid #cbd5e1;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 60;
+  width: 340px;
+  max-width: 92vw;
+}
+
+#datetime-picker-dropdown.active {
+  display: flex;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.picker-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.picker-col label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.picker-col select {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 7px 6px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+  width: 100%;
+}
+
+.picker-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.btn-picker-apply {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-picker-today {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   4. 左下視点コントロールバー ＆ 右下凡例バー
+   ========================================================================== */
+#camera-control-bar {
+  position: absolute;
+  bottom: 68px;
+  left: 12px;
+  z-index: 12;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  padding: 5px 7px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: var(--shadow-md);
+}
+
+.cam-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cam-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-cam {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.1s, background 0.15s;
+}
+
+.btn-cam:active {
+  transform: scale(0.95);
+}
+
+.btn-cam.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+.btn-cam.btn-cam-accent {
+  background: rgba(14, 165, 233, 0.25);
+  border-color: #38bdf8;
+  color: #e0f2fe;
+}
+
+.btn-cam.btn-cam-accent.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #7dd3fc;
+}
+
+.btn-cam-icon {
+  padding: 4px 7px;
+}
+
+#space-legend-bar {
+  position: absolute;
+  bottom: 68px;
+  right: 12px;
+  z-index: 12;
+  background: rgba(15, 23, 42, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 5px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  pointer-events: none;
+}
+
+.legend-items {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #e2e8f0;
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-dot.legend-day {
+  background: #fde047;
+  border: 1px solid #facc15;
+}
+
+.legend-dot.legend-night {
+  background: #1e293b;
+  border: 1px solid #64748b;
+}
+
+.legend-dot.legend-saiki {
+  background: #ef4444;
+  border: 1.5px solid #ffffff;
+}
+
+.drag-hint-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: #93c5fd;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   5. 下部コントロールバー (高さ 60px)
+   ========================================================================== */
+#control-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  background: rgba(15, 23, 42, 0.96);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  gap: 5px;
+  z-index: 20;
+}
+
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary-color);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45);
+}
+
+.btn-circle:active {
+  transform: scale(0.94);
+}
+
+.btn-circle svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.btn-step {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn-step:active {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.btn-step svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+.timeline-container {
+  flex: 1;
+  min-width: 90px;
+  max-width: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.timeline-slider-wrapper {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+#time-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #334155;
+  outline: none;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  touch-action: pan-x;
+}
+
+#time-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid #2563eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.timeline-ticks {
+  display: flex;
+  justify-content: space-between;
+  color: #94a3b8;
+  font-size: 8.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  gap: 2px;
+}
+
+.quick-time-buttons {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.btn-quick-time {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 4px 6px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-quick-time:active {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(0.96);
+}
+
+.options-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.speed-select {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 4px 4px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  outline: none;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.speed-select option {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+.btn-pill {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 4px 5px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-pill.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+.btn-pill.btn-pill-danger {
+  background: rgba(220, 38, 38, 0.3);
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.btn-pill:active {
+  transform: scale(0.95);
+}
+
+/* ==========================================================================
+   6. 月の大拡大モーダル
+   ========================================================================== */
+#moon-modal {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: var(--app-height, 100dvh);
+  background: rgba(10, 15, 30, 0.86);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+#moon-modal.active {
+  display: flex;
+}
+
+.modal-content-card {
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 24px;
+  padding: 16px 22px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 680px;
+  max-height: 94%;
+  overflow-y: auto;
+  touch-action: pan-y;
+  width: 92%;
+  position: relative;
+  color: #ffffff;
+}
+
+.btn-close-modal {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-moon-datetime {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #bae6fd;
+  border-radius: 10px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.modal-moon-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.modal-moon-ruby {
+  font-size: 12.5px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.modal-moon-name {
+  font-size: 26px;
+  font-weight: 900;
+  color: #fde047;
+}
+
+.modal-dual-visual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.modal-visual-box {
+  background: #020617;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.modal-visual-caption {
+  font-size: 12px;
+  font-weight: 800;
+  color: #7dd3fc;
+}
+
+.modal-moon-preview-wrapper {
+  width: 126px;
+  height: 126px;
+}
+
+#modal-moon-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.modal-space-svg {
+  width: 170px;
+  height: 126px;
+}
+
+.modal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.modal-tag {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 5px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #e2e8f0;
+}
+
+.modal-interactive-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.modal-day-step-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-modal-day-step {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-modal-pin-moon {
+  background: rgba(56, 189, 248, 0.2);
+  color: #e0f2fe;
+  border: 1.5px solid #38bdf8;
+  border-radius: 12px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-modal-pin-moon.is-pinned {
+  background: rgba(34, 197, 94, 0.25);
+  color: #bbf7d0;
+  border-color: #4ade80;
+}
+
+.btn-toggle-explanation {
+  background: rgba(254, 240, 138, 0.15);
+  color: #fef08a;
+  border: 1px dashed rgba(254, 240, 138, 0.55);
+  padding: 7px 16px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.btn-toggle-explanation.opened {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.modal-explanation-box {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #cbd5e1;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  width: 100%;
+}
+
+.modal-instruction {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+/* ==========================================================================
+   7. くらべるモーダル ＆ カレンダーモーダル
+   ========================================================================== */
+.app-modal {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: var(--app-height, 100dvh);
+  background: rgba(10, 15, 30, 0.88);
+  z-index: 110;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.app-modal.active {
+  display: flex;
+}
+
+.modal-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  flex-wrap: wrap;
+}
+
+.modal-header-bar h2 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fef08a;
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modal-header-close {
+  position: static;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}
+
+.compare-modal-card {
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 20px;
+  padding: 12px 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+  width: 100%;
+  max-width: 960px;
+  max-height: 94%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  touch-action: pan-y;
+  color: #f8fafc;
+}
+
+.btn-compare-toggle-info,
+.btn-compare-sync-time {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 9px;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-compare-toggle-info.active {
+  background: #f59e0b;
+  color: #0f172a;
+  border-color: #fde047;
+}
+
+.compare-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.compare-card {
+  background: rgba(30, 41, 59, 0.65);
+  border: 1.5px solid rgba(56, 189, 248, 0.4);
+  border-radius: 16px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#compare-card-b {
+  border-color: rgba(250, 204, 21, 0.45);
+}
+
+.compare-card-badge {
+  align-self: flex-start;
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.compare-card-badge.badge-b {
+  background: #d97706;
+}
+
+.compare-date-controls {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr 0.9fr 1.1fr;
+  gap: 5px;
+}
+
+.compare-date-controls select {
+  background: #1e293b;
+  color: #ffffff;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  padding: 5px 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.compare-quick-days {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.btn-comp-step,
+.btn-comp-now {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-comp-now {
+  background: rgba(37, 99, 235, 0.35);
+  border-color: rgba(96, 165, 250, 0.6);
+  margin-left: auto;
+}
+
+.compare-visuals {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #020617;
+  border-radius: 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.compare-vis-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.compare-vis-wide {
+  flex: 1;
+}
+
+.compare-vis-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #93c5fd;
+}
+
+.compare-moon-box {
+  width: 96px;
+  height: 96px;
+}
+
+.compare-space-box {
+  width: 100%;
+  max-width: 230px;
+  height: 112px;
+}
+
+.compare-info-box {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+.compare-modal-card.hide-compare-info .compare-info-box {
+  display: none;
+}
+
+.compare-info-title {
+  font-weight: 800;
+  color: #fde047;
+  font-size: 13px;
+}
+
+.compare-info-sub {
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.compare-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-compare-action {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* カレンダーモーダル */
+.calendar-modal-card {
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 20px;
+  padding: 12px 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+  width: 100%;
+  max-width: 980px;
+  max-height: 94%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  touch-action: pan-y;
+  color: #f8fafc;
+}
+
+.calendar-nav-group,
+.calendar-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-cal-nav,
+.cal-select,
+.btn-cal-mode {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cal-select option {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.cal-hour-label {
+  font-size: 11px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.btn-cal-mode.active {
+  background: #f59e0b;
+  color: #0f172a;
+  border-color: #fde047;
+}
+
+.cal-selection-status {
+  font-size: 11px;
+  color: #93c5fd;
+  font-weight: 700;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.weekday-sun { color: #fca5a5; }
+.weekday-sat { color: #93c5fd; }
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  overflow-y: auto;
+  touch-action: pan-y;
+  padding-right: 2px;
+}
+
+.cal-day-empty {
+  min-height: 70px;
+}
+
+.cal-day-cell {
+  background: rgba(30, 41, 59, 0.72);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 4px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  min-height: 74px;
+}
+
+.cal-day-cell.is-current-sim {
+  border-color: #38bdf8;
+  background: rgba(14, 116, 144, 0.28);
+}
+
+.cal-day-cell.is-picked {
+  border-color: #facc15;
+  background: rgba(234, 179, 8, 0.24);
+}
+
+.cal-day-top {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cal-day-num.sun { color: #fca5a5; }
+.cal-day-num.sat { color: #93c5fd; }
+
+.cal-age-mini {
+  font-size: 9.5px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.cal-moon-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.cal-phase-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #fde047;
+  background: rgba(250, 204, 21, 0.14);
+  border-radius: 6px;
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   7.5 観測地点選択モーダル（hoshizora参考・カテゴリタブ切り替え式）
+   ========================================================================== */
+.location-modal-card {
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 20px;
+  padding: 14px 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.78);
+  width: 100%;
+  max-width: 960px;
+  max-height: 92%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  touch-action: pan-y;
+  color: #f8fafc;
+}
+
+.location-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.location-current-badge {
+  font-size: 11.5px;
+  font-weight: 800;
+  background: rgba(56, 189, 248, 0.16);
+  color: #bae6fd;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 999px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+.loc-category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.loc-tab {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.1s, background 0.15s, border-color 0.15s;
+}
+
+.loc-tab:active {
+  transform: scale(0.96);
+}
+
+.loc-tab.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #60a5fa;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.45);
+}
+
+.loc-tab.loc-tab-world {
+  background: rgba(13, 148, 136, 0.22);
+  color: #5eead4;
+  border-color: rgba(20, 184, 166, 0.45);
+}
+
+.loc-tab.loc-tab-world.active {
+  background: #0d9488;
+  color: #ffffff;
+  border-color: #5eead4;
+  box-shadow: 0 2px 10px rgba(13, 148, 136, 0.5);
+}
+
+.location-category-desc {
+  font-size: 12px;
+  font-weight: 700;
+  color: #93c5fd;
+  background: rgba(30, 41, 59, 0.72);
+  border-left: 3.5px solid #38bdf8;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.location-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  touch-action: pan-y;
+  padding: 2px 4px 4px 2px;
+  min-height: 120px;
+  flex: 1;
+}
+
+.loc-item-btn {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  cursor: pointer;
+  text-align: left;
+  color: #f8fafc;
+  transition: transform 0.1s, border-color 0.15s, background 0.15s;
+}
+
+.loc-item-btn:active {
+  transform: scale(0.97);
+}
+
+.loc-item-btn:hover {
+  border-color: rgba(125, 211, 252, 0.65);
+  background: rgba(30, 41, 59, 1);
+}
+
+.loc-item-btn.selected {
+  background: rgba(37, 99, 235, 0.28);
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+}
+
+.loc-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+}
+
+.loc-item-name {
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.loc-item-btn.selected .loc-item-name {
+  color: #fde047;
+}
+
+.loc-item-badge {
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 6px;
+  padding: 1px 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.loc-item-badge.world-badge {
+  background: rgba(20, 184, 166, 0.22);
+  color: #5eead4;
+  border-color: rgba(45, 212, 191, 0.45);
+}
+
+.loc-item-meta {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+
+.loc-item-note {
+  font-size: 10.5px;
+  color: #cbd5e1;
+  line-height: 1.35;
+}
+
+.custom-loc-bar {
+  background: rgba(2, 6, 23, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 8px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.custom-loc-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.custom-loc-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.custom-loc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 110px;
+  flex: 1;
+}
+
+.custom-loc-field-name {
+  flex: 2;
+  min-width: 180px;
+}
+
+.custom-loc-field span {
+  font-size: 10px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.custom-loc-field input {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #ffffff;
+  outline: none;
+  width: 100%;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.custom-loc-field input:focus {
+  border-color: #38bdf8;
+  background: #0f172a;
+}
+
+.custom-loc-inputs .btn-picker-apply {
+  padding: 6px 14px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   8. 縦向き時の透過グレーアウト案内オーバーレイ
+   ========================================================================== */
+.portrait-warning-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.74);
+  backdrop-filter: blur(8px) grayscale(55%);
+  -webkit-backdrop-filter: blur(8px) grayscale(55%);
+}
+
+.portrait-warning-overlay.active {
+  display: flex;
+}
+
+@media (orientation: portrait) {
+  .portrait-warning-overlay:not(.dismissed) {
+    display: flex;
+  }
+}
+
+.portrait-warning-card {
+  background: rgba(15, 23, 42, 0.96);
+  border: 2px solid #38bdf8;
+  border-radius: 24px;
+  padding: 28px 24px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  color: #f8fafc;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.portrait-rotate-icon {
+  animation: gentle-tilt 2.2s ease-in-out infinite;
+}
+
+@keyframes gentle-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-6deg); }
+}
+
+.portrait-warning-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fde047;
+  line-height: 1.4;
+}
+
+.portrait-warning-desc {
+  font-size: 14.5px;
+  color: #e2e8f0;
+  line-height: 1.75;
+}
+
+.portrait-warning-desc strong {
+  color: #38bdf8;
+}
+
+.btn-dismiss-portrait {
+  margin-top: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   9. コンパクト横向き端末（iPad mini 等 幅980px以下）の微調整
+   ========================================================================== */
+@media (max-width: 980px) {
+  #earth-observer-card {
+    width: 300px;
+    padding: 7px 10px;
+  }
+  #astro-card {
+    width: auto;
+    max-width: calc(100vw - 24px);
+    padding: 7px 10px;
+  }
+  .date-display {
+    font-size: 14px;
+  }
+  .time-digits {
+    font-size: 19px;
+  }
+  #camera-control-bar {
+    padding: 4px 5px;
+    gap: 3px;
+  }
+  .btn-cam {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+  #space-legend-bar {
+    padding: 4px 8px;
+  }
+  .drag-hint-text {
+    display: none;
+  }
+  #control-panel {
+    padding: 0 8px;
+    gap: 5px;
+  }
+  .timeline-container {
+    min-width: 80px;
+  }
+  .btn-quick-time {
+    padding: 4px 5px;
+    font-size: 10px;
+  }
+  .btn-pill {
+    padding: 4px 5px;
+    font-size: 9.5px;
+  }
+}
