@@ -8,8 +8,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>太陽と月 v1.8</title>
-  <link id="app-stylesheet" rel="stylesheet" href="style.css?v=1.8">
+  <title>太陽と月 v1.9</title>
+  <link id="app-stylesheet" rel="stylesheet" href="style.css?v=1.9">
 </head>
 <body>
   <div id="app-container">
@@ -211,7 +211,7 @@
     <div id="right-column" class="ui-overlay">
       <div id="astro-card">
         <div class="card-title">
-          <span class="app-brand-title">☀️🌙 太陽と月 <span id="app-version-badge" class="app-version-badge">v1.8</span></span>
+          <span class="app-brand-title">☀️🌙 太陽と月 <span id="app-version-badge" class="app-version-badge">v1.9</span></span>
           <div class="card-title-right">
             <button id="btn-location-picker" class="location-tag-btn" type="button" title="観測する地域（市町村・都市・緯度経度）を変更">
               <span>📍</span>
@@ -549,12 +549,40 @@
       </div>
     </div>
 
+    <!-- 11. 縦向き時の案内オーバーレイ（透過グレーアウト＋横向き案内） -->
+    <div id="portrait-warning-overlay" class="portrait-warning-overlay" aria-live="polite">
+      <div class="portrait-warning-card">
+        <div class="portrait-rotate-icon" aria-hidden="true">
+          <svg viewBox="0 0 120 100" width="96" height="80">
+            <!-- 縦のiPad（点線） -->
+            <rect x="22" y="10" width="44" height="64" rx="6" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-dasharray="4,4" />
+            <!-- 回転矢印 -->
+            <path d="M 72 22 A 24 24 0 0 1 94 46" fill="none" stroke="#facc15" stroke-width="3.5" stroke-linecap="round" />
+            <polygon points="94,50 88,41 100,41" fill="#facc15" />
+            <!-- 横向きのiPad（強調） -->
+            <rect class="rotate-tablet-anim" x="34" y="42" width="68" height="46" rx="7" fill="#1e293b" stroke="#38bdf8" stroke-width="3" />
+            <circle cx="96" cy="65" r="2.2" fill="#38bdf8" />
+            <text x="66" y="69" fill="#fde047" font-size="11" font-weight="bold" text-anchor="middle">横向き OK!</text>
+          </svg>
+        </div>
+        <h2 class="portrait-warning-title">iPadを「横（よこ）向き」にして使ってね！</h2>
+        <p class="portrait-warning-desc">
+          このアプリは横向き専用です。<br>
+          友だちに渡すときも、横向きにすると<br>
+          <strong>東・南・西の空</strong>が広くきれいに見えるよ✨
+        </p>
+        <button id="btn-dismiss-portrait-warning" class="btn-dismiss-portrait" type="button">
+          このまま画面を見る（閉じる）
+        </button>
+      </div>
+    </div>
+
   </div>
 
   <!-- スクリプト読み込み（キャッシュ回避ローダー：読み込みのたびに最新ファイルを取得） -->
   <script>
     (function() {
-      var bust = 'v=1.8&t=' + Date.now();
+      var bust = 'v=1.9&t=' + Date.now();
       var cssLink = document.getElementById('app-stylesheet');
       if (cssLink) {
         cssLink.href = 'style.css?' + bust;

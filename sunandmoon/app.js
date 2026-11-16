@@ -1,5 +1,5 @@
 /**
- * 小学6年理科「太陽と月」シミュレーション v1.8 - アプリケーション本体 (app.js)
+ * 小学6年理科「太陽と月」シミュレーション v1.9 - アプリケーション本体 (app.js)
  */
 
 (function () {
@@ -26,6 +26,7 @@
     calHour: 20,                  // カレンダー基準時刻
     calCompareMode: false,        // カレンダーから2日比較モード
     calPickedDates: [],           // カレンダーで選択された日付配列
+    portraitWarningDismissed: false, // 縦向き案内を一時的に閉じた状態フラグ
     stars: []                     // 星の座標リスト
   };
 
@@ -153,11 +154,13 @@
     btnCloseCalendar: document.getElementById('btn-close-calendar'),
     calendarGrid: document.getElementById('calendar-grid'),
 
-    // 宇宙視点ミニビュー
+    // 宇宙視点ミニビュー & 縦向き警告オーバーレイ
     spaceViewPanel: document.getElementById('space-view-panel'),
     spaceCanvas: document.getElementById('space-canvas'),
     landscapeContainer: document.getElementById('landscape-container'),
-    landscapeSvg: document.getElementById('landscape-svg')
+    landscapeSvg: document.getElementById('landscape-svg'),
+    portraitWarningOverlay: document.getElementById('portrait-warning-overlay'),
+    btnDismissPortraitWarning: document.getElementById('btn-dismiss-portrait-warning')
   };
 
   // --- 星空の初期化 ---
@@ -185,11 +188,25 @@
     return { width, height };
   }
 
+  // 縦向き時の透過グレーアウト案内制御（横向きに戻したら自動復帰）
+  function updateOrientationWarning(width, height) {
+    if (!elements.portraitWarningOverlay) return;
+    const isPortrait = height > width;
+    if (!isPortrait) {
+      state.portraitWarningDismissed = false;
+      elements.portraitWarningOverlay.classList.remove('active', 'dismissed');
+    } else {
+      elements.portraitWarningOverlay.classList.toggle('active', !state.portraitWarningDismissed);
+      elements.portraitWarningOverlay.classList.toggle('dismissed', state.portraitWarningDismissed);
+    }
+  }
+
   // キャンバスのリサイズ対応
   function resizeCanvases() {
     const { width, height } = getViewportSize();
 
     document.documentElement.style.setProperty('--app-height', `${height}px`);
+    updateOrientationWarning(width, height);
 
     elements.starsCanvas.width = width;
     elements.starsCanvas.height = height;
@@ -2169,10 +2186,22 @@
       }
     });
 
-    // ウィンドウリサイズ・Safariバー変化（visualViewport）対応
+    // ウィンドウリサイズ・画面回転・Safariバー変化（visualViewport）対応
     window.addEventListener('resize', resizeCanvases);
+    window.addEventListener('orientationchange', () => {
+      resizeCanvases();
+      setTimeout(resizeCanvases, 180);
+    });
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', resizeCanvases);
+    }
+    if (elements.btnDismissPortraitWarning) {
+      elements.btnDismissPortraitWarning.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.portraitWarningDismissed = true;
+        const { width, height } = getViewportSize();
+        updateOrientationWarning(width, height);
+      });
     }
 
     // iPad Safari 等でのピンチイン・ピンチアウトおよびダブルタップ拡大による画面崩れを防止
@@ -2215,6 +2244,9 @@
 
   // --- 初期化 ---
   function init() {
+    if (screen.orientation && typeof screen.orientation.lock === 'function') {
+      screen.orientation.lock('landscape').catch(() => {});
+    }
     initStars();
     initDropdownSelectors();
     initLocationSelector();
