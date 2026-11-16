@@ -1,6 +1,6 @@
 /**
- * ひかりと地球・月 v1.2 - アプリケーション本体 (app.js)
- * 宇宙から見た太陽・地球・月の動きと光の当たり方（ベタ塗り3D表示・iPad Safari横向き対応）
+ * ひかりと地球・月 v1.3 - アプリケーション本体 (app.js)
+ * 宇宙から見た太陽・地球・月の動きと光の当たり方（太陽中心・地動説モデル／ベタ塗り3D／iPad Safari横向き対応）
  */
 
 (function () {
@@ -27,8 +27,7 @@
       pitch: (58 * Math.PI) / 180,   // 仰角（ラジアン：初期は上から斜めに見下ろす立体視点）
       panX: 0,                       // 画面平行移動 X (px)
       panY: 0,                       // 画面平行移動 Y (px)
-      zoom: 1.0,                     // 拡大率
-      scaleMode: 'solar-system',     // 'solar-system'（太陽・地球・月ぜんたい）| 'earth-focus'（地球と月を大きく）
+      zoom: 1.0,                     // 拡大率（つねに太陽を不動の基準として拡大縮小）
       dragMode: 'rotate'             // 'rotate'（背景ドラッグで視点回転）| 'pan'（背景ドラッグで視点移動）
     },
 
@@ -793,10 +792,10 @@
       ctx.fill();
     }
 
-    // 2. ワールド定数と基準スケール
+    // 2. ワールド定数と基準スケール（太陽原点・地動説カメラ）
     const usableH = Math.max(280, height - 135);
-    const isEarthFocus = state.camera.scaleMode === 'earth-focus';
-    const baseScale = (Math.min(width * 0.66, usableH * 0.86) / 460) * state.camera.zoom * (isEarthFocus ? 2.15 : 1.0);
+    const isEarthCloseup = state.camera.zoom >= 1.8;
+    const baseScale = (Math.min(width * 0.66, usableH * 0.86) / 460) * state.camera.zoom;
 
     const EARTH_ORBIT_R = 148;
     const MOON_ORBIT_R = 64;
@@ -804,7 +803,7 @@
     const EARTH_WORLD_R = 23;
     const MOON_WORLD_R = 11.5;
 
-    // 太陽は原点 (0, 0, 0)
+    // 太陽はつねに宇宙の不動の基準点 (0, 0, 0)
     const sunWorld = { x: 0, y: 0, z: 0 };
     // 地球の位置（反時計回り公転：-sunDirEcl * EARTH_ORBIT_R）
     const earthWorld = {
@@ -824,9 +823,9 @@
       z: earthWorld.z + moonRelWorld.z
     };
 
-    const camTarget = isEarthFocus ? earthWorld : sunWorld;
-    const centerX = (isEarthFocus ? width * 0.5 : width * 0.47) + state.camera.panX;
-    const centerY = (isEarthFocus ? height * 0.5 : height * 0.54) + state.camera.panY;
+    const camTarget = sunWorld;
+    const centerX = width * 0.5 + state.camera.panX;
+    const centerY = height * 0.52 + state.camera.panY;
 
     // 3. 地球の公転軌道リング（地球中心視点でも一部が見えるよう大きく円弧を描く）
     if (state.showOrbits) {
@@ -913,7 +912,7 @@
     const sunDirCam = rotateVecToCam(spaceState.sunDirEcl);
 
     // 5. 太陽光ビームの描画（地球・月を照らす様子）
-    drawSunlightBeams(ctx, earthProj.sx, earthProj.sy, sunDirCam, moonProj.sx, moonProj.sy, earthScreenR, moonScreenR, state.camera.scaleMode);
+    drawSunlightBeams(ctx, earthProj.sx, earthProj.sy, sunDirCam, moonProj.sx, moonProj.sy, earthScreenR, moonScreenR, isEarthCloseup ? 'earth-focus' : 'solar-system');
 
     // 6. 佐伯から月を見る視線ライン（軌道・ガイドON時）
     const obs = AstroCalc.getObserver();
@@ -962,7 +961,7 @@
       r: moonScreenR
     });
 
-    // ピン留め天体
+    // ピン留め天体（太陽中心の公転軌道上の位置に固定表示）
     const pinBadgePositions = [];
     state.pinnedSnapshots.forEach((pin, idx) => {
       const pinEarthWorld = {
@@ -970,8 +969,7 @@
         y: -pin.sunDirEcl.y * EARTH_ORBIT_R,
         z: 0
       };
-      // 地球拡大モードでは現在の地球を中心に、全体モードではピン時の地球を中心に月を配置
-      const anchorEarth = isEarthFocus ? earthWorld : pinEarthWorld;
+      const anchorEarth = pinEarthWorld;
       const pinMoonWorld = {
         x: anchorEarth.x + pin.moonDirEcl.x * MOON_ORBIT_R,
         y: anchorEarth.y + pin.moonDirEcl.y * MOON_ORBIT_R,
@@ -984,7 +982,7 @@
       const pinLightCam = rotateVecToCam(pin.sunDirEcl);
 
       const earthDist = Math.hypot(pEarthProj.sx - earthProj.sx, pEarthProj.sy - earthProj.sy);
-      if (!isEarthFocus && earthDist > 22) {
+      if (earthDist > 12) {
         drawQueue.push({
           type: 'pin-earth',
           camZ: pEarthProj.camZ - 0.1,
@@ -1043,8 +1041,8 @@
           ctx.lineWidth = 2;
           ctx.stroke();
 
-          // 佐伯の接平面地平線・東/西/南ガイド（地球拡大時・高倍率ズーム時）
-          if ((isEarthFocus || item.r >= 55) && isFront) {
+          // 佐伯・観測地点の接平面地平線・東/西ガイド（拡大時）
+          if ((isEarthCloseup || item.r >= 45) && isFront) {
             const obsRad = rad(spaceState.lmstDeg);
             const epsR = rad(spaceState.epsDeg);
             const eqEast = { x: -Math.sin(obsRad), y: Math.cos(obsRad), z: 0 };
@@ -1402,6 +1400,8 @@
         <polygon points="${W - 38},94 ${W - 30},90 ${W - 30},98" fill="#fde047" />
         <text x="${W - 6}" y="14" fill="#fde047" font-size="9.5" font-weight="bold" text-anchor="end">☀️ 太陽の光 ◀</text>
 
+        <!-- 地球が太陽のまわりを回る公転軌道ガイド -->
+        <path d="M ${cx + 6} 4 Q ${cx - 6} ${cy} ${cx + 6} ${H - 4}" fill="none" stroke="rgba(56,189,248,0.34)" stroke-width="1.3" stroke-dasharray="3,4" />
         <!-- 月の公転軌道 -->
         <circle cx="${cx}" cy="${cy}" r="${orbitR}" fill="none" stroke="rgba(250,204,21,0.35)" stroke-width="1.3" stroke-dasharray="3,3" />
         <!-- 佐伯→月の視線 -->
@@ -2275,40 +2275,69 @@
     elements.calendarModal.classList.remove('active');
   }
 
-  // --- 地球中心の拡大・縮小モードへ現在位置を保ったまま切り替え ---
-  function switchToEarthCenteredZoomMode() {
-    if (state.camera.scaleMode === 'earth-focus') return;
-    const { width, height } = getViewportSize();
-    const earthProj = state.lastProjected ? state.lastProjected.earth : null;
-    state.camera.scaleMode = 'earth-focus';
-    state.camera.zoom = clamp(state.camera.zoom / 2.15, 0.22, 16.0);
-    if (earthProj) {
-      state.camera.panX = earthProj.sx - width * 0.5;
-      state.camera.panY = earthProj.sy - height * 0.5;
-    } else {
-      state.camera.panX = 0;
-      state.camera.panY = 0;
-    }
-    updateCameraPresetUI();
-  }
-
+  // --- 太陽中心モデルのまま自在にパン・指定位置基準ズームを行うヘルパー ---
   function clampPanBounds() {
     const { width, height } = getViewportSize();
-    const earthR = state.lastProjected ? state.lastProjected.earth.r : 40;
-    const maxPanX = width * 0.48 + earthR * 0.85;
-    const maxPanY = height * 0.48 + earthR * 0.85;
+    const usableH = Math.max(280, height - 135);
+    const baseScale = (Math.min(width * 0.66, usableH * 0.86) / 460) * state.camera.zoom;
+    const orbitRadiusPx = 220 * baseScale;
+    const maxPanX = width * 0.48 + orbitRadiusPx;
+    const maxPanY = height * 0.48 + orbitRadiusPx;
     state.camera.panX = clamp(state.camera.panX, -maxPanX, maxPanX);
     state.camera.panY = clamp(state.camera.panY, -maxPanY, maxPanY);
   }
 
+  function zoomAroundScreenPoint(newZoom, anchorSx, anchorSy) {
+    const { width, height } = getViewportSize();
+    const oldZoom = state.camera.zoom;
+    const clampedZoom = clamp(newZoom, 0.22, 16.0);
+    const ratio = clampedZoom / Math.max(0.001, oldZoom);
+
+    const baseCx = width * 0.5;
+    const baseCy = height * 0.52;
+    const curSunCenterX = baseCx + state.camera.panX;
+    const curSunCenterY = baseCy + state.camera.panY;
+
+    const newSunCenterX = anchorSx - (anchorSx - curSunCenterX) * ratio;
+    const newSunCenterY = anchorSy - (anchorSy - curSunCenterY) * ratio;
+
+    state.camera.zoom = clampedZoom;
+    state.camera.panX = newSunCenterX - baseCx;
+    state.camera.panY = newSunCenterY - baseCy;
+    clampPanBounds();
+    updateCameraPresetUI();
+  }
+
+  function centerCameraOnEarth(targetZoom) {
+    const { width, height } = getViewportSize();
+    if (targetZoom !== undefined) {
+      state.camera.zoom = clamp(targetZoom, 0.22, 16.0);
+    }
+    const sp = AstroCalc.getSpaceState(state.currentDate);
+    const EARTH_ORBIT_R = 148;
+    const earthWorld = {
+      x: -sp.sunDirEcl.x * EARTH_ORBIT_R,
+      y: -sp.sunDirEcl.y * EARTH_ORBIT_R,
+      z: 0
+    };
+    const usableH = Math.max(280, height - 135);
+    const baseScale = (Math.min(width * 0.66, usableH * 0.86) / 460) * state.camera.zoom;
+    const p = projectWorldPoint(earthWorld, { x: 0, y: 0, z: 0 }, 0, 0, baseScale);
+    state.camera.panX = -p.sx;
+    state.camera.panY = -p.sy;
+    clampPanBounds();
+    updateCameraPresetUI();
+  }
+
   // ==========================================================================
-  // 宇宙キャンバスでの指ドラッグ操作（1本指：天体/視点回転・移動、2本指：地球スクロール＆地球中心ピンチ拡大縮小）
+  // 宇宙キャンバスでの指ドラッグ操作（1本指：太陽中心での天体公転/視点回転、2本指：太陽系スクロール＆拡大縮小）
   // ==========================================================================
   function setupSpaceCanvasInteractions(setPlayingFn) {
     const canvas = elements.spaceCanvas;
     const activePointers = new Map();
     let activePointerId = null;
     let dragTarget = null; // 'moon' | 'earth' | 'sun' | 'background' | 'two-finger'
+    let dragEarthAsSpin = false;
     let startX = 0;
     let startY = 0;
     let hasMoved = false;
@@ -2393,17 +2422,16 @@
         canvas.setPointerCapture(e.pointerId);
       } catch (_) {}
 
-      // 2本目の指が触れたら即座に「2本指スクロール＆地球中心ピンチ拡大縮小」へ移行
+      // 2本目の指が触れたら「2本指スクロール＆ピンチ拡大縮小」へ移行（太陽中心のまま操作）
       if (activePointers.size >= 2) {
         dragTarget = 'two-finger';
         activePointerId = null;
         hasMoved = true;
         canvas.classList.add('is-dragging');
-        switchToEarthCenteredZoomMode();
         const metrics = getTwoFingerMetrics();
         prevTwoMid = metrics.mid;
         prevTwoDist = metrics.dist;
-        state.activeDragLabel = '🖐️ 2本指：地球をスクロール ／ ピンチで地球中心に拡大';
+        state.activeDragLabel = '🖐️ 2本指：太陽系をスクロール ／ ピンチで拡大・縮小';
         updateSimulation();
         return;
       }
@@ -2413,6 +2441,7 @@
       startY = pos.y;
       hasMoved = false;
       dragTarget = hitTestTarget(pos.x, pos.y);
+      dragEarthAsSpin = (state.camera.zoom >= 2.2 && !state.lockHourOnMoonDrag);
 
       startYaw = state.camera.yaw;
       startPitch = state.camera.pitch;
@@ -2428,11 +2457,9 @@
       if (dragTarget === 'moon' && proj) {
         prevAngleRad = getPolarAngleAround(pos.x, pos.y, proj.earth.sx, proj.earth.sy);
       } else if (dragTarget === 'earth' && proj) {
-        if (state.camera.scaleMode === 'earth-focus') {
-          prevAngleRad = getPolarAngleAround(pos.x, pos.y, proj.earth.sx, proj.earth.sy);
-        } else {
-          prevAngleRad = getPolarAngleAround(pos.x, pos.y, proj.sun.sx, proj.sun.sy);
-        }
+        prevAngleRad = dragEarthAsSpin
+          ? getPolarAngleAround(pos.x, pos.y, proj.earth.sx, proj.earth.sy)
+          : getPolarAngleAround(pos.x, pos.y, proj.sun.sx, proj.sun.sy);
       } else if (dragTarget === 'sun' && proj) {
         prevAngleRad = getPolarAngleAround(pos.x, pos.y, proj.sun.sx, proj.sun.sy);
       }
@@ -2443,21 +2470,21 @@
       const pos = getPointerCanvasPos(e);
       activePointers.set(e.pointerId, pos);
 
-      // 2本指ジェスチャー中（地球の端までのスクロール＋地球中心のピンチ拡大縮小）
+      // 2本指ジェスチャー中（太陽系の自由スクロール＋ピンチ拡大縮小）
       if (dragTarget === 'two-finger' && activePointers.size >= 2) {
         const metrics = getTwoFingerMetrics();
         if (prevTwoMid) {
           state.camera.panX += (metrics.mid.x - prevTwoMid.x);
           state.camera.panY += (metrics.mid.y - prevTwoMid.y);
+          clampPanBounds();
         }
         if (prevTwoDist >= 12 && metrics.dist >= 12) {
           const ratio = metrics.dist / prevTwoDist;
-          state.camera.zoom = clamp(state.camera.zoom * ratio, 0.22, 16.0);
+          zoomAroundScreenPoint(state.camera.zoom * ratio, metrics.mid.x, metrics.mid.y);
         }
-        clampPanBounds();
         prevTwoMid = metrics.mid;
         prevTwoDist = metrics.dist;
-        state.activeDragLabel = '🖐️ 2本指：地球をスクロール ／ ピンチで地球中心に拡大';
+        state.activeDragLabel = '🖐️ 2本指：太陽系をスクロール ／ ピンチで拡大・縮小';
         updateSimulation();
         return;
       }
@@ -2479,7 +2506,6 @@
       if (dragTarget === 'moon' && proj) {
         const curRad = getPolarAngleAround(pos.x, pos.y, proj.earth.sx, proj.earth.sy);
         cumulativeAngleDeg += unwrapAngleDeltaDeg(curRad, prevAngleRad);
-        prevAngleRad = curRad;
 
         if (state.lockHourOnMoonDrag) {
           const dayDelta = Math.round((cumulativeAngleDeg / 360.0) * 29.530588853);
@@ -2490,22 +2516,31 @@
         } else {
           const deltaMin = (cumulativeAngleDeg / 360.0) * SYNODIC_MONTH_MIN;
           state.currentDate = new Date(startTimeMs + deltaMin * 60 * 1000);
-          state.activeDragLabel = '🌙 月を回転中（地球も自転・公転しながら進みます）';
+          state.activeDragLabel = '🌙 月を回転中（地球も太陽のまわりを公転します）';
         }
         updateSimulation();
+        if (state.lastProjected) {
+          prevAngleRad = getPolarAngleAround(pos.x, pos.y, state.lastProjected.earth.sx, state.lastProjected.earth.sy);
+        } else {
+          prevAngleRad = curRad;
+        }
       } else if (dragTarget === 'earth' && proj) {
-        if (state.camera.scaleMode === 'earth-focus') {
+        if (dragEarthAsSpin) {
           const curRad = getPolarAngleAround(pos.x, pos.y, proj.earth.sx, proj.earth.sy);
           cumulativeAngleDeg += unwrapAngleDeltaDeg(curRad, prevAngleRad);
-          prevAngleRad = curRad;
 
           const deltaMin = (cumulativeAngleDeg / 360.0) * 1440.0;
           state.currentDate = new Date(startTimeMs + deltaMin * 60 * 1000);
-          state.activeDragLabel = '🌍 地球を自転中（1回転＝1日）';
+          state.activeDragLabel = '🌍 地球を自転中（太陽のまわりを公転しながら進みます）';
+          updateSimulation();
+          if (state.lastProjected) {
+            prevAngleRad = getPolarAngleAround(pos.x, pos.y, state.lastProjected.earth.sx, state.lastProjected.earth.sy);
+          } else {
+            prevAngleRad = curRad;
+          }
         } else {
           const curRad = getPolarAngleAround(pos.x, pos.y, proj.sun.sx, proj.sun.sy);
           cumulativeAngleDeg += unwrapAngleDeltaDeg(curRad, prevAngleRad);
-          prevAngleRad = curRad;
 
           if (state.lockHourOnMoonDrag) {
             const dayDelta = Math.round((cumulativeAngleDeg / 360.0) * 365.2422);
@@ -2516,10 +2551,15 @@
           } else {
             const deltaMin = (cumulativeAngleDeg / 360.0) * TROPICAL_YEAR_MIN;
             state.currentDate = new Date(startTimeMs + deltaMin * 60 * 1000);
-            state.activeDragLabel = '🌍 地球が自転しながら公転しています';
+            state.activeDragLabel = '🌍 地球が太陽のまわりを自転しながら公転しています';
+          }
+          updateSimulation();
+          if (state.lastProjected) {
+            prevAngleRad = getPolarAngleAround(pos.x, pos.y, state.lastProjected.sun.sx, state.lastProjected.sun.sy);
+          } else {
+            prevAngleRad = curRad;
           }
         }
-        updateSimulation();
       } else if (dragTarget === 'sun' && proj) {
         const curRad = getPolarAngleAround(pos.x, pos.y, proj.sun.sx, proj.sun.sy);
         cumulativeAngleDeg += unwrapAngleDeltaDeg(curRad, prevAngleRad);
@@ -2586,12 +2626,15 @@
     canvas.addEventListener('pointerup', finishPointer);
     canvas.addEventListener('pointercancel', finishPointer);
 
-    // PC・トラックパッドでのホイール操作でも「地球中心の拡大・縮小」に対応
+    // PC・トラックパッドでのホイール操作でも地球の位置やポインタ位置基準で拡大・縮小
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
-      switchToEarthCenteredZoomMode();
+      const pos = getPointerCanvasPos(e);
+      const ep = state.lastProjected ? state.lastProjected.earth : null;
+      const anchorX = (ep && ep.sx >= 0 && ep.sx <= canvas.clientWidth) ? ep.sx : pos.x;
+      const anchorY = (ep && ep.sy >= 0 && ep.sy <= canvas.clientHeight) ? ep.sy : pos.y;
       const factor = Math.exp(-e.deltaY * 0.0018);
-      state.camera.zoom = clamp(state.camera.zoom * factor, 0.22, 16.0);
+      zoomAroundScreenPoint(state.camera.zoom * factor, anchorX, anchorY);
       updateSimulation();
     }, { passive: false });
   }
@@ -2605,9 +2648,9 @@
   function updateCameraPresetUI() {
     elements.btnCamModeRotate.classList.toggle('active', state.camera.dragMode === 'rotate');
     elements.btnCamModePan.classList.toggle('active', state.camera.dragMode === 'pan');
-    const isFocus = state.camera.scaleMode === 'earth-focus';
-    elements.btnToggleScale.classList.toggle('active', isFocus);
-    elements.btnToggleScale.textContent = isFocus ? '☀️ 太陽系全体' : '🌏 地球を拡大';
+    const isZoomed = state.camera.zoom >= 1.8;
+    elements.btnToggleScale.classList.toggle('active', isZoomed);
+    elements.btnToggleScale.textContent = isZoomed ? '☀️ 太陽系全体' : '🌏 地球を拡大';
   }
 
   // --- イベントリスナーの登録 ---
@@ -2829,29 +2872,34 @@
       elements.btnViewSide.classList.add('active');
       updateSimulation();
     });
-    elements.btnToggleScale.addEventListener('click', () => {
-      if (state.camera.scaleMode === 'solar-system') {
-        state.camera.scaleMode = 'earth-focus';
-        state.camera.zoom = 1.0;
-        state.camera.panX = 0;
-        state.camera.panY = 0;
-      } else {
-        state.camera.scaleMode = 'solar-system';
-        state.camera.zoom = 1.0;
-        state.camera.panX = 0;
-        state.camera.panY = 0;
+    function getZoomButtonAnchor() {
+      const { width, height } = getViewportSize();
+      const ep = state.lastProjected ? state.lastProjected.earth : null;
+      if (ep && ep.sx >= 0 && ep.sx <= width && ep.sy >= 0 && ep.sy <= height) {
+        return { x: ep.sx, y: ep.sy };
       }
-      updateCameraPresetUI();
+      return { x: width * 0.5, y: height * 0.52 };
+    }
+
+    elements.btnToggleScale.addEventListener('click', () => {
+      if (state.camera.zoom < 1.8) {
+        centerCameraOnEarth(2.5);
+      } else {
+        state.camera.zoom = 1.0;
+        state.camera.panX = 0;
+        state.camera.panY = 0;
+        updateCameraPresetUI();
+      }
       updateSimulation();
     });
     elements.btnZoomIn.addEventListener('click', () => {
-      switchToEarthCenteredZoomMode();
-      state.camera.zoom = clamp(state.camera.zoom * 1.28, 0.22, 16.0);
+      const anchor = getZoomButtonAnchor();
+      zoomAroundScreenPoint(state.camera.zoom * 1.28, anchor.x, anchor.y);
       updateSimulation();
     });
     elements.btnZoomOut.addEventListener('click', () => {
-      switchToEarthCenteredZoomMode();
-      state.camera.zoom = clamp(state.camera.zoom / 1.28, 0.22, 16.0);
+      const anchor = getZoomButtonAnchor();
+      zoomAroundScreenPoint(state.camera.zoom / 1.28, anchor.x, anchor.y);
       updateSimulation();
     });
     elements.btnViewReset.addEventListener('click', () => {
@@ -2860,7 +2908,6 @@
       state.camera.panX = 0;
       state.camera.panY = 0;
       state.camera.zoom = 1.0;
-      state.camera.scaleMode = 'solar-system';
       clearPresetAngleActive();
       elements.btnViewDiag.classList.add('active');
       updateCameraPresetUI();

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>先生向け操作マニュアル｜ひかりと地球・月（v1.3）</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --ink: #1e293b;
+      --muted: #475569;
+      --accent: #1d4ed8;
+      --accent-soft: #eff6ff;
+      --border: #cbd5e1;
+      --warn-bg: #fffbeb;
+      --warn-border: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.75;
+    }
+    .page {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 12px;
+      padding: 36px 40px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+    }
+    header {
+      border-bottom: 3px solid var(--accent);
+      padding-bottom: 16px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      font-size: 1.55rem;
+      margin: 0 0 4px 0;
+      color: #0f172a;
+    }
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    .print-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 0.92rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    h2 {
+      font-size: 1.18rem;
+      color: var(--accent);
+      border-left: 5px solid var(--accent);
+      padding-left: 12px;
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+    h3 {
+      font-size: 1.02rem;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      color: #0f172a;
+    }
+    p, li { font-size: 0.95rem; }
+    .callout {
+      background: var(--accent-soft);
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 14px 0;
+    }
+    .warn {
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn-border);
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin: 14px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px 0;
+      font-size: 0.92rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: bold;
+      width: 26%;
+    }
+    ol, ul { padding-left: 22px; }
+    li { margin-bottom: 6px; }
+    footer {
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: right;
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page { box-shadow: none; padding: 12mm; max-width: none; }
+      .print-btn { display: none; }
+      h2 { break-after: avoid; }
+      table, .callout, .warn { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1>ひかりと地球・月（v1.3）｜先生向け操作マニュアル</h1>
+        <p class="subtitle">宇宙から見た太陽・地球・月の動きと光の当たり方｜小学校高学年〜中学生・iPad Safari 横向き対応</p>
+      </div>
+      <button class="print-btn" onclick="window.print()">このマニュアルを印刷 / PDF保存</button>
+    </header>
+
+    <div class="callout">
+      <strong>教育・提示上のこだわり：</strong>
+      ① 地球・月の昼（光の当たる側）と夜（影）を<strong>グラデーションなしのくっきりベタ塗り</strong>で描画、② <strong>「南中」を使わず「南」「一番高いとき」</strong>などわかりやすい言葉で統一、③ つねに<strong>太陽を中心とした地動説モデル</strong>のまま、左上の<strong>「佐伯（指定地点）から見た月と空」</strong>とリアルタイム連動、④ <strong>2本指ドラッグ＆ピンチ拡大</strong>で太陽や地球を好きな位置に動かして佐伯市の観測点までズームインできます。
+    </div>
+
+    <h2>1. 画面の構成と役割</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>画面のエリア</th>
+          <th>主な表示内容とできること</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>中央：宇宙3Dキャンバス</th>
+          <td>つねに<strong>☀️太陽を中心とした公転（地動説）</strong>で、地球（📍佐伯マーカーと大陸）・月・公転軌道・太陽光線・佐伯の視線ラインを立体表示します。1本指ドラッグで各天体や視点を回転でき、<strong>2本指ドラッグ</strong>で太陽系を画面端までスクロール、<strong>2本指ピンチ</strong>で自在に拡大・縮小できます。</td>
+        </tr>
+        <tr>
+          <th>左上：地上からの見え方カード</th>
+          <td>現在の日時・場所（初期値：大分県佐伯市）から見える<strong>「月の形（ベタ塗り）」「東・南・西の空」「地上に見えている／地平線の下（地球の裏側）」</strong>をリアルタイムで表示します（タップで拡大モーダルへ）。</td>
+        </tr>
+        <tr>
+          <th>右上：日時・地域ダイアログ</th>
+          <td>現在の日時表示（午前/午後 ⇄ 24h切替）、<strong>「◀ 前の日」「今日」「次の日 ▶」</strong>ボタン、<strong>「📅 日時変更」</strong>、<strong>「📍 大分県佐伯市 ▾」</strong>（<strong>7カテゴリ別モーダル</strong>：小学校15校・中学校11校＋蒲江翔南学園・佐伯市9地区・大分県全18市町村・九州各県庁所在地・その他日本都市・✈️海外＆極地・緯度経度自由入力）、出入り時刻（白夜・極夜対応）と「一番高いとき」（<code>▲ 隠す</code> で折りたたみ可）を搭載しています。</td>
+        </tr>
+        <tr>
+          <th>左下：視点コントロールバー</th>
+          <td>背景ドラッグの切替（<strong>🔄 視点を回す</strong> ／ <strong>✋ 視点を動かす</strong>）、カメラ角度プリセット（<strong>⬆️ 真上</strong> ／ <strong>📐 斜め上</strong> ／ <strong>➡️ 横から</strong>）、表示スケール切替（<strong>🌏 地球を拡大</strong> ⇄ <strong>☀️ 太陽系全体</strong>）、拡大縮小・リセットを行えます。</td>
+        </tr>
+        <tr>
+          <th>下部：コントロールバー</th>
+          <td>再生／停止、1時間前/後、24hタイムスライダー、朝・昼・夕・夜ジャンプ、再生速度、<strong>☀️ 光</strong>、<strong>〰 軌道</strong>、<strong>⌚ 時刻固定</strong>、<strong>📌 天体を残す</strong>、<strong>🔍 比べる</strong>、<strong>🗓️ カレンダー</strong> を操作できます。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>2. 基本の操作方法</h2>
+    <h3>手順①：iPad Safari（横向き）で開く</h3>
+    <ol>
+      <li>配布フォルダの <code>index.html</code> を Webサーバー等経由で iPad の Safari で開きます。</li>
+      <li>iPad を <strong>横向き</strong> で使用します（縦向きにした場合は画面が透過グレーアウトし、横向きに戻すよう案内が表示されます。ブラウザ自体のページスクロールやダブルタップ拡大は無効化されています）。</li>
+    </ol>
+
+    <h3>手順②：1本指と2本指で、天体や視点を自由に動かす</h3>
+    <ol>
+      <li><strong>🌙 1本指で月をドラッグ</strong>：地球のまわりの公転軌道に沿って月が回り（地球も太陽のまわりを進みます）、佐伯からの見え方も連動して動きます（短くタップすると拡大モーダルが開きます）。</li>
+      <li><strong>🌍 1本指で地球をドラッグ</strong>：太陽のまわりを地球が<strong>自転しながら公転</strong>します。大きく拡大中は地球の自転を中心に回しながら公転も進みます。</li>
+      <li><strong>☀️ 1本指で太陽をドラッグ</strong>：太陽の黒点とコロナが回転し、太陽の自転を確かめられます。</li>
+      <li><strong>🌌 1本指で何もない背景をドラッグ</strong>：左下の「🔄 視点を回す」で上下左右に角度を変え、「✋ 視点を動かす」で画面上の位置を移動できます。</li>
+      <li><strong>🖐️ 2本指でドラッグ＆ピンチ拡大・縮小</strong>：太陽中心（地動説）の座標を保ったまま、2本指ドラッグで太陽・地球を画面の端までスクロール移動でき、2本指ピンチアウト／ピンチイン（PCではマウスホイールや「➕」「➖」「🌏 地球を拡大」）で<strong>佐伯市の観測点まで拡大</strong>して地平線と月の方向を観察できます。</li>
+    </ol>
+
+    <h3>手順③：「⌚ 時刻固定」「📌 天体を残す」「🔍 比べる」で比較する</h3>
+    <ol>
+      <li>同じ時刻（例：夕方午後6時）での月の変化を見せたいときは、下部の <strong>「⌚ 時刻固定」</strong> をオンにしてから月をドラッグすると、時刻を保ったまま日付と月の形・位置が変わります。</li>
+      <li><strong>「📌 天体を残す」</strong> を押すと、その日の月や地球の位置を宇宙空間にピン留めして（最大6個）別の日と並べて比べられます。</li>
+      <li><strong>「🔍 比べる」</strong> では2つの日時の「佐伯から見た月」と「宇宙から見た光の当たり方」を左右に比較でき、「💡 名前・データを隠す」で発問用の画面にもなります。</li>
+    </ol>
+
+    <h2>3. 授業活用のポイント</h2>
+    <ul>
+      <li><strong>昼と夜の仕組み</strong>：2本指ピンチ（または「🌏 地球を拡大」）で地球・佐伯市を大きく表示して再生または地球をドラッグし、赤い点（佐伯）が太陽の光を受ける側（昼）と影側（夜）を移動する様子を観察します。</li>
+      <li><strong>月の満ち欠けの仕組み</strong>：宇宙空間では月も地球も常に半分が太陽に照らされていることを確認した上で、佐伯（赤い点）から見る方向が変わると三日月・半月・満月に見えることを左上の地上カードと照らし合わせて確認します。</li>
+      <li><strong>地球の公転と季節・海外の空（発展）</strong>：「☀️ 太陽系全体」で地球をドラッグして太陽のまわりを1周させると、23.4°の傾きと昼夜の割合の変化がわかります。さらに📍場所選択の<strong>「✈️ 海外・極地」</strong>からノルウェー（白夜・極夜）や南極点・シドニー（南半球の北の空と上下反転した月）を選ぶと、世界から見た宇宙の不思議も体験できます。</li>
+    </ul>
+
+    <div class="warn">
+      <strong>うまく表示されないときの確認：</strong>
+      もし画面の縦横切り替え直後にレイアウトがずれて見える場合は、iPad を一度縦→横へ回転し直すか、ページを再読み込みしてください（<code>visualViewport</code> に合わせて自動再計測されます）。
+    </div>
+
+    <footer>
+      ひかりと地球・月（v1.3）｜宇宙から見た太陽・地球・月シミュレーション 授業提示用資料
+    </footer>
+  </div>
+</body>
+</html>

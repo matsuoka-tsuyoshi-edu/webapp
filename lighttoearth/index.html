@@ -8,8 +8,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>ひかりと地球・月 v1.2｜宇宙から見た太陽・地球・月</title>
-  <link id="app-stylesheet" rel="stylesheet" href="style.css?v=1.2">
+  <title>ひかりと地球・月 v1.3｜宇宙から見た太陽・地球・月</title>
+  <link id="app-stylesheet" rel="stylesheet" href="style.css?v=1.3">
 </head>
 <body>
   <div id="app-container">
@@ -61,7 +61,7 @@
     <div id="right-column" class="ui-overlay">
       <div id="astro-card">
         <div class="card-title">
-          <span class="app-brand-title">☀️🌍🌙 ひかりと地球・月 <span id="app-version-badge" class="app-version-badge">v1.2</span></span>
+          <span class="app-brand-title">☀️🌍🌙 ひかりと地球・月 <span id="app-version-badge" class="app-version-badge">v1.3</span></span>
           <div class="card-title-right">
             <button id="btn-location-picker" class="location-tag-btn" type="button" title="観測する場所（佐伯市内の小学校・中学校・地域・世界）を変更">
               <span>📍</span>
@@ -208,9 +208,9 @@
       </div>
       <div class="cam-divider"></div>
       <div class="cam-group">
-        <button id="btn-toggle-scale" class="btn-cam btn-cam-accent" type="button" title="地球を中心に拡大するか、太陽系全体を見るか切り替える">🌏 地球を拡大</button>
-        <button id="btn-zoom-in" class="btn-cam btn-cam-icon" type="button" title="地球を中心に拡大する">➕</button>
-        <button id="btn-zoom-out" class="btn-cam btn-cam-icon" type="button" title="地球を中心に縮小する">➖</button>
+        <button id="btn-toggle-scale" class="btn-cam btn-cam-accent" type="button" title="地球の位置へズームインするか、太陽中心の全体表示に戻すか切り替える">🌏 地球を拡大</button>
+        <button id="btn-zoom-in" class="btn-cam btn-cam-icon" type="button" title="拡大する">➕</button>
+        <button id="btn-zoom-out" class="btn-cam btn-cam-icon" type="button" title="縮小する">➖</button>
         <button id="btn-view-reset" class="btn-cam" type="button" title="視点を元の位置に戻す">🏠 リセット</button>
       </div>
     </div>
@@ -222,7 +222,7 @@
         <span class="legend-chip"><span class="legend-dot legend-night"></span>夜（影）</span>
         <span class="legend-chip"><span class="legend-dot legend-saiki"></span><span id="legend-observer-name">佐伯</span></span>
       </div>
-      <div id="drag-hint-text" class="drag-hint-text">👆 1本指＝天体・視点回転 ／ 2本指＝スクロール・地球中心拡大</div>
+      <div id="drag-hint-text" class="drag-hint-text">👆 1本指＝天体公転・視点回転 ／ 2本指＝画面スクロール・拡大縮小</div>
     </div>
 
     <!-- 6. 下部コントロールバー（再生・スライダー・天体を残す等） -->
@@ -551,7 +551,7 @@
   <!-- キャッシュ回避ローダー：読み込みのたびに最新ファイルを確実に読み込む -->
   <script>
     (function() {
-      var bust = 'v=1.2&t=' + Date.now();
+      var bust = 'v=1.3&t=' + Date.now();
       var cssLink = document.getElementById('app-stylesheet');
       if (cssLink) {
         cssLink.href = 'style.css?' + bust;
