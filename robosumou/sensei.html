@@ -1,0 +1,2907 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ロボ相撲アリーナ - 先生用トーナメントシステム</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
+<!-- PeerJS (WebRTC P2P通信ライブラリ) -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+    :root {
+        --bg-color: #040711;
+        --panel-bg: rgba(10, 16, 32, 0.85);
+        --panel-border: rgba(0, 243, 255, 0.25);
+        --accent-cyan: #00f3ff;
+        --accent-magenta: #ff007f;
+        --accent-green: #39ff14;
+        --accent-yellow: #ffff00;
+        --accent-gold: #ffd700;
+        --accent-silver: #c0c0c0;
+        --accent-bronze: #cd7f32;
+        --text-color: #f1f5f9;
+        --text-muted: #64748b;
+        --font-sf: 'Orbitron', 'M PLUS Rounded 1c', sans-serif;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        user-select: none;
+    }
+
+    body {
+        background-color: var(--bg-color);
+        background-image: 
+            radial-gradient(ellipse at 50% 0%, rgba(0, 243, 255, 0.12) 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 100%, rgba(255, 0, 127, 0.08) 0%, transparent 50%),
+            linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+        background-size: 100% 100%, 100% 100%, 35px 35px, 35px 35px;
+        color: var(--text-color);
+        font-family: var(--font-sf);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+    }
+
+    /* ヘッダー */
+    header {
+        height: 75px;
+        background: rgba(6, 10, 24, 0.92);
+        border-bottom: 1px solid var(--panel-border);
+        backdrop-filter: blur(15px);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 30px;
+        z-index: 1000;
+        flex-shrink: 0;
+    }
+
+    .brand-title {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .brand-title h1 {
+        font-size: 1.8rem;
+        font-weight: 900;
+        letter-spacing: 3px;
+        background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+    }
+    .brand-badge {
+        font-size: 0.72rem;
+        padding: 3px 10px;
+        border-radius: 6px;
+        background: rgba(255, 0, 127, 0.15);
+        color: var(--accent-magenta);
+        border: 1px solid var(--accent-magenta);
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+
+    /* エントリーコード表示ボックス */
+    .room-code-display {
+        background: rgba(0, 0, 0, 0.5);
+        border: 2px solid var(--accent-cyan);
+        border-radius: 14px;
+        padding: 8px 22px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 0 20px rgba(0, 243, 255, 0.25);
+    }
+    .room-code-label {
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: var(--accent-cyan);
+        letter-spacing: 1px;
+    }
+    .room-code-digits {
+        font-size: 2.2rem;
+        font-weight: 900;
+        letter-spacing: 6px;
+        color: #ffffff;
+        text-shadow: 0 0 12px var(--accent-cyan);
+        font-family: 'Orbitron', monospace;
+    }
+    .room-status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent-green);
+        box-shadow: 0 0 8px var(--accent-green);
+        animation: pulseDot 2s infinite;
+    }
+    @keyframes pulseDot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* ヘッダー右側コントロール */
+    .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .btn {
+        background: rgba(0, 243, 255, 0.08);
+        border: 1px solid var(--accent-cyan);
+        color: var(--accent-cyan);
+        border-radius: 10px;
+        padding: 10px 18px;
+        font-family: var(--font-sf);
+        font-weight: 800;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn:hover:not(:disabled) {
+        background: var(--accent-cyan);
+        color: #060913;
+        box-shadow: 0 0 18px rgba(0, 243, 255, 0.45);
+        transform: translateY(-1px);
+    }
+    .btn.primary {
+        background: linear-gradient(135deg, rgba(0, 243, 255, 0.25), rgba(255, 0, 127, 0.25));
+        border-color: var(--accent-cyan);
+        color: #ffffff;
+    }
+    .btn.primary:hover:not(:disabled) {
+        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+        color: #ffffff;
+        box-shadow: 0 0 25px rgba(0, 243, 255, 0.6);
+    }
+    .btn.danger {
+        border-color: #ff0055;
+        color: #ff0055;
+        background: rgba(255, 0, 85, 0.08);
+    }
+    .btn.danger:hover:not(:disabled) {
+        background: #ff0055;
+        color: white;
+        box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+    }
+    .btn.gold {
+        border-color: var(--accent-gold);
+        color: var(--accent-gold);
+        background: rgba(255, 215, 0, 0.1);
+    }
+    .btn.gold:hover:not(:disabled) {
+        background: var(--accent-gold);
+        color: #060913;
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+    }
+    .btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* メインコンテンツエリア */
+    main {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 30px;
+        position: relative;
+    }
+
+    /* フェーズ切り替えコンテナ */
+    .view-phase {
+        display: none;
+        flex-grow: 1;
+        width: 100%;
+        height: 100%;
+        animation: fadeIn 0.4s ease forwards;
+    }
+    .view-phase.active {
+        display: flex;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* =========================================================
+       1. 受付 & トーナメント編成フェーズ (PHASE: RECEPTION)
+       ========================================================= */
+    .reception-layout {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 25px;
+        width: 100%;
+        height: calc(100vh - 120px);
+    }
+
+    .roster-card {
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        backdrop-filter: blur(15px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .roster-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 12px;
+    }
+    .roster-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--accent-cyan);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .roster-count {
+        background: rgba(0, 243, 255, 0.15);
+        color: var(--accent-cyan);
+        padding: 3px 12px;
+        border-radius: 12px;
+        font-weight: 900;
+        font-size: 0.95rem;
+    }
+
+    .roster-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-right: 6px;
+    }
+    .roster-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.2s ease;
+        cursor: grab;
+    }
+    .roster-item:hover {
+        background: rgba(0, 243, 255, 0.08);
+        border-color: var(--accent-cyan);
+    }
+    .roster-item-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .roster-item-icon {
+        font-size: 1.6rem;
+    }
+    .roster-item-name {
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: #ffffff;
+    }
+    .roster-item-type {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+    .roster-item-del {
+        background: transparent;
+        border: none;
+        color: #ff0055;
+        font-size: 1.1rem;
+        cursor: pointer;
+        padding: 4px;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+    .roster-item-del:hover {
+        opacity: 1;
+    }
+
+    .roster-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 15px;
+    }
+
+    /* トーナメントブラケットエリア */
+    .bracket-container {
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        backdrop-filter: blur(15px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    .bracket-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .bracket-title {
+        font-size: 1.3rem;
+        font-weight: 900;
+        letter-spacing: 2px;
+        color: var(--accent-cyan);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .bracket-scroll-area {
+        flex-grow: 1;
+        overflow: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .bracket-tree {
+        display: flex;
+        gap: 50px;
+        align-items: center;
+        min-width: 720px;
+    }
+    .bracket-round {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        gap: 30px;
+        min-width: 190px;
+    }
+    .round-header-label {
+        font-size: 0.85rem;
+        font-weight: 900;
+        color: var(--accent-magenta);
+        text-align: center;
+        letter-spacing: 1.5px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+    }
+
+    .bracket-match {
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(0, 243, 255, 0.3);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        position: relative;
+        transition: all 0.3s ease;
+    }
+    .bracket-match.active-match {
+        border-color: var(--accent-yellow);
+        box-shadow: 0 0 20px rgba(255, 255, 0, 0.4);
+    }
+    .bracket-match-tag {
+        font-size: 0.65rem;
+        background: rgba(0, 243, 255, 0.15);
+        color: var(--accent-cyan);
+        padding: 2px 8px;
+        text-align: center;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+
+    .bracket-slot {
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        transition: background 0.2s;
+        min-height: 44px;
+        cursor: pointer;
+    }
+    .bracket-slot:last-child {
+        border-bottom: none;
+    }
+    .bracket-slot.winner {
+        background: rgba(0, 243, 255, 0.18);
+        color: #ffffff;
+        font-weight: 900;
+    }
+    .bracket-slot.drag-over {
+        background: rgba(255, 255, 0, 0.25);
+        border: 2px dashed var(--accent-yellow);
+    }
+    .slot-player-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 130px;
+    }
+    .slot-score {
+        font-weight: 900;
+        color: var(--accent-green);
+        margin-left: 6px;
+    }
+
+    /* =========================================================
+       2. 試合会場フェーズ (PHASE: BATTLE)
+       ========================================================= */
+    .battle-layout {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 25px;
+        width: 100%;
+        height: calc(100vh - 120px);
+    }
+
+    .arena-main-panel {
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        backdrop-filter: blur(15px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        position: relative;
+    }
+
+    /* 試合情報バナー */
+    .match-banner {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(0, 243, 255, 0.2);
+        border-radius: 14px;
+        margin-bottom: 12px;
+    }
+    .match-round-title {
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: var(--accent-magenta);
+        letter-spacing: 1.5px;
+    }
+    .match-hud-timer {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: var(--accent-cyan);
+        font-family: 'Orbitron', monospace;
+    }
+
+    /* 対戦カードHUD */
+    .match-vs-hud {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 20px;
+        align-items: center;
+        margin-bottom: 10px;
+        padding: 0 10px;
+    }
+    .fighter-hud-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 10px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .fighter-hud-card.p1 {
+        border-left: 4px solid var(--accent-green);
+    }
+    .fighter-hud-card.p2 {
+        border-right: 4px solid var(--accent-magenta);
+        text-align: right;
+    }
+    .fighter-name-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 900;
+        font-size: 1.1rem;
+    }
+    .fighter-hud-card.p2 .fighter-name-row {
+        justify-content: flex-end;
+    }
+    .energy-bar-wrap {
+        width: 100%;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .energy-bar-fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.25s ease-out;
+    }
+
+    .vs-badge {
+        font-size: 1.4rem;
+        font-weight: 900;
+        font-style: italic;
+        color: var(--accent-yellow);
+        text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+    }
+
+    /* キャンバスコンテナ */
+    #arena-canvas-container {
+        position: relative;
+        width: 520px;
+        height: 520px;
+        max-width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #arena-canvas {
+        background: #02050c;
+        border: 2px solid var(--panel-border);
+        border-radius: 50%;
+        box-shadow: 0 0 40px rgba(0, 243, 255, 0.2);
+    }
+
+    /* 試合コントロールバー */
+    .battle-control-bar {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    /* サイドバー（ミニトーナメント & 実況ログ） */
+    .arena-side-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        height: 100%;
+    }
+    .mini-bracket-panel {
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 16px;
+        padding: 16px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        backdrop-filter: blur(15px);
+        overflow: hidden;
+    }
+    .mini-bracket-header {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--accent-cyan);
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .mini-bracket-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .mini-match-item {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 0.78rem;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        transition: all 0.2s;
+    }
+    .mini-match-item.current {
+        border-color: var(--accent-yellow);
+        background: rgba(255, 255, 0, 0.08);
+    }
+    .mini-match-item.done {
+        opacity: 0.65;
+    }
+    .mini-match-title {
+        color: var(--accent-magenta);
+        font-weight: 800;
+        font-size: 0.7rem;
+    }
+    .mini-match-fighters {
+        display: flex;
+        justify-content: space-between;
+        color: #ffffff;
+    }
+
+    .arena-commentary-panel {
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 16px;
+        padding: 14px;
+        height: 160px;
+        display: flex;
+        flex-direction: column;
+        backdrop-filter: blur(15px);
+    }
+    .commentary-title {
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--accent-green);
+        margin-bottom: 8px;
+    }
+    .commentary-log {
+        flex-grow: 1;
+        overflow-y: auto;
+        font-size: 0.72rem;
+        color: #a7f3d0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-family: 'M PLUS Rounded 1c', sans-serif;
+    }
+
+    /* =========================================================
+       3. 専用表彰式フェーズ (PHASE: CEREMONY)
+       ========================================================= */
+    .ceremony-layout {
+        width: 100%;
+        height: calc(100vh - 120px);
+        background: radial-gradient(ellipse at 50% 30%, rgba(255, 215, 0, 0.15) 0%, transparent 70%),
+                    radial-gradient(ellipse at 50% 80%, rgba(0, 243, 255, 0.12) 0%, transparent 60%);
+        border: 1px solid var(--panel-border);
+        border-radius: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        padding: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ceremony-header {
+        text-align: center;
+        z-index: 2;
+    }
+    .ceremony-title {
+        font-size: 2.8rem;
+        font-weight: 900;
+        letter-spacing: 4px;
+        background: linear-gradient(90deg, #ffd700, #ff8c00, #ff007f);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+        margin-bottom: 6px;
+    }
+    .ceremony-subtitle {
+        font-size: 1.1rem;
+        color: var(--accent-cyan);
+        letter-spacing: 2px;
+        font-weight: 800;
+    }
+
+    /* 表彰台ステージ */
+    .podium-stage {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 30px;
+        width: 100%;
+        max-width: 900px;
+        flex-grow: 1;
+        padding-bottom: 20px;
+        z-index: 2;
+    }
+
+    .podium-pillar-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 240px;
+        position: relative;
+        opacity: 0;
+        transform: translateY(40px);
+        transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .podium-pillar-wrap.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* 表彰台上のキャラクター（飛び跳ねるアニメーション） */
+    .podium-robot-avatar {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 3.5rem;
+        margin-bottom: 15px;
+        position: relative;
+        background: rgba(0, 0, 0, 0.4);
+        border: 3px solid #ffffff;
+        box-shadow: 0 0 25px currentColor;
+    }
+    .podium-robot-avatar.hopping {
+        animation: cyberHop 0.7s infinite alternate ease-in-out;
+    }
+    @keyframes cyberHop {
+        0% { transform: translateY(0) scale(1.05, 0.95); }
+        50% { transform: translateY(-38px) scale(0.95, 1.05); }
+        100% { transform: translateY(-44px) scale(0.97, 1.03); }
+    }
+
+    .podium-robot-name {
+        font-size: 1.25rem;
+        font-weight: 900;
+        color: #ffffff;
+        text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+        margin-bottom: 8px;
+        text-align: center;
+        white-space: nowrap;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .podium-pillar {
+        width: 100%;
+        border-radius: 16px 16px 0 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 15px;
+        font-weight: 900;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        position: relative;
+    }
+    .podium-rank-num {
+        font-size: 3.2rem;
+        font-family: 'Orbitron', monospace;
+        letter-spacing: 2px;
+        text-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+    .podium-rank-label {
+        font-size: 0.9rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        margin-top: -4px;
+    }
+
+    /* 1位（ゴールド） */
+    .pillar-1 {
+        height: 250px;
+        background: linear-gradient(180deg, #ffd700 0%, #b8860b 100%);
+        border: 2px solid #fff275;
+        color: #4a3b00;
+        box-shadow: 0 0 45px rgba(255, 215, 0, 0.45);
+    }
+    .podium-robot-avatar.first {
+        border-color: #ffd700;
+        color: #ffd700;
+    }
+    /* 2位（シルバー） */
+    .pillar-2 {
+        height: 185px;
+        background: linear-gradient(180deg, #e0e0e0 0%, #808080 100%);
+        border: 2px solid #ffffff;
+        color: #2b2b2b;
+        box-shadow: 0 0 35px rgba(220, 220, 220, 0.35);
+    }
+    .podium-robot-avatar.second {
+        border-color: #e0e0e0;
+        color: #e0e0e0;
+    }
+    /* 3位（ブロンズ） */
+    .pillar-3 {
+        height: 135px;
+        background: linear-gradient(180deg, #cd7f32 0%, #8b4513 100%);
+        border: 2px solid #e29b63;
+        color: #3d1c02;
+        box-shadow: 0 0 30px rgba(205, 127, 50, 0.35);
+    }
+    .podium-robot-avatar.third {
+        border-color: #cd7f32;
+        color: #cd7f32;
+    }
+
+    .ceremony-controls {
+        z-index: 2;
+        display: flex;
+        gap: 20px;
+    }
+
+    /* 紙吹雪Canvas */
+    #confetti-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10;
+    }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header>
+    <div class="brand-title">
+        <h1>ROBO SUMO ARENA</h1>
+        <div class="brand-badge">SENSEI SYSTEM v2.2</div>
+    </div>
+
+    <!-- 4桁ルームコード表示部 -->
+    <div class="room-code-display">
+        <div class="room-status-dot" id="peer-status-dot" title="通信接続ステータス"></div>
+        <div class="room-code-label">エントリーコード:</div>
+        <div class="room-code-digits" id="teacher-code-display">----</div>
+    </div>
+
+    <!-- ヘッダーコントロール -->
+    <div class="header-controls">
+        <button id="sound-btn" class="btn" style="padding: 8px 12px;">🔊 サウンド</button>
+        <button id="fullscreen-btn" class="btn" style="padding: 8px 12px;">⛶ 全画面</button>
+    </div>
+</header>
+
+<main>
+    <!-- 紙吹雪専用Canvas（全画面演出用） -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- =========================================================
+         1. 受付 & トーナメント編成フェーズ
+         ========================================================= -->
+    <section id="phase-reception" class="view-phase active">
+        <div class="reception-layout">
+            
+            <!-- 左側：エントリー受付リスト -->
+            <div class="roster-card">
+                <div class="roster-header">
+                    <div class="roster-title">
+                        <span>🤖 エントリー機体一覧</span>
+                    </div>
+                    <div class="roster-count" id="roster-count-badge">0 / 16</div>
+                </div>
+
+                <div class="roster-list" id="roster-list">
+                    <!-- 受信した機体カードがここに追加される -->
+                </div>
+
+                <div class="roster-actions">
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btn-add-dummy" class="btn" style="flex: 1; font-size: 0.8rem;">🤖 ダミー4体追加</button>
+                        <button id="btn-shuffle-roster" class="btn" style="flex: 1; font-size: 0.8rem;">🔀 シャッフル</button>
+                    </div>
+                    <button id="btn-lock-tournament" class="btn primary" style="width: 100%; font-size: 1rem; padding: 12px;">
+                        🏁 受付締切 & トーナメント確定 ➔
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右側：トーナメント表（ドラッグ＆ドロップ編成可能） -->
+            <div class="bracket-container">
+                <div class="bracket-toolbar">
+                    <div class="bracket-title">
+                        <span>🏆 トーナメント表</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">※名前をドラッグ＆ドロップして位置を自由に調整できます</span>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="btn-clear-bracket" class="btn danger" style="font-size: 0.8rem; padding: 6px 12px;">クリア</button>
+                    </div>
+                </div>
+
+                <div class="bracket-scroll-area">
+                    <div class="bracket-tree" id="bracket-tree">
+                        <!-- トーナメントツリーが動的描画される -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- =========================================================
+         2. 試合会場フェーズ (BATTLE)
+         ========================================================= -->
+    <section id="phase-battle" class="view-phase">
+        <div class="battle-layout">
+            
+            <!-- メイン試合エリア -->
+            <div class="arena-main-panel">
+                
+                <!-- 試合ラウンド情報バナー -->
+                <div class="match-banner">
+                    <div class="match-round-title" id="battle-round-title">第1回戦 第1試合</div>
+                    <div class="match-hud-timer" id="battle-hud-timer">30.0s</div>
+                </div>
+
+                <!-- 対戦者ステータスHUD -->
+                <div class="match-vs-hud">
+                    <div class="fighter-hud-card p1">
+                        <div class="fighter-name-row">
+                            <span id="p1-icon" style="font-size: 1.5rem;">🟢</span>
+                            <span id="p1-name">プレイヤー1</span>
+                        </div>
+                        <div class="energy-bar-wrap">
+                            <div id="p1-energy-bar" class="energy-bar-fill" style="width: 100%; background: var(--accent-green);"></div>
+                        </div>
+                    </div>
+
+                    <div class="vs-badge">VS</div>
+
+                    <div class="fighter-hud-card p2">
+                        <div class="fighter-name-row">
+                            <span id="p2-name">プレイヤー2</span>
+                            <span id="p2-icon" style="font-size: 1.5rem;">🔴</span>
+                        </div>
+                        <div class="energy-bar-wrap">
+                            <div id="p2-energy-bar" class="energy-bar-fill" style="width: 100%; background: var(--accent-magenta);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 土俵キャンバス -->
+                <div id="arena-canvas-container">
+                    <canvas id="arena-canvas" width="540" height="540"></canvas>
+                </div>
+
+                <!-- 試合操作バー -->
+                <div class="battle-control-bar">
+                    <button id="btn-battle-start" class="btn primary" style="font-size: 1.1rem; padding: 12px 28px;">⚔️ 試合開始</button>
+                    <button id="btn-battle-replay" class="btn" style="font-size: 1rem;" disabled>🔁 もう一度（リプレイ）</button>
+                    <button id="btn-battle-next" class="btn gold" style="font-size: 1.1rem; padding: 12px 24px;" disabled>次の試合へ進む ➔</button>
+                    
+                    <div style="display: flex; gap: 4px; margin-left: 20px;">
+                        <button class="btn speed-btn active" data-speed="1.0" style="padding: 6px 10px; font-size: 0.75rem;">1.0x</button>
+                        <button class="btn speed-btn" data-speed="1.5" style="padding: 6px 10px; font-size: 0.75rem;">1.5x</button>
+                        <button class="btn speed-btn" data-speed="2.0" style="padding: 6px 10px; font-size: 0.75rem;">2.0x</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- サイドバー：ミニ進行表 & 実況ログ -->
+            <div class="arena-side-panel">
+                <div class="mini-bracket-panel">
+                    <div class="mini-bracket-header">
+                        <span>📋 大会進行状況</span>
+                        <span id="mini-progress-txt" style="font-size: 0.75rem; color: var(--accent-cyan);">0 / 0 試合完了</span>
+                    </div>
+                    <div class="mini-bracket-list" id="mini-bracket-list">
+                        <!-- ミニ対戦リスト -->
+                    </div>
+                </div>
+
+                <div class="arena-commentary-panel">
+                    <div class="commentary-title">🎙️ リアルタイム実況ログ</div>
+                    <div class="commentary-log" id="commentary-log">
+                        <div>[システム] 試合会場の準備が完了しました。</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- =========================================================
+         3. 専用表彰式フェーズ (CEREMONY)
+         ========================================================= -->
+    <section id="phase-ceremony" class="view-phase">
+        <div class="ceremony-layout">
+            
+            <div class="ceremony-header">
+                <div class="ceremony-title">🏆 VICTORY CEREMONY 🏆</div>
+                <div class="ceremony-subtitle">ロボ相撲 トーナメント大会 表彰式</div>
+            </div>
+
+            <!-- 表彰台ステージ -->
+            <div class="podium-stage">
+                
+                <!-- 2位（準優勝） -->
+                <div class="podium-pillar-wrap" id="podium-wrap-2">
+                    <div class="podium-robot-avatar second hopping" id="podium-avatar-2">
+                        <span id="podium-icon-2">🥈</span>
+                    </div>
+                    <div class="podium-robot-name" id="podium-name-2">準優勝ロボ</div>
+                    <div class="podium-pillar pillar-2">
+                        <div class="podium-rank-num">2</div>
+                        <div class="podium-rank-label">準優勝</div>
+                    </div>
+                </div>
+
+                <!-- 1位（優勝） -->
+                <div class="podium-pillar-wrap" id="podium-wrap-1">
+                    <div style="font-size: 2.5rem; margin-bottom: -10px; z-index: 5;">👑</div>
+                    <div class="podium-robot-avatar first hopping" id="podium-avatar-1">
+                        <span id="podium-icon-1">🥇</span>
+                    </div>
+                    <div class="podium-robot-name" id="podium-name-1" style="font-size: 1.5rem; color: var(--accent-gold);">優勝ロボ</div>
+                    <div class="podium-pillar pillar-1">
+                        <div class="podium-rank-num">1</div>
+                        <div class="podium-rank-label">CHAMPION</div>
+                    </div>
+                </div>
+
+                <!-- 3位（第3位） -->
+                <div class="podium-pillar-wrap" id="podium-wrap-3">
+                    <div class="podium-robot-avatar third hopping" id="podium-avatar-3">
+                        <span id="podium-icon-3">🥉</span>
+                    </div>
+                    <div class="podium-robot-name" id="podium-name-3">第3位ロボ</div>
+                    <div class="podium-pillar pillar-3">
+                        <div class="podium-rank-num">3</div>
+                        <div class="podium-rank-label">第3位</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="ceremony-controls">
+                <button id="btn-ceremony-reset" class="btn primary" style="font-size: 1.15rem; padding: 14px 32px;">
+                    🔄 新しい大会をひらく（リセット）
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+<script>
+    // ==========================================
+    // 0. Web Audio API サウンドシステム
+    // ==========================================
+    class SoundEngine {
+        constructor() {
+            this.ctx = null;
+            this.enabled = true;
+        }
+        init() {
+            if (!this.ctx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) this.ctx = new AudioCtx();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        }
+        toggle() {
+            this.enabled = !this.enabled;
+            return this.enabled;
+        }
+        playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.1) {
+            if (!this.enabled) return;
+            try {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            } catch(e) {}
+        }
+        playEntry() {
+            if (!this.enabled) return;
+            this.playTone(523.25, 'sine', 0.15, 0.2); // C5
+            setTimeout(() => this.playTone(783.99, 'triangle', 0.25, 0.25), 90); // G5
+        }
+        playGong() {
+            if (!this.enabled) return;
+            this.playTone(260, 'sine', 0.8, 0.3);
+            setTimeout(() => this.playTone(390, 'triangle', 0.9, 0.25), 30);
+        }
+        playHit() {
+            if (!this.enabled) return;
+            this.playTone(120, 'square', 0.12, 0.2);
+            setTimeout(() => this.playTone(80, 'triangle', 0.18, 0.25), 20);
+        }
+        playDash() {
+            if (!this.enabled) return;
+            this.playTone(440, 'sawtooth', 0.25, 0.15);
+        }
+        playShoot() {
+            if (!this.enabled) return;
+            try {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            } catch(e) {}
+        }
+        playShield() {
+            if (!this.enabled) return;
+            this.playTone(600, 'sine', 0.15, 0.15);
+            setTimeout(() => this.playTone(900, 'sine', 0.2, 0.18), 40);
+        }
+        playKoExplosion() {
+            if (!this.enabled) return;
+            this.playTone(70, 'sawtooth', 0.7, 0.35);
+            setTimeout(() => this.playTone(45, 'square', 0.8, 0.4), 30);
+        }
+        playFanfare() {
+            if (!this.enabled) return;
+            const notes = [523.25, 659.25, 783.99, 1046.5];
+            notes.forEach((freq, idx) => {
+                setTimeout(() => this.playTone(freq, 'triangle', 0.35, 0.25), idx * 130);
+            });
+        }
+        playPodiumAward(rank) {
+            if (!this.enabled) return;
+            if (rank === 3) {
+                this.playTone(392.00, 'sine', 0.2, 0.2); // G4
+                setTimeout(() => this.playTone(523.25, 'triangle', 0.4, 0.25), 150); // C5
+            } else if (rank === 2) {
+                this.playTone(523.25, 'sine', 0.2, 0.25);
+                setTimeout(() => this.playTone(659.25, 'triangle', 0.45, 0.3), 150);
+            } else if (rank === 1) {
+                const championNotes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+                championNotes.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 'sawtooth', 0.4, 0.3), idx * 120);
+                });
+            }
+        }
+    }
+    const sound = new SoundEngine();
+    document.addEventListener('pointerdown', () => sound.init(), { once: true });
+
+    // ==========================================
+    // 1. 定数・機体テンプレート・状態管理
+    // ==========================================
+    const PEER_PREFIX = 'robosumo-';
+    const PEER_CONFIG = {
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ]
+        }
+    };
+
+    const ROBOT_TEMPLATES = {
+        normal: {
+            type: 'normal',
+            speed: 6.0,
+            force: 1.0,
+            weight: 1.0,
+            maxEnergy: 100,
+            color: '#39ff14',
+            icon: '🟢',
+            label: 'ノーマル'
+        },
+        speed: {
+            type: 'speed',
+            speed: 9.0,
+            force: 0.7,
+            weight: 0.6,
+            maxEnergy: 80,
+            color: '#00f3ff',
+            icon: '🔵',
+            label: 'スピード'
+        },
+        power: {
+            type: 'power',
+            speed: 4.0,
+            force: 1.6,
+            weight: 1.7,
+            maxEnergy: 130,
+            color: '#ff007f',
+            icon: '🔴',
+            label: 'パワー'
+        },
+        technical: {
+            type: 'technical',
+            speed: 7.5,
+            force: 1.1,
+            weight: 0.9,
+            maxEnergy: 90,
+            color: '#a855f7',
+            icon: '🟣',
+            label: 'テクニカル'
+        }
+    };
+
+    // ダミー機体（不足時の補充用）
+    const DUMMY_ROBOTS = [
+        {
+            id: 'dummy_1',
+            name: '初号機 (ノーマル)',
+            type: 'normal',
+            isDummy: true,
+            program: [
+                { command: 'turnToEnemy' },
+                { command: 'forward', value: 80 }
+            ]
+        },
+        {
+            id: 'dummy_2',
+            name: '二号機 (スピード)',
+            type: 'speed',
+            isDummy: true,
+            program: [
+                { command: 'turnToEnemy' },
+                { command: 'dash' },
+                { command: 'forward', value: 160 }
+            ]
+        },
+        {
+            id: 'dummy_3',
+            name: '三号機 (パワー)',
+            type: 'power',
+            isDummy: true,
+            program: [
+                { command: 'turnToEnemy' },
+                { command: 'forward', value: 60 }
+            ]
+        },
+        {
+            id: 'dummy_4',
+            name: '四号機 (テクニカル)',
+            type: 'technical',
+            isDummy: true,
+            program: [
+                { command: 'turnToEnemy' },
+                { command: 'shoot' },
+                {
+                    command: 'ifEnemyAhead',
+                    then: [{ command: 'shoot' }, { command: 'backward', value: 40 }],
+                    else: [{ command: 'turnRight', value: 45 }]
+                }
+            ]
+        }
+    ];
+
+    // 大会ステート
+    let currentPhase = 'reception'; // reception, battle, ceremony
+    let myNumericCode = '';
+    let peer = null;
+    let isAccepting = true;
+    let rosterRobots = []; // 受信したロボット一覧 [{ id, name, type, program, deviceId }]
+
+    // トーナメントツリー構造
+    let tournamentRounds = []; // [ round0Matches, round1Matches, ... ]
+    let currentMatchIndex = 0; // 全試合通算の進行インデックス
+    let flatMatchList = [];    // 進行順に並べたマッチ配列
+    let tournamentRankings = { first: null, second: null, third: null };
+
+    // ==========================================
+    // 2. PeerJS 通信管理 (4桁コード)
+    // ==========================================
+    const peerStatusDot = document.getElementById('peer-status-dot');
+    const teacherCodeDisplay = document.getElementById('teacher-code-display');
+
+    function initializeTeacherPeer() {
+        if (peer) {
+            try { peer.destroy(); } catch(e) {}
+            peer = null;
+        }
+
+        // 1000〜9999のランダムな4桁数値を生成
+        myNumericCode = (Math.floor(Math.random() * 9000) + 1000).toString();
+        const fullPeerId = PEER_PREFIX + myNumericCode;
+
+        teacherCodeDisplay.textContent = '----';
+        peerStatusDot.style.background = '#eab308'; // イエロー（接続中）
+
+        try {
+            peer = new Peer(fullPeerId, PEER_CONFIG);
+
+            peer.on('open', (id) => {
+                teacherCodeDisplay.textContent = myNumericCode;
+                peerStatusDot.style.background = 'var(--accent-green)';
+                logCommentary(`大会コード [${myNumericCode}] でエントリー受付を開設しました！`);
+            });
+
+            peer.on('connection', (conn) => {
+                conn.on('data', (data) => {
+                    handleIncomingRobotData(data, conn);
+                });
+            });
+
+            peer.on('error', (err) => {
+                console.warn('Peer error:', err);
+                if (err.type === 'unavailable-id') {
+                    // 万が一コードが重複していたら再生成
+                    logCommentary(`コード [${myNumericCode}] は使用中だったため、別の番号で再接続します...`);
+                    setTimeout(initializeTeacherPeer, 600);
+                } else {
+                    peerStatusDot.style.background = '#ef4444';
+                    logCommentary(`通信警告: ${err.type || err}`);
+                }
+            });
+
+            peer.on('disconnected', () => {
+                peerStatusDot.style.background = '#ef4444';
+                if (peer && !peer.destroyed) {
+                    try { peer.reconnect(); } catch(e) {}
+                }
+            });
+        } catch(e) {
+            console.error('Peer initialization error:', e);
+            teacherCodeDisplay.textContent = 'オフライン';
+            peerStatusDot.style.background = '#ef4444';
+        }
+    }
+
+    // 生徒からの機体データ受信処理
+    function handleIncomingRobotData(data, conn) {
+        if (!isAccepting) {
+            try {
+                conn.send(JSON.stringify({ status: 'rejected', message: 'ただいまエントリーは締め切られています。' }));
+            } catch(e) {}
+            return;
+        }
+
+        try {
+            let robotObj = typeof data === 'string' ? JSON.parse(data) : data;
+            if (!robotObj || !robotObj.name) return;
+
+            // 機体ID（デバイスまたはタイムスタンプ識別）
+            const robotId = robotObj.id || `bot_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+            const cleanRobot = {
+                id: robotId,
+                name: (robotObj.name || 'マイロボ').slice(0, 14),
+                type: ROBOT_TEMPLATES[robotObj.type] ? robotObj.type : 'normal',
+                program: Array.isArray(robotObj.program) ? robotObj.program : [],
+                receivedAt: Date.now()
+            };
+
+            // 同名・同IDの場合は更新、新規の場合は追加
+            const existingIdx = rosterRobots.findIndex(r => r.name === cleanRobot.name || (r.id && r.id === cleanRobot.id));
+            if (existingIdx >= 0) {
+                rosterRobots[existingIdx] = cleanRobot;
+                logCommentary(`機体更新: 「${cleanRobot.name}」のプログラムが更新されました。`);
+            } else {
+                if (rosterRobots.length >= 16) {
+                    conn.send(JSON.stringify({ status: 'full', message: '大会定員（16枠）に達しました。' }));
+                    return;
+                }
+                rosterRobots.push(cleanRobot);
+                logCommentary(`新規エントリー: 「${cleanRobot.name}」が受付されました！✨`);
+                sound.playEntry();
+            }
+
+            // 生徒側へ受付完了レスポンス送信
+            try {
+                conn.send(JSON.stringify({
+                    status: 'ok',
+                    robotName: cleanRobot.name,
+                    totalCount: rosterRobots.length
+                }));
+            } catch(e) {}
+
+            updateRosterUI();
+            buildTournamentBracketFromRoster();
+        } catch(err) {
+            console.error('データ解析エラー:', err);
+        }
+    }
+
+    // ==========================================
+    // 3. エントリーリスト & ブラケット構築UI
+    // ==========================================
+    const rosterListEl = document.getElementById('roster-list');
+    const rosterCountBadge = document.getElementById('roster-count-badge');
+    const bracketTreeEl = document.getElementById('bracket-tree');
+
+    function updateRosterUI() {
+        rosterCountBadge.textContent = `${rosterRobots.length} / 16`;
+        rosterListEl.innerHTML = '';
+
+        if (rosterRobots.length === 0) {
+            rosterListEl.innerHTML = `
+                <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 40px 10px; line-height: 1.6;">
+                    生徒の端末から<br>
+                    コード <strong style="color: var(--accent-cyan); font-size: 1.2rem;">${myNumericCode}</strong> を入力して<br>
+                    マイロボを送信してください。
+                </div>
+            `;
+            return;
+        }
+
+        rosterRobots.forEach((robot, idx) => {
+            const template = ROBOT_TEMPLATES[robot.type] || ROBOT_TEMPLATES.normal;
+            const item = document.createElement('div');
+            item.className = 'roster-item';
+            item.draggable = true;
+            item.dataset.robotId = robot.id;
+
+            item.innerHTML = `
+                <div class="roster-item-info">
+                    <div class="roster-item-icon">${template.icon}</div>
+                    <div>
+                        <div class="roster-item-name">${robot.name}</div>
+                        <div class="roster-item-type">${template.label} | エナジー:${template.maxEnergy}</div>
+                    </div>
+                </div>
+                <button class="roster-item-del" title="削除">✕</button>
+            `;
+
+            item.querySelector('.roster-item-del').addEventListener('click', (e) => {
+                e.stopPropagation();
+                rosterRobots.splice(idx, 1);
+                updateRosterUI();
+                buildTournamentBracketFromRoster();
+            });
+
+            rosterListEl.appendChild(item);
+        });
+    }
+
+    // ダミー機体追加ボタン
+    document.getElementById('btn-add-dummy').addEventListener('click', () => {
+        DUMMY_ROBOTS.forEach(dummy => {
+            if (rosterRobots.length < 16 && !rosterRobots.some(r => r.name === dummy.name)) {
+                rosterRobots.push(JSON.parse(JSON.stringify(dummy)));
+            }
+        });
+        sound.playEntry();
+        updateRosterUI();
+        buildTournamentBracketFromRoster();
+        logCommentary('ダミーロボット4体を追加しました。');
+    });
+
+    // シャッフルボタン
+    document.getElementById('btn-shuffle-roster').addEventListener('click', () => {
+        if (rosterRobots.length < 2) return;
+        for (let i = rosterRobots.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [rosterRobots[i], rosterRobots[j]] = [rosterRobots[j], rosterRobots[i]];
+        }
+        buildTournamentBracketFromRoster();
+        sound.playTone(440, 'triangle', 0.1);
+        logCommentary('対戦順をシャッフルしました。');
+    });
+
+    // 全クリアボタン
+    document.getElementById('btn-clear-bracket').addEventListener('click', () => {
+        if (confirm('エントリー一覧とトーナメント表をすべてクリアしますか？')) {
+            rosterRobots = [];
+            tournamentRounds = [];
+            flatMatchList = [];
+            updateRosterUI();
+            buildTournamentBracketFromRoster();
+            logCommentary('大会データをクリアしました。');
+        }
+    });
+
+    // トーナメントツリー自動計算 & 描画
+    function buildTournamentBracketFromRoster() {
+        const count = rosterRobots.length;
+        if (count < 2) {
+            bracketTreeEl.innerHTML = `
+                <div style="color: var(--text-muted); font-size: 0.95rem; text-align: center; padding: 40px;">
+                    2体以上のエントリーがあると、自動でトーナメント表が生成されます。
+                </div>
+            `;
+            return;
+        }
+
+        // トーナメントサイズ決定 (4, 8, 16)
+        let bracketSize = 4;
+        if (count > 8) bracketSize = 16;
+        else if (count > 4) bracketSize = 8;
+
+        // スロットを埋める機体リストの準備（不足分は自動ダミーまたはBYE）
+        const slots = [];
+        for (let i = 0; i < bracketSize; i++) {
+            if (i < rosterRobots.length) {
+                slots.push(rosterRobots[i]);
+            } else {
+                // 不足分はダミーから補充
+                const dummyIdx = i % DUMMY_ROBOTS.length;
+                const dummyClone = JSON.parse(JSON.stringify(DUMMY_ROBOTS[dummyIdx]));
+                dummyClone.name = `${dummyClone.name}#${i+1}`;
+                slots.push(dummyClone);
+            }
+        }
+
+        // ラウンド数計算 (4->2ラウンド, 8->3ラウンド, 16->4ラウンド)
+        const roundCount = Math.log2(bracketSize);
+        tournamentRounds = [];
+        flatMatchList = [];
+
+        // 第1回戦の生成
+        const round0 = [];
+        const round0MatchCount = bracketSize / 2;
+        for (let m = 0; m < round0MatchCount; m++) {
+            const matchObj = {
+                id: `R1-M${m+1}`,
+                roundIndex: 0,
+                matchIndexInRound: m,
+                roundName: roundCount === 2 ? '準決勝' : (roundCount === 3 ? '第1回戦' : '1回戦'),
+                p1: slots[m * 2],
+                p2: slots[m * 2 + 1],
+                winner: null,
+                loser: null,
+                status: 'ready'
+            };
+            round0.push(matchObj);
+        }
+        tournamentRounds.push(round0);
+
+        // 次以降のラウンドを空で生成
+        let prevRoundMatches = round0;
+        for (let r = 1; r < roundCount; r++) {
+            const nextRound = [];
+            const nextMatchCount = prevRoundMatches.length / 2;
+            let roundName = '決勝戦';
+            if (r === roundCount - 2) roundName = '準決勝';
+            else if (r === roundCount - 3) roundName = '準々決勝';
+
+            for (let m = 0; m < nextMatchCount; m++) {
+                const matchObj = {
+                    id: `R${r+1}-M${m+1}`,
+                    roundIndex: r,
+                    matchIndexInRound: m,
+                    roundName: roundName,
+                    p1: null,
+                    p2: null,
+                    winner: null,
+                    loser: null,
+                    status: 'waiting'
+                };
+                nextRound.push(matchObj);
+            }
+            tournamentRounds.push(nextRound);
+            prevRoundMatches = nextRound;
+        }
+
+        renderBracketTree();
+    }
+
+    // トーナメントDOM描画
+    function renderBracketTree() {
+        bracketTreeEl.innerHTML = '';
+        if (tournamentRounds.length === 0) return;
+
+        tournamentRounds.forEach((roundMatches, roundIdx) => {
+            const roundCol = document.createElement('div');
+            roundCol.className = 'bracket-round';
+
+            const header = document.createElement('div');
+            header.className = 'round-header-label';
+            header.textContent = roundMatches[0]?.roundName || `ROUND ${roundIdx+1}`;
+            roundCol.appendChild(header);
+
+            roundMatches.forEach((match, matchIdx) => {
+                const matchCard = document.createElement('div');
+                matchCard.className = 'bracket-match';
+                if (match.status === 'in_progress') matchCard.classList.add('active-match');
+
+                const tag = document.createElement('div');
+                tag.className = 'bracket-match-tag';
+                tag.textContent = `${match.roundName} #${matchIdx+1}`;
+                matchCard.appendChild(tag);
+
+                // Slot P1
+                const slot1 = createSlotElement(match, match.p1, 'p1', roundIdx, matchIdx);
+                // Slot P2
+                const slot2 = createSlotElement(match, match.p2, 'p2', roundIdx, matchIdx);
+
+                matchCard.appendChild(slot1);
+                matchCard.appendChild(slot2);
+                roundCol.appendChild(matchCard);
+            });
+
+            bracketTreeEl.appendChild(roundCol);
+        });
+    }
+
+    function createSlotElement(match, player, slotKey, roundIdx, matchIdx) {
+        const slot = document.createElement('div');
+        slot.className = 'bracket-slot';
+        if (match.winner && match.winner === player) slot.classList.add('winner');
+
+        const template = player ? (ROBOT_TEMPLATES[player.type] || ROBOT_TEMPLATES.normal) : null;
+        const icon = template ? template.icon : '❓';
+        const name = player ? player.name : '(未定)';
+
+        slot.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span>${icon}</span>
+                <span class="slot-player-name">${name}</span>
+            </div>
+            ${match.winner && match.winner === player ? '<span class="slot-score">WIN</span>' : ''}
+        `;
+
+        // 第1回戦のみドラッグ＆ドロップで入れ替え可能
+        if (roundIdx === 0 && currentPhase === 'reception') {
+            slot.draggable = !!player;
+            slot.dataset.roundIdx = roundIdx;
+            slot.dataset.matchIdx = matchIdx;
+            slot.dataset.slotKey = slotKey;
+
+            slot.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', JSON.stringify({ roundIdx, matchIdx, slotKey }));
+            });
+
+            slot.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                slot.classList.add('drag-over');
+            });
+
+            slot.addEventListener('dragleave', () => {
+                slot.classList.remove('drag-over');
+            });
+
+            slot.addEventListener('drop', (e) => {
+                e.preventDefault();
+                slot.classList.remove('drag-over');
+                try {
+                    const src = JSON.parse(e.dataTransfer.getData('text/plain'));
+                    if (src && src.roundIdx === 0) {
+                        const sourceMatch = tournamentRounds[0][src.matchIdx];
+                        const targetMatch = tournamentRounds[0][matchIdx];
+                        const temp = sourceMatch[src.slotKey];
+                        sourceMatch[src.slotKey] = targetMatch[slotKey];
+                        targetMatch[slotKey] = temp;
+                        renderBracketTree();
+                        sound.playTone(330, 'sine', 0.1);
+                    }
+                } catch(err) {}
+            });
+        }
+
+        return slot;
+    }
+
+    // ==========================================
+    // 4. 大会開始・進行管理
+    // ==========================================
+    const btnLockTournament = document.getElementById('btn-lock-tournament');
+    const phaseReception = document.getElementById('phase-reception');
+    const phaseBattle = document.getElementById('phase-battle');
+    const phaseCeremony = document.getElementById('phase-ceremony');
+
+    function switchPhase(newPhase) {
+        currentPhase = newPhase;
+        document.querySelectorAll('.view-phase').forEach(p => p.classList.remove('active'));
+
+        if (newPhase === 'reception') {
+            phaseReception.classList.add('active');
+            isAccepting = true;
+        } else if (newPhase === 'battle') {
+            phaseBattle.classList.add('active');
+            isAccepting = false;
+        } else if (newPhase === 'ceremony') {
+            phaseCeremony.classList.add('active');
+            isAccepting = false;
+        }
+    }
+
+    // 受付締切 & 試合会場へ移行
+    btnLockTournament.addEventListener('click', () => {
+        if (tournamentRounds.length === 0 || !tournamentRounds[0] || tournamentRounds[0].length === 0) {
+            alert('2体以上のエントリーが必要です。');
+            return;
+        }
+
+        // フラットな試合順序リストを作成
+        buildFlatMatchList();
+        currentMatchIndex = 0;
+
+        switchPhase('battle');
+        loadMatchToArena(flatMatchList[currentMatchIndex]);
+        sound.playFanfare();
+        logCommentary('受付を締め切りました！ロボ相撲トーナメント大会、開幕です！！');
+    });
+
+    function buildFlatMatchList() {
+        flatMatchList = [];
+        tournamentRounds.forEach(roundMatches => {
+            roundMatches.forEach(match => {
+                flatMatchList.push(match);
+            });
+        });
+        updateMiniBracketUI();
+    }
+
+    // ミニトーナメント表の更新
+    const miniBracketListEl = document.getElementById('mini-bracket-list');
+    const miniProgressTxt = document.getElementById('mini-progress-txt');
+
+    function updateMiniBracketUI() {
+        miniBracketListEl.innerHTML = '';
+        let completedCount = 0;
+
+        flatMatchList.forEach((match, idx) => {
+            const isDone = match.status === 'finished';
+            const isCur = idx === currentMatchIndex;
+            if (isDone) completedCount++;
+
+            const item = document.createElement('div');
+            item.className = `mini-match-item ${isCur ? 'current' : ''} ${isDone ? 'done' : ''}`;
+
+            const p1Name = match.p1 ? match.p1.name : '(未定)';
+            const p2Name = match.p2 ? match.p2.name : '(未定)';
+            const winMarker1 = match.winner && match.winner === match.p1 ? ' 👑' : '';
+            const winMarker2 = match.winner && match.winner === match.p2 ? ' 👑' : '';
+
+            item.innerHTML = `
+                <div class="mini-match-title">${match.roundName} #${match.matchIndexInRound + 1}</div>
+                <div class="mini-match-fighters">
+                    <span>${p1Name}${winMarker1}</span>
+                    <span style="color: var(--accent-yellow)">vs</span>
+                    <span>${p2Name}${winMarker2}</span>
+                </div>
+            `;
+            miniBracketListEl.appendChild(item);
+        });
+
+        miniProgressTxt.textContent = `${completedCount} / ${flatMatchList.length} 試合完了`;
+    }
+
+    // ==========================================
+    // 5. 試合会場シミュレータ (CANVAS & PHYSICS)
+    // ==========================================
+    const canvas = document.getElementById('arena-canvas');
+    const ctx = canvas.getContext('2d');
+    const battleRoundTitle = document.getElementById('battle-round-title');
+    const battleHudTimer = document.getElementById('battle-hud-timer');
+    const p1NameEl = document.getElementById('p1-name');
+    const p2NameEl = document.getElementById('p2-name');
+    const p1IconEl = document.getElementById('p1-icon');
+    const p2IconEl = document.getElementById('p2-icon');
+    const p1EnergyBar = document.getElementById('p1-energy-bar');
+    const p2EnergyBar = document.getElementById('p2-energy-bar');
+    const btnBattleStart = document.getElementById('btn-battle-start');
+    const btnBattleReplay = document.getElementById('btn-battle-replay');
+    const btnBattleNext = document.getElementById('btn-battle-next');
+
+    const DOHYO_CENTER = { x: 270, y: 270 };
+    const DOHYO_RADIUS = 230;
+
+    let simInterval = null;
+    let simSpeed = 1.0;
+    let matchTimer = 30.0;
+    let isMatchRunning = false;
+    let isMatchFinished = false;
+    let currentMatchObj = null;
+
+    let p1 = null;
+    let p2 = null;
+    let particles = [];
+    let projectiles = [];
+    let damageTexts = [];
+    let shockwaves = [];
+    let screenShake = 0;
+
+    // 試合速度ボタン
+    document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            simSpeed = parseFloat(btn.dataset.speed) || 1.0;
+        });
+    });
+
+    // 試合データをアリーナにセット
+    function loadMatchToArena(match) {
+        currentMatchObj = match;
+        isMatchFinished = false;
+        isMatchRunning = false;
+        matchTimer = 30.0;
+        particles = [];
+        projectiles = [];
+        damageTexts = [];
+        shockwaves = [];
+        screenShake = 0;
+
+        battleRoundTitle.textContent = `${match.roundName} (第${match.matchIndexInRound + 1}試合)`;
+        battleHudTimer.textContent = '30.0s';
+        battleHudTimer.style.color = 'var(--accent-cyan)';
+
+        btnBattleStart.disabled = false;
+        btnBattleStart.textContent = '⚔️ 試合開始';
+        btnBattleReplay.disabled = true;
+        btnBattleNext.disabled = true;
+
+        const bot1 = match.p1;
+        const bot2 = match.p2;
+
+        const t1 = ROBOT_TEMPLATES[bot1?.type] || ROBOT_TEMPLATES.normal;
+        const t2 = ROBOT_TEMPLATES[bot2?.type] || ROBOT_TEMPLATES.normal;
+
+        p1NameEl.textContent = bot1 ? bot1.name : 'エントリーなし';
+        p2NameEl.textContent = bot2 ? bot2.name : 'エントリーなし';
+        p1IconEl.textContent = t1.icon;
+        p2IconEl.textContent = t2.icon;
+
+        p1EnergyBar.style.width = '100%';
+        p2EnergyBar.style.width = '100%';
+
+        // プレイヤーオブジェクト初期化
+        p1 = {
+            id: 'p1',
+            name: bot1 ? bot1.name : 'P1',
+            template: t1,
+            x: DOHYO_CENTER.x - 110,
+            y: DOHYO_CENTER.y,
+            angle: 0,
+            vx: 0,
+            vy: 0,
+            radius: 26,
+            energy: t1.maxEnergy,
+            maxEnergy: t1.maxEnergy,
+            program: bot1 ? bot1.program : [],
+            pc: 0,
+            callStack: [],
+            currentAction: null,
+            isDashing: 0,
+            isShielding: 0,
+            stoppedTime: 0,
+            lastX: DOHYO_CENTER.x - 110,
+            lastY: DOHYO_CENTER.y,
+            lastAngle: 0,
+            isColliding: false
+        };
+
+        p2 = {
+            id: 'p2',
+            name: bot2 ? bot2.name : 'P2',
+            template: t2,
+            x: DOHYO_CENTER.x + 110,
+            y: DOHYO_CENTER.y,
+            angle: 180,
+            vx: 0,
+            vy: 0,
+            radius: 26,
+            energy: t2.maxEnergy,
+            maxEnergy: t2.maxEnergy,
+            program: bot2 ? bot2.program : [],
+            pc: 0,
+            callStack: [],
+            currentAction: null,
+            isDashing: 0,
+            isShielding: 0,
+            stoppedTime: 0,
+            lastX: DOHYO_CENTER.x + 110,
+            lastY: DOHYO_CENTER.y,
+            lastAngle: 180,
+            isColliding: false
+        };
+
+        drawArena();
+        updateMiniBracketUI();
+        logCommentary(`次の対戦: [${p1.name}] VS [${p2.name}]！`);
+    }
+
+    // 試合開始 / 一時停止
+    btnBattleStart.addEventListener('click', () => {
+        if (!isMatchRunning) {
+            startMatch();
+        } else {
+            pauseMatch();
+        }
+    });
+
+    // リプレイ
+    btnBattleReplay.addEventListener('click', () => {
+        if (currentMatchObj) {
+            loadMatchToArena(currentMatchObj);
+            startMatch();
+        }
+    });
+
+    // 次の試合へ
+    btnBattleNext.addEventListener('click', () => {
+        advanceToNextMatch();
+    });
+
+    function startMatch() {
+        if (isMatchFinished) return;
+        isMatchRunning = true;
+        btnBattleStart.textContent = '⏸️ 一時停止';
+        btnBattleReplay.disabled = true;
+        btnBattleNext.disabled = true;
+        sound.playGong();
+        logCommentary('はっけよい、のこったーーー！！！');
+
+        if (simInterval) cancelAnimationFrame(simInterval);
+        lastFrameTime = performance.now();
+        simInterval = requestAnimationFrame(gameLoop);
+    }
+
+    function pauseMatch() {
+        isMatchRunning = false;
+        btnBattleStart.textContent = '▶️ 再開';
+        if (simInterval) cancelAnimationFrame(simInterval);
+        logCommentary('試合を一時停止しました。');
+    }
+
+    let lastFrameTime = performance.now();
+    function gameLoop(now) {
+        if (!isMatchRunning) return;
+        const dt = Math.min((now - lastFrameTime) / 1000, 0.1) * simSpeed;
+        lastFrameTime = now;
+
+        updateSimulation(dt);
+        drawArena();
+
+        if (isMatchRunning) {
+            simInterval = requestAnimationFrame(gameLoop);
+        }
+    }
+
+    // 物理＆プログラム更新
+    function updateSimulation(dt) {
+        matchTimer -= dt;
+        if (matchTimer <= 0) {
+            matchTimer = 0;
+            endMatch(null, '引き分け！ (時間切れ 30s)');
+            return;
+        }
+        battleHudTimer.textContent = matchTimer.toFixed(1) + 's';
+        if (matchTimer < 5.0) battleHudTimer.style.color = '#ff0055';
+
+        // プログラム思考実行
+        executeBrain(p1, p2, dt);
+        executeBrain(p2, p1, dt);
+
+        // 移動・慣性
+        updateMovement(p1, dt);
+        updateMovement(p2, dt);
+
+        // 衝突・ダメージ判定
+        checkCollisions();
+
+        // 弾丸処理
+        updateProjectiles(dt);
+
+        // 3秒反則チェック
+        checkFouls(p1, dt);
+        checkFouls(p2, dt);
+
+        // 土俵転落（リングアウト）チェック
+        checkRingOut();
+
+        // エナジーゼロ（K.O.）チェック
+        checkKo();
+
+        // パーティクル・演出
+        updateVisualEffects(dt);
+    }
+
+    function executeBrain(self, enemy, dt) {
+        if (self.isDashing > 0) self.isDashing -= dt;
+        if (self.isShielding > 0) self.isShielding -= dt;
+
+        if (self.currentAction) {
+            progressAction(self, dt);
+            return;
+        }
+
+        if (!self.program || self.program.length === 0) return;
+
+        // 次の命令を取得
+        let cmdObj = null;
+        if (self.callStack.length > 0) {
+            const frame = self.callStack[self.callStack.length - 1];
+            if (frame.pc < frame.blocks.length) {
+                cmdObj = frame.blocks[frame.pc++];
+            } else {
+                self.callStack.pop();
+                return;
+            }
+        } else {
+            if (self.pc >= self.program.length) self.pc = 0;
+            cmdObj = self.program[self.pc++];
+        }
+
+        if (!cmdObj) return;
+
+        // 命令実行
+        const cmd = cmdObj.command;
+        const val = cmdObj.value !== undefined ? parseFloat(cmdObj.value) : 0;
+
+        switch(cmd) {
+            case 'forward':
+                self.currentAction = { type: 'move', distRemaining: val || 60, speed: self.template.speed * 1.5, dir: 1 };
+                break;
+            case 'backward':
+                self.currentAction = { type: 'move', distRemaining: val || 40, speed: self.template.speed * 1.1, dir: -1 };
+                break;
+            case 'turnRight':
+                self.currentAction = { type: 'turn', angleRemaining: val || 90, speed: 180, dir: 1 };
+                break;
+            case 'turnLeft':
+                self.currentAction = { type: 'turn', angleRemaining: val || 90, speed: 180, dir: -1 };
+                break;
+            case 'turnToEnemy': {
+                const targetAngle = Math.atan2(enemy.y - self.y, enemy.x - self.x) * 180 / Math.PI;
+                let diff = (targetAngle - self.angle) % 360;
+                if (diff > 180) diff -= 360;
+                if (diff < -180) diff += 360;
+                self.currentAction = { type: 'turn', angleRemaining: Math.abs(diff), speed: 280, dir: diff >= 0 ? 1 : -1 };
+                break;
+            }
+            case 'turnRandom': {
+                const rndAngle = (Math.random() * 240) - 120;
+                self.currentAction = { type: 'turn', angleRemaining: Math.abs(rndAngle), speed: 200, dir: rndAngle >= 0 ? 1 : -1 };
+                break;
+            }
+            case 'dash':
+                self.isDashing = 1.0;
+                self.currentAction = { type: 'move', distRemaining: 150, speed: self.template.speed * 2.8, dir: 1 };
+                sound.playDash();
+                createDashSparks(self.x, self.y);
+                break;
+            case 'shoot':
+                fireProjectile(self);
+                break;
+            case 'shield':
+                self.isShielding = 1.5;
+                sound.playShield();
+                createDamageText(self.x, self.y - 30, 'SHIELD!', '#00f3ff');
+                break;
+            case 'wait':
+                self.currentAction = { type: 'wait', duration: val || 0.5 };
+                break;
+            case 'ifEnemyAhead': {
+                const targetAngle = Math.atan2(enemy.y - self.y, enemy.x - self.x) * 180 / Math.PI;
+                let diff = Math.abs((targetAngle - self.angle) % 360);
+                if (diff > 180) diff = 360 - diff;
+                const branch = diff < 35 ? cmdObj.then : cmdObj.else;
+                if (branch && branch.length > 0) self.callStack.push({ blocks: branch, pc: 0 });
+                break;
+            }
+            case 'ifLowEnergy': {
+                const isLow = (self.energy / self.maxEnergy) <= 0.35;
+                const branch = isLow ? cmdObj.then : cmdObj.else;
+                if (branch && branch.length > 0) self.callStack.push({ blocks: branch, pc: 0 });
+                break;
+            }
+            case 'ifEnemyLowEnergy': {
+                const isEnemyLow = (enemy.energy / enemy.maxEnergy) <= 0.35;
+                const branch = isEnemyLow ? cmdObj.then : cmdObj.else;
+                if (branch && branch.length > 0) self.callStack.push({ blocks: branch, pc: 0 });
+                break;
+            }
+            case 'ifNearEdge': {
+                const dist = Math.hypot(self.x - DOHYO_CENTER.x, self.y - DOHYO_CENTER.y);
+                const near = dist > DOHYO_RADIUS - 65;
+                const branch = near ? cmdObj.then : cmdObj.else;
+                if (branch && branch.length > 0) self.callStack.push({ blocks: branch, pc: 0 });
+                break;
+            }
+        }
+    }
+
+    function progressAction(self, dt) {
+        const act = self.currentAction;
+        if (act.type === 'move') {
+            const step = act.speed * dt * 25;
+            const dist = Math.min(step, act.distRemaining);
+            const rad = self.angle * Math.PI / 180;
+            self.vx += Math.cos(rad) * dist * act.dir * 0.2;
+            self.vy += Math.sin(rad) * dist * act.dir * 0.2;
+            act.distRemaining -= dist;
+            if (act.distRemaining <= 0) self.currentAction = null;
+        } else if (act.type === 'turn') {
+            const step = act.speed * dt;
+            const deg = Math.min(step, act.angleRemaining);
+            self.angle = (self.angle + deg * act.dir) % 360;
+            act.angleRemaining -= deg;
+            if (act.angleRemaining <= 0) self.currentAction = null;
+        } else if (act.type === 'wait') {
+            act.duration -= dt;
+            if (act.duration <= 0) self.currentAction = null;
+        }
+    }
+
+    function updateMovement(p, dt) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.88;
+        p.vy *= 0.88;
+    }
+
+    function fireProjectile(shooter) {
+        sound.playShoot();
+        const rad = shooter.angle * Math.PI / 180;
+        projectiles.push({
+            shooterId: shooter.id,
+            x: shooter.x + Math.cos(rad) * 30,
+            y: shooter.y + Math.sin(rad) * 30,
+            vx: Math.cos(rad) * 11,
+            vy: Math.sin(rad) * 11,
+            life: 1.2
+        });
+        logCommentary(`「${shooter.name}」がビーム弾を発射！`);
+    }
+
+    function updateProjectiles(dt) {
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+            const pr = projectiles[i];
+            pr.x += pr.vx;
+            pr.y += pr.vy;
+            pr.life -= dt;
+
+            const target = pr.shooterId === p1.id ? p2 : p1;
+            const dist = Math.hypot(pr.x - target.x, pr.y - target.y);
+
+            if (dist < target.radius + 6) {
+                // 命中！
+                sound.playHit();
+                projectiles.splice(i, 1);
+
+                if (target.isShielding > 0) {
+                    createDamageText(target.x, target.y - 35, 'GUARD!', '#00f3ff');
+                    createHitSparks(pr.x, pr.y, '#00f3ff');
+                } else {
+                    target.energy = Math.max(0, target.energy - 20);
+                    target.vx += pr.vx * 0.45;
+                    target.vy += pr.vy * 0.45;
+                    createDamageText(target.x, target.y - 35, '-20', '#ff007f');
+                    createHitSparks(pr.x, pr.y, '#ffff00');
+                    screenShake = 6;
+                    updateEnergyHud();
+                    logCommentary(`💥 直撃！「${target.name}」にビーム被弾 20ダメージ！`);
+                }
+                continue;
+            }
+
+            if (pr.life <= 0) projectiles.splice(i, 1);
+        }
+    }
+
+    function checkCollisions() {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = p1.radius + p2.radius;
+
+        if (dist < minDist && dist > 0) {
+            const wasColliding = p1.isColliding || p2.isColliding;
+            const p1Dashing = p1.isDashing > 0;
+            const p2Dashing = p2.isDashing > 0;
+
+            if (!wasColliding) {
+                sound.playHit();
+                let dmg1to2 = p1Dashing ? 25 : 8;
+                let dmg2to1 = p2Dashing ? 25 : 8;
+
+                if (p2.isShielding > 0) {
+                    createDamageText(p2.x, p2.y - 30, 'GUARD!', '#00f3ff');
+                } else {
+                    p2.energy = Math.max(0, p2.energy - dmg1to2);
+                    createDamageText(p2.x, p2.y - 30, `-${dmg1to2}`, p1Dashing ? '#ff007f' : '#ffff00');
+                }
+
+                if (p1.isShielding > 0) {
+                    createDamageText(p1.x, p1.y - 30, 'GUARD!', '#00f3ff');
+                } else {
+                    p1.energy = Math.max(0, p1.energy - dmg1to2);
+                    createDamageText(p1.x, p1.y - 30, `-${dmg2to1}`, p2Dashing ? '#ff007f' : '#ffff00');
+                }
+
+                screenShake = (p1Dashing || p2Dashing) ? 14 : 7;
+                updateEnergyHud();
+                createHitSparks((p1.x + p2.x)/2, (p1.y + p2.y)/2, '#ffff00');
+
+                if (p1Dashing || p2Dashing) {
+                    logCommentary(`💥 激突！！強烈なダッシュ体当たりダメージ！`);
+                }
+            }
+
+            p1.isColliding = true;
+            p2.isColliding = true;
+
+            const overlap = minDist - dist;
+            const nx = dx / dist;
+            const ny = dy / dist;
+
+            p1.x -= nx * overlap * 0.5;
+            p1.y -= ny * overlap * 0.5;
+            p2.x += nx * overlap * 0.5;
+            p2.y += ny * overlap * 0.5;
+
+            const p1Force = p1.template.force * (p1Dashing ? 2.0 : 1.0);
+            const p2Force = p2.template.force * (p2Dashing ? 2.0 : 1.0);
+
+            p2.vx += (nx * p1Force * 18) / p2.template.weight;
+            p2.vy += (ny * p1Force * 18) / p2.template.weight;
+            p1.vx -= (nx * p2Force * 18) / p1.template.weight;
+            p1.vy -= (ny * p2Force * 18) / p1.template.weight;
+        } else {
+            p1.isColliding = false;
+            p2.isColliding = false;
+        }
+    }
+
+    function checkFouls(player, dt) {
+        const moved = Math.hypot(player.x - player.lastX, player.y - player.lastY);
+        const rot = Math.abs(player.angle - player.lastAngle);
+        if (moved < 0.6 && rot < 1.0) {
+            player.stoppedTime += dt;
+            if (player.stoppedTime >= 3.0) {
+                const winner = player.id === p1.id ? p2 : p1;
+                endMatch(winner, `反則勝ち！ (「${player.name}」が3秒間停止)`);
+            }
+        } else {
+            player.stoppedTime = 0;
+        }
+        player.lastX = player.x;
+        player.lastY = player.y;
+        player.lastAngle = player.angle;
+    }
+
+    function checkRingOut() {
+        const d1 = Math.hypot(p1.x - DOHYO_CENTER.x, p1.y - DOHYO_CENTER.y);
+        const d2 = Math.hypot(p2.x - DOHYO_CENTER.x, p2.y - DOHYO_CENTER.y);
+
+        if (d1 > DOHYO_RADIUS) {
+            endMatch(p2, `寄り切り勝ち！ (「${p1.name}」が土俵の外へ押し出された！)`);
+        } else if (d2 > DOHYO_RADIUS) {
+            endMatch(p1, `寄り切り勝ち！ (「${p2.name}」が土俵の外へ押し出された！)`);
+        }
+    }
+
+    function checkKo() {
+        if (p1.energy <= 0 && p2.energy <= 0) {
+            endMatch(null, '相打ちK.O.！両者エナジーゼロ！');
+        } else if (p1.energy <= 0) {
+            sound.playKoExplosion();
+            createKoExplosion(p1.x, p1.y);
+            endMatch(p2, `K.O.勝ち！！ (「${p1.name}」のエナジーゼロ！機能停止！)`);
+        } else if (p2.energy <= 0) {
+            sound.playKoExplosion();
+            createKoExplosion(p2.x, p2.y);
+            endMatch(p1, `K.O.勝ち！！ (「${p2.name}」のエナジーゼロ！機能停止！)`);
+        }
+    }
+
+    function updateEnergyHud() {
+        const e1Ratio = Math.max(0, p1.energy / p1.maxEnergy) * 100;
+        const e2Ratio = Math.max(0, p2.energy / p2.maxEnergy) * 100;
+        p1EnergyBar.style.width = e1Ratio + '%';
+        p2EnergyBar.style.width = e2Ratio + '%';
+
+        p1EnergyBar.style.background = e1Ratio <= 35 ? '#ff0055' : 'var(--accent-green)';
+        p2EnergyBar.style.background = e2Ratio <= 35 ? '#ff0055' : 'var(--accent-magenta)';
+    }
+
+    // 試合決着
+    function endMatch(winnerRobotState, reason) {
+        if (isMatchFinished) return;
+        isMatchFinished = true;
+        isMatchRunning = false;
+        if (simInterval) cancelAnimationFrame(simInterval);
+
+        btnBattleStart.textContent = '試合終了';
+        btnBattleStart.disabled = true;
+        btnBattleReplay.disabled = false;
+        btnBattleNext.disabled = false;
+
+        sound.playFanfare();
+        fireConfetti(35);
+
+        let winnerBot = null;
+        let loserBot = null;
+        if (winnerRobotState) {
+            winnerBot = winnerRobotState.id === 'p1' ? currentMatchObj.p1 : currentMatchObj.p2;
+            loserBot = winnerRobotState.id === 'p1' ? currentMatchObj.p2 : currentMatchObj.p1;
+            logCommentary(`🏆 勝者: 「${winnerBot.name}」！！ ${reason}`);
+        } else {
+            // 引き分けの場合はコイントスで進行（大会継続のため）
+            winnerBot = Math.random() > 0.5 ? currentMatchObj.p1 : currentMatchObj.p2;
+            loserBot = winnerBot === currentMatchObj.p1 ? currentMatchObj.p2 : currentMatchObj.p1;
+            logCommentary(`⌛ 引き分け判定！ 抽選により「${winnerBot.name}」の進出となります。`);
+        }
+
+        currentMatchObj.winner = winnerBot;
+        currentMatchObj.loser = loserBot;
+        currentMatchObj.status = 'finished';
+
+        // 次ラウンドへ勝者を進出させる
+        propagateWinnerToNextRound(currentMatchObj, winnerBot);
+        updateMiniBracketUI();
+        renderBracketTree();
+    }
+
+    function propagateWinnerToNextRound(match, winner) {
+        const rIdx = match.roundIndex;
+        const nextRIdx = rIdx + 1;
+        if (nextRIdx >= tournamentRounds.length) {
+            // 決勝戦終了！
+            tournamentRankings.first = winner;
+            tournamentRankings.second = match.loser;
+            // 3位の選定（準決勝敗者の中から判定）
+            determineThirdPlace();
+            return;
+        }
+
+        const nextMatchIdx = Math.floor(match.matchIndexInRound / 2);
+        const slotKey = (match.matchIndexInRound % 2 === 0) ? 'p1' : 'p2';
+        const targetMatch = tournamentRounds[nextRIdx][nextMatchIdx];
+        if (targetMatch) {
+            targetMatch[slotKey] = winner;
+        }
+    }
+
+    function determineThirdPlace() {
+        if (tournamentRounds.length < 2) {
+            tournamentRankings.third = currentMatchObj.loser;
+            return;
+        }
+        const semiRound = tournamentRounds[tournamentRounds.length - 2];
+        const losers = semiRound.map(m => m.loser).filter(b => b && b !== tournamentRankings.second);
+        tournamentRankings.third = losers[0] || currentMatchObj.loser;
+    }
+
+    // 次の試合へ進行
+    function advanceToNextMatch() {
+        // 次の未完了マッチを探す
+        const nextMatch = flatMatchList.find(m => m.status !== 'finished');
+        if (nextMatch) {
+            const nextIdx = flatMatchList.indexOf(nextMatch);
+            currentMatchIndex = nextIdx;
+            loadMatchToArena(nextMatch);
+        } else {
+            // 全試合終了！表彰式フェーズへ移行！
+            launchCeremony();
+        }
+    }
+
+    // ==========================================
+    // 6. 表彰式フェーズ (CEREMONY)
+    // ==========================================
+    const podiumWrap1 = document.getElementById('podium-wrap-1');
+    const podiumWrap2 = document.getElementById('podium-wrap-2');
+    const podiumWrap3 = document.getElementById('podium-wrap-3');
+    const podiumName1 = document.getElementById('podium-name-1');
+    const podiumName2 = document.getElementById('podium-name-2');
+    const podiumName3 = document.getElementById('podium-name-3');
+    const podiumIcon1 = document.getElementById('podium-icon-1');
+    const podiumIcon2 = document.getElementById('podium-icon-2');
+    const podiumIcon3 = document.getElementById('podium-icon-3');
+
+    function launchCeremony() {
+        switchPhase('ceremony');
+
+        const first = tournamentRankings.first || { name: 'マイロボ1', type: 'normal' };
+        const second = tournamentRankings.second || { name: '二号機', type: 'speed' };
+        const third = tournamentRankings.third || { name: '三号機', type: 'power' };
+
+        podiumName1.textContent = first.name;
+        podiumName2.textContent = second.name;
+        podiumName3.textContent = third.name;
+
+        podiumIcon1.textContent = (ROBOT_TEMPLATES[first.type] || ROBOT_TEMPLATES.normal).icon;
+        podiumIcon2.textContent = (ROBOT_TEMPLATES[second.type] || ROBOT_TEMPLATES.speed).icon;
+        podiumIcon3.textContent = (ROBOT_TEMPLATES[third.type] || ROBOT_TEMPLATES.power).icon;
+
+        // 表彰台アニメーション順次出現 (3位 -> 2位 -> 1位)
+        podiumWrap1.classList.remove('show');
+        podiumWrap2.classList.remove('show');
+        podiumWrap3.classList.remove('show');
+
+        setTimeout(() => {
+            podiumWrap3.classList.add('show');
+            sound.playPodiumAward(3);
+        }, 600);
+
+        setTimeout(() => {
+            podiumWrap2.classList.add('show');
+            sound.playPodiumAward(2);
+        }, 1800);
+
+        setTimeout(() => {
+            podiumWrap1.classList.add('show');
+            sound.playPodiumAward(1);
+            fireConfetti(80);
+        }, 3200);
+    }
+
+    document.getElementById('btn-ceremony-reset').addEventListener('click', () => {
+        if (confirm('表彰式を終了し、次の大会のエントリー受付を開始しますか？')) {
+            rosterRobots = [];
+            tournamentRounds = [];
+            flatMatchList = [];
+            updateRosterUI();
+            buildTournamentBracketFromRoster();
+            switchPhase('reception');
+            logCommentary('新しい大会の受付を開始しました！');
+        }
+    });
+
+    // ==========================================
+    // 7. アリーナ描画 & エフェクト
+    // ==========================================
+    function drawArena() {
+        ctx.save();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 画面シェイク
+        if (screenShake > 0) {
+            const rx = (Math.random() - 0.5) * screenShake * 2;
+            const ry = (Math.random() - 0.5) * screenShake * 2;
+            ctx.translate(rx, ry);
+            screenShake *= 0.85;
+            if (screenShake < 0.5) screenShake = 0;
+        }
+
+        // 土俵の描画
+        ctx.beginPath();
+        ctx.arc(DOHYO_CENTER.x, DOHYO_CENTER.y, DOHYO_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#060b19';
+        ctx.fill();
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+        ctx.shadowBlur = 20;
+        ctx.stroke();
+
+        // 内側グリッド＆同心円
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(0, 243, 255, 0.15)';
+        for (let r = 50; r < DOHYO_RADIUS; r += 50) {
+            ctx.beginPath();
+            ctx.arc(DOHYO_CENTER.x, DOHYO_CENTER.y, r, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // 仕切り線（赤・青）
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'var(--accent-green)';
+        ctx.beginPath();
+        ctx.moveTo(DOHYO_CENTER.x - 45, DOHYO_CENTER.y - 30);
+        ctx.lineTo(DOHYO_CENTER.x - 45, DOHYO_CENTER.y + 30);
+        ctx.stroke();
+
+        ctx.strokeStyle = 'var(--accent-magenta)';
+        ctx.beginPath();
+        ctx.moveTo(DOHYO_CENTER.x + 45, DOHYO_CENTER.y - 30);
+        ctx.lineTo(DOHYO_CENTER.x + 45, DOHYO_CENTER.y + 30);
+        ctx.stroke();
+
+        // 弾丸の描画
+        projectiles.forEach(pr => {
+            ctx.beginPath();
+            ctx.arc(pr.x, pr.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffff00';
+            ctx.shadowColor = '#ffff00';
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        });
+
+        // ロボット描画
+        if (p1) drawRobot(p1, 'var(--accent-green)');
+        if (p2) drawRobot(p2, 'var(--accent-magenta)');
+
+        // パーティクル描画
+        particles.forEach(pt => {
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+            ctx.fillStyle = pt.color;
+            ctx.globalAlpha = Math.max(0, pt.life);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        });
+
+        // 衝撃波リング描画
+        shockwaves.forEach(sw => {
+            ctx.beginPath();
+            ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+            ctx.strokeStyle = sw.color;
+            ctx.lineWidth = 4 * sw.life;
+            ctx.globalAlpha = sw.life;
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+        });
+
+        // ダメージ数値ポップアップ
+        damageTexts.forEach(dt => {
+            ctx.save();
+            ctx.font = '900 16px Orbitron, sans-serif';
+            ctx.fillStyle = dt.color;
+            ctx.shadowColor = dt.color;
+            ctx.shadowBlur = 8;
+            ctx.globalAlpha = dt.life;
+            ctx.fillText(dt.text, dt.x - 14, dt.y);
+            ctx.restore();
+        });
+
+        ctx.restore();
+    }
+
+    function drawRobot(p, primaryColor) {
+        const botColor = p.template?.color || primaryColor;
+        const botRadius = p.radius || 26;
+
+        // シールド展開エフェクト
+        if (p.isShielding > 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, botRadius + 16, 0, Math.PI * 2);
+            ctx.strokeStyle = '#00f3ff';
+            ctx.lineWidth = 3.5;
+            ctx.fillStyle = 'rgba(0, 243, 255, 0.2)';
+            ctx.shadowColor = '#00f3ff';
+            ctx.shadowBlur = 18;
+            ctx.stroke();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle * Math.PI / 180);
+
+        // ダッシュ時のジェットブースト演出
+        if (p.isDashing > 0) {
+            ctx.beginPath();
+            ctx.arc(0, 0, botRadius + 12, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.22)';
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.fill();
+
+            // 後方ブースト噴射
+            ctx.fillStyle = 'rgba(255, 100, 0, 0.6)';
+            ctx.beginPath();
+            ctx.moveTo(-botRadius - 6, -10);
+            ctx.lineTo(-botRadius - 20, 0);
+            ctx.lineTo(-botRadius - 6, 10);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // 1. キャタピラ (左右の頑強な履帯)
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 2;
+
+        // 上側キャタピラ (左履帯)
+        ctx.beginPath();
+        ctx.roundRect(-botRadius - 4, -botRadius - 6, botRadius * 2 + 8, 10, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // 履帯のミゾ（トレッドパターン）
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 1.5;
+        for (let tx = -botRadius; tx < botRadius + 4; tx += 7) {
+            ctx.beginPath();
+            ctx.moveTo(tx, -botRadius - 6);
+            ctx.lineTo(tx, -botRadius + 4);
+            ctx.stroke();
+        }
+
+        // 下側キャタピラ (右履帯)
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-botRadius - 4, botRadius - 4, botRadius * 2 + 8, 10, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // 履帯のミゾ
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 1.5;
+        for (let tx = -botRadius; tx < botRadius + 4; tx += 7) {
+            ctx.beginPath();
+            ctx.moveTo(tx, botRadius - 4);
+            ctx.lineTo(tx, botRadius + 6);
+            ctx.stroke();
+        }
+
+        // 2. 後部マフラー / 排気ユニット
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = botColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.rect(-botRadius - 8, -botRadius + 11, 10, (botRadius * 2) - 22);
+        ctx.fill();
+        ctx.stroke();
+
+        // 3. メイン車体（円形シャーシ & ネオン装甲）
+        ctx.beginPath();
+        ctx.arc(0, 0, botRadius - 2, 0, Math.PI * 2);
+        ctx.fillStyle = botColor;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = botColor;
+        ctx.shadowBlur = 18;
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // 4. 主砲 / 砲台（タンクキャノンバレル）
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.rect(botRadius - 6, -9, 26, 18);
+        ctx.fill();
+        ctx.stroke();
+
+        // 砲口（マズル）
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.rect(botRadius + 16, -6, 5, 12);
+        ctx.fill();
+
+        // 砲身の補強スリット
+        ctx.strokeStyle = botColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(botRadius + 2, -7);
+        ctx.lineTo(botRadius + 2, 7);
+        ctx.moveTo(botRadius + 10, -7);
+        ctx.lineTo(botRadius + 10, 7);
+        ctx.stroke();
+
+        // 5. 旋回ターレット（ドーム状の中央砲塔）
+        ctx.beginPath();
+        ctx.arc(0, 0, botRadius / 1.55, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = botColor;
+        ctx.lineWidth = 2.5;
+        ctx.fill();
+        ctx.stroke();
+
+        // 機体アイコン
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(p.template?.icon || '🟢', -3, 0);
+
+        // 6. 照準センサー / センサーアイ（衝突時は赤く点灯）
+        ctx.beginPath();
+        ctx.arc(botRadius / 2.2, 0, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = p.isColliding ? '#ff0000' : 'var(--accent-cyan)';
+        ctx.shadowColor = p.isColliding ? '#ff0000' : 'var(--accent-cyan)';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+
+        // 7. 頭上ミニHPバー & ロボット名
+        const barW = 50;
+        const barH = 6;
+        const barX = p.x - barW / 2;
+        const barY = p.y - botRadius - 26;
+        const eRatio = Math.max(0, Math.min(1, p.energy / p.maxEnergy));
+
+        // HPバー背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(barX, barY, barW, barH);
+        // HPバー中身
+        ctx.fillStyle = eRatio <= 0.35 ? '#ff0055' : botColor;
+        ctx.fillRect(barX, barY, barW * eRatio, barH);
+        // HPバー枠
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX, barY, barW, barH);
+
+        // ロボット名テキスト
+        ctx.save();
+        ctx.font = '800 12px "M PLUS Rounded 1c", sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(p.name, p.x, barY - 5);
+        ctx.restore();
+    }
+
+    function createHitSparks(x, y, color) {
+        for (let i = 0; i < 14; i++) {
+            const rad = Math.random() * Math.PI * 2;
+            const spd = 2 + Math.random() * 6;
+            particles.push({
+                x: x, y: y,
+                vx: Math.cos(rad) * spd,
+                vy: Math.sin(rad) * spd,
+                size: 2.5 + Math.random() * 3,
+                life: 1.0,
+                color: color
+            });
+        }
+    }
+
+    function createDashSparks(x, y) {
+        for (let i = 0; i < 8; i++) {
+            particles.push({
+                x: x + (Math.random() - 0.5) * 20,
+                y: y + (Math.random() - 0.5) * 20,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2,
+                size: 3,
+                life: 0.7,
+                color: '#00f3ff'
+            });
+        }
+    }
+
+    function createKoExplosion(x, y) {
+        shockwaves.push({ x: x, y: y, r: 10, color: '#ffffff', life: 1.0 });
+        shockwaves.push({ x: x, y: y, r: 25, color: '#ff0055', life: 1.0 });
+        for (let i = 0; i < 40; i++) {
+            const rad = Math.random() * Math.PI * 2;
+            const spd = 3 + Math.random() * 8;
+            particles.push({
+                x: x, y: y,
+                vx: Math.cos(rad) * spd,
+                vy: Math.sin(rad) * spd,
+                size: 3 + Math.random() * 5,
+                life: 1.2,
+                color: Math.random() > 0.5 ? '#ff007f' : '#ffff00'
+            });
+        }
+    }
+
+    function createDamageText(x, y, text, color) {
+        damageTexts.push({ x: x, y: y, text: text, color: color, life: 1.0 });
+    }
+
+    function updateVisualEffects(dt) {
+        // パーティクル
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= dt * 1.8;
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+        // 衝撃波
+        for (let i = shockwaves.length - 1; i >= 0; i--) {
+            const sw = shockwaves[i];
+            sw.r += dt * 260;
+            sw.life -= dt * 1.5;
+            if (sw.life <= 0) shockwaves.splice(i, 1);
+        }
+        // ダメージテキスト
+        for (let i = damageTexts.length - 1; i >= 0; i--) {
+            const dtObj = damageTexts[i];
+            dtObj.y -= dt * 25;
+            dtObj.life -= dt * 1.2;
+            if (dtObj.life <= 0) damageTexts.splice(i, 1);
+        }
+    }
+
+    // ==========================================
+    // 8. 全画面紙吹雪エフェクト
+    // ==========================================
+    const confettiCanvas = document.getElementById('confetti-canvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let confettiList = [];
+
+    function resizeConfetti() {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeConfetti);
+    resizeConfetti();
+
+    function fireConfetti(count = 50) {
+        const colors = ['#00f3ff', '#ff007f', '#ffd700', '#39ff14', '#ffffff'];
+        for (let i = 0; i < count; i++) {
+            confettiList.push({
+                x: Math.random() * confettiCanvas.width,
+                y: -20 - Math.random() * 50,
+                vx: (Math.random() - 0.5) * 4,
+                vy: 2 + Math.random() * 5,
+                rot: Math.random() * 360,
+                vrot: (Math.random() - 0.5) * 10,
+                w: 8 + Math.random() * 6,
+                h: 5 + Math.random() * 4,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                life: 1.0
+            });
+        }
+    }
+
+    function renderConfetti() {
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        for (let i = confettiList.length - 1; i >= 0; i--) {
+            const c = confettiList[i];
+            c.x += c.vx;
+            c.y += c.vy;
+            c.rot += c.vrot;
+            c.vy += 0.04;
+
+            confettiCtx.save();
+            confettiCtx.translate(c.x, c.y);
+            confettiCtx.rotate(c.rot * Math.PI / 180);
+            confettiCtx.fillStyle = c.color;
+            confettiCtx.fillRect(-c.w/2, -c.h/2, c.w, c.h);
+            confettiCtx.restore();
+
+            if (c.y > confettiCanvas.height + 20) {
+                confettiList.splice(i, 1);
+            }
+        }
+        requestAnimationFrame(renderConfetti);
+    }
+    renderConfetti();
+
+    // ==========================================
+    // 9. 実況ログコンソール
+    // ==========================================
+    const commentaryLogEl = document.getElementById('commentary-log');
+    function logCommentary(msg) {
+        if (!commentaryLogEl) return;
+        const line = document.createElement('div');
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        line.innerHTML = `<span style="color: var(--accent-cyan); opacity: 0.6;">[${timeStr}]</span> ${msg}`;
+        commentaryLogEl.appendChild(line);
+        commentaryLogEl.scrollTop = commentaryLogEl.scrollHeight;
+    }
+
+    // サウンドボタン切り替え
+    const soundBtn = document.getElementById('sound-btn');
+    soundBtn.addEventListener('click', () => {
+        const enabled = sound.toggle();
+        soundBtn.textContent = enabled ? '🔊 サウンド' : '🔇 ミュート';
+        soundBtn.style.opacity = enabled ? '1' : '0.5';
+    });
+
+    // 全画面ボタン
+    document.getElementById('fullscreen-btn').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            document.exitFullscreen().catch(() => {});
+        }
+    });
+
+    // 初期化
+    initializeTeacherPeer();
+    updateRosterUI();
+    buildTournamentBracketFromRoster();
+
+</script>
+</body>
+</html>
