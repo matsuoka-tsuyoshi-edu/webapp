@@ -16,6 +16,13 @@
   // 0. iPad Safari ピンチアウト・スクロール防止 & キャッシュ無効化
   // ==========================================================
   function initIOSGuardsAndNoCache() {
+    // 対応環境（ホーム画面追加・Fullscreen等）では横向き固定を試行
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
+    } catch (_) {}
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(regs => {
         regs.forEach(reg => reg.unregister());
@@ -2286,9 +2293,25 @@
       });
     });
 
-    window.addEventListener('resize', () => {
+    const portraitOverlay = document.getElementById('portrait-overlay');
+    const btnDismissPortrait = document.getElementById('btn-dismiss-portrait');
+    if (btnDismissPortrait && portraitOverlay) {
+      btnDismissPortrait.addEventListener('click', () => {
+        portraitOverlay.classList.add('is-dismissed');
+      });
+    }
+
+    const syncOrientationState = () => {
+      if (portraitOverlay && window.innerWidth >= window.innerHeight) {
+        portraitOverlay.classList.remove('is-dismissed');
+      }
       renderAll();
       updateBottomBarsPosition(true);
+    };
+
+    window.addEventListener('resize', syncOrientationState);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(syncOrientationState, 80);
     });
     initDatetimeModal();
   }

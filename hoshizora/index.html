@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261116_1">
+  <link rel="stylesheet" href="style.css?v=20261116_2">
 </head>
 <body>
   <div id="app-root">
@@ -70,7 +70,7 @@
           <div class="hud-action-btns">
             <button type="button" id="btn-open-datetime" class="btn-pill-accent">📅 日時変更</button>
             <button type="button" id="btn-open-calendar" class="btn-pill-accent">🗓️ カレンダー</button>
-            <a href="manual/index.html?v=20261116_1" target="_blank" rel="noopener" id="btn-open-manual" class="btn-pill-manual">📖 つかいかた</a>
+            <a href="manual/index.html?v=20261116_2" target="_blank" rel="noopener" id="btn-open-manual" class="btn-pill-manual">📖 つかいかた</a>
           </div>
         </div>
 
@@ -385,7 +385,23 @@
     </div>
   </div>
 
-  <script src="astro.js?v=20261116_1"></script>
-  <script src="app.js?v=20261116_1"></script>
+  <!-- 縦向き（ポートレート）時の透過グレーアウト案内オーバーレイ -->
+  <div id="portrait-overlay" class="portrait-overlay" aria-live="polite">
+    <div class="portrait-card">
+      <div class="portrait-icon-wrap" aria-hidden="true">
+        <span class="portrait-device-icon">📱</span>
+        <span class="portrait-rotate-arrow">↻</span>
+      </div>
+      <h2 class="portrait-title">iPadを<ruby>横向<rt>よこむ</rt></ruby>きにしてつかってね！</h2>
+      <p class="portrait-desc">
+        「ほしぞらナビ」は<strong><ruby>横画面<rt>よこがめん</rt></ruby></strong>で星空がひろびろ見えるように作られています。<br>
+        お<ruby>友<rt>とも</rt></ruby>だちにわたすときは、iPadを横向きにするか「<ruby>画面<rt>がめん</rt></ruby>の<ruby>向<rt>む</rt></ruby>きロック🔒」を使うと便利だよ！
+      </p>
+      <button type="button" id="btn-dismiss-portrait" class="btn-portrait-dismiss">このまま画面を見る</button>
+    </div>
+  </div>
+
+  <script src="astro.js?v=20261116_2"></script>
+  <script src="app.js?v=20261116_2"></script>
 </body>
 </html>
