@@ -2,558 +2,668 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <!-- キャッシュ無効化 (常に最新版を読み込む) -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>小学6年 理科「月と太陽」シミュレーション</title>
-  <link id="app-stylesheet" rel="stylesheet" href="style.css?v=1.5">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POP QUIZ SHOW - ポータルメニュー</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Fredoka', 'M PLUS Rounded 1c', sans-serif;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シン・学習アプリ＋１０</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="./qrcode.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'"></script>
+    <style>
+        /* --- デザイン設定 --- */
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333; display: flex; flex-direction: column; height: 100vh; }
+        header { background-color: #4a90e2; color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
+        header h1 { margin: 0; font-size: 1.4rem; font-weight: bold; }
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 240px; background-color: #fff; border-right: 1px solid #ddd; overflow-y: auto; padding: 20px; flex-shrink: 0; }
+        .sidebar h3 { font-size: 0.85rem; color: #999; margin-top: 25px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; font-weight: bold; }
+        .sidebar h3:first-child { margin-top: 0; }
+        .sidebar ul { list-style: none; padding: 0; margin: 0; }
+        .sidebar li { margin-bottom: 4px; }
+        .filter-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; color: #555; transition: all 0.2s; }
+        .filter-btn:hover { background-color: #f5f5f5; }
+        .filter-btn.active { background-color: #e6f0fa; color: #4a90e2; font-weight: bold; }
+        .filter-btn.active .count { background-color: #bad6f5; color: #335e8a; }
+        .filter-btn.new-btn { color: #d35400; } /* What's NEW用の強調色 */
+        .filter-btn.new-btn.active { background-color: #fde8cd; color: #d35400; }
+        .filter-btn.new-btn.active .count { background-color: #fbd5aa; color: #8a3800; }
+        .count { font-size: 0.75rem; background: #eee; padding: 2px 8px; border-radius: 12px; color: #777; }
+        .content-area { flex: 1; padding: 30px; overflow-y: auto; background-color: #f4f7f6; }
+        .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
+        .app-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #eaeaea; display: flex; flex-direction: column; height: 100%; }
+        .app-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .card-img-area { height: 150px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; border-bottom: 1px solid #f0f0f0; position: relative; }
+        .card-img-area img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; z-index: 2; }
+        .app-card:hover .card-img-area img { transform: scale(1.05); }
+        .default-icon { font-size: 4rem; color: #d1d5db; display: none; z-index: 1; }
+        .card-body { padding: 18px; flex-grow: 1; display: flex; flex-direction: column; }
+        .card-meta { font-size: 0.75rem; margin-bottom: 10px; display: flex; gap: 4px; flex-wrap: wrap; }
+        .tag { background-color: #f0f2f5; color: #555; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem; border: 1px solid #e0e0e0; }
+        .tag.subject { background-color: #e1effe; color: #1e429f; border-color: #c3ddfd; }
+        .card-title { margin: 0 0 8px; font-size: 1.15rem; line-height: 1.4; color: #333; font-weight: bold; }
+        .card-desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; line-height: 1.6; flex-grow: 1; }
+        .card-actions { display: flex; gap: 8px; margin-top: auto; }
+        .card-link { flex: 1; display: block; text-align: center; background-color: #4a90e2; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-size: 0.95rem; font-weight: bold; transition: background 0.2s; }
+        .card-link:hover { background-color: #357abd; }
+        .qr-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 0 12px;
+            background-color: #fff;
+            color: #4a90e2;
+            border: 1.5px solid #4a90e2;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .qr-btn:hover { background-color: #e6f0fa; }
+        .qr-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+        /* QRモーダル (iPad横向きや大画面でどーんと表示) */
+        .qr-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.65);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .qr-modal.active { display: flex; }
+        .qr-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px 28px;
+            max-width: min(92vw, 560px);
+            width: 100%;
+            max-height: 96vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+            position: relative;
+            box-sizing: border-box;
+            animation: modalFadeIn 0.2s ease-out;
+            overflow-y: auto;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #888;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .modal-close-btn:hover { color: #111; background-color: #f0f0f0; }
+        .modal-title {
+            margin: 0 0 12px;
+            font-size: 1.45rem;
+            font-weight: bold;
+            color: #222;
+            padding: 0 30px;
+            word-break: break-all;
+            line-height: 1.3;
+        }
+        .modal-qrcode-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            margin: 0 auto 14px;
+            /* iPad横向き画面の中央にどーんと大きく広がるサイズ */
+            width: min(78vw, 56vh, 440px);
+            height: min(78vw, 56vh, 440px);
+            box-sizing: border-box;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+        }
+        .modal-qrcode-container img, .modal-qrcode-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
+            display: block;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+        .modal-url {
+            font-size: 0.85rem;
+            color: #555;
+            word-break: break-all;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 0 0 14px;
+            max-height: 48px;
+            overflow-y: auto;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 11px 14px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #334155;
+            transition: all 0.2s;
+        }
+        .modal-btn:hover { background: #f1f5f9; }
+        .modal-btn.primary {
+            background: #4a90e2;
+            color: #fff;
+            border-color: #4a90e2;
+        }
+        .modal-btn.primary:hover { background: #357abd; }
+
+        /* 横向き（iPad横向きなど）で縦幅が狭い場合でも1画面にすっきり収める調整 */
+        @media (orientation: landscape) and (max-height: 700px) {
+            .qr-modal-content { padding: 14px 20px; }
+            .modal-title { font-size: 1.25rem; margin-bottom: 8px; }
+            .modal-qrcode-container { margin-bottom: 8px; width: min(78vw, 54vh, 380px); height: min(78vw, 54vh, 380px); padding: 10px; }
+            .modal-url { margin-bottom: 8px; padding: 5px 10px; font-size: 0.75rem; }
+            .modal-btn { padding: 8px 10px; font-size: 0.85rem; }
+        }
+
+        #error-msg { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; padding: 20px; margin: 20px; border: 1px solid transparent; border-radius: .25rem; display: none; }
+        @media (max-width: 768px) { .main-container { flex-direction: column; } .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #ddd; padding: 10px; } .sidebar h3 { margin-top: 10px; display: inline-block; margin-right: 10px; border: none; } .sidebar ul { display: inline; } .filter-btn { display: inline-flex; width: auto; padding: 5px 10px; } .content-area { padding: 15px; } }
+    </style>
 </head>
 <body>
-  <div id="app-container">
 
-    <!-- 1. 背景・空・星・軌跡レイヤー -->
-    <div id="sky-viewport">
-      <canvas id="stars-canvas"></canvas>
-      <canvas id="path-canvas"></canvas>
-      
-      <!-- 天体レイヤー (太陽 & 月) -->
-      <div id="celestial-layer">
-        <!-- 比較用に空に残した月（ピン留め） -->
-        <div id="pinned-moons-layer"></div>
+<header>
+    <h1>シン・学習アプリ＋１０</h1>
+</header>
 
-        <!-- 太陽 -->
-        <div id="sun-element" class="celestial-body sun-body" title="太陽">
-          <div class="sun-glow"></div>
-          <div class="sun-label">太陽</div>
+<div id="error-msg"></div>
+
+<div class="main-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content-area">
+        <div class="app-grid" id="appGrid">Loading...</div>
+    </main>
+</div>
+
+<!-- QRコード表示モーダル -->
+<div id="qr-modal" class="qr-modal" onclick="closeQrModal(event)">
+    <div class="qr-modal-content" onclick="event.stopPropagation()">
+        <button class="modal-close-btn" onclick="closeQrModal()">&times;</button>
+        <h3 id="modal-title" class="modal-title"></h3>
+        <div id="modal-qrcode" class="modal-qrcode-container"></div>
+        <p class="modal-url" id="modal-url"></p>
+        <div class="modal-buttons">
+            <button class="modal-btn" id="copy-btn" onclick="copyUrl()">URLをコピー</button>
+            <button class="modal-btn primary" onclick="downloadQr()">QR画像を保存</button>
         </div>
-
-        <!-- 月 -->
-        <div id="moon-element" class="celestial-body moon-body" title="月（タップで大きく表示）">
-          <!-- JSで動的にSVGを挿入 -->
-          <div id="moon-hint" class="moon-hint">タップして拡大！</div>
-          <div class="moon-label">月</div>
-        </div>
-      </div>
     </div>
+</div>
 
-    <!-- 2. 地面・建物景観レイヤー (SVG) -->
-    <div id="landscape-container">
-      <svg id="landscape-svg" viewBox="0 0 1200 360" preserveAspectRatio="none">
-        <defs>
-          <!-- 遠山のグラデーション -->
-          <linearGradient id="mountainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#334155" stop-opacity="0.8" />
-            <stop offset="100%" stop-color="#1e293b" stop-opacity="0.95" />
-          </linearGradient>
-          <!-- 地面のグラデーション -->
-          <linearGradient id="groundGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#15803d" />
-            <stop offset="25%" stop-color="#166534" />
-            <stop offset="100%" stop-color="#14532d" />
-          </linearGradient>
-        </defs>
+<script>
+    let appData = [];
+    let finalSubjectList = [];
 
-        <!-- 遠くの山々 -->
-        <path d="M 0 220 Q 200 130 420 210 T 800 190 T 1200 210 L 1200 360 L 0 360 Z" fill="url(#mountainGrad)" />
+    const IMG_DIR = "./img/"; 
+    const DEFAULT_EXT = ".png"; // 基本はpngとして扱う（失敗したらjpgを試す）
 
-        <!-- 建物群・学校・ビル (シルエット & 窓) -->
-        <!-- 左側のビル群 (東側) -->
-        <rect x="50" y="160" width="48" height="90" fill="#1e293b" rx="2" />
-        <rect class="window-light" x="58" y="172" width="10" height="12" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="78" y="172" width="10" height="12" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="58" y="194" width="10" height="12" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="78" y="194" width="10" height="12" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="58" y="216" width="10" height="12" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="78" y="216" width="10" height="12" rx="1" fill="#1e293b" />
+    const STANDARD_SUBJECTS = [
+        "算数",
+        "数学",
+        "国語",
+        "理科",
+        "社会",
+        "英語",
+        "音楽",
+        "体育",
+        "道徳"
+    ];
 
-        <rect x="110" y="130" width="60" height="120" fill="#0f172a" rx="3" />
-        <rect class="window-light" x="120" y="145" width="12" height="14" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="145" y="145" width="12" height="14" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="120" y="170" width="12" height="14" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="145" y="170" width="12" height="14" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="120" y="195" width="12" height="14" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="145" y="195" width="12" height="14" rx="1" fill="#1e293b" />
+    // 学年の定義（ここに tokushi があるか確認してください）
+    const GRADE_MAP = {
+        'grades1': '小1', 'grades2': '小2', 'grades3': '小3',
+        'grades4': '小4', 'grades5': '小5', 'grades6': '小6',
+        'gradejh1': '中1', 'gradejh2': '中2', 'gradejh3': '中3',
+        'tokushi': '特別支援' // ← これがサイドバー表示用
+    };
 
-        <!-- 木々 -->
-        <circle cx="200" cy="235" r="18" fill="#14532d" />
-        <circle cx="220" cy="230" r="22" fill="#166534" />
-        <circle cx="242" cy="236" r="16" fill="#14532d" />
+    // 並び順の重み付け
+    const GRADE_ORDER = {
+        '小1': 1, '小2': 2, '小3': 3, '小4': 4, '小5': 5, '小6': 6,
+        '中1': 7, '中2': 8, '中3': 9,
+        '特別支援': 10
+    };
 
-        <!-- 中央の学校校舎 (時計台付き) -->
-        <rect x="520" y="170" width="160" height="80" fill="#334155" rx="3" />
-        <!-- 時計塔 -->
-        <rect x="585" y="130" width="30" height="40" fill="#1e293b" rx="2" />
-        <polygon points="582,130 600,105 618,130" fill="#dc2626" />
-        <circle cx="600" cy="148" r="8" fill="#f8fafc" />
-        <line x1="600" y1="148" x2="600" y2="143" stroke="#0f172a" stroke-width="1.5" />
-        <line x1="600" y1="148" x2="604" y2="148" stroke="#0f172a" stroke-width="1.5" />
-        <!-- 学校の窓 -->
-        <rect class="window-light" x="535" y="185" width="18" height="18" rx="2" fill="#1e293b" />
-        <rect class="window-light" x="565" y="185" width="18" height="18" rx="2" fill="#1e293b" />
-        <rect class="window-light" x="620" y="185" width="18" height="18" rx="2" fill="#1e293b" />
-        <rect class="window-light" x="650" y="185" width="18" height="18" rx="2" fill="#1e293b" />
-        <rect class="window-light" x="535" y="215" width="18" height="18" rx="2" fill="#1e293b" />
-        <rect class="window-light" x="565" y="215" width="18" height="18" rx="2" fill="#1e293b" />
-        <rect class="window-light" x="620" y="215" width="18" height="18" rx="2" fill="#1e293b" />
-        <rect class="window-light" x="650" y="215" width="18" height="18" rx="2" fill="#1e293b" />
+    async function loadExcelData() {
+        try {
+            const response = await fetch('./list.xlsx?' + new Date().getTime());
+            if (!response.ok) throw new Error(`list.xlsx が見つかりません`);
 
-        <!-- 体育館の屋根アーチ -->
-        <path d="M 690 250 L 690 205 Q 740 175 790 205 L 790 250 Z" fill="#1e293b" />
+            const arrayBuffer = await response.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer);
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+            
+            appData = jsonData.map((row, index) => {
+                let rawPath = row.path ? String(row.path).trim() : "";
+                let folderName = "";
+                let finalPath = "#";
 
-        <!-- 右側の街並み (西側) -->
-        <circle cx="850" cy="235" r="20" fill="#14532d" />
-        <rect x="910" y="150" width="55" height="100" fill="#1e293b" rx="2" />
-        <rect class="window-light" x="922" y="165" width="12" height="12" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="942" y="165" width="12" height="12" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="922" y="190" width="12" height="12" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="942" y="190" width="12" height="12" rx="1" fill="#1e293b" />
+                if (rawPath) {
+                    if (/^https?:\/\//i.test(rawPath)) {
+                        finalPath = rawPath;
+                        try {
+                            const urlObj = new URL(rawPath);
+                            const segments = urlObj.pathname.split('/').filter(Boolean);
+                            if (segments.length > 0) {
+                                let last = segments[segments.length - 1];
+                                if (last.toLowerCase() === 'index.html' || last.toLowerCase() === 'index.htm') {
+                                    folderName = segments.length > 1 ? segments[segments.length - 2] : '';
+                                } else {
+                                    folderName = last.replace(/\.[^/.]+$/, '');
+                                }
+                            }
+                        } catch (e) {
+                            const parts = rawPath.split('/').filter(Boolean);
+                            folderName = parts[parts.length - 1] || "";
+                        }
+                    } else if (rawPath.startsWith('./') && rawPath.endsWith('.html')) {
+                        finalPath = rawPath;
+                        const parts = rawPath.split('/');
+                        folderName = parts[parts.length - 1].replace('.html', '');
+                    } else {
+                        finalPath = `./${rawPath}/index.html`;
+                        folderName = rawPath;
+                    }
+                }
 
-        <rect x="980" y="120" width="65" height="130" fill="#0f172a" rx="3" />
-        <rect class="window-light" x="992" y="135" width="14" height="14" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="1018" y="135" width="14" height="14" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="992" y="160" width="14" height="14" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="1018" y="160" width="14" height="14" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="992" y="185" width="14" height="14" rx="1" fill="#1e293b" />
-        <rect class="window-light" x="1018" y="185" width="14" height="14" rx="1" fill="#1e293b" />
+                let finalImage = "";
+                if (row.image) {
+                    // Excelで指定があればそれを使う
+                    finalImage = (row.image.startsWith('./') || /^https?:\/\//i.test(row.image)) 
+                        ? row.image 
+                        : IMG_DIR + row.image;
+                } else {
+                    // 指定がなければ一旦 .png とする（ロード失敗時に onerror で .jpg を試す）
+                    finalImage = IMG_DIR + folderName + DEFAULT_EXT;
+                }
 
-        <circle cx="1090" cy="232" r="24" fill="#166534" />
+                const myGrades = [];
+                for (const [colKey, label] of Object.entries(GRADE_MAP)) {
+                    if (row[colKey]) myGrades.push(label);
+                }
 
-        <!-- 手前の地面 (草地) -->
-        <rect x="0" y="245" width="1200" height="115" fill="url(#groundGrad)" />
-        <!-- 地面の縁取りライン -->
-        <line x1="0" y1="245" x2="1200" y2="245" stroke="#4ade80" stroke-width="3" opacity="0.8" />
-      </svg>
-    </div>
+                return {
+                    id: index,
+                    title: row.title || "No Title",
+                    path: finalPath,
+                    image: finalImage,
+                    desc: row.desc || "",
+                    gradeList: myGrades, 
+                    subject: row.subject ? row.subject.trim() : "その他" 
+                };
+            });
 
-    <!-- 3. 方角表示バー (東・南・西) -->
-    <div id="direction-bar">
-      <div class="direction-indicator east">
-        <span class="dir-kanji">東</span>
-        <span class="dir-ruby">ひがし</span>
-      </div>
-      <div class="direction-indicator south">
-        <span class="dir-kanji">南</span>
-        <span class="dir-ruby">みなみ</span>
-      </div>
-      <div class="direction-indicator west">
-        <span class="dir-kanji">西</span>
-        <span class="dir-ruby">にし</span>
-      </div>
-    </div>
+            const allSubjectsInData = [...new Set(appData.map(d => d.subject))];
+            
+            const extraSubjects = allSubjectsInData.filter(s => 
+                !STANDARD_SUBJECTS.includes(s) && s !== "その他"
+            ).sort(); 
 
-    <!-- 4. UIヘッダー: 左上（日時パネル） -->
-    <div id="datetime-card" class="ui-overlay">
-      <div class="date-row">
-        <div id="date-display" class="date-display">2026年 10月 18日 (日)</div>
-        <div class="day-nav-buttons">
-          <button id="btn-prev-day" class="btn-day-nav" title="1日前">◀ 前の日</button>
-          <button id="btn-next-day" class="btn-day-nav" title="1日後">次の日 ▶</button>
-        </div>
-      </div>
-      <div class="time-row">
-        <div class="time-main">
-          <button id="ampm-badge" class="ampm-badge am" title="タップで午前/午後切り替え">午前</button>
-          <div id="time-digits" class="time-digits">10 : 30</div>
-          <button id="btn-time-format" class="btn-time-format" type="button" title="午前・午後表示と24時間表示を切り替え">24h表示</button>
-        </div>
-        <div class="header-action-buttons">
-          <button id="btn-edit-date" class="btn-edit-date" type="button">
-            <span>📅 日時変更</span>
-          </button>
-          <button id="btn-open-calendar-top" class="btn-edit-date btn-calendar-open" type="button" title="月齢カレンダーを開く">
-            <span>🗓️ カレンダー</span>
-          </button>
-        </div>
-      </div>
+            finalSubjectList = [...STANDARD_SUBJECTS, ...extraSubjects, "その他"];
 
-      <!-- 日時変更ドロップダウンメニュー -->
-      <div id="datetime-picker-dropdown">
-        <div class="picker-grid">
-          <div class="picker-col">
-            <label for="select-year">年</label>
-            <select id="select-year"></select>
-          </div>
-          <div class="picker-col">
-            <label for="select-month">月</label>
-            <select id="select-month"></select>
-          </div>
-          <div class="picker-col">
-            <label for="select-day">日</label>
-            <select id="select-day"></select>
-          </div>
-          <div id="picker-col-ampm" class="picker-col">
-            <label for="select-ampm">午前 / 午後</label>
-            <select id="select-ampm">
-              <option value="am">午前</option>
-              <option value="pm">午後</option>
-            </select>
-          </div>
-          <div class="picker-col">
-            <label for="select-hour">時</label>
-            <select id="select-hour"></select>
-          </div>
-          <div class="picker-col">
-            <label for="select-minute">分</label>
-            <select id="select-minute"></select>
-          </div>
-        </div>
-        <div class="picker-buttons">
-          <button id="btn-today-date" class="btn-picker-today">今日に戻る</button>
-          <button id="btn-apply-date" class="btn-picker-apply">変更を適用</button>
-        </div>
-      </div>
-    </div>
+            renderSidebar();
+            filterBy('all', null, document.querySelector('.filter-btn')); 
 
-    <!-- 5. UIヘッダー: 右上（右カラム：天体データボード ＆ 宇宙視点ミニビュー） -->
-    <div id="right-column" class="ui-overlay">
-      <div id="astro-card">
-        <div class="card-title">
-          <span>☀️ 太陽と 🌙 月のデータ</span>
-          <div class="card-title-right">
-            <button id="btn-location-picker" class="location-tag-btn" type="button" title="観測する地域（市町村・都市・緯度経度）を変更">
-              <span>📍</span>
-              <span id="location-name-text">大分県佐伯市</span>
-              <span>▾</span>
-            </button>
-            <button id="btn-toggle-astro-data" class="btn-toggle-astro-data" type="button" title="データの詳細を隠す／表示する">▲ かくす</button>
-          </div>
-        </div>
+        } catch (error) {
+            console.error(error);
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `<strong>エラー</strong><br>${error.message}`;
+        }
+    }
+    .neo-border {
+      border: 4px solid #000;
 
-        <div id="astro-card-body">
-          <!-- 太陽の出入 -->
-          <div class="astro-data-row">
-            <div class="astro-icon-col">
-              <div class="icon-sun-mini"></div>
-              <span class="astro-name">太陽</span>
-            </div>
-            <div class="astro-times">
-              <div class="time-item">
-                <span>日の出</span>
-                <span id="sun-rise-text">--:--</span>
-              </div>
-              <div class="time-item">
-                <span>一番高いとき</span>
-                <span id="sun-transit-text">--:--</span>
-              </div>
-              <div class="time-item">
-                <span>日の入り</span>
-                <span id="sun-set-text">--:--</span>
-              </div>
-            </div>
-          </div>
+    function renderGrid(data) {
+        const grid = document.getElementById('appGrid');
+        grid.innerHTML = ''; 
+        if(data.length === 0) { grid.innerHTML = '<p style="color:#666;">該当する教材はありません。</p>'; return; }
 
-          <!-- 月の出入 (タップで拡大可能) -->
-          <div id="moon-data-row" class="astro-data-row clickable-moon-data" title="タップで月を大きく表示">
-            <div class="astro-icon-col">
-              <div class="icon-moon-mini" id="mini-moon-icon"></div>
-              <span class="astro-name">月</span>
-            </div>
-            <div class="astro-times">
-              <div class="time-item">
-                <span>月の出</span>
-                <span id="moon-rise-text">--:--</span>
-              </div>
-              <div class="time-item">
-                <span>一番高いとき</span>
-                <span id="moon-transit-text">--:--</span>
-              </div>
-              <div class="time-item">
-                <span>月の入り</span>
-                <span id="moon-set-text">--:--</span>
-              </div>
-            </div>
-          </div>
+        data.forEach(item => {
+            // ★ここが画像切り替えのミソです
+            const imgTag = `<img src="${item.image}" alt="${item.title}" 
+                            onerror="if(this.src.endsWith('.png')){ this.src = this.src.replace('.png', '.jpg'); } else { this.style.display='none'; this.nextElementSibling.style.display='block'; }">`;
+            
+            const defaultIcon = `<div class="default-icon">📱</div>`;
+            const gradeTags = item.gradeList.map(g => `<span class="tag">${g}</span>`).join('');
+            const subjectTag = `<span class="tag subject">${item.subject}</span>`;
 
-          <!-- 月齢 & 形状バッジ (タップで拡大可能) -->
-          <div id="moon-badge-btn" class="moon-phase-badge clickable-moon-data" title="タップで月を大きく表示">
-            <div class="moon-badge-left">
-              <span id="moon-shape-name" class="moon-shape-name">上弦の月</span>
-              <span id="moon-altitude-status" class="moon-status-tag">地上</span>
-            </div>
-            <div class="moon-badge-right">
-              <span id="moon-age-text" class="moon-age-text">月齢 7.2</span>
-              <span class="zoom-icon-hint">🔍拡大</span>
-            </div>
-          </div>
-        </div>
+            grid.innerHTML += `
+                <div class="app-card">
+                    <div class="card-img-area">${imgTag}${defaultIcon}</div>
+                    <div class="card-body">
+                        <div class="card-meta">${subjectTag}${gradeTags}</div>
+                        <h2 class="card-title">${item.title}</h2>
+                        <p class="card-desc">${item.desc}</p>
+                        <div class="card-actions">
+                            <a href="${item.path}" class="card-link">アプリを開く</a>
+                            <button type="button" class="qr-btn" onclick="openQrModal(${item.id})" title="QRコードを表示">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v3h-3v-3zm-5 0h3v3h-3v-3zm2 5h3v3h-3v-3zm3 0h3v3h-3v-3zm-5-2h2v2h-2v-2zm7 0h2v2h-2v-2z"/>
+                                </svg>
+                                QR
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        });
+    }
+    .neo-shadow {
+      box-shadow: 6px 6px 0px #000;
 
-        <!-- 観測地点（地域・緯度経度）変更ドロップダウン -->
-        <div id="location-picker-dropdown">
-          <div class="loc-picker-title">📍 観測する場所（地域・緯度経度）の設定</div>
-          <div class="loc-picker-row">
-            <label for="select-location-preset">地域リストから選ぶ</label>
-            <select id="select-location-preset"></select>
-          </div>
-          <div class="loc-manual-grid">
-            <div class="picker-col loc-col-name">
-              <label for="input-loc-name">表示名（学校名なども可）</label>
-              <input type="text" id="input-loc-name" value="大分県佐伯市" placeholder="例: 大分県佐伯市">
-            </div>
-            <div class="picker-col">
-              <label for="input-loc-lat">北緯 (°)</label>
-              <input type="number" id="input-loc-lat" step="0.0001" min="-89.5" max="89.5" value="32.96">
-            </div>
-            <div class="picker-col">
-              <label for="input-loc-lon">東経 (°)</label>
-              <input type="number" id="input-loc-lon" step="0.0001" min="-180" max="180" value="131.90">
-            </div>
-          </div>
-          <div class="loc-picker-note">※地域を選ぶと緯度・経度が自動で入ります。数値を直接手入力することもできます。</div>
-          <div class="picker-buttons">
-            <button id="btn-reset-location" class="btn-picker-today" type="button">佐伯市に戻す</button>
-            <button id="btn-apply-location" class="btn-picker-apply" type="button">この場所に設定</button>
-          </div>
-        </div>
-      </div>
+    function renderSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const gradeCounts = {};
+        for (const label of Object.values(GRADE_MAP)) { gradeCounts[label] = 0; }
+        const subjectCounts = {};
 
-      <!-- 6. 宇宙視点ミニビューパネル (トグルで表示) -->
-      <div id="space-view-panel">
-        <div class="space-view-header">
-          <span>🪐 宇宙から見た地球と月</span>
-        </div>
-        <canvas id="space-canvas" width="150" height="150"></canvas>
-        <div class="space-view-caption">
-          地球を中心に月が反時計回りに公転しています。<br>右側から太陽の光が当たっています。
-        </div>
-      </div>
-    </div>
+        appData.forEach(item => {
+            item.gradeList.forEach(g => { if (gradeCounts[g] !== undefined) gradeCounts[g]++; });
+            subjectCounts[item.subject] = (subjectCounts[item.subject] || 0) + 1;
+        });
 
-    <!-- 7. 下部コントロールバー -->
-    <div id="control-panel">
-      <!-- 再生操作 -->
-      <div class="playback-controls">
-        <button id="btn-step-back" class="btn-step" title="1時間もどす">
-          <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
-        </button>
-        <button id="btn-play-pause" class="btn-circle" title="再生 / 一時停止">
-          <svg id="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          <svg id="icon-pause" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-        </button>
-        <button id="btn-step-forward" class="btn-step" title="1時間すすめる">
-          <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
-        </button>
-      </div>
-
-      <!-- 24時間タイムスライダー -->
-      <div class="timeline-container">
-        <div class="timeline-slider-wrapper">
-          <input type="range" id="time-slider" min="0" max="1439" step="1" value="630">
-        </div>
-        <div id="timeline-ticks" class="timeline-ticks">
-          <span>午前0時</span>
-          <span>午前6時</span>
-          <span>正午</span>
-          <span>午後6時</span>
-          <span>午後12時</span>
-        </div>
-      </div>
-
-      <!-- クイックジャンプボタン -->
-      <div class="quick-time-buttons">
-        <button class="btn-quick-time" data-hour="6" title="朝 6:00へ移動">🌅 朝</button>
-        <button class="btn-quick-time" data-hour="12" title="昼 12:00へ移動">☀️ 昼</button>
-        <button class="btn-quick-time" data-hour="18" title="夕方 18:00へ移動">🌇 夕</button>
-        <button class="btn-quick-time" data-hour="21" title="夜 21:00へ移動">🌙 夜</button>
-      </div>
-
-      <!-- オプション切り替え -->
-      <div class="options-group">
-        <select id="select-speed" class="speed-select" title="時間の進むスピード">
-          <option value="1">1分/秒</option>
-          <option value="5">5分/秒</option>
-          <option value="15" selected>15分/秒</option>
-          <option value="60">1時間/秒</option>
-          <option value="180">3時間/秒</option>
-        </select>
-        <button id="btn-toggle-path" class="btn-pill active" title="太陽と月の通り道（軌道）の表示">
-          <span>〰 軌道</span>
-        </button>
-        <button id="btn-toggle-underground" class="btn-pill" title="地面の下（地球の裏側）の天体を透かして表示">
-          <span>🌏 とうか</span>
-        </button>
-        <button id="btn-toggle-space-view" class="btn-pill" title="宇宙から見た地球と月の位置関係を表示">
-          <span>🪐 宇宙視点</span>
-        </button>
-        <button id="btn-pin-moon" class="btn-pill" type="button" title="いまの月を空に残して別の日と比べる">
-          <span>📌 月をのこす</span>
-        </button>
-        <button id="btn-clear-pins" class="btn-pill btn-pill-danger" type="button" style="display:none;" title="空に残した月をすべて消す">
-          <span>🗑️ ピン消去</span>
-        </button>
-        <button id="btn-open-compare" class="btn-pill" type="button" title="2つの日付の月を並べて比べる">
-          <span>🔍 くらべる</span>
-        </button>
-        <button id="btn-open-calendar" class="btn-pill" type="button" title="月齢カレンダーを別画面で開く">
-          <span>🗓️ カレンダー</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- 8. 月の大拡大モーダル (タップ時) -->
-    <div id="moon-modal">
-      <div class="modal-content-card">
-        <button id="btn-close-modal" class="btn-close-modal">✕</button>
+        // 「すべて表示」と「What's NEW」ボタンを作成
+        let html = `<ul>
+            <li><button class="filter-btn active" onclick="filterBy('all', null, this)">すべて表示 <span class="count">${appData.length}</span></button></li>
+            <li><button class="filter-btn new-btn" onclick="filterBy('new', null, this)">✨ What's NEW <span class="count">10</span></button></li>
+        </ul>`;
         
-        <div class="modal-moon-title">
-          <span id="modal-moon-ruby" class="modal-moon-ruby">じょうげんのつき</span>
-          <span id="modal-moon-name" class="modal-moon-name">上弦の月</span>
+        html += `<h3>学年</h3><ul>`;
+        // 定義順（小1...特別支援）に表示
+        Object.values(GRADE_MAP).forEach(label => {
+            html += `<li><button class="filter-btn" onclick="filterBy('grade', '${label}', this)">${label} <span class="count">${gradeCounts[label]}</span></button></li>`;
+        });
+        html += `</ul>`;
+
+        html += `<h3>教科</h3><ul>`;
+        finalSubjectList.forEach(s => {
+            if (subjectCounts[s]) {
+                html += `<li><button class="filter-btn" onclick="filterBy('subject', '${s}', this)">${s} <span class="count">${subjectCounts[s]}</span></button></li>`;
+            }
+        });
+        html += `</ul>`;
+
+        sidebar.innerHTML = html;
+    }
+    .neo-btn {
+      transition: all 0.15s ease;
+
+    function getMinGradeValue(app) {
+        if (!app.gradeList || app.gradeList.length === 0) return 99;
+        const values = app.gradeList.map(g => GRADE_ORDER[g] || 99);
+        return Math.min(...values);
+    }
+    .neo-btn:active {
+      transform: translate(3px, 3px);
+      box-shadow: 3px 3px 0px #000;
+
+    function getSubjectWeight(subject) {
+        const index = finalSubjectList.indexOf(subject);
+        return index === -1 ? 999 : index;
+    }
+  </style>
+</head>
+<body class="bg-[#141221] text-white min-h-screen flex flex-col items-center justify-center p-6">
+
+  <div class="max-w-2xl w-full bg-[#1E1B2E] neo-border neo-shadow rounded-3xl p-8 text-center">
+    
+    <!-- Title -->
+    <div class="inline-block bg-[#FDCB6E] text-black px-4 py-1 rounded-full text-xs font-black uppercase mb-3 border-2 border-black">
+      WebRTC Realtime Quiz System
+    </div>
+    <h1 class="text-4xl md:text-5xl font-black text-[#FDCB6E] tracking-wider mb-2 drop-shadow-[3px_3px_0px_#000]">
+      POP QUIZ SHOW ⚡
+    </h1>
+    <p class="text-gray-300 font-bold text-sm md:text-base mb-8">
+      サーバー設置不要！ブラウザだけで動く1:Nリアルタイム対戦クイズシステム
+    </p>
+
+    <!-- Navigation Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
+      
+      <!-- Host Launch -->
+      <a href="host.html?v=3.3.8" class="block bg-[#6C5CE7] hover:bg-[#5b4bc4] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-14 h-14 bg-[#FDCB6E] text-black rounded-xl border-2 border-black flex items-center justify-center text-3xl font-black">
+            🖥️
+          </div>
+          <span class="text-xs font-black bg-black text-[#00CEC9] px-2.5 py-1 rounded-md">親機 (iPad / PC)</span>
         </div>
+        <h2 class="text-2xl font-black text-white group-hover:text-[#FDCB6E] transition-colors">
+          ホスト画面を開く
+        </h2>
+        <p class="text-xs font-bold text-purple-200 mt-2 leading-relaxed">
+          部屋コード・QRコード発行、アプリ内クイズ作成（画像・動画・2択/3択/4択対応）、CBT動画2段階出題、ZIP/Excel保存・読込、リアルタイム演出。
+        </p>
+      </a>
 
-        <div class="modal-moon-preview-wrapper">
-          <div id="modal-moon-svg"></div>
+      <!-- Player Launch -->
+      <a href="player.html?v=3.3.8" class="block bg-[#00B894] hover:bg-[#00a383] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-14 h-14 bg-white text-black rounded-xl border-2 border-black flex items-center justify-center text-3xl font-black">
+            📱
+          </div>
+          <span class="text-xs font-black bg-black text-[#FDCB6E] px-2.5 py-1 rounded-md">子機 (スマホ)</span>
         </div>
+        <h2 class="text-2xl font-black text-black group-hover:text-white transition-colors">
+          参加者画面を開く
+        </h2>
+        <p class="text-xs font-black text-slate-800 mt-2 leading-relaxed">
+          カメラでQR即参加。CBT動画視聴待機画面＆問題画像の手元表示＆2択/3択/4択に最適化された巨大ボタン回答。
+        </p>
+      </a>
+    window.filterBy = function(type, value, btnElement) {
+        if (btnElement) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+        }
 
-        <div class="modal-tags">
-          <div id="modal-moon-age" class="modal-tag">月齢 7.2</div>
-          <div id="modal-moon-phase" class="modal-tag">光る割合: 50%</div>
-        </div>
+    </div>
+        let filtered = [];
+        if (type === 'all') {
+            filtered = [...appData]; 
+        } else if (type === 'new') {
+            // 末尾10件を取得し、逆順にする（最新を先頭へ）
+            filtered = [...appData].slice(-10).reverse();
+        } else if (type === 'grade') {
+            filtered = appData.filter(item => item.gradeList.includes(value));
+        } else { 
+            filtered = appData.filter(item => item[type] === value);
+        }
 
-        <!-- ヒント・解説トグルボタン (子どもが自分で考える場を作るため最初は非表示) -->
-        <button id="btn-toggle-explanation" class="btn-toggle-explanation" type="button">
-          <span>💡 ヒント・解説をみる ▾</span>
-        </button>
-
-        <div id="modal-explanation" class="modal-explanation-box" style="display: none;">
-          <!-- JSで解説文を挿入 -->
-        </div>
-
-        <div class="modal-instruction">※画面のどこかをタップすると戻ります</div>
+    <!-- Quick Utilities -->
+    <div class="bg-[#2A2640] rounded-2xl p-4 neo-border flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-bold">
+      <div class="flex flex-wrap items-center gap-2 text-gray-200">
+        <i class="fa-solid fa-box-archive text-yellow-400 text-lg"></i>
+        <span>サンプル・テンプレート:</span>
+        <a href="sample_quiz_with_images.zip" download class="bg-[#FDCB6E] hover:bg-amber-300 text-black px-2.5 py-1 rounded-lg neo-border-sm text-[11px] font-black inline-flex items-center gap-1">
+          <i class="fa-solid fa-file-zipper"></i>画像付きZIP
+        </a>
+        <a href="sample_quiz.xlsx" download class="bg-[#00B894] hover:bg-emerald-400 text-black px-2.5 py-1 rounded-lg neo-border-sm text-[11px] font-black inline-flex items-center gap-1">
+          <i class="fa-solid fa-file-excel"></i>Excel (.xlsx)
+        </a>
+        <a href="sample_quiz.csv" download class="text-[#00CEC9] underline hover:text-white">CSV版</a>
+      </div>
+      <div class="flex items-center space-x-2 text-gray-300 shrink-0">
+        <i class="fa-solid fa-book text-yellow-400 text-lg"></i>
+        <span>マニュアル: <a href="manual/manual.html" class="text-[#FDCB6E] underline hover:text-white">Web版操作説明書</a></span>
       </div>
     </div>
+        // ソート処理
+        // What's NEWの場合はソートせず、新着順（逆順）のまま表示
+        if (type === 'new') {
+            // Do nothing (keep reverse order)
+        } else if (type === 'subject' || type === 'all') {
+            filtered.sort((a, b) => {
+                const gradeDiff = getMinGradeValue(a) - getMinGradeValue(b);
+                if (gradeDiff !== 0) return gradeDiff;
+                return getSubjectWeight(a.subject) - getSubjectWeight(b.subject);
+            });
+        } else if (type === 'grade') {
+            filtered.sort((a, b) => {
+                return getSubjectWeight(a.subject) - getSubjectWeight(b.subject);
+            });
+        }
 
-    <!-- 9. 2つの月をくらべるモーダル -->
-    <div id="compare-modal" class="app-modal">
-      <div class="compare-modal-card">
-        <div class="modal-header-bar">
-          <h2>🔍 2つの月をくらべて観察しよう</h2>
-          <div class="modal-header-actions">
-            <button id="btn-compare-toggle-info" class="btn-compare-toggle-info" type="button">💡 名前・データをかくす</button>
-            <button id="btn-compare-sync-time" class="btn-compare-sync-time" type="button">⌚ 時刻を①にそろえる</button>
-            <button id="btn-close-compare" class="btn-close-modal modal-header-close" type="button">✕</button>
-          </div>
-        </div>
-
-        <div class="compare-columns">
-          <!-- 左：月① -->
-          <div id="compare-card-a" class="compare-card">
-            <div class="compare-card-badge">① の月</div>
-            <div class="compare-date-controls">
-              <select id="comp-a-year"></select>
-              <select id="comp-a-month"></select>
-              <select id="comp-a-day"></select>
-              <select id="comp-a-hour"></select>
-            </div>
-            <div class="compare-quick-days">
-              <button type="button" class="btn-comp-step" data-target="a" data-days="-1">-1日</button>
-              <button type="button" class="btn-comp-step" data-target="a" data-days="1">+1日</button>
-              <button type="button" class="btn-comp-step" data-target="a" data-days="3">+3日</button>
-              <button type="button" class="btn-comp-step" data-target="a" data-days="7">+7日</button>
-              <button type="button" class="btn-comp-now" data-target="a">今の空</button>
-            </div>
-            <div class="compare-visuals">
-              <div id="comp-a-moon-svg" class="compare-moon-box"></div>
-              <div class="compare-sky-wrapper">
-                <div id="comp-a-sky-svg" class="compare-sky-box"></div>
-                <div class="compare-sky-dirs"><span>東</span><span>南</span><span>西</span></div>
-              </div>
-            </div>
-            <div id="comp-a-info" class="compare-info-box"></div>
-          </div>
-
-          <!-- 右：月② -->
-          <div id="compare-card-b" class="compare-card">
-            <div class="compare-card-badge badge-b">② の月</div>
-            <div class="compare-date-controls">
-              <select id="comp-b-year"></select>
-              <select id="comp-b-month"></select>
-              <select id="comp-b-day"></select>
-              <select id="comp-b-hour"></select>
-            </div>
-            <div class="compare-quick-days">
-              <button type="button" class="btn-comp-step" data-target="b" data-days="-1">-1日</button>
-              <button type="button" class="btn-comp-step" data-target="b" data-days="1">+1日</button>
-              <button type="button" class="btn-comp-step" data-target="b" data-days="3">+3日</button>
-              <button type="button" class="btn-comp-step" data-target="b" data-days="7">+7日</button>
-              <button type="button" class="btn-comp-now" data-target="b">今の空</button>
-            </div>
-            <div class="compare-visuals">
-              <div id="comp-b-moon-svg" class="compare-moon-box"></div>
-              <div class="compare-sky-wrapper">
-                <div id="comp-b-sky-svg" class="compare-sky-box"></div>
-                <div class="compare-sky-dirs"><span>東</span><span>南</span><span>西</span></div>
-              </div>
-            </div>
-            <div id="comp-b-info" class="compare-info-box"></div>
-          </div>
-        </div>
-
-        <div class="compare-footer">
-          <button id="btn-compare-pin-both" class="btn-compare-action" type="button">📌 この2つの月をメインの空に重ねて表示する</button>
-        </div>
-      </div>
+    <!-- Footer Note -->
+    <div class="mt-6 text-gray-400 text-xs font-bold">
+      ※本アプリはWebRTC (PeerJS) を利用し、サーバー代ゼロで高速P2P通信を行います。
     </div>
+        renderGrid(filtered);
+    };
 
-    <!-- 10. 月齢カレンダーモーダル -->
-    <div id="calendar-modal" class="app-modal">
-      <div class="calendar-modal-card">
-        <div class="modal-header-bar calendar-header-bar">
-          <div class="calendar-nav-group">
-            <button id="btn-cal-prev-month" class="btn-cal-nav" type="button">◀ 前の月</button>
-            <select id="cal-select-year" class="cal-select"></select>
-            <select id="cal-select-month" class="cal-select"></select>
-            <button id="btn-cal-next-month" class="btn-cal-nav" type="button">次の月 ▶</button>
-          </div>
-          <div class="calendar-tools-group">
-            <label class="cal-hour-label" for="cal-select-hour">見る時刻:</label>
-            <select id="cal-select-hour" class="cal-select">
-              <option value="18">18時(夕方)</option>
-              <option value="20" selected>20時(夜)</option>
-              <option value="21">21時(夜)</option>
-              <option value="0">0時(真夜中)</option>
-              <option value="6">6時(朝)</option>
-              <option value="12">12時(昼)</option>
-            </select>
-            <button id="btn-cal-mode-compare" class="btn-cal-mode" type="button">🔍 2つの日を選んでくらべる</button>
-            <span id="cal-selection-status" class="cal-selection-status">日付をタップするとその空へ移動</span>
-            <button id="btn-close-calendar" class="btn-close-modal modal-header-close" type="button">✕</button>
-          </div>
-        </div>
+    // --- QRコードモーダル制御 ---
+    let currentQrUrl = "";
+    let currentQrTitle = "";
 
-        <div class="calendar-weekdays">
-          <div class="weekday-sun">日</div>
-          <div>月</div>
-          <div>火</div>
-          <div>水</div>
-          <div>木</div>
-          <div>金</div>
-          <div class="weekday-sat">土</div>
-        </div>
-        <div id="calendar-grid" class="calendar-grid"></div>
-      </div>
-    </div>
+    function openQrModal(id) {
+        const item = appData.find(d => d.id === id);
+        if (!item) return;
+
+        // 相対パスの場合は完全な絶対URLに解決する
+        const fullUrl = new URL(item.path, window.location.href).href;
+        currentQrUrl = fullUrl;
+        currentQrTitle = item.title;
+
+        document.getElementById('modal-title').textContent = item.title;
+        document.getElementById('modal-url').textContent = fullUrl;
+
+        const qrContainer = document.getElementById('modal-qrcode');
+        qrContainer.innerHTML = '';
+
+        if (typeof QRCode !== 'undefined') {
+            // 拡大時や印刷時にもシャープになるよう高解像度(512x512)で生成
+            new QRCode(qrContainer, {
+                text: fullUrl,
+                width: 512,
+                height: 512,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        } else {
+            qrContainer.innerHTML = '<p style="color:#d9534f;font-size:0.85rem;">QRコードライブラリの読み込みに失敗しました</p>';
+        }
+
+        document.getElementById('qr-modal').classList.add('active');
+    }
+
+    function closeQrModal(e) {
+        if (e && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) return;
+        document.getElementById('qr-modal').classList.remove('active');
+    }
+
+    function copyUrl() {
+        if (!currentQrUrl) return;
+        const btn = document.getElementById('copy-btn');
+        const origText = btn.textContent;
+
+        const updateBtn = () => {
+            btn.textContent = 'コピー完了！';
+            setTimeout(() => { btn.textContent = origText; }, 1500);
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(currentQrUrl).then(updateBtn).catch(() => fallbackCopy(currentQrUrl, updateBtn));
+        } else {
+            fallbackCopy(currentQrUrl, updateBtn);
+        }
+    }
+
+    function fallbackCopy(text, callback) {
+        const tempInput = document.createElement('textarea');
+        tempInput.value = text;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        if (callback) callback();
+    }
+
+    function downloadQr() {
+        const qrContainer = document.getElementById('modal-qrcode');
+        const img = qrContainer.querySelector('img');
+        const canvas = qrContainer.querySelector('canvas');
+        let dataUrl = "";
+
+        if (img && img.src && img.src.startsWith('data:image/')) {
+            dataUrl = img.src;
+        } else if (canvas) {
+            dataUrl = canvas.toDataURL('image/png');
+        }
+
+        if (dataUrl) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `QR_${currentQrTitle || 'app'}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            alert('QRコード画像の保存に失敗しました。');
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('qr-modal');
+            if (modal && modal.classList.contains('active')) {
+                modal.classList.remove('active');
+            }
+        }
+    });
 
   </div>
+    loadExcelData();
+</script>
 
-  <!-- スクリプト読み込み（キャッシュ回避ローダー：読み込みのたびに最新ファイルを取得） -->
-  <script>
-    (function() {
-      var bust = 'v=1.5&t=' + Date.now();
-      var cssLink = document.getElementById('app-stylesheet');
-      if (cssLink) {
-        cssLink.href = 'style.css?' + bust;
-      }
-      var astroScript = document.createElement('script');
-      astroScript.src = 'astro.js?' + bust;
-      astroScript.onload = function() {
-        var appScript = document.createElement('script');
-        appScript.src = 'app.js?' + bust;
-        document.body.appendChild(appScript);
-      };
-      document.body.appendChild(astroScript);
-    })();
-  </script>
 </body>
 </html>
