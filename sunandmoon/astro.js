@@ -166,13 +166,11 @@ const AstroCalc = (function() {
 
     // 小学6年理科向けに、月の出・月の入り時刻(rawAlt=0°)は厳密に保ったまま、
     // 満ち欠け（赤緯変化）による南中高度の極端な上下変動（約30°〜84°）を穏やかな軌道高に安定化
-    let alt = rawAlt;
-    if (rawAlt > 0) {
-      const rawMaxAlt = Math.max(15.0, 90.0 - Math.abs(lat - delta));
-      const meanMaxAlt = Math.max(15.0, 90.0 - Math.abs(lat));
-      const targetMaxAlt = 0.78 * meanMaxAlt + 0.22 * rawMaxAlt;
-      alt = Math.min(88.0, rawAlt * (targetMaxAlt / rawMaxAlt));
-    }
+    // （alt <= 0° の地平線下も同じ比率で連続計算し、地平線通過時に急折れしないようにする）
+    const rawMaxAlt = Math.max(15.0, 90.0 - Math.abs(lat - delta));
+    const meanMaxAlt = Math.max(15.0, 90.0 - Math.abs(lat));
+    const targetMaxAlt = 0.78 * meanMaxAlt + 0.22 * rawMaxAlt;
+    const alt = Math.max(-88.0, Math.min(88.0, rawAlt * (targetMaxAlt / rawMaxAlt)));
 
     const cosAz = (Math.sin(rad(delta)) - Math.sin(rad(lat)) * sinAlt) / (Math.cos(rad(lat)) * Math.cos(rad(rawAlt)));
     const clampedCosAz = Math.max(-1.0, Math.min(1.0, cosAz));

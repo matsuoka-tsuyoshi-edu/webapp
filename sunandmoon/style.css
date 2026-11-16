@@ -293,6 +293,11 @@ html, body {
   height: 34%;
   z-index: 5;
   pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+#landscape-container.underground-see-through {
+  opacity: 0.38;
 }
 
 #landscape-svg {

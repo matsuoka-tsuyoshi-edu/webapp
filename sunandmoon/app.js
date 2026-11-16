@@ -1,5 +1,5 @@
 /**
- * 小学6年理科「太陽と月」シミュレーション v1.7 - アプリケーション本体 (app.js)
+ * 小学6年理科「太陽と月」シミュレーション v1.8 - アプリケーション本体 (app.js)
  */
 
 (function () {
@@ -156,6 +156,7 @@
     // 宇宙視点ミニビュー
     spaceViewPanel: document.getElementById('space-view-panel'),
     spaceCanvas: document.getElementById('space-canvas'),
+    landscapeContainer: document.getElementById('landscape-container'),
     landscapeSvg: document.getElementById('landscape-svg')
   };
 
@@ -206,22 +207,24 @@
   const AZ_SPAN = AZ_MAX - AZ_MIN;
 
   function azAltToScreenCoords(screenAz, alt, width, height) {
-    // 地平線のY位置（画面高さの75%位置：下部60pxのコントロールバーと地面を余裕をもって確保）
-    const horizonY = height * 0.75;
+    // #landscape-container (bottom: 60px, height: 34%) 内の SVG 地面ライン (y=245/360) に地平線を一致させる
+    const landscapeHeight = height * 0.34;
+    const horizonY = (height - 60) - landscapeHeight * ((360.0 - 245.0) / 360.0);
     const zenithY = height * 0.14;
     const skyHeight = horizonY - zenithY;
 
     // X座標: 時角ベース (75°=東寄り 〜 180°=南 〜 285°=西寄り)
     const x = ((screenAz - AZ_MIN) / AZ_SPAN) * width;
 
-    // Y座標: alt >= 0 はドーム補正高度でなめらかな円弧を描き、alt < 0 は地面の下に収める
+    // Y座標: alt >= 0 も alt < 0 も連続した角度で地面へどーんと沈み込む曲線にする
     let y;
     if (alt >= 0) {
       const domeAlt = 0.35 * alt + 0.65 * 90.0 * Math.sin((alt * Math.PI) / 180.0);
       y = horizonY - (domeAlt / 90.0) * skyHeight;
     } else {
-      const underDepth = Math.max(20, (height - 68) - horizonY);
-      y = horizonY + (Math.abs(alt) / 90.0) * underDepth;
+      const absAlt = Math.min(90.0, Math.abs(alt));
+      const domeUnder = 0.35 * absAlt + 0.65 * 90.0 * Math.sin((absAlt * Math.PI) / 180.0);
+      y = horizonY + (domeUnder / 90.0) * (skyHeight * 0.75);
     }
 
     return { x, y, horizonY };
@@ -448,7 +451,7 @@
     let prevScreenAz = null;
     for (let pt of dailyPath.sun) {
       const coord = azAltToScreenCoords(pt.screenAz, pt.alt, width, height);
-      if (!state.showUnderground && pt.alt < -2) {
+      if (!state.showUnderground && pt.alt < -6) {
         started = false;
         prevScreenAz = null;
         continue;
@@ -476,7 +479,7 @@
     prevScreenAz = null;
     for (let pt of dailyPath.moon) {
       const coord = azAltToScreenCoords(pt.screenAz, pt.alt, width, height);
-      if (!state.showUnderground && pt.alt < -2) {
+      if (!state.showUnderground && pt.alt < -6) {
         started = false;
         prevScreenAz = null;
         continue;
@@ -686,6 +689,9 @@
         if (state.showUnderground) {
           item.style.opacity = '0.45';
           item.style.display = 'block';
+        } else if (pin.alt >= -10) {
+          item.style.opacity = '1';
+          item.style.display = 'block';
         } else {
           item.style.display = 'none';
         }
@@ -784,14 +790,25 @@
     const sunCoords = azAltToScreenCoords(sunPos.screenAz, sunPos.alt, width, height);
     const moonCoords = azAltToScreenCoords(moonPos.screenAz, moonPos.alt, width, height);
 
+    // 地面透過演出（とうかON時、または地平線下にドラッグ中のとき地面を半透明にする）
+    if (elements.landscapeContainer) {
+      const draggingUnderground =
+        (sunPos.alt < 0 && elements.sunElement.classList.contains('dragging')) ||
+        (moonPos.alt < 0 && elements.moonElement.classList.contains('dragging'));
+      elements.landscapeContainer.classList.toggle('underground-see-through', state.showUnderground || draggingUnderground);
+    }
+
     // 太陽の配置
     elements.sunElement.style.left = `${sunCoords.x}px`;
     elements.sunElement.style.top = `${sunCoords.y}px`;
 
-    // 地平線下の場合の表示制御（ドラッグ中はポインター追跡維持のため薄く残す）
+    // 地平線下の場合の表示制御（通常時は地面の裏へどーんと沈むよう -14° まで描画し、ドラッグ中はポインター追跡維持のため薄く残す）
     if (sunPos.alt < 0) {
       if (state.showUnderground || elements.sunElement.classList.contains('dragging')) {
         elements.sunElement.style.opacity = '0.35';
+        elements.sunElement.style.display = 'block';
+      } else if (sunPos.alt >= -14) {
+        elements.sunElement.style.opacity = '1';
         elements.sunElement.style.display = 'block';
       } else {
         elements.sunElement.style.opacity = '0';
@@ -818,6 +835,9 @@
     if (moonPos.alt < 0) {
       if (state.showUnderground || elements.moonElement.classList.contains('dragging')) {
         elements.moonElement.style.opacity = '0.45';
+        elements.moonElement.style.display = 'block';
+      } else if (moonPos.alt >= -14) {
+        elements.moonElement.style.opacity = '1';
         elements.moonElement.style.display = 'block';
       } else {
         elements.moonElement.style.opacity = '0';
