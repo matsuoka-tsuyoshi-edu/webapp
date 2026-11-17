@@ -1,573 +1,431 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>シン・学習アプリ＋１０</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-    <script src="./qrcode.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'"></script>
-    <style>
-        /* --- デザイン設定 --- */
-        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333; display: flex; flex-direction: column; height: 100vh; }
-        header { background-color: #4a90e2; color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
-        header h1 { margin: 0; font-size: 1.4rem; font-weight: bold; }
-        .main-container { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 240px; background-color: #fff; border-right: 1px solid #ddd; overflow-y: auto; padding: 20px; flex-shrink: 0; }
-        .sidebar h3 { font-size: 0.85rem; color: #999; margin-top: 25px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; font-weight: bold; }
-        .sidebar h3:first-child { margin-top: 0; }
-        .sidebar ul { list-style: none; padding: 0; margin: 0; }
-        .sidebar li { margin-bottom: 4px; }
-        .filter-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; color: #555; transition: all 0.2s; }
-        .filter-btn:hover { background-color: #f5f5f5; }
-        .filter-btn.active { background-color: #e6f0fa; color: #4a90e2; font-weight: bold; }
-        .filter-btn.active .count { background-color: #bad6f5; color: #335e8a; }
-        .filter-btn.new-btn { color: #d35400; } /* What's NEW用の強調色 */
-        .filter-btn.new-btn.active { background-color: #fde8cd; color: #d35400; }
-        .filter-btn.new-btn.active .count { background-color: #fbd5aa; color: #8a3800; }
-        .count { font-size: 0.75rem; background: #eee; padding: 2px 8px; border-radius: 12px; color: #777; }
-        .content-area { flex: 1; padding: 30px; overflow-y: auto; background-color: #f4f7f6; }
-        .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
-        .app-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #eaeaea; display: flex; flex-direction: column; height: 100%; }
-        .app-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-        .card-img-area { height: 150px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; border-bottom: 1px solid #f0f0f0; position: relative; }
-        .card-img-area img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; z-index: 2; }
-        .app-card:hover .card-img-area img { transform: scale(1.05); }
-        .default-icon { font-size: 4rem; color: #d1d5db; display: none; z-index: 1; }
-        .card-body { padding: 18px; flex-grow: 1; display: flex; flex-direction: column; }
-        .card-meta { font-size: 0.75rem; margin-bottom: 10px; display: flex; gap: 4px; flex-wrap: wrap; }
-        .tag { background-color: #f0f2f5; color: #555; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem; border: 1px solid #e0e0e0; }
-        .tag.subject { background-color: #e1effe; color: #1e429f; border-color: #c3ddfd; }
-        .card-title { margin: 0 0 8px; font-size: 1.15rem; line-height: 1.4; color: #333; font-weight: bold; }
-        .card-desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; line-height: 1.6; flex-grow: 1; }
-        .card-actions { display: flex; gap: 8px; margin-top: auto; }
-        .card-link { flex: 1; display: block; text-align: center; background-color: #4a90e2; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-size: 0.95rem; font-weight: bold; transition: background 0.2s; }
-        .card-link:hover { background-color: #357abd; }
-        .qr-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            padding: 0 12px;
-            background-color: #fff;
-            color: #4a90e2;
-            border: 1.5px solid #4a90e2;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .qr-btn:hover { background-color: #e6f0fa; }
-        .qr-btn svg { width: 16px; height: 16px; fill: currentColor; }
-
-        /* QRモーダル (iPad横向きや大画面でどーんと表示) */
-        .qr-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.65);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .qr-modal.active { display: flex; }
-        .qr-modal-content {
-            background: white;
-            border-radius: 16px;
-            padding: 24px 28px;
-            max-width: min(92vw, 560px);
-            width: 100%;
-            max-height: 96vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.3);
-            position: relative;
-            box-sizing: border-box;
-            animation: modalFadeIn 0.2s ease-out;
-            overflow-y: auto;
-        }
-        @keyframes modalFadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .modal-close-btn {
-            position: absolute;
-            top: 12px;
-            right: 14px;
-            background: none;
-            border: none;
-            font-size: 2rem;
-            color: #888;
-            cursor: pointer;
-            line-height: 1;
-            padding: 4px 10px;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-        .modal-close-btn:hover { color: #111; background-color: #f0f0f0; }
-        .modal-title {
-            margin: 0 0 12px;
-            font-size: 1.45rem;
-            font-weight: bold;
-            color: #222;
-            padding: 0 30px;
-            word-break: break-all;
-            line-height: 1.3;
-        }
-        .modal-qrcode-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-            background: #fff;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            margin: 0 auto 14px;
-            /* iPad横向き画面の中央にどーんと大きく広がるサイズ */
-            width: min(78vw, 56vh, 440px);
-            height: min(78vw, 56vh, 440px);
-            box-sizing: border-box;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-        }
-        .modal-qrcode-container img, .modal-qrcode-container canvas {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: contain;
-            display: block;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-            image-rendering: pixelated;
-        }
-        .modal-url {
-            font-size: 0.85rem;
-            color: #555;
-            word-break: break-all;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 8px 12px;
-            border-radius: 6px;
-            margin: 0 0 14px;
-            max-height: 48px;
-            overflow-y: auto;
-            text-align: left;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-            width: 100%;
-        }
-        .modal-btn {
-            flex: 1;
-            padding: 11px 14px;
-            font-size: 0.95rem;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            border: 1px solid #cbd5e1;
-            background: #fff;
-            color: #334155;
-            transition: all 0.2s;
-        }
-        .modal-btn:hover { background: #f1f5f9; }
-        .modal-btn.primary {
-            background: #4a90e2;
-            color: #fff;
-            border-color: #4a90e2;
-        }
-        .modal-btn.primary:hover { background: #357abd; }
-
-        /* 横向き（iPad横向きなど）で縦幅が狭い場合でも1画面にすっきり収める調整 */
-        @media (orientation: landscape) and (max-height: 700px) {
-            .qr-modal-content { padding: 14px 20px; }
-            .modal-title { font-size: 1.25rem; margin-bottom: 8px; }
-            .modal-qrcode-container { margin-bottom: 8px; width: min(78vw, 54vh, 380px); height: min(78vw, 54vh, 380px); padding: 10px; }
-            .modal-url { margin-bottom: 8px; padding: 5px 10px; font-size: 0.75rem; }
-            .modal-btn { padding: 8px 10px; font-size: 0.85rem; }
-        }
-
-        #error-msg { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; padding: 20px; margin: 20px; border: 1px solid transparent; border-radius: .25rem; display: none; }
-        @media (max-width: 768px) { .main-container { flex-direction: column; } .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #ddd; padding: 10px; } .sidebar h3 { margin-top: 10px; display: inline-block; margin-right: 10px; border: none; } .sidebar ul { display: inline; } .filter-btn { display: inline-flex; width: auto; padding: 5px 10px; } .content-area { padding: 15px; } }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>てがき けいさんカード</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-<header>
-    <h1>シン・学習アプリ＋１０</h1>
-</header>
-
-<div id="error-msg"></div>
-
-<div class="main-container">
-    <aside class="sidebar" id="sidebar"></aside>
-    <main class="content-area">
-        <div class="app-grid" id="appGrid">Loading...</div>
-    </main>
-</div>
-
-<!-- QRコード表示モーダル -->
-<div id="qr-modal" class="qr-modal" onclick="closeQrModal(event)">
-    <div class="qr-modal-content" onclick="event.stopPropagation()">
-        <button class="modal-close-btn" onclick="closeQrModal()">&times;</button>
-        <h3 id="modal-title" class="modal-title"></h3>
-        <div id="modal-qrcode" class="modal-qrcode-container"></div>
-        <p class="modal-url" id="modal-url"></p>
-        <div class="modal-buttons">
-            <button class="modal-btn" id="copy-btn" onclick="copyUrl()">URLをコピー</button>
-            <button class="modal-btn primary" onclick="downloadQr()">QR画像を保存</button>
+  <!-- 縦向きロック画面 -->
+  <div id="portrait-lock" class="portrait-lock" aria-live="polite" aria-hidden="true">
+    <div class="portrait-lock-card">
+      <div class="rotate-ipad-icon" aria-hidden="true">
+        <div class="ipad-shape">
+          <div class="ipad-screen">📱 ➔ 📲</div>
         </div>
+      </div>
+      <h2>iPadを よこむき にしてね！</h2>
+      <p>このアプリは よこむき で つかうよ。<br>くるっと まわして はじめよう！</p>
     </div>
-</div>
+  </div>
 
-<script>
-    let appData = [];
-    let finalSubjectList = [];
+  <!-- アプリ全体コンテナ（100dvh 固定） -->
+  <div id="app-shell" class="app-shell">
+    <!-- ヘッダー -->
+    <header class="top-bar">
+      <div class="brand-group" id="brand-tap-target" title="てがき けいさんカード">
+        <span class="brand-badge">✏️</span>
+        <h1 class="brand-title">てがき けいさんカード</h1>
+        <span class="mode-pill" id="mode-pill">たしざん 10もん</span>
+      </div>
 
-    const IMG_DIR = "./img/"; 
-    const DEFAULT_EXT = ".png"; // 基本はpngとして扱う（失敗したらjpgを試す）
+      <div class="progress-dots" id="progress-dots" aria-label="すすみぐあい"></div>
 
-    const STANDARD_SUBJECTS = [
-        "算数",
-        "数学",
-        "国語",
-        "理科",
-        "社会",
-        "英語",
-        "音楽",
-        "体育",
-        "道徳"
-    ];
+      <div class="top-actions">
+        <button type="button" id="btn-open-map" class="icon-pill-btn btn-map-pill">
+          <span>🗺️</span>
+          <span id="top-map-label">さいきし (0/10)</span>
+        </button>
+        <button type="button" id="btn-sound" class="icon-pill-btn" aria-label="おとのオンオフ">
+          <span id="sound-icon">🔊</span>
+          <span id="sound-label">おと ON</span>
+        </button>
+        <button type="button" id="btn-home" class="icon-pill-btn btn-secondary-pill" hidden>
+          <span>🏠</span>
+          <span>さいしょへ</span>
+        </button>
+      </div>
+    </header>
 
-    // 学年の定義（ここに tokushi があるか確認してください）
-    const GRADE_MAP = {
-        'grades1': '小1', 'grades2': '小2', 'grades3': '小3',
-        'grades4': '小4', 'grades5': '小5', 'grades6': '小6',
-        'gradejh1': '中1', 'gradejh2': '中2', 'gradejh3': '中3',
-        'tokushi': '特別支援' // ← これがサイドバー表示用
-    };
+    <!-- 1. スタート画面 -->
+    <section id="screen-start" class="screen screen-start">
+      <div class="start-layout">
+        <!-- 左：サンプルカード＋カードの下に「たしざん／ひきざん」コース選択 -->
+        <div class="start-left">
+          <div class="demo-card-wrapper">
+            <div class="ring-deck" id="demo-deck">
+              <div class="card-under card-under-2"></div>
+              <div class="card-under card-under-1"></div>
+              <!-- 左中央の1つリング -->
+              <div class="single-ring" id="demo-ring" aria-hidden="true">
+                <svg viewBox="0 0 64 64" class="ring-svg">
+                  <defs>
+                    <linearGradient id="ringMetal1" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#f8fafc"/>
+                      <stop offset="45%" stop-color="#94a3b8"/>
+                      <stop offset="100%" stop-color="#475569"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M 38 14 A 20 20 0 1 0 38 50" fill="none" stroke="url(#ringMetal1)" stroke-width="8" stroke-linecap="round"/>
+                  <path d="M 34 14 A 20 20 0 0 1 52 32 A 20 20 0 0 1 34 50" fill="none" stroke="url(#ringMetal1)" stroke-width="8" stroke-linecap="round"/>
+                  <circle cx="51" cy="32" r="3" fill="#64748b"/>
+                </svg>
+              </div>
+              <button type="button" class="calc-card demo-card" id="demo-card-btn" title="タップしてめくってみよう！">
+                <span class="card-hole"></span>
+                <span class="demo-tag" id="demo-tag">サンプル（タップでめくれるよ！）</span>
+                <span class="card-equation" id="demo-equation">3 ＋ 5 ＝</span>
+                <span class="demo-hint" id="demo-hint">クリッ！と めくれる けいさんカード</span>
+              </button>
+            </div>
+          </div>
 
-    // 並び順の重み付け
-    const GRADE_ORDER = {
-        '小1': 1, '小2': 2, '小3': 3, '小4': 4, '小5': 5, '小6': 6,
-        '中1': 7, '中2': 8, '中3': 9,
-        '特別支援': 10
-    };
+          <!-- カードの下：たしざん・ひきざん ボタン＆くりあがり/くりさがり選択 -->
+          <div class="mode-selector-panel">
+            <div class="op-buttons-row">
+              <button type="button" id="btn-mode-add" class="btn-op-select is-active">
+                <span class="op-icon">➕</span>
+                <span class="op-label">たしざん</span>
+              </button>
+              <button type="button" id="btn-mode-sub" class="btn-op-select">
+                <span class="op-icon">➖</span>
+                <span class="op-label">ひきざん</span>
+              </button>
+            </div>
 
-    async function loadExcelData() {
-        try {
-            const response = await fetch('./list.xlsx?' + new Date().getTime());
-            if (!response.ok) throw new Error(`list.xlsx が見つかりません`);
+            <!-- くりあがり / くりさがり 選択 -->
+            <div class="regroup-row" id="regroup-row">
+              <button type="button" class="btn-sub-pill" data-regroup="none" id="btn-regroup-none">
+                <span class="pill-main" id="label-regroup-none">くりあがり なし</span>
+                <span class="pill-ex" id="ex-regroup-none">れい：3＋4</span>
+              </button>
+              <button type="button" class="btn-sub-pill" data-regroup="only" id="btn-regroup-only">
+                <span class="pill-main" id="label-regroup-only">くりあがり あり</span>
+                <span class="pill-ex" id="ex-regroup-only">れい：8＋7</span>
+              </button>
+              <button type="button" class="btn-sub-pill is-active" data-regroup="mix" id="btn-regroup-mix">
+                <span class="pill-main">まぜまぜ</span>
+                <span class="pill-ex" id="ex-regroup-mix">あり・なし</span>
+              </button>
+            </div>
 
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer);
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(sheet);
-            
-            appData = jsonData.map((row, index) => {
-                let rawPath = row.path ? String(row.path).trim() : "";
-                let folderName = "";
-                let finalPath = "#";
+            <!-- ひきざん・くりさがりなし時のレベル1/2/3選択 -->
+            <div class="sublevel-row" id="sublevel-row" hidden>
+              <button type="button" class="btn-level-pill is-active" data-level="lv1" id="btn-sub-lv1">
+                <span>レベル1：1けた−1けた</span>
+                <span class="pill-ex">れい：8−3</span>
+              </button>
+              <button type="button" class="btn-level-pill" data-level="lv2" id="btn-sub-lv2">
+                <span>レベル2：2けた−1けた</span>
+                <span class="pill-ex">れい：16−4</span>
+              </button>
+              <button type="button" class="btn-level-pill" data-level="lv3" id="btn-sub-lv3">
+                <span>レベル3：まぜまぜ</span>
+                <span class="pill-ex">れい：8−3・16−4</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
-                if (rawPath) {
-                    if (/^https?:\/\//i.test(rawPath)) {
-                        finalPath = rawPath;
-                        try {
-                            const urlObj = new URL(rawPath);
-                            const segments = urlObj.pathname.split('/').filter(Boolean);
-                            if (segments.length > 0) {
-                                let last = segments[segments.length - 1];
-                                if (last.toLowerCase() === 'index.html' || last.toLowerCase() === 'index.htm') {
-                                    folderName = segments.length > 1 ? segments[segments.length - 2] : '';
-                                } else {
-                                    folderName = last.replace(/\.[^/.]+$/, '');
-                                }
-                            }
-                        } catch (e) {
-                            const parts = rawPath.split('/').filter(Boolean);
-                            folderName = parts[parts.length - 1] || "";
-                        }
-                    } else if (rawPath.startsWith('./') && rawPath.endsWith('.html')) {
-                        finalPath = rawPath;
-                        const parts = rawPath.split('/');
-                        folderName = parts[parts.length - 1].replace('.html', '');
-                    } else {
-                        finalPath = `./${rawPath}/index.html`;
-                        folderName = rawPath;
-                    }
-                }
+        <!-- 右：あそびかた＋佐伯市1周すごろく状況＋スタートボタン -->
+        <div class="start-right">
+          <div class="welcome-box">
+            <h2>ゆび や ペン で<br>すうじ を かいて こたえよう！</h2>
+            <ul class="welcome-points">
+              <li>🃏 えらんだ コースから <strong>10もん</strong> でるよ</li>
+              <li>✍️ わく の なかに こたえの すうじを かいてね</li>
+              <li>🔥 れんぞく せいかいで <strong>コンボ＆どうぶつ</strong> が とびだすよ！</li>
+            </ul>
 
-                let finalImage = "";
-                if (row.image) {
-                    // Excelで指定があればそれを使う
-                    finalImage = (row.image.startsWith('./') || /^https?:\/\//i.test(row.image)) 
-                        ? row.image 
-                        : IMG_DIR + row.image;
-                } else {
-                    // 指定がなければ一旦 .png とする（ロード失敗時に onerror で .jpg を試す）
-                    finalImage = IMG_DIR + folderName + DEFAULT_EXT;
-                }
+            <!-- 佐伯市一周すごろく 進捗カード -->
+            <button type="button" id="btn-start-map-preview" class="sugoroku-mini-card">
+              <div class="sugoroku-mini-head">
+                <span>🗺️ <strong>さいきし 1しゅう すごろく</strong></span>
+                <span class="sugoroku-lap-badge" id="start-lap-badge">1しゅうめ</span>
+              </div>
+              <div class="sugoroku-mini-track" id="start-mini-track"></div>
+              <div class="sugoroku-mini-status" id="start-mini-status">
+                10もん クリアで 1マス すすむよ！（タップで マップを ひらく）
+              </div>
+            </button>
 
-                const myGrades = [];
-                for (const [colKey, label] of Object.entries(GRADE_MAP)) {
-                    if (row[colKey]) myGrades.push(label);
-                }
+            <button type="button" id="btn-start" class="btn-primary-big">
+              🚀 チャレンジ はじめる！
+            </button>
+            <p class="start-sub-note">※ ひとけたの こたえは みぎの「いちの くらい」だけに かいてね</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-                return {
-                    id: index,
-                    title: row.title || "No Title",
-                    path: finalPath,
-                    image: finalImage,
-                    desc: row.desc || "",
-                    gradeList: myGrades, 
-                    subject: row.subject ? row.subject.trim() : "その他" 
-                };
-            });
+    <!-- 2. クイズ画面 -->
+    <section id="screen-quiz" class="screen screen-quiz" hidden>
+      <div class="quiz-layout">
+        <!-- 左：リング付き計算カード＋ヒント＋コンボ＋動物応援エリア -->
+        <div class="quiz-left">
+          <div class="question-counter-row">
+            <span class="question-counter" id="question-counter">1 もんめ / 10 もん</span>
+            <span class="streak-badge" id="streak-badge" hidden>🔥 0 れんぞく</span>
+          </div>
 
-            const allSubjectsInData = [...new Set(appData.map(d => d.subject))];
-            
-            const extraSubjects = allSubjectsInData.filter(s => 
-                !STANDARD_SUBJECTS.includes(s) && s !== "その他"
-            ).sort(); 
+          <div class="ring-deck quiz-deck" id="quiz-deck">
+            <div class="card-under card-under-2" id="card-under-2"></div>
+            <div class="card-under card-under-1" id="card-under-1"></div>
 
-            finalSubjectList = [...STANDARD_SUBJECTS, ...extraSubjects, "その他"];
+            <!-- 左中央の1つリング -->
+            <div class="single-ring" id="quiz-ring" aria-hidden="true">
+              <svg viewBox="0 0 64 64" class="ring-svg">
+                <defs>
+                  <linearGradient id="ringMetal2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ffffff"/>
+                    <stop offset="40%" stop-color="#cbd5e1"/>
+                    <stop offset="100%" stop-color="#475569"/>
+                  </linearGradient>
+                </defs>
+                <path d="M 38 14 A 20 20 0 1 0 38 50" fill="none" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+                <path d="M 32 13 A 20 20 0 0 1 52 32 A 20 20 0 0 1 32 51" fill="none" stroke="url(#ringMetal2)" stroke-width="8" stroke-linecap="round"/>
+                <circle cx="51" cy="32" r="2.8" fill="#475569"/>
+              </svg>
+            </div>
 
-            renderSidebar();
-            filterBy('all', null, document.querySelector('.filter-btn')); 
+            <!-- 現在の計算カード -->
+            <div class="calc-card" id="active-card">
+              <span class="card-hole" aria-hidden="true"></span>
+              <div class="card-top-meta">
+                <span class="card-num-tag" id="card-num-tag">No.1</span>
+              </div>
+              <div class="card-equation" id="card-equation">8 ＋ 7 ＝</div>
+              <div class="card-feedback-stamp" id="card-stamp" hidden>
+                <span class="stamp-mark" id="stamp-mark">◯</span>
+                <span class="stamp-text" id="stamp-text">せいかい！</span>
+              </div>
+            </div>
+          </div>
 
-        } catch (error) {
-            console.error(error);
-            const errorDiv = document.getElementById('error-msg');
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML = `<strong>エラー</strong><br>${error.message}`;
-        }
-    }
+          <!-- まちがえたときにカードの下へ出るヒントボタン -->
+          <div class="hint-trigger-row" id="hint-trigger-row" hidden>
+            <button type="button" id="btn-show-hint" class="btn-hint-trigger">
+              <span>💡 ヒントを みる！（●で かんがえよう）</span>
+            </button>
+          </div>
 
-    function renderGrid(data) {
-        const grid = document.getElementById('appGrid');
-        grid.innerHTML = ''; 
-        if(data.length === 0) { grid.innerHTML = '<p style="color:#666;">該当する教材はありません。</p>'; return; }
+          <!-- 10のかたまり（5×2配列）操作ヒントボード（たしざん／ひきざん共用） -->
+          <div class="hint-board" id="hint-board" hidden>
+            <div class="hint-board-header">
+              <span class="hint-board-title" id="hint-board-title">💡 10の まとまりで かんがえよう！</span>
+              <button type="button" id="btn-close-hint" class="btn-hint-close">とじる ✕</button>
+            </div>
+            <p class="hint-instruction" id="hint-instruction"></p>
+            <div class="ten-frames-row" id="ten-frames-row">
+              <div class="ten-frame-wrap" id="ten-wrap-left">
+                <div class="ten-frame" id="ten-frame-left" data-side="left"></div>
+                <div class="ten-frame-count" id="ten-count-left">ひだり：0</div>
+              </div>
+              <div class="ten-frame-plus" id="ten-frame-op" aria-hidden="true">＋</div>
+              <div class="ten-frame-wrap" id="ten-wrap-right">
+                <div class="ten-frame" id="ten-frame-right" data-side="right"></div>
+                <div class="ten-frame-count" id="ten-count-right">みぎ：0</div>
+              </div>
+            </div>
+          </div>
 
-        data.forEach(item => {
-            // ★ここが画像切り替えのミソです
-            const imgTag = `<img src="${item.image}" alt="${item.title}" 
-                            onerror="if(this.src.endsWith('.png')){ this.src = this.src.replace('.png', '.jpg'); } else { this.style.display='none'; this.nextElementSibling.style.display='block'; }">`;
-            
-            const defaultIcon = `<div class="default-icon">📱</div>`;
-            const gradeTags = item.gradeList.map(g => `<span class="tag">${g}</span>`).join('');
-            const subjectTag = `<span class="tag subject">${item.subject}</span>`;
+          <!-- コンボ表示＆応援動物エリア（カードの空きスペース） -->
+          <div class="celebration-zone" id="celebration-zone">
+            <div class="combo-stage" id="combo-stage" aria-live="polite"></div>
+            <div class="animal-parade-box">
+              <div class="animal-parade-label" id="animal-label">おうえんたい：</div>
+              <div class="animal-parade" id="animal-parade"></div>
+            </div>
+          </div>
+        </div>
 
-            grid.innerHTML += `
-                <div class="app-card">
-                    <div class="card-img-area">${imgTag}${defaultIcon}</div>
-                    <div class="card-body">
-                        <div class="card-meta">${subjectTag}${gradeTags}</div>
-                        <h2 class="card-title">${item.title}</h2>
-                        <p class="card-desc">${item.desc}</p>
-                        <div class="card-actions">
-                            <a href="${item.path}" class="card-link">アプリを開く</a>
-                            <button type="button" class="qr-btn" onclick="openQrModal(${item.id})" title="QRコードを表示">
-                                <svg viewBox="0 0 24 24">
-                                    <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v3h-3v-3zm-5 0h3v3h-3v-3zm2 5h3v3h-3v-3zm3 0h3v3h-3v-3zm-5-2h2v2h-2v-2zm7 0h2v2h-2v-2z"/>
-                                </svg>
-                                QR
-                            </button>
-                        </div>
-                    </div>
-                </div>`;
-        });
-    }
+        <!-- 右：手書きパネル（十の位・一の位）＋ こたえる / けす ボタン -->
+        <div class="quiz-right">
+          <div class="helper-banner" id="helper-banner" aria-live="polite">
+            ゆび や ペンで こたえを かいてね！
+          </div>
 
-    function renderSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const gradeCounts = {};
-        for (const label of Object.values(GRADE_MAP)) { gradeCounts[label] = 0; }
-        const subjectCounts = {};
+          <div class="answer-board">
+            <!-- 2つの手書き枠 -->
+            <div class="digit-boxes">
+              <!-- 十の位 -->
+              <div class="digit-slot">
+                <div class="recognize-bubble" id="bubble-tens">ここに かいてね</div>
+                <div class="canvas-frame" id="frame-tens">
+                  <div class="crosshair-guide" aria-hidden="true"></div>
+                  <span class="place-watermark" aria-hidden="true">じゅう</span>
+                  <canvas id="canvas-tens" class="digit-canvas" aria-label="じゅうのくらい"></canvas>
+                </div>
+                <div class="slot-footer">
+                  <span class="place-label">じゅうの くらい</span>
+                  <button type="button" id="btn-clear-tens" class="btn-slot-clear">🧹 けす</button>
+                </div>
+              </div>
 
-        appData.forEach(item => {
-            item.gradeList.forEach(g => { if (gradeCounts[g] !== undefined) gradeCounts[g]++; });
-            subjectCounts[item.subject] = (subjectCounts[item.subject] || 0) + 1;
-        });
+              <!-- 一の位 -->
+              <div class="digit-slot">
+                <div class="recognize-bubble" id="bubble-ones">ここに かいてね</div>
+                <div class="canvas-frame" id="frame-ones">
+                  <div class="crosshair-guide" aria-hidden="true"></div>
+                  <span class="place-watermark" aria-hidden="true">いち</span>
+                  <canvas id="canvas-ones" class="digit-canvas" aria-label="いちのくらい"></canvas>
+                </div>
+                <div class="slot-footer">
+                  <span class="place-label">いちの くらい</span>
+                  <button type="button" id="btn-clear-ones" class="btn-slot-clear">🧹 けす</button>
+                </div>
+              </div>
+            </div>
 
-        // 「すべて表示」と「What's NEW」ボタンを作成
-        let html = `<ul>
-            <li><button class="filter-btn active" onclick="filterBy('all', null, this)">すべて表示 <span class="count">${appData.length}</span></button></li>
-            <li><button class="filter-btn new-btn" onclick="filterBy('new', null, this)">✨ What's NEW <span class="count">10</span></button></li>
-        </ul>`;
-        
-        html += `<h3>学年</h3><ul>`;
-        // 定義順（小1...特別支援）に表示
-        Object.values(GRADE_MAP).forEach(label => {
-            html += `<li><button class="filter-btn" onclick="filterBy('grade', '${label}', this)">${label} <span class="count">${gradeCounts[label]}</span></button></li>`;
-        });
-        html += `</ul>`;
+            <!-- 右側の「こたえる」「けす」ボタン -->
+            <div class="action-buttons-col">
+              <button type="button" id="btn-submit" class="btn-answer-submit">
+                <span class="btn-big-icon">⭕</span>
+                <span class="btn-big-text">こたえる！</span>
+              </button>
+              <button type="button" id="btn-clear-all" class="btn-answer-clear">
+                <span class="btn-small-icon">🧽</span>
+                <span class="btn-small-text">ぜんぶ けす</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        html += `<h3>教科</h3><ul>`;
-        finalSubjectList.forEach(s => {
-            if (subjectCounts[s]) {
-                html += `<li><button class="filter-btn" onclick="filterBy('subject', '${s}', this)">${s} <span class="count">${subjectCounts[s]}</span></button></li>`;
-            }
-        });
-        html += `</ul>`;
+    <!-- 3. 結果発表画面 -->
+    <section id="screen-result" class="screen screen-result" hidden>
+      <div id="confetti-layer" class="confetti-layer" aria-hidden="true"></div>
+      <div class="result-container" id="result-container">
+        <div class="perfect-frame-top" id="perfect-frame-top" hidden>
+          🌸 🐶 🌺 🐱 🌻 🐰 🌷 🐻 💐 🐼 🌼 🦁 🌸
+        </div>
 
-        sidebar.innerHTML = html;
-    }
+        <div class="result-grid">
+          <!-- 左：スコア＆すごろく到着＆にがてアドバイス -->
+          <div class="result-summary-card">
+            <div class="result-badge" id="result-badge">🌟</div>
+            <div class="result-score-line">
+              <span class="result-score-num" id="result-score-num">10</span>
+              <span class="result-score-denom" id="result-score-denom">/ 10 もん（1かいめ せいかい）</span>
+            </div>
+            <h2 class="result-headline" id="result-headline">ぜんもん せいかい！</h2>
 
-    function getMinGradeValue(app) {
-        if (!app.gradeList || app.gradeList.length === 0) return 99;
-        const values = app.gradeList.map(g => GRADE_ORDER[g] || 99);
-        return Math.min(...values);
-    }
+            <div class="result-stats-pills">
+              <div class="stat-pill">🔥 さいだい <strong id="stat-max-combo">0</strong> コンボ</div>
+              <div class="stat-pill">⏱️ へいきん <strong id="stat-avg-sec">0.0</strong> びょう</div>
+            </div>
 
-    function getSubjectWeight(subject) {
-        const index = finalSubjectList.indexOf(subject);
-        return index === -1 ? 999 : index;
-    }
+            <!-- すごろく到着お知らせ -->
+            <button type="button" id="btn-result-map" class="result-sugoroku-banner" hidden>
+              <span id="result-sugoroku-text">🗺️ 「かみうら」に とうちゃく！ マップを みる</span>
+            </button>
 
-    window.filterBy = function(type, value, btnElement) {
-        if (btnElement) {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btnElement.classList.add('active');
-        }
+            <div class="weakness-box">
+              <div class="weakness-title">📊 けいさん アドバイス</div>
+              <p class="weakness-text" id="result-advice"></p>
+              <div class="carry-breakdown" id="carry-breakdown"></div>
+            </div>
 
-        let filtered = [];
-        if (type === 'all') {
-            filtered = [...appData]; 
-        } else if (type === 'new') {
-            // 末尾10件を取得し、逆順にする（最新を先頭へ）
-            filtered = [...appData].slice(-10).reverse();
-        } else if (type === 'grade') {
-            filtered = appData.filter(item => item.gradeList.includes(value));
-        } else { 
-            filtered = appData.filter(item => item[type] === value);
-        }
+            <div class="result-actions">
+              <button type="button" id="btn-retry-all" class="btn-primary-big btn-result-action">
+                <span>🔁 もういちど 10もん！</span>
+              </button>
+              <button type="button" id="btn-retry-wrong" class="btn-retry-wrong" hidden>
+                <span>💪 まちがえた もんだいだけ！</span>
+              </button>
+            </div>
+          </div>
 
-        // ソート処理
-        // What's NEWの場合はソートせず、新着順（逆順）のまま表示
-        if (type === 'new') {
-            // Do nothing (keep reverse order)
-        } else if (type === 'subject' || type === 'all') {
-            filtered.sort((a, b) => {
-                const gradeDiff = getMinGradeValue(a) - getMinGradeValue(b);
-                if (gradeDiff !== 0) return gradeDiff;
-                return getSubjectWeight(a.subject) - getSubjectWeight(b.subject);
-            });
-        } else if (type === 'grade') {
-            filtered.sort((a, b) => {
-                return getSubjectWeight(a.subject) - getSubjectWeight(b.subject);
-            });
-        }
+          <!-- 右：10問の結果一覧 -->
+          <div class="result-list-card">
+            <h3>📝 10もんの けっか いちらん</h3>
+            <div class="result-table-wrap">
+              <table class="result-table">
+                <thead>
+                  <tr>
+                    <th>ばん</th>
+                    <th>もんだい</th>
+                    <th>さいしょのこたえ</th>
+                    <th>せいかい</th>
+                    <th>けっか</th>
+                  </tr>
+                </thead>
+                <tbody id="result-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
-        renderGrid(filtered);
-    };
+        <div class="perfect-frame-bottom" id="perfect-frame-bottom" hidden>
+          🌷 🦊 🌸 🐨 🌻 🐯 🌺 🦄 💐 🐶 🌼 🐱 🌷
+        </div>
+      </div>
+    </section>
+  </div>
 
-    // --- QRコードモーダル制御 ---
-    let currentQrUrl = "";
-    let currentQrTitle = "";
+  <!-- 佐伯市一周すごろく マップモーダル -->
+  <div id="modal-map" class="modal-backdrop" hidden>
+    <div class="modal-card modal-map-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">🗺️ さいきし ぐるっと 1しゅう すごろく</h2>
+          <p class="modal-sub" id="map-modal-sub">10もん クリアするごとに 1マス すすむよ！（全問1かいめ正解で 👑 がつくよ）</p>
+        </div>
+        <button type="button" id="btn-close-map" class="btn-modal-close">とじる ✕</button>
+      </div>
 
-    function openQrModal(id) {
-        const item = appData.find(d => d.id === id);
-        if (!item) return;
+      <div class="sugoroku-board" id="sugoroku-board"></div>
 
-        // 相対パスの場合は完全な絶対URLに解決する
-        const fullUrl = new URL(item.path, window.location.href).href;
-        currentQrUrl = fullUrl;
-        currentQrTitle = item.title;
+      <div class="map-modal-footer">
+        <span class="map-stats-pill" id="map-stats-pill">クリア回数：0かい ／ 1しゅうめ</span>
+        <span class="map-future-note">🌱 2ねんせい（かけざん：おおいたけん1しゅう）も 今後とうじょう予定！</span>
+      </div>
+    </div>
+  </div>
 
-        document.getElementById('modal-title').textContent = item.title;
-        document.getElementById('modal-url').textContent = fullUrl;
+  <!-- 隠し5回タップ：データ引き継ぎ・管理モーダル -->
+  <div id="modal-transfer" class="modal-backdrop" hidden>
+    <div class="modal-card modal-transfer-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">💾 データ ひきつぎ・かんり</h2>
+          <p class="modal-sub">別のiPadへうつすときや、きろくをバックアップするときに使います。</p>
+        </div>
+        <button type="button" id="btn-close-transfer" class="btn-modal-close">とじる ✕</button>
+      </div>
 
-        const qrContainer = document.getElementById('modal-qrcode');
-        qrContainer.innerHTML = '';
+      <div class="transfer-summary" id="transfer-summary"></div>
 
-        if (typeof QRCode !== 'undefined') {
-            // 拡大時や印刷時にもシャープになるよう高解像度(512x512)で生成
-            new QRCode(qrContainer, {
-                text: fullUrl,
-                width: 512,
-                height: 512,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M
-            });
-        } else {
-            qrContainer.innerHTML = '<p style="color:#d9534f;font-size:0.85rem;">QRコードライブラリの読み込みに失敗しました</p>';
-        }
+      <div class="transfer-actions">
+        <button type="button" id="btn-export-json" class="btn-transfer btn-export">
+          <span>📥 JSONファイルで ほぞん（ダウンロード）</span>
+        </button>
 
-        document.getElementById('qr-modal').classList.add('active');
-    }
+        <label class="btn-transfer btn-import" for="import-json-input">
+          <span>📤 JSONファイルを よみこむ</span>
+          <input type="file" id="import-json-input" accept=".json,application/json" hidden>
+        </label>
 
-    function closeQrModal(e) {
-        if (e && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) return;
-        document.getElementById('qr-modal').classList.remove('active');
-    }
+        <button type="button" id="btn-reset-data" class="btn-transfer btn-reset">
+          <span id="reset-btn-label">🗑️ データを さいしょからにする（リセット）</span>
+        </button>
+      </div>
 
-    function copyUrl() {
-        if (!currentQrUrl) return;
-        const btn = document.getElementById('copy-btn');
-        const origText = btn.textContent;
+      <p class="transfer-status" id="transfer-status" aria-live="polite"></p>
+    </div>
+  </div>
 
-        const updateBtn = () => {
-            btn.textContent = 'コピー完了！';
-            setTimeout(() => { btn.textContent = origText; }, 1500);
-        };
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(currentQrUrl).then(updateBtn).catch(() => fallbackCopy(currentQrUrl, updateBtn));
-        } else {
-            fallbackCopy(currentQrUrl, updateBtn);
-        }
-    }
-
-    function fallbackCopy(text, callback) {
-        const tempInput = document.createElement('textarea');
-        tempInput.value = text;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-        if (callback) callback();
-    }
-
-    function downloadQr() {
-        const qrContainer = document.getElementById('modal-qrcode');
-        const img = qrContainer.querySelector('img');
-        const canvas = qrContainer.querySelector('canvas');
-        let dataUrl = "";
-
-        if (img && img.src && img.src.startsWith('data:image/')) {
-            dataUrl = img.src;
-        } else if (canvas) {
-            dataUrl = canvas.toDataURL('image/png');
-        }
-
-        if (dataUrl) {
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = `QR_${currentQrTitle || 'app'}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } else {
-            alert('QRコード画像の保存に失敗しました。');
-        }
-    }
-
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const modal = document.getElementById('qr-modal');
-            if (modal && modal.classList.contains('active')) {
-                modal.classList.remove('active');
-            }
-        }
-    });
-
-    loadExcelData();
-</script>
-
+  <!-- すべてのスクリプトは dist 内で完結 -->
+  <script src="js/mnist-weights.js"></script>
+  <script src="js/mnist.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/mathCards.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/handwriting.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
