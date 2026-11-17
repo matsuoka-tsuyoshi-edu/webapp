@@ -192,41 +192,84 @@
   }
 
   function bindReliableTap(btn, handler) {
-    let activeId = null;
-    let lastHandledAt = 0;
+    if (!btn) return;
+    let activePointerId = null;
+    let activeTouch = false;
+    let lastGestureAt = 0;
+
+    function isInsideButton(clientX, clientY) {
+      const rect = btn.getBoundingClientRect();
+      if (!rect.width && !rect.height) return false;
+      const pad = 16;
+      return (
+        clientX >= rect.left - pad &&
+        clientX <= rect.right + pad &&
+        clientY >= rect.top - pad &&
+        clientY <= rect.bottom + pad
+      );
+    }
 
     btn.addEventListener("pointerdown", function (e) {
       if (btn.disabled) return;
-      activeId = e.pointerId;
+      activePointerId = e.pointerId;
     });
 
     document.addEventListener("pointerup", function (e) {
-      if (activeId === null || e.pointerId !== activeId) return;
-      activeId = null;
+      if (activePointerId === null || e.pointerId !== activePointerId) return;
+      activePointerId = null;
+      activeTouch = false;
       if (btn.disabled) return;
 
-      const rect = btn.getBoundingClientRect();
-      const pad = 14;
-      const inside =
-        e.clientX >= rect.left - pad &&
-        e.clientX <= rect.right + pad &&
-        e.clientY >= rect.top - pad &&
-        e.clientY <= rect.bottom + pad;
-
-      if (inside) {
-        lastHandledAt = Date.now();
+      if (isInsideButton(e.clientX, e.clientY)) {
+        lastGestureAt = Date.now();
         handler(e);
       }
     });
 
     document.addEventListener("pointercancel", function (e) {
-      if (e.pointerId === activeId) {
-        activeId = null;
+      if (e.pointerId === activePointerId) {
+        activePointerId = null;
       }
     });
 
+    btn.addEventListener(
+      "touchstart",
+      function (e) {
+        if (btn.disabled) return;
+        if (e.touches && e.touches.length === 1) {
+          activeTouch = true;
+        }
+      },
+      { passive: true }
+    );
+
+    btn.addEventListener(
+      "touchend",
+      function (e) {
+        if (!activeTouch) return;
+        activeTouch = false;
+        activePointerId = null;
+        if (btn.disabled) return;
+
+        const t = e.changedTouches && e.changedTouches[0];
+        if (!t || isInsideButton(t.clientX, t.clientY)) {
+          lastGestureAt = Date.now();
+          handler(e);
+        }
+      },
+      { passive: true }
+    );
+
+    btn.addEventListener(
+      "touchcancel",
+      function () {
+        activeTouch = false;
+      },
+      { passive: true }
+    );
+
     btn.addEventListener("click", function (e) {
-      if (Date.now() - lastHandledAt < 450) return;
+      if (Date.now() - lastGestureAt < 400) return;
       if (btn.disabled) return;
       handler(e);
     });
@@ -1400,7 +1443,9 @@
     bindReliableTap(els.brandTapTarget, handleBrandTap);
     bindReliableTap(els.btnCloseTransfer, closeTransferModal);
     bindReliableTap(els.btnExportJson, handleExportJson);
-    els.importJsonInput.addEventListener("change", handleImportFileChange);
+    if (els.importJsonInput) {
+      els.importJsonInput.addEventListener("change", handleImportFileChange);
+    }
     bindReliableTap(els.btnResetData, handleResetTap);
 
     // クイズ画面ボタン
