@@ -1,31 +1,40 @@
 /**
  * Progress Persistence (localStorage) & Saiki City Sugoroku Map Data
- * Supports JSON export/import for device/student data transfer.
+ * Path: スタート -> ①かみうら -> ②やよい -> ③さいき -> ④ほんじょう -> ⑤うめ
+ *       -> ⑥なおかわ -> ⑦つるみ -> ⑧よのうづ -> ⑨かまえ -> ゴール！
  */
 (function (global) {
   "use strict";
 
   const STORAGE_KEY = "ktatsujin_progress_v1";
 
+  const START_TILE = {
+    id: -1,
+    label: "スタート",
+    name: "スタート",
+    icon: "🚩",
+    desc: "しゅっぱつ！",
+  };
+
   const SAIKI_STATIONS = [
-    { id: 0, name: "かみうら", icon: "🌊", desc: "うみが きれいな まち" },
-    { id: 1, name: "やよい", icon: "🌾", desc: "たんぼと かわの まち" },
-    { id: 2, name: "さいき", icon: "🏯", desc: "おしろと みなとの まち" },
-    { id: 3, name: "ほんじょう", icon: "🌿", desc: "ほたると みずの まち" },
-    { id: 4, name: "うめ", icon: "⛰️", desc: "やまとしぜんが いっぱい" },
-    { id: 5, name: "なおかわ", icon: "🪲", desc: "カブトムシの もり" },
-    { id: 6, name: "つるみ", icon: "🐟", desc: "おさかなが おいしい！" },
-    { id: 7, name: "よのうづ", icon: "🐚", desc: "うみかぜが きもちいい" },
-    { id: 8, name: "かまえ", icon: "🐠", desc: "きらきら みなみの うみ" },
-    { id: 9, name: "ゴール！", icon: "🏆", desc: "さいきし 1しゅう たっせい！" },
+    { id: 0, label: "① かみうら", name: "かみうら", icon: "🌊", desc: "うみが きれいな まち" },
+    { id: 1, label: "② やよい", name: "やよい", icon: "🌾", desc: "たんぼと かわの まち" },
+    { id: 2, label: "③ さいき", name: "さいき", icon: "🏯", desc: "おしろと みなとの まち" },
+    { id: 3, label: "④ ほんじょう", name: "ほんじょう", icon: "🌿", desc: "ほたると みずの まち" },
+    { id: 4, label: "⑤ うめ", name: "うめ", icon: "⛰️", desc: "やまとしぜんが いっぱい" },
+    { id: 5, label: "⑥ なおかわ", name: "なおかわ", icon: "🪲", desc: "カブトムシの もり" },
+    { id: 6, label: "⑦ つるみ", name: "つるみ", icon: "🐟", desc: "おさかなが おいしい！" },
+    { id: 7, label: "⑧ よのうづ", name: "よのうづ", icon: "🐚", desc: "うみかぜが きもちいい" },
+    { id: 8, label: "⑨ かまえ", name: "かまえ", icon: "🐠", desc: "きらきら みなみの うみ" },
+    { id: 9, label: "ゴール！", name: "ゴール！", icon: "🏆", desc: "さいきし 1しゅう たっせい！" },
   ];
 
   function createDefaultData() {
     return {
       version: 1,
-      step: 0,          // 0..10 (number of stations cleared in current lap)
-      laps: 0,          // completed full tours
-      crowns: new Array(10).fill(false), // 10/10 first-try crown per station in current lap
+      step: 0,          // 0 = スタート, 1..10 = ①かみうら..ゴール！
+      laps: 0,
+      crowns: new Array(10).fill(false),
       totalClears: 0,
       totalPerfects: 0,
       updatedAt: new Date().toISOString(),
@@ -76,24 +85,19 @@
     return clean;
   }
 
-  /**
-   * Advance 1 station after finishing a full 10-question session.
-   * Returns { data, arrivedStation, completedLap }.
-   */
   function recordSessionClear(isPerfect) {
     const data = load();
     let completedLap = false;
 
-    // If previous lap was already at Goal (10), start next lap cleanly on new clear
     if (data.step >= 10) {
       data.laps += 1;
       data.step = 0;
       data.crowns = new Array(10).fill(false);
     }
 
-    const stationIdx = data.step;
+    const stationIdx = data.step; // 0..9
     data.crowns[stationIdx] = Boolean(isPerfect);
-    data.step = stationIdx + 1;
+    data.step = stationIdx + 1;   // 1..10
     data.totalClears += 1;
     if (isPerfect) data.totalPerfects += 1;
 
@@ -104,14 +108,14 @@
     const saved = save(data);
     return {
       data: saved,
+      arrivedIndex: stationIdx,
       arrivedStation: SAIKI_STATIONS[stationIdx],
       completedLap: completedLap,
     };
   }
 
   function resetAll() {
-    const def = createDefaultData();
-    return save(def);
+    return save(createDefaultData());
   }
 
   function exportJsonText() {
@@ -127,6 +131,7 @@
   }
 
   global.ProgressStore = {
+    START_TILE: START_TILE,
     STATIONS: SAIKI_STATIONS,
     load: load,
     save: save,

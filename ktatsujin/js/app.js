@@ -13,6 +13,9 @@
     selectedRegroup: "mix",    // 'none' | 'only' | 'mix'
     selectedSubLevel: "lv1",   // 'lv1' | 'lv2' | 'lv3'
     isRetryOnlySession: false,
+    currentScreen: "start",
+    mapReturnScreen: "start",
+    justArrivedOnResult: false,
 
     deck: [],
     currentIndex: 0,
@@ -58,6 +61,7 @@
     els.screenStart = document.getElementById("screen-start");
     els.screenQuiz = document.getElementById("screen-quiz");
     els.screenResult = document.getElementById("screen-result");
+    els.screenMap = document.getElementById("screen-map");
 
     els.demoCardBtn = document.getElementById("demo-card-btn");
     els.demoRing = document.getElementById("demo-ring");
@@ -139,8 +143,8 @@
     els.btnRetryAll = document.getElementById("btn-retry-all");
     els.btnRetryWrong = document.getElementById("btn-retry-wrong");
 
-    els.modalMap = document.getElementById("modal-map");
-    els.btnCloseMap = document.getElementById("btn-close-map");
+    els.btnMapBack = document.getElementById("btn-map-back");
+    els.btnMapPlay = document.getElementById("btn-map-play");
     els.sugorokuBoard = document.getElementById("sugoroku-board");
     els.mapStatsPill = document.getElementById("map-stats-pill");
 
@@ -290,17 +294,31 @@
   }
 
   /* ========================================================================
-     佐伯市一周すごろくUI更新＆モーダル
+     佐伯市一周すごろくUI更新＆専用画面（スタート + ①〜⑨ + ゴール！）
      ======================================================================== */
+  // 6列×2段のスネーク配置座標と進行矢印
+  const BOARD_LAYOUT = [
+    { col: "1", row: "1", arrowDir: "right", arrowText: "➔" },         // 0: スタート
+    { col: "2", row: "1", arrowDir: "right", arrowText: "➔" },         // 1: ①かみうら
+    { col: "3", row: "1", arrowDir: "right", arrowText: "➔" },         // 2: ②やよい
+    { col: "4", row: "1", arrowDir: "right", arrowText: "➔" },         // 3: ③さいき
+    { col: "5", row: "1", arrowDir: "right", arrowText: "➔" },         // 4: ④ほんじょう
+    { col: "6", row: "1", arrowDir: "down", arrowText: "⬇" },          // 5: ⑤うめ
+    { col: "6", row: "2", arrowDir: "left", arrowText: "⬅" },          // 6: ⑥なおかわ
+    { col: "5", row: "2", arrowDir: "left", arrowText: "⬅" },          // 7: ⑦つるみ
+    { col: "4", row: "2", arrowDir: "left", arrowText: "⬅" },          // 8: ⑧よのうづ
+    { col: "3", row: "2", arrowDir: "left", arrowText: "⬅" },          // 9: ⑨かまえ
+    { col: "1 / span 2", row: "2", arrowDir: null, arrowText: "" },     // 10: ゴール！
+  ];
+
   function refreshProgressUI() {
     const data = global.ProgressStore.load();
     const stations = global.ProgressStore.STATIONS;
     const lapNum = data.laps + 1;
 
-    els.topMapLabel.textContent = "さいきし (" + data.step + "/10)";
+    els.topMapLabel.textContent = "すごろく (" + data.step + "/10)";
     els.startLapBadge.textContent = lapNum + "しゅうめ";
 
-    // ミニトラック更新
     els.startMiniTrack.innerHTML = "";
     for (let i = 0; i < 10; i++) {
       const bar = document.createElement("span");
@@ -310,79 +328,126 @@
       els.startMiniTrack.appendChild(bar);
     }
 
-    if (data.step >= 10) {
+    if (data.step === 0) {
+      els.startMiniStatus.textContent =
+        "🚩 いまは「スタート」！ つぎは「① かみうら」をめざそう！";
+    } else if (data.step >= 10) {
       els.startMiniStatus.textContent =
         "🏆 さいきし 1しゅう ゴール！ つぎのチャレンジで " + (lapNum + 1) + "しゅうめへ！";
     } else {
       const nextStation = stations[data.step];
       els.startMiniStatus.textContent =
-        "つぎは「" + nextStation.name + "」" + nextStation.icon + "（あと " + (10 - data.step) + "かい でゴール！）";
+        "いま「" + stations[data.step - 1].name + "」！ つぎは「" + nextStation.label + "」" + nextStation.icon;
     }
   }
 
-  function renderSugorokuModal() {
+  function renderSugorokuScreen(justArrived) {
     const data = global.ProgressStore.load();
+    const startTile = global.ProgressStore.START_TILE;
     const stations = global.ProgressStore.STATIONS;
     const lapNum = data.laps + 1;
 
+    // スタート(index 0) + ①かみうら〜ゴール！(index 1..10) の全11マス
+    const allTiles = [startTile].concat(stations);
+
     els.sugorokuBoard.innerHTML = "";
-    stations.forEach(function (st, idx) {
+    allTiles.forEach(function (item, idx) {
+      const layout = BOARD_LAYOUT[idx];
+      const isStart = idx === 0;
+      const isGoal = idx === 10;
+      const isCleared = idx >= 1 && idx <= data.step;
+      const hasCrown = idx >= 1 && Boolean(data.crowns[idx - 1]);
+      const isHere = idx === data.step;
+
       const tile = document.createElement("div");
-      const isCleared = idx < data.step;
-      const isCurrentTarget = idx === data.step;
-      const isGoal = idx === 9;
-
       tile.className = "sugoroku-tile";
+      if (isStart) tile.classList.add("is-start");
       if (isCleared) tile.classList.add("is-cleared");
-      if (isCurrentTarget) tile.classList.add("is-current-target");
       if (isGoal) tile.classList.add("is-goal");
-
-      const num = document.createElement("span");
-      num.className = "tile-num";
-      num.textContent = String(idx + 1);
-      tile.appendChild(num);
-
-      if (data.crowns[idx]) {
-        const crown = document.createElement("span");
-        crown.className = "tile-crown";
-        crown.textContent = "👑";
-        tile.appendChild(crown);
-      } else if (isCurrentTarget) {
-        const flag = document.createElement("span");
-        flag.className = "tile-crown";
-        flag.textContent = "🚩";
-        tile.appendChild(flag);
+      if (isHere) {
+        tile.classList.add("is-here");
+        if (justArrived) tile.classList.add("is-just-arrived");
       }
+
+      tile.style.gridColumn = layout.col;
+      tile.style.gridRow = layout.row;
+
+      // マス上部の地名バー
+      const header = document.createElement("div");
+      header.className = "tile-header";
+      header.textContent = item.label;
+      tile.appendChild(header);
+
+      // マスの中身（アイコン・説明・🌸・👑）
+      const body = document.createElement("div");
+      body.className = "tile-body";
 
       const icon = document.createElement("span");
       icon.className = "tile-icon";
-      icon.textContent = st.icon;
-      tile.appendChild(icon);
-
-      const name = document.createElement("span");
-      name.className = "tile-name";
-      name.textContent = st.name;
-      tile.appendChild(name);
+      icon.textContent = item.icon;
+      body.appendChild(icon);
 
       const desc = document.createElement("span");
       desc.className = "tile-desc";
-      desc.textContent = isCleared ? "クリア！" : st.desc;
-      tile.appendChild(desc);
+      desc.textContent = item.desc;
+      body.appendChild(desc);
+
+      const stamps = document.createElement("div");
+      stamps.className = "tile-stamps";
+      if (isCleared) {
+        const sakura = document.createElement("span");
+        sakura.className = "stamp-sakura";
+        sakura.textContent = "🌸";
+        sakura.title = "つうか！";
+        stamps.appendChild(sakura);
+      }
+      if (hasCrown) {
+        const crown = document.createElement("span");
+        crown.className = "stamp-crown";
+        crown.textContent = "👑";
+        crown.title = "1かいめで ぜんもんせいかい！";
+        stamps.appendChild(crown);
+      }
+      body.appendChild(stamps);
+      tile.appendChild(body);
+
+      // 現在地バッジ
+      if (isHere) {
+        const here = document.createElement("span");
+        here.className = "tile-here-badge";
+        here.textContent = "🐰 いまここ！";
+        tile.appendChild(here);
+      }
+
+      // 次のマスへの矢印
+      if (layout.arrowDir) {
+        const arrow = document.createElement("span");
+        arrow.className = "tile-connector dir-" + layout.arrowDir;
+        arrow.textContent = layout.arrowText;
+        arrow.setAttribute("aria-hidden", "true");
+        tile.appendChild(arrow);
+      }
 
       els.sugorokuBoard.appendChild(tile);
     });
 
     els.mapStatsPill.textContent =
-      "クリア回数：" + data.totalClears + "かい ／ いま " + lapNum + "しゅうめ（👑 " + data.totalPerfects + "こ）";
+      "クリア回数：" + data.totalClears + "かい ／ いま " + lapNum + "しゅうめ（🌸 " + data.step + "/10・👑 " + data.totalPerfects + "こ）";
   }
 
-  function openMapModal() {
-    renderSugorokuModal();
-    els.modalMap.hidden = false;
+  function openMapScreen(justArrived) {
+    if (state.currentScreen === "start" || state.currentScreen === "result") {
+      state.mapReturnScreen = state.currentScreen;
+    }
+    renderSugorokuScreen(Boolean(justArrived));
+    showScreen("map");
+    renderProgressDots();
   }
 
-  function closeMapModal() {
-    els.modalMap.hidden = true;
+  function closeMapScreen() {
+    const target = state.mapReturnScreen === "result" ? "result" : "start";
+    showScreen(target);
+    renderProgressDots();
   }
 
   /* ========================================================================
@@ -462,6 +527,7 @@
       try {
         global.ProgressStore.importJsonText(String(reader.result));
         refreshProgressUI();
+        if (state.currentScreen === "map") renderSugorokuScreen(false);
         openTransferModal();
         els.transferStatus.textContent = "✅ データを よみこんで ひきつぎました！";
       } catch (err) {
@@ -482,6 +548,7 @@
     disarmReset();
     global.ProgressStore.resetAll();
     refreshProgressUI();
+    if (state.currentScreen === "map") renderSugorokuScreen(false);
     openTransferModal();
     els.transferStatus.textContent = "🗑️ データを さいしょから に もどしました。";
   }
@@ -490,10 +557,13 @@
      画面切り替え & 進捗ドット
      ======================================================================== */
   function showScreen(name) {
+    state.currentScreen = name;
     els.screenStart.hidden = name !== "start";
     els.screenQuiz.hidden = name !== "quiz";
     els.screenResult.hidden = name !== "result";
+    els.screenMap.hidden = name !== "map";
     els.btnHome.hidden = name === "start";
+    els.btnOpenMap.hidden = name === "quiz" || name === "map";
     if (name !== "result") {
       els.confettiLayer.innerHTML = "";
     }
@@ -1167,17 +1237,19 @@
     els.resultAdvice.textContent = analysis.advice;
 
     if (sugorokuOutcome) {
+      state.justArrivedOnResult = true;
       els.btnResultMap.hidden = false;
       const st = sugorokuOutcome.arrivedStation;
       if (sugorokuOutcome.completedLap) {
         els.resultSugorokuText.textContent =
-          "🏆 さいきし 1しゅう ゴール！！ おめでとう！（タップで マップを みる）";
+          "🏆 さいきし 1しゅう ゴール！！ おめでとう！（すごろくを みる）";
       } else {
         els.resultSugorokuText.textContent =
-          "🗺️ " + st.icon + "「" + st.name + "」に とうちゃく！" +
-          (isPerfectTen ? " 👑ゲット！" : "") + "（マップを みる）";
+          "🗺️ " + st.icon + "「" + st.name + "」に とうちゃく！🌸" +
+          (isPerfectTen ? "＋👑" : "") + "（すごろくを みる）";
       }
     } else {
+      state.justArrivedOnResult = false;
       els.btnResultMap.hidden = true;
     }
 
@@ -1309,11 +1381,20 @@
       startSession();
     });
 
-    // マップモーダル
-    bindReliableTap(els.btnOpenMap, openMapModal);
-    bindReliableTap(els.btnStartMapPreview, openMapModal);
-    bindReliableTap(els.btnResultMap, openMapModal);
-    bindReliableTap(els.btnCloseMap, closeMapModal);
+    // すごろく専用画面のナビゲーション
+    bindReliableTap(els.btnOpenMap, function () {
+      openMapScreen(state.currentScreen === "result" && state.justArrivedOnResult);
+    });
+    bindReliableTap(els.btnStartMapPreview, function () {
+      openMapScreen(false);
+    });
+    bindReliableTap(els.btnResultMap, function () {
+      openMapScreen(state.justArrivedOnResult);
+    });
+    bindReliableTap(els.btnMapBack, closeMapScreen);
+    bindReliableTap(els.btnMapPlay, function () {
+      startSession();
+    });
 
     // 隠し5回タップ：データ引き継ぎモーダル
     bindReliableTap(els.brandTapTarget, handleBrandTap);

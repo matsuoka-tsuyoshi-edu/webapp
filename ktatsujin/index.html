@@ -321,7 +321,7 @@
 
             <!-- すごろく到着お知らせ -->
             <button type="button" id="btn-result-map" class="result-sugoroku-banner" hidden>
-              <span id="result-sugoroku-text">🗺️ 「かみうら」に とうちゃく！ マップを みる</span>
+              <span id="result-sugoroku-text">🗺️ 「かみうら」に とうちゃく！ すごろくを みる</span>
             </button>
 
             <div class="weakness-box">
@@ -365,26 +365,40 @@
         </div>
       </div>
     </section>
-  </div>
 
-  <!-- 佐伯市一周すごろく マップモーダル -->
-  <div id="modal-map" class="modal-backdrop" hidden>
-    <div class="modal-card modal-map-card">
-      <div class="modal-header">
-        <div>
-          <h2 class="modal-title">🗺️ さいきし ぐるっと 1しゅう すごろく</h2>
-          <p class="modal-sub" id="map-modal-sub">10もん クリアするごとに 1マス すすむよ！（全問1かいめ正解で 👑 がつくよ）</p>
+    <!-- 4. 佐伯市一周すごろく 専用画面 -->
+    <section id="screen-map" class="screen screen-map" hidden>
+      <div class="map-screen-shell">
+        <div class="map-screen-header">
+          <div class="map-title-group">
+            <h2 class="map-screen-title">🗺️ さいきし ぐるっと 1しゅう すごろく</h2>
+            <div class="map-legend">
+              <span class="legend-chip">🌸 つうか</span>
+              <span class="legend-chip">👑 1かいめ ぜんもんせいかい</span>
+              <span class="legend-chip">🐰 いまここ</span>
+            </div>
+          </div>
+          <div class="map-header-actions">
+            <button type="button" id="btn-map-back" class="btn-map-back">
+              <span>⬅️ もどる</span>
+            </button>
+            <button type="button" id="btn-map-play" class="btn-map-play">
+              <span>🚀 つぎの 10もんへ！</span>
+            </button>
+          </div>
         </div>
-        <button type="button" id="btn-close-map" class="btn-modal-close">とじる ✕</button>
-      </div>
 
-      <div class="sugoroku-board" id="sugoroku-board"></div>
+        <!-- 6列×2段のぐるっとすごろくボード（スタート + ①〜⑨ + ゴール！） -->
+        <div class="sugoroku-board-wrap">
+          <div class="sugoroku-board" id="sugoroku-board"></div>
+        </div>
 
-      <div class="map-modal-footer">
-        <span class="map-stats-pill" id="map-stats-pill">クリア回数：0かい ／ 1しゅうめ</span>
-        <span class="map-future-note">🌱 2ねんせい（かけざん：おおいたけん1しゅう）も 今後とうじょう予定！</span>
+        <div class="map-screen-footer">
+          <span class="map-stats-pill" id="map-stats-pill">クリア回数：0かい ／ 1しゅうめ</span>
+          <span class="map-future-note">🌱 2ねんせい（かけざん：おおいたけん1しゅう）も 今後とうじょう予定！</span>
+        </div>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- 隠し5回タップ：データ引き継ぎ・管理モーダル -->
