@@ -1,0 +1,4657 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+<title>すいぞくかん（先生用）</title>
+
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+
+
+<style>
+
+    * {
+
+        -webkit-tap-highlight-color: transparent;
+
+        box-sizing: border-box;
+
+    }
+
+    html, body {
+
+        position: fixed;
+
+        inset: 0;
+
+        width: 100vw;
+
+        height: 100vh;
+
+        height: 100dvh;
+
+        margin: 0;
+
+        padding: 0;
+
+        overflow: hidden;
+
+        user-select: none;
+
+        -webkit-user-select: none;
+
+        overscroll-behavior: none;
+
+        font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+
+        background-color: #07162c;
+
+        color: #ffffff;
+
+    }
+
+
+
+    #app-container {
+
+        position: relative;
+
+        width: 100%;
+
+        height: 100%;
+
+        display: flex;
+
+        flex-direction: column;
+
+        overflow: hidden;
+
+    }
+
+
+
+    /* ＝＝＝＝ 水族館トップヘッダー ＝＝＝＝ */
+
+    #top-header {
+
+        height: 60px;
+
+        padding: 0 20px;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: space-between;
+
+        background: linear-gradient(180deg, #0d284d 0%, #081a33 100%);
+
+        border-bottom: 2px solid #1a4373;
+
+        z-index: 500;
+
+        flex-shrink: 0;
+
+    }
+
+    #aquarium-title-badge {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 10px;
+
+        font-size: 1.5rem;
+
+        font-weight: 800;
+
+        color: #e0f2fe;
+
+        text-shadow: 0 2px 8px rgba(0, 150, 255, 0.4);
+
+        letter-spacing: 2px;
+
+    }
+
+    #aquarium-title-badge .title-icon {
+
+        font-size: 1.7rem;
+
+    }
+
+    #aquarium-number {
+
+        font-size: 1.8rem;
+
+        color: #38bdf8;
+
+        font-family: 'Courier New', Courier, monospace, sans-serif;
+
+        letter-spacing: 3px;
+
+        background: rgba(14, 165, 233, 0.15);
+
+        padding: 2px 10px;
+
+        border-radius: 8px;
+
+        border: 1px solid rgba(56, 189, 248, 0.4);
+
+    }
+
+    #header-summary-info {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 12px;
+
+        font-size: 0.95rem;
+
+        color: #94a3b8;
+
+    }
+
+    .summary-badge {
+
+        background: rgba(255, 255, 255, 0.1);
+
+        padding: 5px 12px;
+
+        border-radius: 20px;
+
+        border: 1px solid rgba(255, 255, 255, 0.15);
+
+        color: #bae6fd;
+
+        font-weight: 600;
+
+    }
+
+
+
+    /* ＝＝＝＝ 水槽一覧グリッド（水族館ビュー） ＝＝＝＝ */
+
+    #overview-view {
+
+        flex: 1;
+
+        width: 100%;
+
+        height: 100%;
+
+        overflow: hidden;
+
+        position: relative;
+
+        transition: filter 0.25s ease;
+
+    }
+
+    #overview-view.blurred {
+
+        filter: blur(8px) brightness(0.6);
+
+        pointer-events: none;
+
+    }
+
+    #overview-view.hidden {
+
+        display: none !important;
+
+    }
+
+
+
+    #tank-grid {
+
+        display: grid;
+
+        gap: 12px;
+
+        padding: 10px 16px 70px 16px;
+
+        width: 100%;
+
+        height: 100%;
+
+        box-sizing: border-box;
+
+    }
+
+    /* 水槽数に応じたグリッド分割 */
+
+    #tank-grid[data-count="1"] { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+
+    #tank-grid[data-count="2"] { grid-template-columns: repeat(2, 1fr); grid-template-rows: 1fr; }
+
+    #tank-grid[data-count="3"] { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr; }
+
+    #tank-grid[data-count="4"] { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
+
+    #tank-grid[data-count="5"],
+
+    #tank-grid[data-count="6"] { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
+
+    #tank-grid[data-count="7"],
+
+    #tank-grid[data-count="8"] { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); }
+
+    #tank-grid[data-count="9"] { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); }
+
+    #tank-grid[data-count="10"],
+
+    #tank-grid[data-count="11"],
+
+    #tank-grid[data-count="12"] { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); }
+
+
+
+    /* 水槽カード */
+
+    .tank-card {
+
+        background: #0b1f38;
+
+        border: 2px solid #1e4b82;
+
+        border-radius: 14px;
+
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+
+        display: flex;
+
+        flex-direction: column;
+
+        overflow: hidden;
+
+        cursor: pointer;
+
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+
+        position: relative;
+
+    }
+
+    .tank-card:hover {
+
+        transform: translateY(-2px) scale(1.01);
+
+        border-color: #38bdf8;
+
+        box-shadow: 0 10px 25px rgba(14, 165, 233, 0.35);
+
+    }
+
+    .tank-card:active {
+
+        transform: scale(0.99);
+
+    }
+
+
+
+    /* 集中投入ハイライト */
+
+    .tank-card.focused-tank {
+
+        border-color: #facc15 !important;
+
+        box-shadow: 0 0 20px rgba(250, 204, 21, 0.6) !important;
+
+    }
+
+    /* へいてん中スタイル */
+
+    .tank-card.closed-tank {
+
+        border-color: #334155;
+
+    }
+
+    .tank-card.closed-tank .tank-card-body {
+
+        filter: brightness(0.65) saturate(0.65);
+
+    }
+
+
+
+    .tank-card-header {
+
+        height: 42px;
+
+        background: rgba(13, 37, 69, 0.95);
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: space-between;
+
+        padding: 0 10px;
+
+        border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+
+        flex-shrink: 0;
+
+        gap: 6px;
+
+    }
+
+    .tank-title-group {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 6px;
+
+        overflow: hidden;
+
+    }
+
+    .tank-title {
+
+        font-size: 0.92rem;
+
+        font-weight: 700;
+
+        color: #e2e8f0;
+
+        white-space: nowrap;
+
+    }
+
+    .tank-header-badges {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 5px;
+
+        flex-shrink: 0;
+
+    }
+
+
+
+    /* 水槽カード内の小さなアクションボタン */
+
+    .tank-action-btn {
+
+        background: rgba(255, 255, 255, 0.12);
+
+        border: 1px solid rgba(255, 255, 255, 0.22);
+
+        color: white;
+
+        border-radius: 6px;
+
+        padding: 2px 6px;
+
+        font-size: 0.85rem;
+
+        cursor: pointer;
+
+        display: inline-flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+        transition: transform 0.1s, background 0.15s, border-color 0.15s;
+
+        user-select: none;
+
+        line-height: 1.2;
+
+    }
+
+    .tank-action-btn:hover {
+
+        background: rgba(255, 255, 255, 0.28);
+
+        transform: scale(1.1);
+
+    }
+
+    .tank-action-btn:active {
+
+        transform: scale(0.92);
+
+    }
+
+    .tank-action-btn.broom-btn:hover {
+
+        background: rgba(239, 68, 68, 0.35);
+
+        border-color: #f87171;
+
+    }
+
+    .tank-action-btn.active-focus {
+
+        background: #eab308;
+
+        color: #0f172a;
+
+        border-color: #fde047;
+
+        font-weight: bold;
+
+        box-shadow: 0 0 8px rgba(234, 179, 8, 0.6);
+
+    }
+
+    .tank-action-btn.is-closed {
+
+        background: #334155;
+
+        border-color: #64748b;
+
+        color: #94a3b8;
+
+    }
+
+
+
+    .tank-count-badge {
+
+        font-size: 0.8rem;
+
+        font-weight: 700;
+
+        padding: 2px 7px;
+
+        border-radius: 12px;
+
+        background: rgba(56, 189, 248, 0.2);
+
+        color: #7dd3fc;
+
+        border: 1px solid rgba(56, 189, 248, 0.35);
+
+        white-space: nowrap;
+
+    }
+
+    .tank-count-badge.full {
+
+        background: rgba(245, 158, 11, 0.25);
+
+        color: #fde68a;
+
+        border-color: rgba(245, 158, 11, 0.5);
+
+    }
+
+    .expand-hint {
+
+        font-size: 0.72rem;
+
+        color: #94a3b8;
+
+        background: rgba(255, 255, 255, 0.08);
+
+        padding: 2px 5px;
+
+        border-radius: 6px;
+
+    }
+
+
+
+    /* 水槽カード内のバナー（へいてん・集中中） */
+
+    .tank-closed-banner {
+
+        position: absolute;
+
+        top: 50%;
+
+        left: 50%;
+
+        transform: translate(-50%, -50%);
+
+        background: rgba(15, 23, 42, 0.88);
+
+        border: 1px solid rgba(255, 255, 255, 0.3);
+
+        color: #e2e8f0;
+
+        font-size: 0.9rem;
+
+        font-weight: bold;
+
+        padding: 5px 14px;
+
+        border-radius: 20px;
+
+        pointer-events: none;
+
+        z-index: 60;
+
+        box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+
+        letter-spacing: 1px;
+
+    }
+
+    .tank-focused-banner {
+
+        position: absolute;
+
+        top: 8px;
+
+        right: 8px;
+
+        background: linear-gradient(135deg, #eab308, #ca8a04);
+
+        color: #0f172a;
+
+        font-size: 0.78rem;
+
+        font-weight: 800;
+
+        padding: 3px 10px;
+
+        border-radius: 14px;
+
+        pointer-events: none;
+
+        z-index: 60;
+
+        box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+
+        letter-spacing: 0.5px;
+
+    }
+
+
+
+    .tank-card-body {
+
+        flex: 1;
+
+        position: relative;
+
+        overflow: hidden;
+
+        background: linear-gradient(to bottom, #7dd3fc 0%, #0284c7 45%, #03488f 100%);
+
+    }
+
+
+
+    /* 水槽サーフェス（魚が泳ぐコンテナ） */
+
+    .aquarium-surface {
+
+        position: absolute;
+
+        inset: 0;
+
+        width: 100%;
+
+        height: 100%;
+
+        overflow: hidden;
+
+    }
+
+
+
+    /* 一覧表示時の魚（ミニサイズ: 42px） */
+
+    .tank-card-body .fish {
+
+        position: absolute;
+
+        width: 42px;
+
+        --scale-x: 1;
+
+        --translate-y: 0px;
+
+        --rotate-z: 0deg;
+
+        transform: scaleX(var(--scale-x)) translateY(var(--translate-y)) rotate(var(--rotate-z));
+
+        animation: swim-mini 2.5s ease-in-out infinite;
+
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+
+        pointer-events: none; /* 一覧時はカードクリックを優先 */
+
+        transition: transform 0.2s ease;
+
+    }
+
+    @keyframes swim-mini {
+
+        0%   { --translate-y: 0px; --rotate-z: -3deg; }
+
+        50%  { --translate-y: -4px; --rotate-z: 3deg; }
+
+        100% { --translate-y: 0px; --rotate-z: -3deg; }
+
+    }
+
+
+
+    /* ＝＝＝＝ 水槽拡大表示画面（ディテールビュー） ＝＝＝＝ */
+
+    #detail-view {
+
+        position: fixed;
+
+        inset: 0;
+
+        width: 100vw;
+
+        height: 100vh;
+
+        height: 100dvh;
+
+        z-index: 1000;
+
+        background: #022047;
+
+        display: flex;
+
+        flex-direction: column;
+
+        overflow: hidden;
+
+        animation: zoom-in 0.22s ease-out;
+
+    }
+
+    #detail-view.hidden {
+
+        display: none !important;
+
+    }
+
+    @keyframes zoom-in {
+
+        from { transform: scale(0.95); opacity: 0; }
+
+        to { transform: scale(1); opacity: 1; }
+
+    }
+
+
+
+    #detail-header {
+
+        height: 64px;
+
+        padding: 0 16px;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: space-between;
+
+        background: rgba(7, 24, 48, 0.95);
+
+        backdrop-filter: blur(10px);
+
+        -webkit-backdrop-filter: blur(10px);
+
+        border-bottom: 2px solid #1a4373;
+
+        z-index: 50;
+
+        flex-shrink: 0;
+
+        gap: 12px;
+
+    }
+
+    .back-btn {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 6px;
+
+        background: linear-gradient(135deg, #0284c7, #0369a1);
+
+        color: white;
+
+        border: none;
+
+        border-radius: 30px;
+
+        padding: 8px 16px;
+
+        font-size: 0.98rem;
+
+        font-weight: 800;
+
+        cursor: pointer;
+
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+
+        transition: transform 0.12s, filter 0.12s;
+
+        white-space: nowrap;
+
+        flex-shrink: 0;
+
+    }
+
+    .back-btn:hover {
+
+        transform: translateY(-2px);
+
+        filter: brightness(1.1);
+
+    }
+
+    .back-btn:active {
+
+        transform: translateY(1px);
+
+    }
+
+
+
+    .detail-center-title {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 10px;
+
+        overflow: hidden;
+
+    }
+
+    #detail-aquarium-title {
+
+        font-size: 1.25rem;
+
+        font-weight: 800;
+
+        color: #e0f2fe;
+
+        letter-spacing: 1px;
+
+        white-space: nowrap;
+
+    }
+
+    #detail-tank-badge {
+
+        font-size: 1.15rem;
+
+        font-weight: 800;
+
+        color: #38bdf8;
+
+        background: rgba(14, 165, 233, 0.2);
+
+        padding: 4px 12px;
+
+        border-radius: 20px;
+
+        border: 1px solid rgba(56, 189, 248, 0.4);
+
+        white-space: nowrap;
+
+    }
+
+    #detail-fish-count {
+
+        font-size: 1.05rem;
+
+        color: #bae6fd;
+
+        font-weight: 700;
+
+        white-space: nowrap;
+
+    }
+
+
+
+    .detail-actions-group {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 6px;
+
+        flex-shrink: 0;
+
+    }
+
+    .detail-action-btn {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 4px;
+
+        background: rgba(255, 255, 255, 0.12);
+
+        border: 1px solid rgba(255, 255, 255, 0.25);
+
+        color: white;
+
+        border-radius: 20px;
+
+        padding: 6px 12px;
+
+        font-size: 0.88rem;
+
+        font-weight: 700;
+
+        cursor: pointer;
+
+        transition: background 0.15s, transform 0.12s, border-color 0.15s;
+
+        user-select: none;
+
+        white-space: nowrap;
+
+    }
+
+    .detail-action-btn:hover {
+
+        background: rgba(255, 255, 255, 0.22);
+
+        transform: translateY(-1px);
+
+    }
+
+    .detail-action-btn.active-focus {
+
+        background: #eab308;
+
+        color: #0f172a;
+
+        border-color: #fde047;
+
+        box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
+
+    }
+
+    .detail-action-btn.is-closed {
+
+        background: #334155;
+
+        color: #cbd5e1;
+
+        border-color: #475569;
+
+    }
+
+    .detail-action-btn.broom-btn:hover {
+
+        background: rgba(239, 68, 68, 0.35);
+
+        border-color: #f87171;
+
+    }
+
+
+
+    .nav-tank-btn {
+
+        background: rgba(255, 255, 255, 0.12);
+
+        border: 1px solid rgba(255, 255, 255, 0.25);
+
+        color: white;
+
+        border-radius: 20px;
+
+        padding: 6px 12px;
+
+        font-size: 0.88rem;
+
+        font-weight: 700;
+
+        cursor: pointer;
+
+        transition: background 0.15s, transform 0.12s;
+
+        white-space: nowrap;
+
+    }
+
+    .nav-tank-btn:hover {
+
+        background: rgba(255, 255, 255, 0.22);
+
+        transform: translateY(-1px);
+
+    }
+
+
+
+    #detail-aquarium-slot {
+
+        flex: 1;
+
+        position: relative;
+
+        overflow: hidden;
+
+        background: linear-gradient(to bottom, #9ee8ff 0%, #3ca0e0 45%, #0044aa 100%);
+
+    }
+
+
+
+    /* 拡大表示時の魚（フルサイズ: 90px） */
+
+    #detail-aquarium-slot .fish {
+
+        position: absolute;
+
+        width: 90px;
+
+        cursor: grab;
+
+        --scale-x: 1;
+
+        --translate-y: 0px;
+
+        --rotate-z: 0deg;
+
+        transform: scaleX(var(--scale-x)) translateY(var(--translate-y)) rotate(var(--rotate-z));
+
+        animation: swim-detail 2.5s ease-in-out infinite;
+
+        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+
+        transition: transform 0.2s ease;
+
+        touch-action: none;
+
+        pointer-events: auto;
+
+    }
+
+    @keyframes swim-detail {
+
+        0%   { --translate-y: 0px; --rotate-z: -4deg; }
+
+        50%  { --translate-y: -6px; --rotate-z: 4deg; }
+
+        100% { --translate-y: 0px; --rotate-z: -4deg; }
+
+    }
+
+    #detail-aquarium-slot .fish.dragging {
+
+        animation: none;
+
+        transition: none !important;
+
+        cursor: grabbing;
+
+        z-index: 100;
+
+    }
+
+
+
+    /* 魚の編集ブロック */
+
+    .control-blocks-container {
+
+        position: absolute;
+
+        display: flex;
+
+        gap: 6px;
+
+        z-index: 101;
+
+        background: rgba(255, 255, 255, 0.85);
+
+        padding: 4px;
+
+        border-radius: 8px;
+
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+
+    }
+
+    .block {
+
+        width: 36px;
+
+        height: 36px;
+
+        background-size: contain;
+
+        background-repeat: no-repeat;
+
+        background-position: center;
+
+        background-color: rgba(255, 255, 255, 0.9);
+
+        border: 1px solid #cce;
+
+        border-radius: 5px;
+
+        cursor: pointer;
+
+    }
+
+    .delete-fish-btn {
+
+        position: absolute;
+
+        width: 24px;
+
+        height: 24px;
+
+        background-color: #ff4d4d;
+
+        color: white;
+
+        border-radius: 50%;
+
+        border: 2px solid white;
+
+        font-size: 15px;
+
+        font-weight: bold;
+
+        display: flex;
+
+        justify-content: center;
+
+        align-items: center;
+
+        cursor: pointer;
+
+        z-index: 102;
+
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+
+    }
+
+
+
+    /* 泡エフェクト */
+
+    .bubble-effect {
+
+        position: absolute;
+
+        width: 14px;
+
+        height: 14px;
+
+        background: rgba(255, 255, 255, 0.8);
+
+        border-radius: 50%;
+
+        border: 2px solid white;
+
+        animation: rise-bubble 0.9s ease-out forwards;
+
+        pointer-events: none;
+
+        z-index: 50;
+
+    }
+
+    @keyframes rise-bubble {
+
+        0% { transform: translateY(0) scale(0.5); opacity: 1; }
+
+        100% { transform: translateY(-40px) scale(1.2); opacity: 0; }
+
+    }
+
+
+
+    /* ＝＝＝＝ フローティング操作ボタン群 ＝＝＝＝ */
+
+    #float-controls {
+
+        position: fixed;
+
+        bottom: 14px;
+
+        right: 16px;
+
+        display: flex;
+
+        gap: 8px;
+
+        z-index: 1500;
+
+        background: rgba(7, 24, 48, 0.75);
+
+        backdrop-filter: blur(10px);
+
+        -webkit-backdrop-filter: blur(10px);
+
+        padding: 6px 10px;
+
+        border-radius: 35px;
+
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+        border: 1px solid rgba(255, 255, 255, 0.25);
+
+    }
+
+    .float-btn {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 5px;
+
+        border: none;
+
+        border-radius: 20px;
+
+        padding: 7px 13px;
+
+        font-size: 0.92rem;
+
+        font-weight: bold;
+
+        cursor: pointer;
+
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+
+        transition: transform 0.12s, filter 0.12s;
+
+        user-select: none;
+
+        white-space: nowrap;
+
+    }
+
+    .float-btn:hover {
+
+        transform: translateY(-2px);
+
+        filter: brightness(1.1);
+
+    }
+
+    .float-btn:active {
+
+        transform: translateY(1px);
+
+    }
+
+    .btn-green {
+
+        background: linear-gradient(135deg, #10b981, #059669);
+
+        color: white;
+
+    }
+
+    .btn-green.paused {
+
+        background: linear-gradient(135deg, #64748b, #475569);
+
+    }
+
+    .btn-yellow {
+
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+
+        color: white;
+
+    }
+
+    .btn-yellow.paused {
+
+        background: linear-gradient(135deg, #10b981, #059669);
+
+    }
+
+    .btn-red {
+
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+
+        color: white;
+
+    }
+
+    .btn-blue {
+
+        background: linear-gradient(135deg, #0ea5e9, #0284c7);
+
+        color: white;
+
+    }
+
+    .btn-icon {
+
+        font-size: 1.05rem;
+
+    }
+
+
+
+    /* ＝＝＝＝ 「そのた」設定モーダル ＝＝＝＝ */
+
+    .modal-overlay {
+
+        position: fixed;
+
+        inset: 0;
+
+        background: rgba(0, 0, 0, 0.6);
+
+        backdrop-filter: blur(6px);
+
+        -webkit-backdrop-filter: blur(6px);
+
+        display: flex;
+
+        justify-content: center;
+
+        align-items: center;
+
+        z-index: 2000;
+
+        transition: opacity 0.2s ease;
+
+    }
+
+    .modal-overlay.hidden {
+
+        opacity: 0;
+
+        pointer-events: none;
+
+    }
+
+    .modal-card {
+
+        background: #0f172a;
+
+        color: #f1f5f9;
+
+        width: 92%;
+
+        max-width: 540px;
+
+        max-height: 85vh;
+
+        border-radius: 20px;
+
+        box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+
+        border: 1px solid #1e293b;
+
+        display: flex;
+
+        flex-direction: column;
+
+        overflow: hidden;
+
+        animation: modal-pop 0.22s ease-out;
+
+    }
+
+    @keyframes modal-pop {
+
+        from { transform: scale(0.93); opacity: 0; }
+
+        to { transform: scale(1); opacity: 1; }
+
+    }
+
+    .modal-header {
+
+        display: flex;
+
+        justify-content: space-between;
+
+        align-items: center;
+
+        padding: 14px 18px;
+
+        background: #1e293b;
+
+        border-bottom: 1px solid #334155;
+
+    }
+
+    .modal-header h2 {
+
+        margin: 0;
+
+        font-size: 1.25rem;
+
+        color: #38bdf8;
+
+    }
+
+    .modal-close-icon {
+
+        background: none;
+
+        border: none;
+
+        font-size: 1.8rem;
+
+        cursor: pointer;
+
+        color: #94a3b8;
+
+        line-height: 1;
+
+        padding: 0 4px;
+
+    }
+
+    .modal-close-icon:hover {
+
+        color: #ffffff;
+
+    }
+
+    .modal-body {
+
+        padding: 16px 18px;
+
+        overflow-y: auto;
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 16px;
+
+    }
+
+    .modal-section {
+
+        background: #1e293b;
+
+        border: 1px solid #334155;
+
+        border-radius: 12px;
+
+        padding: 12px 14px;
+
+    }
+
+    .modal-section h3 {
+
+        margin: 0 0 10px 0;
+
+        font-size: 0.98rem;
+
+        color: #e2e8f0;
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 6px;
+
+    }
+
+
+
+    /* 設定項目 */
+
+    .setting-item {
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 6px;
+
+        margin-bottom: 12px;
+
+    }
+
+    .setting-item:last-child {
+
+        margin-bottom: 0;
+
+    }
+
+    .setting-item-row {
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: space-between;
+
+    }
+
+    .setting-title {
+
+        font-size: 0.95rem;
+
+        font-weight: 700;
+
+        color: #bae6fd;
+
+    }
+
+    .stepper-control {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 8px;
+
+    }
+
+    .stepper-btn {
+
+        width: 32px;
+
+        height: 32px;
+
+        border: 1px solid #0ea5e9;
+
+        background: #0369a1;
+
+        color: white;
+
+        font-size: 1.2rem;
+
+        font-weight: bold;
+
+        border-radius: 6px;
+
+        cursor: pointer;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+    }
+
+    .stepper-btn:active {
+
+        background: #0284c7;
+
+    }
+
+    .stepper-display {
+
+        min-width: 65px;
+
+        text-align: center;
+
+        font-size: 1.05rem;
+
+        font-weight: bold;
+
+        color: #f8fafc;
+
+    }
+
+
+
+    /* ラジオボタン選択肢 */
+
+    .radio-option {
+
+        display: flex;
+
+        align-items: flex-start;
+
+        gap: 10px;
+
+        background: #0f172a;
+
+        padding: 10px 12px;
+
+        border-radius: 8px;
+
+        border: 1px solid #334155;
+
+        cursor: pointer;
+
+        margin-top: 6px;
+
+    }
+
+    .radio-option:hover {
+
+        border-color: #0ea5e9;
+
+    }
+
+    .radio-option input[type="radio"] {
+
+        margin-top: 3px;
+
+        accent-color: #0ea5e9;
+
+        width: 18px;
+
+        height: 18px;
+
+    }
+
+    .radio-text-box {
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 3px;
+
+    }
+
+    .radio-title {
+
+        font-size: 0.95rem;
+
+        font-weight: 700;
+
+        color: #f8fafc;
+
+    }
+
+    .radio-desc {
+
+        font-size: 0.8rem;
+
+        color: #94a3b8;
+
+        line-height: 1.4;
+
+    }
+
+
+
+    .setting-desc {
+
+        font-size: 0.8rem;
+
+        color: #94a3b8;
+
+        margin: 4px 0 0 0;
+
+        line-height: 1.4;
+
+    }
+
+
+
+    /* 通信ステータス */
+
+    .status-box {
+
+        display: flex;
+
+        justify-content: space-between;
+
+        align-items: center;
+
+        background: #0f172a;
+
+        padding: 8px 12px;
+
+        border-radius: 8px;
+
+        font-size: 0.92rem;
+
+        margin-bottom: 8px;
+
+        border: 1px solid #334155;
+
+    }
+
+    .modal-action-btn {
+
+        width: 100%;
+
+        padding: 8px 12px;
+
+        background: rgba(14, 165, 233, 0.15);
+
+        border: 1px solid #0ea5e9;
+
+        color: #38bdf8;
+
+        border-radius: 6px;
+
+        font-weight: bold;
+
+        font-size: 0.9rem;
+
+        cursor: pointer;
+
+    }
+
+    .modal-action-btn:hover {
+
+        background: rgba(14, 165, 233, 0.25);
+
+    }
+
+
+
+    /* ログ表示 */
+
+    .logs-header {
+
+        display: flex;
+
+        justify-content: space-between;
+
+        align-items: center;
+
+        margin-bottom: 6px;
+
+    }
+
+    .logs-header h3 {
+
+        margin: 0;
+
+    }
+
+    .small-btn {
+
+        background: none;
+
+        border: 1px solid #475569;
+
+        padding: 2px 7px;
+
+        border-radius: 4px;
+
+        font-size: 0.75rem;
+
+        cursor: pointer;
+
+        color: #94a3b8;
+
+    }
+
+    .small-btn:hover {
+
+        color: white;
+
+        border-color: #64748b;
+
+    }
+
+    .logs-container {
+
+        max-height: 120px;
+
+        overflow-y: auto;
+
+        background: #0f172a;
+
+        border: 1px solid #334155;
+
+        border-radius: 6px;
+
+        padding: 6px 8px;
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 4px;
+
+        font-size: 0.82rem;
+
+    }
+
+    .log-entry {
+
+        background-color: #1e293b;
+
+        border-left: 3px solid #0ea5e9;
+
+        padding: 4px 6px;
+
+        border-radius: 3px;
+
+        word-break: break-all;
+
+        color: #cbd5e1;
+
+    }
+
+
+
+    .modal-footer {
+
+        padding: 10px 18px;
+
+        border-top: 1px solid #334155;
+
+        display: flex;
+
+        justify-content: flex-end;
+
+    }
+
+    .modal-ok-btn {
+
+        padding: 8px 22px;
+
+        background: #0284c7;
+
+        color: white;
+
+        border: none;
+
+        border-radius: 8px;
+
+        font-size: 0.95rem;
+
+        font-weight: bold;
+
+        cursor: pointer;
+
+    }
+
+    .modal-ok-btn:hover {
+
+        background: #0369a1;
+
+    }
+
+
+
+    /* 魚の動きシーケンス確認モーダル */
+    .seq-slot-box {
+        flex: 1;
+        min-width: 58px;
+        height: 64px;
+        background: #1e293b;
+        border: 2px solid #334155;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 4px 2px;
+        box-sizing: border-box;
+        transition: transform 0.15s, border-color 0.15s;
+    }
+    .seq-slot-box.has-cmd {
+        background: #0369a1;
+        border-color: #38bdf8;
+        box-shadow: 0 2px 6px rgba(56, 189, 248, 0.25);
+    }
+    .seq-slot-box.empty {
+        opacity: 0.45;
+        border-style: dashed;
+    }
+    .seq-slot-box .slot-icon {
+        font-size: 1.4rem;
+        line-height: 1;
+    }
+    .seq-slot-box .slot-label {
+        font-size: 0.72rem;
+        font-weight: bold;
+        color: #f1f5f9;
+        line-height: 1.1;
+    }
+    .seq-slot-box.empty .slot-label {
+        color: #94a3b8;
+    }
+
+
+
+    /* ＝＝＝＝ みんなのすいそう（子ども個別水槽） ＝＝＝＝ */
+    #header-nav-tabs {
+        display: flex;
+        gap: 8px;
+        margin-left: 12px;
+    }
+    .nav-tab-btn {
+        height: 38px;
+        padding: 0 14px;
+        border-radius: 10px;
+        border: 2px solid #334155;
+        background: #1e293b;
+        color: #94a3b8;
+        font-size: 0.88rem;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    .nav-tab-btn:hover {
+        background: #334155;
+        color: #f1f5f9;
+    }
+    .nav-tab-btn.active {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        border-color: #38bdf8;
+        color: white;
+        box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+    }
+    #children-view {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-sizing: border-box;
+        transition: filter 0.25s ease;
+        width: 100%;
+    }
+    #children-view.hidden {
+        display: none !important;
+    }
+    #children-view.blurred {
+        filter: blur(8px);
+        pointer-events: none;
+    }
+    .empty-msg-card {
+        margin-top: 60px;
+        background: rgba(15, 23, 42, 0.8);
+        border: 2px dashed #38bdf8;
+        border-radius: 20px;
+        padding: 36px 28px;
+        text-align: center;
+        color: #e2e8f0;
+        max-width: 480px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .empty-msg-card .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 8px;
+    }
+    .empty-msg-card .empty-title {
+        font-size: 1.25rem;
+        font-weight: bold;
+        margin: 0 0 8px 0;
+        color: #38bdf8;
+    }
+    .empty-msg-card .empty-desc {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: #94a3b8;
+    }
+    #children-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+        width: 100%;
+        max-width: 1400px;
+        box-sizing: border-box;
+    }
+    .child-tank-card {
+        background: #0f172a;
+        border: 2px solid #334155;
+        border-radius: 14px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .child-tank-card:hover {
+        transform: translateY(-3px) scale(1.01);
+        border-color: #38bdf8;
+        box-shadow: 0 8px 20px rgba(2, 132, 199, 0.35);
+    }
+    .child-tank-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
+        background: #1e293b;
+        border-bottom: 1px solid #334155;
+    }
+    .child-tank-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: bold;
+        font-size: 1rem;
+        color: #f1f5f9;
+    }
+    .child-tank-title .c-emoji {
+        font-size: 1.4rem;
+        line-height: 1;
+    }
+    .child-count-pill {
+        background: #0284c7;
+        color: white;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.78rem;
+        font-weight: bold;
+    }
+    .mode-toggle-btn {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        color: #ffffff;
+        border: 1px solid #38bdf8;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.88rem;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .mode-toggle-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.6);
+    }
+    .mode-toggle-btn.mode-step {
+        background: #334155;
+        border-color: #64748b;
+        box-shadow: none;
+        color: #94a3b8;
+    }
+
+    .child-aquarium-wrapper {
+        position: relative;
+        width: 100%;
+        height: 180px;
+        background: linear-gradient(180deg, #0284c7 0%, #0369a1 50%, #075985 100%);
+        overflow: hidden;
+    }
+
+</style>
+
+</head>
+
+<body>
+
+
+
+<div id="app-container">
+
+    <!-- 水族館トップヘッダー -->
+
+    <header id="top-header">
+
+        <div id="aquarium-title-badge">
+
+            <span class="title-icon">🐠</span>
+
+            <span id="aquarium-number">----</span>すいぞくかん
+
+        </div>
+
+                <div id="header-nav-tabs">
+            <button id="tab-aquarium-btn" class="nav-tab-btn active" type="button">
+                <span class="tab-icon">🏛️</span> すいぞくかん
+            </button>
+            <button id="tab-children-btn" class="nav-tab-btn" type="button">
+                <span class="tab-icon">🧑‍🤝‍🧑</span> みんなのすいそう (<span id="children-count-badge">0人</span>)
+            </button>
+        </div>
+
+        <div id="header-summary-info">
+            <button id="smooth-mode-toggle" class="mode-toggle-btn" type="button" title="魚の動きかたの切り替え">🌊 ヌルヌルモード</button>
+            <span id="total-summary-badge" class="summary-badge">水槽: 6個 / ぜんぶで 0匹</span>
+        </div>
+
+    </header>
+
+
+
+    <!-- 水槽一覧画面（水族館ビュー） -->
+
+    <main id="overview-view">
+
+        <div id="tank-grid" data-count="6">
+
+            <!-- JavaScript で水槽カードを動的生成 -->
+
+        </div>
+
+    </main>
+
+    <!-- 子どもごとの個別水槽一覧画面（みんなのすいそうビュー） -->
+    <main id="children-view" class="hidden">
+        <div id="children-empty-msg" class="empty-msg-card">
+            <div class="empty-icon">🌊</div>
+            <p class="empty-title">まだ 魚は 届いていません</p>
+            <span class="empty-desc">子どもたちが自分のマーク（絵文字）を選んで魚を送ると、<br>ここに一人ひとりの水槽がずらりと並びます！✨</span>
+        </div>
+        <div id="children-grid"></div>
+    </main>
+
+
+
+
+
+    <!-- 水槽拡大表示画面（ディテールビュー） -->
+
+    <section id="detail-view" class="hidden">
+
+        <div id="detail-header">
+
+            <button id="back-to-grid-btn" class="back-btn" title="水槽の一覧に戻ります">
+
+                ⬅️ すいそうの いちらんに もどる
+
+            </button>
+
+            <div class="detail-center-title">
+
+                <span id="detail-aquarium-title">----すいぞくかん</span>
+
+                <span id="detail-tank-badge">1ごう すいそう</span>
+
+                <span id="detail-fish-count">0匹</span>
+
+            </div>
+
+            <div class="detail-actions-group">
+
+                <button id="detail-focus-btn" class="detail-action-btn" title="これからの魚をこの水槽にあつめます">🎯 ここにあつめる</button>
+
+                <button id="detail-close-toggle-btn" class="detail-action-btn" title="営業中/へいてん中の切り替え">☀️ えいぎょう中</button>
+
+                <button id="detail-clean-btn" class="detail-action-btn broom-btn" title="この水槽の魚をおそうじします">🧹 おそうじ</button>
+
+                <button id="prev-tank-btn" class="nav-tank-btn" title="前の水槽へ">◀ まえ</button>
+
+                <button id="next-tank-btn" class="nav-tank-btn" title="次の水槽へ">つぎ ▶</button>
+
+            </div>
+
+        </div>
+
+        <!-- 拡大表示用スロット（選択された水槽のサーフェスがここに移動します） -->
+
+        <div id="detail-aquarium-slot"></div>
+
+    </section>
+
+
+
+    <!-- フローティング操作ボタン群 -->
+
+    <div id="float-controls">
+
+        <button id="accept-button" class="float-btn btn-green" title="子どもの魚の受け入れ状態を切り替えます">
+
+            <span class="btn-icon">📥</span>
+
+            <span id="accept-label">うけいれ</span>
+
+        </button>
+
+        <button id="toggle-move-button" class="float-btn btn-yellow" title="魚の動きを一時停止・再開します">
+
+            <span class="btn-icon">⏸️</span>
+
+            <span id="move-label">すとっぷ</span>
+
+        </button>
+
+        <button id="clear-button" class="float-btn btn-red" title="水族館のすべての魚をおそうじします">
+
+            <span class="btn-icon">🧹</span>
+
+            <span>ぜんぶ おそうじ</span>
+
+        </button>
+
+        <button id="settings-button" class="float-btn btn-blue" title="設定・ログを開きます">
+
+            <span class="btn-icon">⚙️</span>
+
+            <span>そのた</span>
+
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- 「そのた」設定モーダル -->
+
+<div id="settings-modal" class="modal-overlay hidden">
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+
+            <h2>⚙️ すいぞくかんの せってい・ログ</h2>
+
+            <button id="close-modal-btn" class="modal-close-icon" title="とじる">×</button>
+
+        </div>
+
+        
+
+        <div class="modal-body">
+
+            <!-- 水族館の構成設定 -->
+
+            <section class="modal-section">
+
+                <h3>🏛️ すいぞくかんの せってい</h3>
+
+                
+
+                <div class="setting-item">
+
+                    <div class="setting-item-row">
+
+                        <span class="setting-title">水槽の数</span>
+
+                        <div class="stepper-control">
+
+                            <button type="button" id="tank-minus-btn" class="stepper-btn">-</button>
+
+                            <span id="tank-count-display" class="stepper-display">6 個</span>
+
+                            <button type="button" id="tank-plus-btn" class="stepper-btn">+</button>
+
+                        </div>
+
+                    </div>
+
+                    <p class="setting-desc">※1〜12個まで並べられます（初期値: 6個）。</p>
+
+                </div>
+
+
+
+                <div class="setting-item">
+
+                    <div class="setting-item-row">
+
+                        <span class="setting-title">1つの水槽の定員</span>
+
+                        <div class="stepper-control">
+
+                            <button type="button" id="capacity-minus-btn" class="stepper-btn">-</button>
+
+                            <span id="capacity-display" class="stepper-display">50 匹</span>
+
+                            <button type="button" id="capacity-plus-btn" class="stepper-btn">+</button>
+
+                        </div>
+
+                    </div>
+
+                    <p class="setting-desc">※1水槽あたり10〜100匹（初期値: 50匹）。</p>
+
+                </div>
+
+
+
+                <div class="setting-item">
+
+                    <span class="setting-title">魚のふりわけ方</span>
+
+                    
+
+                    <label class="radio-option">
+
+                        <input type="radio" name="distribute-mode" value="sequential" checked>
+
+                        <div class="radio-text-box">
+
+                            <span class="radio-title">じゅんばん（1番から順番に満員にする）</span>
+
+                            <span class="radio-desc">1番の水槽が満員になったら2番へ。全部が満員になったらランダムに振り分けます。</span>
+
+                        </div>
+
+                    </label>
+
+
+
+                    <label class="radio-option">
+
+                        <input type="radio" name="distribute-mode" value="random">
+
+                        <div class="radio-text-box">
+
+                            <span class="radio-title">ランダム（いろいろな水槽へふりわけ）</span>
+
+                            <span class="radio-desc">届いた魚をランダムな水槽に散らして入れます。</span>
+
+                        </div>
+
+                    </label>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- 先生の水族館情報 -->
+
+            <section class="modal-section">
+
+                <h3>📡 通信ステータス</h3>
+
+                <div class="status-box">
+
+                    <div>水族館番号: <strong id="modal-peer-id" style="color: #38bdf8;">----</strong> 番</div>
+
+                    <div id="connection-status-text">接続準備中...</div>
+
+                </div>
+
+                <button id="reconnect-btn" class="modal-action-btn">新しい番号で水族館を作り直す</button>
+
+            </section>
+
+
+
+            <!-- ログ表示 -->
+
+            <section class="modal-section">
+
+                <div class="logs-header">
+
+                    <h3>📜 つうしんログ</h3>
+
+                    <button id="clear-logs-btn" class="small-btn">ログ消去</button>
+
+                </div>
+
+                <div id="logs" class="logs-container"></div>
+
+            </section>
+
+        </div>
+
+
+
+        <div class="modal-footer">
+
+            <button id="close-settings-button" class="modal-ok-btn">とじる</button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- 魚の動きシーケンス確認モーダル -->
+<div id="fish-detail-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 500px; text-align: center;">
+        <div class="modal-header">
+            <h2 id="fdm-title">🐟 さかなの うごき かくにん</h2>
+            <button id="fdm-close-x-btn" class="close-btn" type="button" aria-label="とじる">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+            <div id="fdm-preview-box" style="width: 100%; height: 130px; background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%); border-radius: 14px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 2px solid #38bdf8;">
+                <img id="fdm-fish-img" src="" alt="さかなプレビュー" style="width: 80px; position: absolute; transition: all 0.5s ease;">
+            </div>
+            <div style="width: 100%;">
+                <div style="font-size: 0.85rem; font-weight: bold; color: #94a3b8; margin-bottom: 8px; text-align: left;">
+                    🧩 プログラミングされた うごき（じゅんばん）：
+                </div>
+                <div id="fdm-slots-container" style="display: flex; gap: 8px; justify-content: center; width: 100%;"></div>
+            </div>
+            <button id="fdm-test-btn" type="button" style="background: #f59e0b; color: white; border: none; padding: 8px 18px; border-radius: 20px; font-weight: bold; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 3px 8px rgba(245, 158, 11, 0.4); margin-top: 4px;">
+                <span>▶️</span> うごきを ためす
+            </button>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 10px; justify-content: space-between; padding: 12px 18px; background: #1e293b; border-top: 1px solid #334155;">
+            <button id="fdm-close-btn" class="modal-action-btn" type="button" style="background: #475569; color: white; flex: 1; height: 42px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer;">
+                ✕ とじる
+            </button>
+            <button id="fdm-remove-btn" class="modal-action-btn" type="button" style="background: #dc2626; color: white; flex: 1.2; height: 42px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <span>🧹</span> 水槽からとりのぞく
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+<script>
+
+    let isSmoothMode = true; // ヌルヌル止まらず動くモード（デフォルトON）
+
+    // ＝＝＝＝ 状態管理 ＝＝＝＝
+
+    let tankCount = 6;              // 水槽の数（デフォルト6、1〜12）
+
+    let tankCapacity = 50;          // 1つの水槽の定員（デフォルト50）
+
+    let distributeMode = 'sequential'; // 'sequential' (じゅんばん) または 'random'
+
+    let currentDetailTankIndex = -1;   // 拡大中の水槽インデックス（-1は一覧表示中）
+
+    
+
+    // 各水槽の状態（営業中 / へいてん中）
+
+    const tankStatus = [];
+
+    for (let i = 0; i < 12; i++) {
+
+        tankStatus.push({ isOpen: true });
+
+    }
+
+    // 集中投入モードの水槽インデックス（-1は通常分配）
+
+    let focusedTankIndex = -1;
+
+
+
+    let peer = null;
+
+    let myPeerId = null;
+
+    let isAccepting = true;
+
+    let isMovementGloballyStopped = false;
+
+
+
+        const COMMANDS = {
+        up:     { label: 'まえ',   icon: '⬆️' },
+        down:   { label: 'うしろ', icon: '⬇️' },
+        left:   { label: 'ひだり', icon: '⬅️' },
+        right:  { label: 'みぎ',   icon: '➡️' },
+        spin:   { label: 'くるっと', icon: '🌀' },
+        dash:   { label: 'ダッシュ', icon: '⚡' },
+        bubble: { label: 'あわ',   icon: '🫧' },
+        stay:   { label: 'やすむ', icon: '💤' },
+        sway:   { label: 'ゆらゆら', icon: '〰️' }
+    };
+
+    const DIRECTIONS = [null, 'left', 'up', 'right', 'down'];
+
+    const DIRECTION_IMAGES = { left: 'left.png', up: 'up.png', right: 'right.png', down: 'down.png' };
+
+
+
+    // DOM要素取得
+
+    const aquariumNumber = document.getElementById('aquarium-number');
+
+    const modalPeerId = document.getElementById('modal-peer-id');
+
+    const statusText = document.getElementById('connection-status-text');
+
+    const totalSummaryBadge = document.getElementById('total-summary-badge');
+
+    const tankGrid = document.getElementById('tank-grid');
+
+    const overviewView = document.getElementById('overview-view');
+
+    
+
+    // ディテールビュー要素
+
+    const detailView = document.getElementById('detail-view');
+
+    const detailAquariumSlot = document.getElementById('detail-aquarium-slot');
+
+    const backToGridBtn = document.getElementById('back-to-grid-btn');
+
+    const detailAquariumTitle = document.getElementById('detail-aquarium-title');
+
+    const detailTankBadge = document.getElementById('detail-tank-badge');
+
+    const detailFishCount = document.getElementById('detail-fish-count');
+
+    const prevTankBtn = document.getElementById('prev-tank-btn');
+
+    const nextTankBtn = document.getElementById('next-tank-btn');
+
+    const detailFocusBtn = document.getElementById('detail-focus-btn');
+
+    const detailCloseBtn = document.getElementById('detail-close-toggle-btn');
+
+    const detailCleanBtn = document.getElementById('detail-clean-btn');
+
+
+
+    // フローティングボタン
+
+    const acceptButton = document.getElementById('accept-button');
+
+    const acceptLabel = document.getElementById('accept-label');
+
+    const toggleMoveButton = document.getElementById('toggle-move-button');
+
+    const moveLabel = document.getElementById('move-label');
+
+    const clearButton = document.getElementById('clear-button');
+
+    const settingsButton = document.getElementById('settings-button');
+    const smoothModeToggle = document.getElementById('smooth-mode-toggle');
+
+    if (smoothModeToggle) {
+        smoothModeToggle.addEventListener('click', () => {
+            isSmoothMode = !isSmoothMode;
+            if (isSmoothMode) {
+                smoothModeToggle.textContent = '🌊 ヌルヌルモード';
+                smoothModeToggle.classList.remove('mode-step');
+            } else {
+                smoothModeToggle.textContent = '⏸️ じっくりモード';
+                smoothModeToggle.classList.add('mode-step');
+            }
+            log(`動きモード切替: ${isSmoothMode ? 'ヌルヌルモード（連続移動）' : 'じっくりモード（1歩ずつ一時停止）'}`);
+            document.querySelectorAll('.fish').forEach(f => {
+                f.style.transition = isSmoothMode ? 'top 1.0s linear, left 1.0s linear, transform 0.4s ease' : 'all 0.6s ease';
+            });
+        });
+    }
+
+
+
+    // モーダル要素
+
+    const settingsModal = document.getElementById('settings-modal');
+
+    const closeModalBtn = document.getElementById('close-modal-btn');
+
+    const closeSettingsButton = document.getElementById('close-settings-button');
+
+    const tankMinusBtn = document.getElementById('tank-minus-btn');
+
+    const tankPlusBtn = document.getElementById('tank-plus-btn');
+
+    const tankCountDisplay = document.getElementById('tank-count-display');
+
+    const capacityMinusBtn = document.getElementById('capacity-minus-btn');
+
+    const capacityPlusBtn = document.getElementById('capacity-plus-btn');
+
+    const capacityDisplay = document.getElementById('capacity-display');
+
+    const reconnectBtn = document.getElementById('reconnect-btn');
+
+    const clearLogsBtn = document.getElementById('clear-logs-btn');
+
+    const logs = document.getElementById('logs');
+
+
+
+    // ログ記録関数
+
+    function log(message) {
+
+        const entry = document.createElement('div');
+
+        entry.className = 'log-entry';
+
+        const now = new Date();
+
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+        entry.textContent = `[${timeStr}] ${message}`;
+
+        logs.insertBefore(entry, logs.firstChild);
+
+    }
+
+
+
+    // ＝＝＝＝ 12個の水槽サーフェスを永続配列として生成 ＝＝＝＝
+
+    const tankSurfaces = [];
+
+    for (let i = 0; i < 12; i++) {
+
+        const s = document.createElement('div');
+
+        s.className = 'aquarium-surface';
+
+        s.id = `aquarium-surface-${i}`;
+
+        s.dataset.tankIndex = i;
+
+        tankSurfaces.push(s);
+
+    }
+
+
+
+    // ＝＝＝＝ 水槽グリッドの構築・管理 ＝＝＝＝
+
+    function initTankGrid() {
+
+        tankGrid.setAttribute('data-count', tankCount);
+
+
+
+        // もし拡大表示中なら、一旦一覧に戻してから再構築
+
+        if (currentDetailTankIndex !== -1) {
+
+            closeDetailView();
+
+        }
+
+
+
+        tankGrid.innerHTML = '';
+
+
+
+        for (let i = 0; i < tankCount; i++) {
+
+            const card = document.createElement('div');
+
+            card.className = 'tank-card';
+
+            card.dataset.tankIndex = i;
+
+
+
+            const header = document.createElement('div');
+
+            header.className = 'tank-card-header';
+
+            header.innerHTML = `
+
+                <div class="tank-title-group">
+
+                    <span class="tank-title">🐠 ${i + 1}ごう すいそう</span>
+
+                    <button class="tank-action-btn broom-btn" title="${i + 1}ごう水槽をおそうじ">🧹</button>
+
+                </div>
+
+                <div class="tank-header-badges">
+
+                    <button class="tank-action-btn focus-btn" title="この水槽に魚をあつめる">🎯</button>
+
+                    <button class="tank-action-btn close-toggle-btn" title="へいてん（おやすみ）/ かいてんの切り替え">☀️</button>
+
+                    <span class="tank-count-badge" id="badge-count-${i}">0 / ${tankCapacity}匹</span>
+
+                    <span class="expand-hint">🔍</span>
+
+                </div>
+
+            `;
+
+
+
+            const body = document.createElement('div');
+
+            body.className = 'tank-card-body';
+
+            body.id = `tank-body-${i}`;
+
+
+
+            // 永続サーフェスをカード本体に配置
+
+            const surface = tankSurfaces[i];
+
+            body.appendChild(surface);
+
+
+
+            card.appendChild(header);
+
+            card.appendChild(body);
+
+
+
+            // カードクリックでその水槽を拡大表示
+
+            card.addEventListener('click', () => {
+
+                openDetailView(i);
+
+            });
+
+
+
+            // カードヘッダー内のボタンクリックイベント（カードクリックと重複させない）
+
+            const broomBtn = header.querySelector('.broom-btn');
+
+            broomBtn.addEventListener('click', (e) => {
+
+                e.stopPropagation();
+
+                if (confirm(`「${i + 1}ごう すいそう」の さかなを おそうじ しますか？`)) {
+
+                    cleanTank(i);
+
+                }
+
+            });
+
+
+
+            const focusBtn = header.querySelector('.focus-btn');
+
+            focusBtn.addEventListener('click', (e) => {
+
+                e.stopPropagation();
+
+                toggleFocusTank(i);
+
+            });
+
+
+
+            const closeBtn = header.querySelector('.close-toggle-btn');
+
+            closeBtn.addEventListener('click', (e) => {
+
+                e.stopPropagation();
+
+                toggleOpenTank(i);
+
+            });
+
+
+
+            tankGrid.appendChild(card);
+
+        }
+
+
+
+        updateAllCounts();
+
+        updateTankCardStates();
+
+    }
+
+
+
+    // ＝＝＝＝ 集中投入モード（ここにあつめる） ＝＝＝＝
+
+    function toggleFocusTank(tankIndex) {
+
+        if (focusedTankIndex === tankIndex) {
+
+            focusedTankIndex = -1;
+
+            log(`[${tankIndex + 1}ごう水槽] への集中投入を解除しました（通常のふりわけに戻ります）。`);
+
+        } else {
+
+            focusedTankIndex = tankIndex;
+
+            // へいてん中なら自動的に開店
+
+            if (!tankStatus[tankIndex].isOpen) {
+
+                tankStatus[tankIndex].isOpen = true;
+
+            }
+
+            log(`🎯 【集中投入モード】これからの魚は [${tankIndex + 1}ごう水槽] にあつまります！`);
+
+        }
+
+        updateTankCardStates();
+
+        updateDetailHeaderControls();
+
+    }
+
+
+
+    // ＝＝＝＝ へいてん（おやすみ）/ かいてん（営業中） ＝＝＝＝
+
+    function toggleOpenTank(tankIndex) {
+
+        tankStatus[tankIndex].isOpen = !tankStatus[tankIndex].isOpen;
+
+        if (!tankStatus[tankIndex].isOpen) {
+
+            // へいてんにした場合、もし集中モード中なら解除
+
+            if (focusedTankIndex === tankIndex) {
+
+                focusedTankIndex = -1;
+
+            }
+
+            log(`🌙 [${tankIndex + 1}ごう水槽] をへいてん（おやすみ）にしました。魚は入りません。`);
+
+        } else {
+
+            log(`☀️ [${tankIndex + 1}ごう水槽] をかいてん（営業中）にしました！`);
+
+        }
+
+        updateTankCardStates();
+
+        updateDetailHeaderControls();
+
+    }
+
+
+
+    // ＝＝＝＝ 特定水槽のおそうじ（個別消去） ＝＝＝＝
+
+    function cleanTank(tankIndex) {
+
+        const surface = tankSurfaces[tankIndex];
+
+        if (!surface) return;
+
+        const fishes = surface.querySelectorAll('.fish');
+
+        fishes.forEach(f => {
+
+            stopFishMovement(f);
+
+            if (f.controlBlocksContainer) f.controlBlocksContainer.remove();
+
+            if (f.deleteBtn) f.deleteBtn.remove();
+
+            f.remove();
+
+        });
+
+        updateAllCounts();
+
+        log(`🧹 [${tankIndex + 1}ごう水槽] の魚をおそうじしました。`);
+
+    }
+
+
+
+    // 水槽カードの集中状態・へいてん状態の表示更新
+
+    function updateTankCardStates() {
+
+        for (let i = 0; i < tankCount; i++) {
+
+            const card = tankGrid.querySelector(`.tank-card[data-tank-index="${i}"]`);
+
+            if (!card) continue;
+
+
+
+            const isClosed = !tankStatus[i].isOpen;
+
+            const isFocused = (focusedTankIndex === i);
+
+
+
+            card.classList.toggle('closed-tank', isClosed);
+
+            card.classList.toggle('focused-tank', isFocused);
+
+
+
+            const focusBtn = card.querySelector('.focus-btn');
+
+            if (focusBtn) {
+
+                focusBtn.classList.toggle('active-focus', isFocused);
+
+                focusBtn.title = isFocused ? '集中投入を解除' : 'この水槽にあつめる';
+
+            }
+
+
+
+            const closeBtn = card.querySelector('.close-toggle-btn');
+
+            if (closeBtn) {
+
+                closeBtn.classList.toggle('is-closed', isClosed);
+
+                closeBtn.textContent = isClosed ? '🌙' : '☀️';
+
+                closeBtn.title = isClosed ? 'かいてん（営業）する' : 'へいてん（おやすみ）にする';
+
+            }
+
+
+
+            const body = card.querySelector('.tank-card-body');
+
+            let closedBanner = card.querySelector('.tank-closed-banner');
+
+            if (isClosed) {
+
+                if (!closedBanner) {
+
+                    closedBanner = document.createElement('div');
+
+                    closedBanner.className = 'tank-closed-banner';
+
+                    closedBanner.textContent = '🌙 おやすみ中';
+
+                    body.appendChild(closedBanner);
+
+                }
+
+            } else if (closedBanner) {
+
+                closedBanner.remove();
+
+            }
+
+
+
+            let focusedBanner = card.querySelector('.tank-focused-banner');
+
+            if (isFocused) {
+
+                if (!focusedBanner) {
+
+                    focusedBanner = document.createElement('div');
+
+                    focusedBanner.className = 'tank-focused-banner';
+
+                    focusedBanner.textContent = '🎯 ここにあつめ中！';
+
+                    body.appendChild(focusedBanner);
+
+                }
+
+            } else if (focusedBanner) {
+
+                focusedBanner.remove();
+
+            }
+
+        }
+
+    }
+
+
+
+    // 拡大画面のヘッダーコントロール更新
+
+    function updateDetailHeaderControls() {
+
+        if (currentDetailTankIndex === -1) return;
+
+        const isClosed = !tankStatus[currentDetailTankIndex].isOpen;
+
+        const isFocused = (focusedTankIndex === currentDetailTankIndex);
+
+
+
+        if (detailFocusBtn) {
+
+            detailFocusBtn.classList.toggle('active-focus', isFocused);
+
+            detailFocusBtn.textContent = isFocused ? '🎯 あつめ中 (解除)' : '🎯 ここにあつめる';
+
+        }
+
+
+
+        if (detailCloseBtn) {
+
+            detailCloseBtn.classList.toggle('is-closed', isClosed);
+
+            detailCloseBtn.textContent = isClosed ? '🌙 へいてん中' : '☀️ えいぎょう中';
+
+        }
+
+
+
+        if (detailTankBadge) {
+
+            let label = `${currentDetailTankIndex + 1}ごう すいそう`;
+
+            if (isClosed) label += ' (🌙おやすみ中)';
+
+            else if (isFocused) label += ' (🎯あつめ中)';
+
+            detailTankBadge.textContent = label;
+
+        }
+
+    }
+
+
+
+    // 各水槽の匹数カウントとヘッダーサマリーの更新
+
+    function updateAllCounts() {
+
+        let totalCount = 0;
+
+        for (let i = 0; i < tankCount; i++) {
+
+            const surface = tankSurfaces[i];
+
+            const count = surface ? surface.querySelectorAll('.fish').length : 0;
+
+            totalCount += count;
+
+            
+
+            const badge = document.getElementById(`badge-count-${i}`);
+
+            if (badge) {
+
+                badge.textContent = `${count} / ${tankCapacity}匹`;
+
+                if (count >= tankCapacity) {
+
+                    badge.classList.add('full');
+
+                } else {
+
+                    badge.classList.remove('full');
+
+                }
+
+            }
+
+        }
+
+        totalSummaryBadge.textContent = `水槽: ${tankCount}個 / ぜんぶで ${totalCount}匹`;
+
+        
+
+        if (currentDetailTankIndex !== -1) {
+
+            updateDetailFishCount();
+
+        }
+
+    }
+
+
+
+    function getTankFishCount(tankIndex) {
+
+        const surface = tankSurfaces[tankIndex];
+
+        return surface ? surface.querySelectorAll('.fish').length : 0;
+
+    }
+
+
+
+    // ＝＝＝＝ 拡大表示（ディテールビュー） ＝＝＝＝
+
+    function openDetailView(tankIndex) {
+        currentDetailType = 'aquarium';
+        currentDetailTankIndex = tankIndex;
+
+        const surface = tankSurfaces[tankIndex];
+        if (!surface) return;
+
+        // サーフェスを拡大スロットに移動
+        detailAquariumSlot.innerHTML = '';
+        detailAquariumSlot.appendChild(surface);
+
+        if (detailFocusBtn) detailFocusBtn.style.display = 'inline-flex';
+        if (detailCloseBtn) detailCloseBtn.style.display = 'inline-flex';
+
+        updateDetailFishCount();
+        updateDetailHeaderControls();
+
+        detailView.classList.remove('hidden');
+        overviewView.classList.add('blurred');
+
+        // 拡大画面に合わせて魚の配置を広げる
+        requestAnimationFrame(() => {
+            const detailW = detailAquariumSlot.clientWidth || window.innerWidth || 1000;
+            const detailH = detailAquariumSlot.clientHeight || (window.innerHeight - 150) || 600;
+            surface.querySelectorAll('.fish').forEach(f => {
+                let rx = parseFloat(f.dataset.origRatioX);
+                let ry = parseFloat(f.dataset.origRatioY);
+                if (!isNaN(rx) && !isNaN(ry)) {
+                    f.style.left = `${Math.floor(rx * (detailW - 90))}px`;
+                    f.style.top = `${Math.floor(ry * (detailH - 70))}px`;
+                }
+            });
+        });
+    }
+
+    function closeDetailView() {
+        if (currentDetailType === 'child') {
+            if (currentDetailChildId && childrenTanks[currentDetailChildId]) {
+                const childTank = childrenTanks[currentDetailChildId];
+                if (childTank.wrapper && childTank.surface) {
+                    childTank.wrapper.appendChild(childTank.surface);
+                    const cardW = childTank.wrapper.clientWidth || 280;
+                    const cardH = childTank.wrapper.clientHeight || 180;
+                    childTank.surface.querySelectorAll('.fish').forEach(f => {
+                        let rx = parseFloat(f.dataset.origRatioX);
+                        let ry = parseFloat(f.dataset.origRatioY);
+                        if (isNaN(rx)) rx = 0.5;
+                        if (isNaN(ry)) ry = 0.5;
+                        f.style.left = `${Math.floor(rx * (cardW - 60))}px`;
+                        f.style.top = `${Math.floor(ry * (cardH - 50))}px`;
+                    });
+                }
+            }
+            currentDetailChildId = null;
+            detailView.classList.add('hidden');
+            childrenView.classList.remove('blurred');
+            return;
+        }
+
+        if (currentDetailTankIndex === -1) return;
+
+        const surface = tankSurfaces[currentDetailTankIndex];
+        const originalBody = document.getElementById(`tank-body-${currentDetailTankIndex}`);
+        if (surface && originalBody) {
+            originalBody.appendChild(surface);
+            const bodyW = originalBody.clientWidth || 320;
+            const bodyH = originalBody.clientHeight || 200;
+            surface.querySelectorAll('.fish').forEach(f => {
+                let rx = parseFloat(f.dataset.origRatioX);
+                let ry = parseFloat(f.dataset.origRatioY);
+                if (!isNaN(rx) && !isNaN(ry)) {
+                    f.style.left = `${Math.floor(rx * (bodyW - 60))}px`;
+                    f.style.top = `${Math.floor(ry * (bodyH - 50))}px`;
+                }
+            });
+        }
+        currentDetailTankIndex = -1;
+        detailView.classList.add('hidden');
+        overviewView.classList.remove('blurred');
+        updateAllCounts();
+        updateTankCardStates();
+    }
+
+    function switchDetailTank(newIndex) {
+
+        if (currentDetailTankIndex === newIndex) return;
+
+        // 現在のサーフェスを元のカードに戻す
+
+        const oldSurface = tankSurfaces[currentDetailTankIndex];
+
+        const oldBody = document.getElementById(`tank-body-${currentDetailTankIndex}`);
+
+        if (oldSurface && oldBody) {
+
+            oldBody.appendChild(oldSurface);
+
+        }
+
+
+
+        // 新しいサーフェスをスロットに配置
+
+        currentDetailTankIndex = newIndex;
+
+        const newSurface = tankSurfaces[newIndex];
+
+        if (newSurface) {
+
+            detailAquariumSlot.innerHTML = '';
+
+            detailAquariumSlot.appendChild(newSurface);
+
+        }
+
+        updateDetailFishCount();
+
+        updateDetailHeaderControls();
+
+        updateAllCounts();
+
+    }
+
+
+
+    function updateDetailFishCount() {
+
+        if (currentDetailTankIndex === -1) return;
+
+        const count = getTankFishCount(currentDetailTankIndex);
+
+        detailFishCount.textContent = `${count}匹`;
+
+    }
+
+
+
+    backToGridBtn.addEventListener('click', closeDetailView);
+
+    prevTankBtn.addEventListener('click', (e) => {
+
+        e.stopPropagation();
+
+        const prev = (currentDetailTankIndex - 1 + tankCount) % tankCount;
+
+        switchDetailTank(prev);
+
+    });
+
+    nextTankBtn.addEventListener('click', (e) => {
+
+        e.stopPropagation();
+
+        const next = (currentDetailTankIndex + 1) % tankCount;
+
+        switchDetailTank(next);
+
+    });
+
+
+
+    // 拡大画面のヘッダーボタン
+
+    detailFocusBtn.addEventListener('click', () => {
+
+        if (currentDetailTankIndex === -1) return;
+
+        toggleFocusTank(currentDetailTankIndex);
+
+    });
+
+    detailCloseBtn.addEventListener('click', () => {
+
+        if (currentDetailTankIndex === -1) return;
+
+        toggleOpenTank(currentDetailTankIndex);
+
+    });
+
+    detailCleanBtn.addEventListener('click', () => {
+
+        if (currentDetailTankIndex === -1) return;
+
+        if (confirm(`現在開いている「${currentDetailTankIndex + 1}ごう すいそう」の さかなを おそうじ しますか？`)) {
+
+            cleanTank(currentDetailTankIndex);
+
+        }
+
+    });
+
+
+
+    // ＝＝＝＝ 魚のふりわけ（配信）ロジック ＝＝＝＝
+
+    function distributeIncomingFish(fishDataArray, senderId) {
+        log(`[${senderId}] から ${fishDataArray.length}匹の魚データを受信しました！`);
+
+        let newCount = 0;
+        let updatedCount = 0;
+
+        // 子どもが水槽から削除した（片付けた）魚を先生側の水槽からもおそうじ
+        const currentFishIds = new Set(fishDataArray.map(f => f.fishId).filter(Boolean));
+        if (childrenTanks[senderId] && childrenTanks[senderId].surface) {
+            const childFishes = Array.from(childrenTanks[senderId].surface.querySelectorAll('.fish'));
+            childFishes.forEach(f => {
+                if (f.dataset.fishId && !currentFishIds.has(f.dataset.fishId)) {
+                    stopFishMovement(f);
+                    f.remove();
+                }
+            });
+            childrenTanks[senderId].badge.textContent = `${childrenTanks[senderId].surface.querySelectorAll('.fish').length}匹`;
+            if (currentDetailType === 'child' && currentDetailChildId === senderId && detailTankBadge) {
+                detailTankBadge.textContent = `🧑‍🤝‍🧑 個別水槽 (${childrenTanks[senderId].surface.querySelectorAll('.fish').length}匹)`;
+            }
+        }
+        const overviewSenderFishes = Array.from(document.querySelectorAll(`.fish[data-sender-id="${senderId}"]`));
+        overviewSenderFishes.forEach(f => {
+            if (f.dataset.fishId && !currentFishIds.has(f.dataset.fishId)) {
+                stopFishMovement(f);
+                f.remove();
+            }
+        });
+
+        fishDataArray.forEach((fishData, idx) => {
+            if (!fishData.fishId) {
+                fishData.fishId = 'fish_' + senderId + '_' + Date.now() + '_' + idx;
+            }
+            const fishId = fishData.fishId;
+            let existingFishes = Array.from(document.querySelectorAll(`.fish[data-fish-id="${fishId}"]`));
+
+            if (existingFishes.length > 0) {
+                // すでに水槽にいる魚の動きシーケンスや画像・比率を最新に更新！
+                existingFishes.forEach(f => {
+                    f.dataset.movePattern = JSON.stringify(fishData.movePattern || ['up', 'left', 'right']);
+                    if (fishData.imageSrc) f.src = fishData.imageSrc;
+                    if (typeof fishData.origRatioX === 'number') f.dataset.origRatioX = fishData.origRatioX;
+                    if (typeof fishData.origRatioY === 'number') f.dataset.origRatioY = fishData.origRatioY;
+                });
+                updatedCount++;
+                log(`[${senderId}] の魚（${fishId}）のうごきを更新しました！✨`);
+            } else {
+                // 新規の魚を追加
+                let targetIndex = -1;
+
+                if (focusedTankIndex >= 0 && focusedTankIndex < tankCount && tankStatus[focusedTankIndex].isOpen) {
+                    targetIndex = focusedTankIndex;
+                } else if (distributeMode === 'random') {
+                    const openTanks = [];
+                    for (let i = 0; i < tankCount; i++) {
+                        if (tankStatus[i].isOpen) openTanks.push(i);
+                    }
+                    targetIndex = openTanks.length > 0 ? openTanks[Math.floor(Math.random() * openTanks.length)] : 0;
+                } else {
+                    for (let i = 0; i < tankCount; i++) {
+                        if (tankStatus[i].isOpen && getTankFishCount(i) < tankCapacity) {
+                            targetIndex = i;
+                            break;
+                        }
+                    }
+                    if (targetIndex === -1) {
+                        const openTanks = [];
+                        for (let i = 0; i < tankCount; i++) {
+                            if (tankStatus[i].isOpen) openTanks.push(i);
+                        }
+                        targetIndex = openTanks.length > 0 ? openTanks[Math.floor(Math.random() * openTanks.length)] : 0;
+                    }
+                }
+
+                addFishToTank(targetIndex, fishData, senderId);
+                addFishToChildTank(senderId, fishData.childEmoji, fishData);
+                newCount++;
+            }
+        });
+
+        updateAllCounts();
+        return { newCount, updatedCount };
+    }
+
+    function addFishToTank(tankIndex, fishData, senderId = '') {
+        const surface = tankSurfaces[tankIndex];
+        if (!surface) return;
+
+        const fish = document.createElement("img");
+        fish.src = fishData.imageSrc;
+        fish.className = "fish";
+
+        // 初期配置座標（子どもの水槽の比率を維持）
+        let ratioX = fishData.origRatioX;
+        let ratioY = fishData.origRatioY;
+        if (typeof ratioX !== 'number' || isNaN(ratioX)) {
+            const pL = parseFloat(fishData.left);
+            ratioX = (!isNaN(pL) && pL >= 0) ? (pL / 800) : (Math.random() * 0.7 + 0.1);
+        }
+        if (typeof ratioY !== 'number' || isNaN(ratioY)) {
+            const pT = parseFloat(fishData.top);
+            ratioY = (!isNaN(pT) && pT >= 0) ? (pT / 450) : (Math.random() * 0.7 + 0.1);
+        }
+        ratioX = Math.max(0.05, Math.min(0.85, ratioX));
+        ratioY = Math.max(0.05, Math.min(0.85, ratioY));
+        fish.dataset.origRatioX = ratioX;
+        fish.dataset.origRatioY = ratioY;
+
+        const isDetail = (currentDetailTankIndex === tankIndex);
+        const containerW = surface.clientWidth || (isDetail ? window.innerWidth : 320);
+        const containerH = surface.clientHeight || (isDetail ? window.innerHeight : 200);
+
+        fish.style.left = `${Math.floor(ratioX * Math.max(50, containerW - 60))}px`;
+        fish.style.top = `${Math.floor(ratioY * Math.max(40, containerH - 50))}px`;
+
+        fish.dataset.isEditing = "false";
+        fish.dataset.senderId = senderId || fishData.senderId || '';
+        fish.dataset.fishId = fishData.fishId || ('fish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8));
+
+        fish.dataset.movePattern = JSON.stringify(fishData.movePattern || ['up', 'left']);
+
+        fish.dataset.moveStep = 0;
+
+
+
+        // 拡大表示時のドラッグ＆編集イベント
+
+        let isDragging = false;
+
+        let offsetX, offsetY;
+
+        let startX, startY;
+
+        const clickThreshold = 5;
+
+
+
+        function onDragStart(e) {
+
+            // ディテール表示中のみドラッグ操作を有効化
+
+            if (currentDetailTankIndex !== tankIndex) return;
+
+            e.preventDefault();
+
+            const touch = e.touches ? e.touches[0] : e;
+
+            startX = touch.clientX;
+
+            startY = touch.clientY;
+
+            isDragging = true;
+
+            stopFishMovement(fish);
+
+            const rect = fish.getBoundingClientRect();
+
+            offsetX = touch.clientX - rect.left;
+
+            offsetY = touch.clientY - rect.top;
+
+            document.addEventListener('mousemove', onDragMove);
+
+            document.addEventListener('touchmove', onDragMove, { passive: false });
+
+            document.addEventListener('mouseup', onDragEnd);
+
+            document.addEventListener('touchend', onDragEnd);
+
+        }
+
+
+
+        function onDragMove(e) {
+
+            if (!isDragging) return;
+
+            e.preventDefault();
+
+            const touch = e.touches ? e.touches[0] : e;
+
+            const moveX = Math.abs(touch.clientX - startX);
+
+            const moveY = Math.abs(touch.clientY - startY);
+
+            if (moveX > clickThreshold || moveY > clickThreshold) {
+
+                fish.classList.add('dragging');
+
+            }
+
+            const surfaceRect = surface.getBoundingClientRect();
+
+            let newX = touch.clientX - surfaceRect.left - offsetX;
+
+            let newY = touch.clientY - surfaceRect.top - offsetY;
+
+            fish.style.left = `${newX}px`;
+
+            fish.style.top = `${newY}px`;
+
+        }
+
+
+
+        function onDragEnd(e) {
+
+            if (!isDragging) return;
+
+            isDragging = false;
+
+            const touch = e.changedTouches ? e.changedTouches[0] : e;
+
+            const moveX = Math.abs(touch.clientX - startX);
+
+            const moveY = Math.abs(touch.clientY - startY);
+
+            if (moveX < clickThreshold && moveY < clickThreshold) {
+
+                openFishDetailModal(fish, surface);
+
+            } else {
+
+                setTimeout(() => {
+
+                    if (fish.dataset.isEditing === 'false') {
+
+                        startFishMovement(fish, surface);
+
+                    }
+
+                }, 400);
+
+            }
+
+            fish.classList.remove('dragging');
+
+            document.removeEventListener('mousemove', onDragMove);
+
+            document.removeEventListener('touchmove', onDragMove);
+
+            document.removeEventListener('mouseup', onDragEnd);
+
+            document.removeEventListener('touchend', onDragEnd);
+
+        }
+
+
+
+        fish.addEventListener('mousedown', onDragStart);
+
+        fish.addEventListener('touchstart', onDragStart, { passive: false });
+
+
+
+        surface.appendChild(fish);
+
+        startFishMovement(fish, surface);
+
+    }
+
+
+
+    // ＝＝＝＝ 魚のアニメーション＆動き制御 ＝＝＝＝
+
+    function animateFishElement(fishEl, cmdKey, surface) {
+        let currentScaleX = fishEl.dataset.scaleX || '1';
+        const isDetail = (detailAquariumSlot.contains(surface));
+
+        // 拡大画面か一覧画面かに応じて移動量をスケール
+        const moveStepY = isDetail ? 35 : 16;
+        const moveStepX = isDetail ? 45 : 20;
+        const dashStep = isDetail ? 80 : 36;
+
+        fishEl.style.transition = isSmoothMode ? 'top 1.0s linear, left 1.0s linear, transform 0.4s ease' : 'all 0.6s ease';
+
+        switch (cmdKey) {
+            case 'up':
+                fishEl.style.top = `${fishEl.offsetTop - moveStepY}px`;
+                break;
+            case 'down':
+                fishEl.style.top = `${fishEl.offsetTop + moveStepY}px`;
+                break;
+            case 'left':
+                fishEl.dataset.scaleX = '1';
+                fishEl.style.left = `${fishEl.offsetLeft - moveStepX}px`;
+                fishEl.style.transform = `scaleX(1)`;
+                break;
+            case 'right':
+                fishEl.dataset.scaleX = '-1';
+                fishEl.style.left = `${fishEl.offsetLeft + moveStepX}px`;
+                fishEl.style.transform = `scaleX(-1)`;
+                break;
+            case 'spin':
+                fishEl.style.transform = `scaleX(${currentScaleX}) rotate(360deg)`;
+                setTimeout(() => {
+                    fishEl.style.transition = 'none';
+                    fishEl.style.transform = `scaleX(${currentScaleX}) rotate(0deg)`;
+                }, isSmoothMode ? 800 : 600);
+                break;
+            case 'dash':
+                fishEl.style.transition = isSmoothMode ? 'all 0.5s ease-out' : 'all 0.3s ease';
+                const dirX = currentScaleX === '1' ? -dashStep : dashStep;
+                fishEl.style.left = `${fishEl.offsetLeft + dirX}px`;
+                break;
+            case 'bubble':
+                createBubbleEffect(fishEl, surface);
+                break;
+            case 'stay':
+                fishEl.style.transform = `scaleX(${currentScaleX})`;
+                break;
+            case 'sway':
+                fishEl.style.transform = `scaleX(${currentScaleX}) rotate(-14deg)`;
+                setTimeout(() => {
+                    fishEl.style.transform = `scaleX(${currentScaleX}) rotate(14deg)`;
+                }, 300);
+                setTimeout(() => {
+                    fishEl.style.transform = `scaleX(${currentScaleX}) rotate(0deg)`;
+                }, 600);
+                break;
+        }
+
+        checkScreenWrap(fishEl, surface, moveStepX, moveStepY);
+    }
+
+    function checkScreenWrap(fishEl, surface, moveStepX = 30, moveStepY = 25) {
+        const cWidth = surface.clientWidth || 300;
+        const cHeight = surface.clientHeight || 180;
+        const fishWidth = fishEl.offsetWidth || 60;
+        const fishHeight = fishEl.offsetHeight || 40;
+        const curLeft = fishEl.offsetLeft;
+        const curTop = fishEl.offsetTop;
+
+        // 右端を越えたら左端からにゅるっと入る
+        if (curLeft > cWidth + 5) {
+            fishEl.style.transition = 'none';
+            fishEl.style.left = `${-fishWidth}px`;
+            void fishEl.offsetWidth; // 強制レイアウト再計算
+            fishEl.style.transition = isSmoothMode ? 'left 1.0s linear, top 1.0s linear' : 'all 0.6s ease';
+            fishEl.style.left = `${Math.min(moveStepX * 1.5, cWidth - fishWidth)}px`;
+            return;
+        }
+        // 左端を越えたら右端からにゅるっと入る
+        if (curLeft < -fishWidth - 5) {
+            fishEl.style.transition = 'none';
+            fishEl.style.left = `${cWidth}px`;
+            void fishEl.offsetWidth;
+            fishEl.style.transition = isSmoothMode ? 'left 1.0s linear, top 1.0s linear' : 'all 0.6s ease';
+            fishEl.style.left = `${Math.max(0, cWidth - fishWidth - moveStepX * 1.5)}px`;
+            return;
+        }
+        // 下端を越えたら上端からにゅるっと入る
+        if (curTop > cHeight + 5) {
+            fishEl.style.transition = 'none';
+            fishEl.style.top = `${-fishHeight}px`;
+            void fishEl.offsetHeight;
+            fishEl.style.transition = isSmoothMode ? 'top 1.0s linear, left 1.0s linear' : 'all 0.6s ease';
+            fishEl.style.top = `${Math.min(moveStepY * 1.5, cHeight - fishHeight)}px`;
+            return;
+        }
+        // 上端を越えたら下端からにゅるっと入る
+        if (curTop < -fishHeight - 5) {
+            fishEl.style.transition = 'none';
+            fishEl.style.top = `${cHeight}px`;
+            void fishEl.offsetHeight;
+            fishEl.style.transition = isSmoothMode ? 'top 1.0s linear, left 1.0s linear' : 'all 0.6s ease';
+            fishEl.style.top = `${Math.max(0, cHeight - fishHeight - moveStepY * 1.5)}px`;
+            return;
+        }
+    }
+
+    function createBubbleEffect(fishEl, surface) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble-effect';
+        const rect = fishEl.getBoundingClientRect();
+        const surfaceRect = surface.getBoundingClientRect();
+        bubble.style.left = `${rect.left - surfaceRect.left + rect.width / 2}px`;
+        bubble.style.top = `${rect.top - surfaceRect.top}px`;
+        surface.appendChild(bubble);
+        setTimeout(() => bubble.remove(), 900);
+    }
+
+    function startFishMovement(fish, surface) {
+        if (fish.moveTimer) clearTimeout(fish.moveTimer);
+        if (isMovementGloballyStopped) return;
+
+        function moveNext() {
+            if (isMovementGloballyStopped || fish.dataset.isEditing === 'true' || fish.classList.contains('dragging')) return;
+
+            let movePattern = [];
+            try {
+                movePattern = JSON.parse(fish.dataset.movePattern || '[]');
+            } catch(e) {
+                movePattern = ['up', 'left'];
+            }
+            if (movePattern.length === 0) movePattern = ['up'];
+
+            let step = parseInt(fish.dataset.moveStep || 0, 10);
+            const cmdKey = movePattern[step];
+
+            if (cmdKey) {
+                animateFishElement(fish, cmdKey, surface);
+            }
+
+            fish.dataset.moveStep = (step + 1) % movePattern.length;
+            const stepDelay = isSmoothMode ? 1000 : 1200;
+            fish.moveTimer = setTimeout(moveNext, stepDelay);
+        }
+        moveNext();
+    }
+
+    function stopFishMovement(fish) {
+        if (fish.moveTimer) clearTimeout(fish.moveTimer);
+    }
+
+    // ＝＝＝＝ 編集モード（拡大画面での操作） ＝＝＝＝
+
+    function toggleEditMode(fish, surface) {
+
+        const isEditing = fish.dataset.isEditing === 'true';
+
+        if (isEditing) {
+
+            fish.dataset.isEditing = 'false';
+
+            fish.style.cursor = 'grab';
+
+            saveAndHideBlocks(fish);
+
+            startFishMovement(fish, surface);
+
+        } else {
+
+            fish.dataset.isEditing = 'true';
+
+            fish.style.cursor = 'pointer';
+
+            stopFishMovement(fish);
+
+            showControlBlocks(fish, surface);
+
+            showDeleteButton(fish, surface);
+
+        }
+
+    }
+
+
+
+    function showDeleteButton(fish, surface) {
+
+        const deleteBtn = document.createElement('div');
+
+        deleteBtn.textContent = '×';
+
+        deleteBtn.className = 'delete-fish-btn';
+
+        deleteBtn.onclick = (event) => {
+
+            event.stopPropagation();
+
+            if (fish.controlBlocksContainer) {
+
+                fish.controlBlocksContainer.remove();
+
+            }
+
+            fish.remove();
+
+            deleteBtn.remove();
+
+            updateAllCounts();
+
+        };
+
+        fish.deleteBtn = deleteBtn;
+
+        surface.appendChild(deleteBtn);
+
+        const fishRect = fish.getBoundingClientRect();
+
+        const surfaceRect = surface.getBoundingClientRect();
+
+        deleteBtn.style.left = (fishRect.right - surfaceRect.left - 12) + 'px';
+
+        deleteBtn.style.top = (fishRect.top - surfaceRect.top - 8) + 'px';
+
+    }
+
+
+
+    
+    // ＝＝＝＝ 魚のプログラミングシーケンス確認＆おそうじモーダル ＝＝＝＝
+    let inspectingFish = null;
+    let inspectingSurface = null;
+    let inspectingAnimationTimer = null;
+
+    const fdmModal = document.getElementById('fish-detail-modal');
+    const fdmCloseXBtn = document.getElementById('fdm-close-x-btn');
+    const fdmCloseBtn = document.getElementById('fdm-close-btn');
+    const fdmRemoveBtn = document.getElementById('fdm-remove-btn');
+    const fdmTestBtn = document.getElementById('fdm-test-btn');
+    const fdmFishImg = document.getElementById('fdm-fish-img');
+    const fdmSlotsContainer = document.getElementById('fdm-slots-container');
+    const fdmPreviewBox = document.getElementById('fdm-preview-box');
+
+    function openFishDetailModal(fish, surface) {
+        inspectingFish = fish;
+        inspectingSurface = surface;
+        stopFishMovement(fish);
+
+        fdmFishImg.src = fish.src;
+        fdmFishImg.style.transform = 'translate(0, 0) scale(1) rotate(0deg)';
+        fdmFishImg.style.transition = 'all 0.5s ease';
+
+        // プログラミングシーケンスの取得
+        let movePattern = [];
+        try {
+            movePattern = JSON.parse(fish.dataset.movePattern || '[]');
+        } catch(e) {
+            movePattern = ['up', 'left', 'right'];
+        }
+
+        // 5スロット生成
+        fdmSlotsContainer.innerHTML = '';
+        for (let i = 0; i < 5; i++) {
+            const cmdKey = movePattern[i];
+            const slot = document.createElement('div');
+            slot.className = 'seq-slot-box';
+
+            if (cmdKey && COMMANDS[cmdKey]) {
+                slot.classList.add('has-cmd');
+                slot.innerHTML = `
+                    <span class="slot-icon">${COMMANDS[cmdKey].icon}</span>
+                    <span class="slot-label">${COMMANDS[cmdKey].label}</span>
+                `;
+            } else {
+                slot.classList.add('empty');
+                slot.innerHTML = `
+                    <span class="slot-icon">⚪</span>
+                    <span class="slot-label">なし</span>
+                `;
+            }
+            fdmSlotsContainer.appendChild(slot);
+        }
+
+        fdmModal.classList.remove('hidden');
+    }
+
+    function closeFishDetailModal() {
+        if (inspectingAnimationTimer) {
+            clearTimeout(inspectingAnimationTimer);
+            inspectingAnimationTimer = null;
+        }
+        if (inspectingFish && inspectingSurface) {
+            startFishMovement(inspectingFish, inspectingSurface);
+        }
+        inspectingFish = null;
+        inspectingSurface = null;
+        fdmModal.classList.add('hidden');
+    }
+
+    function testFishDetailAnimation() {
+        if (!inspectingFish) return;
+        let movePattern = [];
+        try {
+            movePattern = JSON.parse(inspectingFish.dataset.movePattern || '[]');
+        } catch(e) {
+            movePattern = ['up', 'left', 'right'];
+        }
+        const validCmds = movePattern.filter(c => c && COMMANDS[c]);
+        if (validCmds.length === 0) return;
+
+        if (inspectingAnimationTimer) clearTimeout(inspectingAnimationTimer);
+        fdmFishImg.style.transition = 'all 0.45s ease';
+        fdmFishImg.style.transform = 'translate(0, 0) scale(1) rotate(0deg)';
+
+        let step = 0;
+        let curX = 0, curY = 0, curScaleX = 1;
+
+        function runStep() {
+            if (step >= validCmds.length) {
+                setTimeout(() => {
+                    fdmFishImg.style.transform = 'translate(0, 0) scale(1) rotate(0deg)';
+                }, 600);
+                return;
+            }
+            const cmd = validCmds[step];
+            switch(cmd) {
+                case 'up': curY = Math.max(-40, curY - 20); break;
+                case 'down': curY = Math.min(40, curY + 20); break;
+                case 'left': curX = Math.max(-120, curX - 30); curScaleX = 1; break;
+                case 'right': curX = Math.min(120, curX + 30); curScaleX = -1; break;
+                case 'spin':
+                    fdmFishImg.style.transform = `translate(${curX}px, ${curY}px) scaleX(${curScaleX}) rotate(360deg)`;
+                    setTimeout(() => {
+                        fdmFishImg.style.transform = `translate(${curX}px, ${curY}px) scaleX(${curScaleX}) rotate(0deg)`;
+                    }, 400);
+                    break;
+                case 'dash':
+                    curX += (curScaleX === 1 ? -45 : 45);
+                    curX = Math.max(-130, Math.min(130, curX));
+                    break;
+                case 'bubble':
+                    createBubbleEffect(fdmFishImg, fdmPreviewBox);
+                    break;
+                case 'sway':
+                    fdmFishImg.style.transform = `translate(${curX}px, ${curY}px) scaleX(${curScaleX}) rotate(-15deg)`;
+                    setTimeout(() => {
+                        fdmFishImg.style.transform = `translate(${curX}px, ${curY}px) scaleX(${curScaleX}) rotate(15deg)`;
+                    }, 200);
+                    break;
+            }
+            if (cmd !== 'spin' && cmd !== 'sway') {
+                fdmFishImg.style.transform = `translate(${curX}px, ${curY}px) scaleX(${curScaleX})`;
+            }
+            step++;
+            inspectingAnimationTimer = setTimeout(runStep, 700);
+        }
+        runStep();
+    }
+
+    function removeInspectingFish() {
+        if (!inspectingFish) return;
+        if (confirm('この さかなを 水槽から とりのぞきますか？\n（水槽からいなくなります）')) {
+            stopFishMovement(inspectingFish);
+            const parentSurface = inspectingFish.parentElement;
+            inspectingFish.remove();
+            
+            // 子どもの個別水槽バッジ更新
+            if (currentDetailType === 'child' && currentDetailChildId && childrenTanks[currentDetailChildId]) {
+                const cTank = childrenTanks[currentDetailChildId];
+                cTank.badge.textContent = `${cTank.surface.querySelectorAll('.fish').length}匹`;
+                if (detailTankBadge) {
+                    detailTankBadge.textContent = `🧑‍🤝‍🧑 個別水槽 (${cTank.surface.querySelectorAll('.fish').length}匹)`;
+                }
+            }
+            updateAllCounts();
+            updateDetailFishCount();
+            log('🧹 水槽から魚を1匹おそうじしました。');
+
+            if (inspectingAnimationTimer) clearTimeout(inspectingAnimationTimer);
+            inspectingFish = null;
+            inspectingSurface = null;
+            fdmModal.classList.add('hidden');
+        }
+    }
+
+    if (fdmCloseBtn) fdmCloseBtn.addEventListener('click', closeFishDetailModal);
+    if (fdmCloseXBtn) fdmCloseXBtn.addEventListener('click', closeFishDetailModal);
+    if (fdmTestBtn) fdmTestBtn.addEventListener('click', testFishDetailAnimation);
+    if (fdmRemoveBtn) fdmRemoveBtn.addEventListener('click', removeInspectingFish);
+    if (fdmModal) {
+        fdmModal.addEventListener('click', (e) => {
+            if (e.target === fdmModal) closeFishDetailModal();
+        });
+    }
+
+    function showControlBlocks(fish, surface) {
+
+        const existingContainer = fish.parentElement.querySelector('.control-blocks-container');
+
+        if (existingContainer) existingContainer.remove();
+
+        const container = document.createElement("div");
+
+        container.className = 'control-blocks-container';
+
+        
+
+        const fishRect = fish.getBoundingClientRect();
+
+        const surfaceRect = surface.getBoundingClientRect();
+
+        container.style.left = (fishRect.left - surfaceRect.left) + 'px';
+
+        container.style.top = (fishRect.top - surfaceRect.top + fish.offsetHeight + 8) + 'px';
+
+
+
+        let movePattern = [];
+
+        try {
+
+            movePattern = JSON.parse(fish.dataset.movePattern || '[]');
+
+        } catch(e) {
+
+            movePattern = ['up', 'left', null];
+
+        }
+
+
+
+        for (let i = 0; i < 3; i++) {
+
+            const block = document.createElement("div");
+
+            block.className = "block";
+
+            let currentDirection = movePattern[i] || null;
+
+            let dirIndex = DIRECTIONS.indexOf(currentDirection);
+
+            if (dirIndex === -1) dirIndex = 0;
+
+            block.dataset.dirIndex = dirIndex;
+
+            if (DIRECTIONS[dirIndex] && DIRECTION_IMAGES[DIRECTIONS[dirIndex]]) {
+
+                block.style.backgroundImage = `url(${DIRECTION_IMAGES[DIRECTIONS[dirIndex]]})`;
+
+            }
+
+            block.addEventListener("click", (event) => {
+
+                event.stopPropagation();
+
+                let idx = (parseInt(block.dataset.dirIndex, 10) + 1) % DIRECTIONS.length;
+
+                block.dataset.dirIndex = idx;
+
+                const newDirection = DIRECTIONS[idx];
+
+                if (newDirection && DIRECTION_IMAGES[newDirection]) {
+
+                    block.style.backgroundImage = `url(${DIRECTION_IMAGES[newDirection]})`;
+
+                } else {
+
+                    block.style.backgroundImage = 'none';
+
+                }
+
+            });
+
+            container.appendChild(block);
+
+        }
+
+        fish.controlBlocksContainer = container;
+
+        surface.appendChild(container);
+
+    }
+
+    
+
+    function saveAndHideBlocks(fish) {
+
+        if (fish.controlBlocksContainer) {
+
+            const newMovePattern = [];
+
+            const blocks = fish.controlBlocksContainer.querySelectorAll('.block');
+
+            blocks.forEach(block => {
+
+                const dirIndex = parseInt(block.dataset.dirIndex, 10);
+
+                newMovePattern.push(DIRECTIONS[dirIndex]);
+
+            });
+
+            fish.dataset.movePattern = JSON.stringify(newMovePattern);
+
+            fish.controlBlocksContainer.remove();
+
+            fish.controlBlocksContainer = null;
+
+        }
+
+        if (fish.deleteBtn) {
+
+            fish.deleteBtn.remove();
+
+            fish.deleteBtn = null;
+
+        }
+
+    }
+
+
+
+    
+    // ＝＝＝＝ みんなのすいそう（子どもごとの個別水槽）管理 ＝＝＝＝
+    const tabAquariumBtn = document.getElementById('tab-aquarium-btn');
+    const tabChildrenBtn = document.getElementById('tab-children-btn');
+    const childrenView = document.getElementById('children-view');
+    const childrenGrid = document.getElementById('children-grid');
+    const childrenEmptyMsg = document.getElementById('children-empty-msg');
+    const childrenCountBadge = document.getElementById('children-count-badge');
+
+    let currentActiveTab = 'aquarium'; // 'aquarium' | 'children'
+    let currentDetailType = 'aquarium'; // 'aquarium' | 'child'
+    let currentDetailChildId = null;
+
+    // 子ども水槽データマップ: senderId -> { id, emoji, number, surface, card, badge, fishes }
+    const childrenTanks = {};
+
+    function switchViewTab(tab) {
+        if (currentActiveTab === tab) return;
+        currentActiveTab = tab;
+
+        if (tab === 'aquarium') {
+            tabAquariumBtn.classList.add('active');
+            tabChildrenBtn.classList.remove('active');
+            overviewView.classList.remove('hidden');
+            childrenView.classList.add('hidden');
+        } else {
+            tabChildrenBtn.classList.add('active');
+            tabAquariumBtn.classList.remove('active');
+            childrenView.classList.remove('hidden');
+            overviewView.classList.add('hidden');
+        }
+    }
+
+    if (tabAquariumBtn) tabAquariumBtn.addEventListener('click', () => switchViewTab('aquarium'));
+    if (tabChildrenBtn) tabChildrenBtn.addEventListener('click', () => switchViewTab('children'));
+
+    function getOrCreateChildTank(senderId, childEmoji) {
+        const emoji = childEmoji || '🐬';
+        if (childrenTanks[senderId]) {
+            if (childEmoji && childrenTanks[senderId].emoji !== childEmoji) {
+                childrenTanks[senderId].emoji = childEmoji;
+                const emojiSpan = childrenTanks[senderId].card.querySelector('.c-emoji');
+                if (emojiSpan) emojiSpan.textContent = childEmoji;
+            }
+            return childrenTanks[senderId];
+        }
+
+        const childNumber = Object.keys(childrenTanks).length + 1;
+        const card = document.createElement('div');
+        card.className = 'child-tank-card';
+        card.dataset.senderId = senderId;
+
+        // ヘッダー作成
+        const header = document.createElement('div');
+        header.className = 'child-tank-header';
+        header.innerHTML = `
+            <div class="child-tank-title">
+                <span class="c-emoji">${emoji}</span>
+                <span>${childNumber}ばんの すいそう</span>
+            </div>
+            <span class="child-count-pill">0匹</span>
+        `;
+        card.appendChild(header);
+
+        // 水槽サーフェス作成
+        const wrapper = document.createElement('div');
+        wrapper.className = 'child-aquarium-wrapper';
+
+        const surface = document.createElement('div');
+        surface.className = 'aquarium-surface';
+        surface.style.width = '100%';
+        surface.style.height = '100%';
+        surface.style.position = 'relative';
+        wrapper.appendChild(surface);
+        card.appendChild(wrapper);
+
+        const badge = header.querySelector('.child-count-pill');
+
+        // カードクリックで拡大表示
+        card.addEventListener('click', () => {
+            openDetailViewForChild(senderId);
+        });
+
+        // グリッドに追加
+        childrenGrid.appendChild(card);
+        if (childrenEmptyMsg) childrenEmptyMsg.style.display = 'none';
+
+        childrenTanks[senderId] = {
+            id: senderId,
+            emoji: emoji,
+            number: childNumber,
+            surface: surface,
+            wrapper: wrapper,
+            card: card,
+            badge: badge,
+            fishes: []
+        };
+
+        if (childrenCountBadge) {
+            childrenCountBadge.textContent = `${Object.keys(childrenTanks).length}人`;
+        }
+
+        return childrenTanks[senderId];
+    }
+
+    function addFishToChildTank(senderId, childEmoji, fishData) {
+        const childTank = getOrCreateChildTank(senderId, childEmoji);
+        const surface = childTank.surface;
+
+        const fish = document.createElement('img');
+        fish.src = fishData.imageSrc;
+        fish.className = 'fish';
+        fish.dataset.isEditing = 'false';
+        fish.dataset.movePattern = JSON.stringify(fishData.movePattern || ['up', 'left', 'right']);
+        fish.dataset.childEmoji = childTank.emoji;
+        fish.dataset.senderId = senderId;
+        fish.dataset.fishId = fishData.fishId || ('fish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
+
+        // 初期位置（子どもの水槽の比率を維持）
+        let ratioX = fishData.origRatioX;
+        let ratioY = fishData.origRatioY;
+        if (typeof ratioX !== 'number' || isNaN(ratioX)) {
+            const pL = parseFloat(fishData.left);
+            ratioX = (!isNaN(pL) && pL >= 0) ? (pL / 800) : (Math.random() * 0.7 + 0.1);
+        }
+        if (typeof ratioY !== 'number' || isNaN(ratioY)) {
+            const pT = parseFloat(fishData.top);
+            ratioY = (!isNaN(pT) && pT >= 0) ? (pT / 450) : (Math.random() * 0.7 + 0.1);
+        }
+        ratioX = Math.max(0.05, Math.min(0.85, ratioX));
+        ratioY = Math.max(0.05, Math.min(0.85, ratioY));
+        fish.dataset.origRatioX = ratioX;
+        fish.dataset.origRatioY = ratioY;
+
+        const isDetail = (detailAquariumSlot.contains(surface));
+        const containerW = surface.clientWidth || (isDetail ? window.innerWidth : 280);
+        const containerH = surface.clientHeight || (isDetail ? window.innerHeight : 180);
+        fish.style.left = `${Math.floor(ratioX * Math.max(50, containerW - 60))}px`;
+        fish.style.top = `${Math.floor(ratioY * Math.max(40, containerH - 50))}px`;
+
+        // ドラッグ＆タップイベント
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let offsetX = 0, offsetY = 0;
+        const clickThreshold = 5;
+
+        function onDragStart(e) {
+            e.preventDefault();
+            const touch = e.touches ? e.touches[0] : e;
+            startX = touch.clientX;
+            startY = touch.clientY;
+            isDragging = true;
+            stopFishMovement(fish);
+            const rect = fish.getBoundingClientRect();
+            offsetX = touch.clientX - rect.left;
+            offsetY = touch.clientY - rect.top;
+            document.addEventListener('mousemove', onDragMove);
+            document.addEventListener('touchmove', onDragMove, { passive: false });
+            document.addEventListener('mouseup', onDragEnd);
+            document.addEventListener('touchend', onDragEnd);
+        }
+
+        function onDragMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const touch = e.touches ? e.touches[0] : e;
+            const moveX = Math.abs(touch.clientX - startX);
+            const moveY = Math.abs(touch.clientY - startY);
+            if (moveX > clickThreshold || moveY > clickThreshold) {
+                fish.classList.add('dragging');
+            }
+            const sRect = surface.getBoundingClientRect();
+            let newX = touch.clientX - sRect.left - offsetX;
+            let newY = touch.clientY - sRect.top - offsetY;
+            fish.style.left = `${newX}px`;
+            fish.style.top = `${newY}px`;
+        }
+
+        function onDragEnd(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            const touch = e.changedTouches ? e.changedTouches[0] : e;
+            const moveX = Math.abs(touch.clientX - startX);
+            const moveY = Math.abs(touch.clientY - startY);
+            if (moveX < clickThreshold && moveY < clickThreshold) {
+                openFishDetailModal(fish, surface);
+            } else {
+                setTimeout(() => {
+                    if (fish.dataset.isEditing === 'false') {
+                        startFishMovement(fish, surface);
+                    }
+                }, 400);
+            }
+            fish.classList.remove('dragging');
+            document.removeEventListener('mousemove', onDragMove);
+            document.removeEventListener('touchmove', onDragMove);
+            document.removeEventListener('mouseup', onDragEnd);
+            document.removeEventListener('touchend', onDragEnd);
+        }
+
+        fish.addEventListener('mousedown', onDragStart);
+        fish.addEventListener('touchstart', onDragStart, { passive: false });
+
+        surface.appendChild(fish);
+        childTank.fishes.push(fish);
+        startFishMovement(fish, surface);
+
+        // バッジ更新
+        childTank.badge.textContent = `${surface.querySelectorAll('.fish').length}匹`;
+    }
+
+    function openDetailViewForChild(senderId) {
+        const childTank = childrenTanks[senderId];
+        if (!childTank) return;
+
+        currentDetailType = 'child';
+        currentDetailChildId = senderId;
+        const surface = childTank.surface;
+
+        detailAquariumSlot.innerHTML = '';
+        detailAquariumSlot.appendChild(surface);
+
+        if (detailAquariumTitle) {
+            detailAquariumTitle.textContent = `${childTank.emoji} ${childTank.number}ばんの すいそう`;
+        }
+        if (detailTankBadge) {
+            detailTankBadge.textContent = `🧑‍🤝‍🧑 個別水槽 (${surface.querySelectorAll('.fish').length}匹)`;
+        }
+
+        if (detailFocusBtn) detailFocusBtn.style.display = 'none';
+        if (detailCloseBtn) detailCloseBtn.style.display = 'none';
+
+        detailView.classList.remove('hidden');
+        childrenView.classList.add('blurred');
+
+        // 拡大画面に合わせて魚の配置を広げる（左上に固まらないよう元の配置比率で展開）
+        requestAnimationFrame(() => {
+            const detailW = detailAquariumSlot.clientWidth || window.innerWidth || 1000;
+            const detailH = detailAquariumSlot.clientHeight || (window.innerHeight - 150) || 600;
+            surface.querySelectorAll('.fish').forEach(f => {
+                let rx = parseFloat(f.dataset.origRatioX);
+                let ry = parseFloat(f.dataset.origRatioY);
+                if (isNaN(rx)) rx = Math.random() * 0.7 + 0.1;
+                if (isNaN(ry)) ry = Math.random() * 0.7 + 0.1;
+                f.style.left = `${Math.floor(rx * (detailW - 90))}px`;
+                f.style.top = `${Math.floor(ry * (detailH - 70))}px`;
+            });
+        });
+    }
+
+    // ＝＝＝＝ PeerJS 通信管理 ＝＝＝＝
+
+    window.addEventListener('beforeunload', () => {
+        if (peer) {
+            try { peer.destroy(); } catch(e) {}
+        }
+    });
+
+    function initializePeerWithNumericId() {
+
+        const numericId = Math.floor(Math.random() * 9000) + 1000;
+
+        const idString = numericId.toString();
+
+
+
+        if (peer) {
+
+            try { peer.destroy(); } catch(e) {}
+
+        }
+
+
+
+        aquariumNumber.textContent = '----';
+
+        detailAquariumTitle.textContent = '----すいぞくかん';
+
+        modalPeerId.textContent = '----';
+
+        statusText.textContent = '接続準備中...';
+
+
+
+        const PEER_CONFIG = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' }
+                ]
+            }
+        };
+        const fullPeerId = 'pgmsakana-' + idString;
+        peer = new Peer(fullPeerId, PEER_CONFIG);
+
+        peer.on('open', (id) => {
+            myPeerId = idString;
+            aquariumNumber.textContent = idString;
+            detailAquariumTitle.textContent = `${idString}すいぞくかん`;
+            modalPeerId.textContent = idString;
+            statusText.textContent = `待機中 (${idString}番)`;
+            log(`[${idString}すいぞくかん] を開設しました！`);
+        });
+
+
+
+        peer.on('connection', (conn) => {
+
+            log(`[${conn.peer}] から接続がありました。`);
+
+            conn.on('data', (data) => {
+
+                if (!isAccepting) {
+
+                    log(`[${conn.peer}] から魚を受信しましたが、うけいれ停止中のため反映しませんでした。`);
+
+                    try { conn.send(JSON.stringify({ status: 'paused' })); } catch(e) {}
+
+                    return;
+
+                }
+
+                try {
+
+                    const fishDataArray = JSON.parse(data);
+
+                    if (Array.isArray(fishDataArray) && fishDataArray.length > 0) {
+
+                        const result = distributeIncomingFish(fishDataArray, conn.peer);
+
+                        try {
+                            conn.send(JSON.stringify({
+                                status: 'ok',
+                                count: result.newCount,
+                                updatedCount: result.updatedCount
+                            }));
+                        } catch(e) {}
+
+                    }
+
+                } catch (e) {
+
+                    log('エラー: 不正なデータ形式を受信しました。');
+
+                }
+
+            });
+
+        });
+
+
+
+        peer.on('error', (err) => {
+
+            if (err.type === 'unavailable-id') {
+
+                log(`番号 [${idString}] は使用中でした。別の番号で再試行します...`);
+
+                initializePeerWithNumericId();
+
+            } else {
+
+                log('通信エラー: ' + err);
+
+                statusText.textContent = 'エラー発生';
+
+            }
+
+        });
+
+    }
+
+
+
+    // ＝＝＝＝ フローティング操作ボタン ＝＝＝＝
+
+    // 「うけいれ」ボタン
+
+    acceptButton.addEventListener('click', () => {
+
+        isAccepting = !isAccepting;
+
+        const icon = acceptButton.querySelector('.btn-icon');
+
+        if (isAccepting) {
+
+            acceptButton.classList.remove('paused');
+
+            acceptLabel.textContent = 'うけいれ';
+
+            if (icon) icon.textContent = '📥';
+
+            log('魚のうけいれを開始しました。');
+
+        } else {
+
+            acceptButton.classList.add('paused');
+
+            acceptLabel.textContent = 'ていし中';
+
+            if (icon) icon.textContent = '🚫';
+
+            log('魚のうけいれを一時停止しました（新着魚は無視されます）。');
+
+        }
+
+    });
+
+
+
+    // 「すとっぷ」ボタン
+
+    toggleMoveButton.addEventListener('click', () => {
+
+        isMovementGloballyStopped = !isMovementGloballyStopped;
+
+        const allFish = document.querySelectorAll('.fish');
+
+        const icon = toggleMoveButton.querySelector('.btn-icon');
+
+        
+
+        if (isMovementGloballyStopped) {
+
+            toggleMoveButton.classList.add('paused');
+
+            moveLabel.textContent = 'うごかす';
+
+            if (icon) icon.textContent = '▶️';
+
+            log('すべての魚の動きを止めました。');
+
+            allFish.forEach(fish => stopFishMovement(fish));
+
+        } else {
+
+            toggleMoveButton.classList.remove('paused');
+
+            moveLabel.textContent = 'すとっぷ';
+
+            if (icon) icon.textContent = '⏸️';
+
+            log('すべての魚の動きを再開しました。');
+
+            allFish.forEach(fish => {
+
+                const surface = fish.closest('.aquarium-surface');
+
+                if (surface) startFishMovement(fish, surface);
+
+            });
+
+        }
+
+    });
+
+
+
+    // 「ぜんぶ おそうじ」ボタン（水族館全体をおそうじ）
+
+    clearButton.addEventListener('click', () => {
+
+        if (confirm('すいぞくかんの すべての水槽の さかなを ぜんぶ おそうじ しますか？\n（すべての魚がいなくなります）')) {
+
+            for (let i = 0; i < 12; i++) {
+
+                cleanTank(i);
+
+            }
+
+            Object.values(childrenTanks).forEach(cTank => {
+                cTank.surface.querySelectorAll('.fish').forEach(f => {
+                    stopFishMovement(f);
+                    f.remove();
+                });
+                cTank.card.remove();
+            });
+            for (const key in childrenTanks) delete childrenTanks[key];
+            if (childrenEmptyMsg) childrenEmptyMsg.style.display = 'flex';
+            if (childrenCountBadge) childrenCountBadge.textContent = '0人';
+
+            log('🧹 水族館のすべての水槽をおそうじしました。');
+
+        }
+
+    });
+
+
+
+    // 「そのた」設定モーダル
+
+    settingsButton.addEventListener('click', () => {
+
+        settingsModal.classList.remove('hidden');
+
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+
+        settingsModal.classList.add('hidden');
+
+    });
+
+    closeSettingsButton.addEventListener('click', () => {
+
+        settingsModal.classList.add('hidden');
+
+    });
+
+    settingsModal.addEventListener('click', (e) => {
+
+        if (e.target === settingsModal) {
+
+            settingsModal.classList.add('hidden');
+
+        }
+
+    });
+
+
+
+    // 水槽の数ステッパー
+
+    tankMinusBtn.addEventListener('click', () => {
+
+        if (tankCount > 1) {
+
+            tankCount--;
+
+            tankCountDisplay.textContent = `${tankCount} 個`;
+
+            initTankGrid();
+
+            log(`水槽の数を ${tankCount}個 に変更しました。`);
+
+        }
+
+    });
+
+    tankPlusBtn.addEventListener('click', () => {
+
+        if (tankCount < 12) {
+
+            tankCount++;
+
+            tankCountDisplay.textContent = `${tankCount} 個`;
+
+            initTankGrid();
+
+            log(`水槽の数を ${tankCount}個 に変更しました。`);
+
+        }
+
+    });
+
+
+
+    // 定員ステッパー
+
+    capacityMinusBtn.addEventListener('click', () => {
+
+        if (tankCapacity > 10) {
+
+            tankCapacity -= 10;
+
+            capacityDisplay.textContent = `${tankCapacity} 匹`;
+
+            updateAllCounts();
+
+            log(`水槽の定員を ${tankCapacity}匹 に変更しました。`);
+
+        }
+
+    });
+
+    capacityPlusBtn.addEventListener('click', () => {
+
+        if (tankCapacity < 100) {
+
+            tankCapacity += 10;
+
+            capacityDisplay.textContent = `${tankCapacity} 匹`;
+
+            updateAllCounts();
+
+            log(`水槽の定員を ${tankCapacity}匹 に変更しました。`);
+
+        }
+
+    });
+
+
+
+    // ふりわけ方式切り替え
+
+    document.querySelectorAll('input[name="distribute-mode"]').forEach(radio => {
+
+        radio.addEventListener('change', (e) => {
+
+            distributeMode = e.target.value;
+
+            const modeText = distributeMode === 'sequential' ? 'じゅんばん（順番に満員）' : 'ランダム（分散）';
+
+            log(`ふりわけ方式を [${modeText}] に切り替えました。`);
+
+        });
+
+    });
+
+
+
+    // 番号再発行
+
+    reconnectBtn.addEventListener('click', () => {
+
+        if (confirm('水族館の番号を新しく作り直しますか？\n（子どもたちは新しい番号で接続し直す必要があります）')) {
+
+            initializePeerWithNumericId();
+
+        }
+
+    });
+
+
+
+    // ログ消去
+
+    clearLogsBtn.addEventListener('click', () => {
+
+        logs.innerHTML = '';
+
+    });
+
+
+
+    // ＝＝＝＝ 初期化実行 ＝＝＝＝
+
+    window.addEventListener('DOMContentLoaded', () => {
+
+        initTankGrid();
+
+        initializePeerWithNumericId();
+
+    });
+
+</script>
+
+
+
+
+</body>
+
+</html>

@@ -1,0 +1,4986 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+
+
+<meta charset="UTF-8">
+
+
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+
+
+<title>じぶんの すいぞくかん</title>
+
+
+
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+
+
+<style>
+
+
+
+    * {
+
+
+
+        -webkit-tap-highlight-color: transparent;
+
+
+
+        touch-action: manipulation;
+
+
+
+    }
+
+
+
+    html, body {
+
+
+
+        position: fixed;
+
+
+
+        inset: 0;
+
+
+
+        width: 100%;
+
+
+
+        height: 100%;
+
+
+
+        margin: 0;
+
+
+
+        padding: 0;
+
+
+
+        overflow: hidden;
+
+
+
+        touch-action: none;
+
+
+
+        user-select: none;
+
+
+
+        -webkit-user-select: none;
+
+
+
+        overscroll-behavior: none;
+
+
+
+        background-color: #eef2f5;
+
+
+
+        font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+
+
+
+    }
+
+
+
+    body {
+
+
+
+        display: flex;
+
+
+
+        box-sizing: border-box;
+
+
+
+    }
+
+
+
+    #main-container {
+
+
+
+        display: flex;
+
+
+
+        width: 100%;
+
+
+
+        height: 100%;
+
+
+
+        height: 100dvh;
+
+
+
+        gap: 15px;
+
+
+
+        padding: 15px;
+
+
+
+        box-sizing: border-box;
+
+
+
+        overflow: hidden;
+
+
+
+    }
+
+
+
+    #aquarium {
+
+
+
+        position: relative;
+
+
+
+        flex: 1;
+
+
+
+        height: 100%;
+
+
+
+        background: linear-gradient(to bottom, #a0eaff, #0044aa);
+
+
+
+        border: 3px solid #0077aa;
+
+
+
+        border-radius: 18px;
+
+
+
+        overflow: hidden;
+
+
+
+        touch-action: none;
+
+
+
+        box-sizing: border-box;
+
+
+
+        transition: border-color 0.2s, box-shadow 0.2s;
+
+
+
+    }
+
+
+
+    #aquarium.drag-over {
+
+
+
+        border-color: #ffeb3b !important;
+
+
+
+        box-shadow: 0 0 35px rgba(255, 235, 59, 0.85), inset 0 0 25px rgba(255, 255, 255, 0.4);
+
+
+
+    }
+
+
+
+    #fish-list {
+
+
+
+        display: flex;
+
+
+
+        flex-direction: column;
+
+
+
+        gap: 10px;
+
+
+
+        width: 140px;
+
+
+
+        align-items: center;
+
+
+
+        overflow-y: auto;
+
+
+
+        touch-action: pan-y;
+
+
+
+        padding: 4px;
+
+
+
+        box-sizing: border-box;
+
+
+
+        flex-shrink: 0;
+
+
+
+    }
+
+
+
+    .fish-icon, .pencil-btn {
+
+
+
+        width: 110px;
+
+
+
+        height: 75px;
+
+
+
+        cursor: pointer;
+
+
+
+        border: 2px dashed #bbb;
+
+
+
+        border-radius: 14px;
+
+
+
+        padding: 6px;
+
+
+
+        object-fit: contain;
+
+
+
+        background-color: rgba(255, 255, 255, 0.95);
+
+
+
+        touch-action: none;
+
+
+
+        user-select: none;
+
+
+
+        -webkit-user-select: none;
+
+
+
+        -webkit-user-drag: none;
+
+
+
+        flex-shrink: 0;
+
+
+
+        box-sizing: border-box;
+
+
+
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+
+
+
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+
+
+
+    }
+
+
+
+    .pencil-btn {
+
+
+
+        border: 3px solid #ff9800;
+
+
+
+        background: linear-gradient(135deg, #fff9e6 0%, #ffe0b2 100%);
+
+
+
+        color: #e65100;
+
+
+
+        display: flex;
+
+
+
+        flex-direction: column;
+
+
+
+        justify-content: center;
+
+
+
+        align-items: center;
+
+
+
+        cursor: pointer;
+
+
+
+        outline: none;
+
+
+
+    }
+
+
+
+    .pencil-btn svg {
+
+
+
+        width: 32px;
+
+
+
+        height: 32px;
+
+
+
+        pointer-events: none;
+
+
+
+    }
+
+
+
+    .pencil-btn span {
+
+
+
+        font-size: 13px;
+
+
+
+        font-weight: bold;
+
+
+
+        margin-top: 2px;
+
+
+
+        pointer-events: none;
+
+
+
+    }
+
+
+
+    .fish-icon:active, .pencil-btn:active {
+
+
+
+        transform: scale(0.92);
+
+
+
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+
+
+
+    }
+
+
+
+    .fish {
+
+
+
+        position: absolute;
+
+
+
+        width: 140px;
+
+
+
+        cursor: grab;
+
+
+
+        touch-action: none;
+
+
+
+        --scale-x: 1;
+
+
+
+        --translate-y: 0px;
+
+
+
+        --rotate-z: 0deg;
+
+
+
+        transform: scaleX(var(--scale-x)) translateY(var(--translate-y)) rotate(var(--rotate-z));
+
+
+
+        animation: swim-animation 2.5s ease-in-out infinite;
+
+
+
+    }
+
+
+
+    .fish.dragging {
+
+
+
+        animation: none;
+
+
+
+        transition: none !important;
+
+
+
+        cursor: grabbing;
+
+
+
+        z-index: 100;
+
+
+
+    }
+
+
+
+    @keyframes swim-animation {
+
+
+
+        0%   { --translate-y: 0px; --rotate-z: -5deg; }
+
+
+
+        50%  { --translate-y: -8px; --rotate-z: 5deg; }
+
+
+
+        100% { --translate-y: 0px; --rotate-z: -5deg; }
+
+
+
+    }
+
+
+
+    #drawing-editor {
+
+
+
+        position: fixed;
+
+
+
+        top: 0;
+
+
+
+        left: 0;
+
+
+
+        width: 100%;
+
+
+
+        height: 100%;
+
+
+
+        background-color: rgba(0, 0, 0, 0.7);
+
+
+
+        display: flex;
+
+
+
+        justify-content: center;
+
+
+
+        align-items: center;
+
+
+
+        gap: 30px;
+
+
+
+        z-index: 2000;
+
+
+
+    }
+
+
+
+    #canvas-container {
+
+
+
+        width: 400px;
+
+
+
+        height: 400px;
+
+
+
+        background-color: white;
+
+
+
+        border-radius: 50%;
+
+
+
+        box-shadow: 0 0 20px rgba(255,255,255,0.5);
+
+
+
+    }
+
+
+
+    #drawing-canvas {
+
+
+
+        cursor: crosshair;
+
+
+
+    }
+
+
+
+    #color-palette {
+
+
+
+        display: flex;
+
+
+
+        flex-direction: column;
+
+
+
+        gap: 10px;
+
+
+
+    }
+
+
+
+    .color-swatch {
+
+
+
+        width: 50px;
+
+
+
+        height: 50px;
+
+
+
+        border: 2px solid #fff;
+
+
+
+        border-radius: 10px;
+
+
+
+        cursor: pointer;
+
+
+
+        transition: transform 0.1s;
+
+
+
+    }
+
+
+
+    .color-swatch:hover {
+
+
+
+        transform: scale(1.1);
+
+
+
+    }
+
+
+
+    .active-color {
+
+
+
+        border: 4px solid yellow;
+
+
+
+    }
+
+
+
+    #done-drawing-button {
+
+
+
+        padding: 15px 30px;
+
+
+
+        font-size: 1.2em;
+
+
+
+        cursor: pointer;
+
+
+
+        border-radius: 10px;
+
+
+
+        border: 3px solid #fff;
+
+
+
+        background-color: #28a745;
+
+
+
+        color: white;
+
+
+
+    }
+
+    /* ▼▼▼ お絵かきツール用CSS ▼▼▼ */
+    #drawing-tools {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    .tool-btn {
+        width: 68px;
+        height: 68px;
+        cursor: pointer;
+        background-color: #ffffff;
+        border-radius: 14px;
+        padding: 6px;
+        box-sizing: border-box;
+        border: 3px solid #cbd5e1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+        color: #334155;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transition: transform 0.1s, border-color 0.2s, background-color 0.2s;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    .tool-btn:hover {
+        transform: scale(1.05);
+    }
+    .tool-btn:active {
+        transform: scale(0.95);
+    }
+    .tool-btn.active-tool {
+        border-color: #ef4444 !important;
+        background-color: #fef2f2 !important;
+        color: #ef4444 !important;
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.45);
+        transform: scale(1.05);
+    }
+    .tool-btn .tool-icon {
+        display: block;
+        flex-shrink: 0;
+    }
+    .tool-btn .tool-name {
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.3px;
+    }
+
+    /* ▼▼▼ プログラミングモーダル用CSS ▼▼▼ */
+    #programming-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.75);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2500;
+        box-sizing: border-box;
+    }
+    #programming-modal.hidden {
+        display: none !important;
+    }
+    .modal-content {
+        background-color: #ffffff;
+        border-radius: 20px;
+        padding: 20px;
+        width: 90%;
+        max-width: 750px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        box-sizing: border-box;
+        max-height: 95vh;
+        overflow-y: auto;
+        position: relative;
+    }
+    #preview-aquarium {
+        position: relative;
+        width: 100%;
+        height: 180px;
+        background: linear-gradient(to bottom, #a0eaff, #0055cc);
+        border-radius: 12px;
+        overflow: hidden;
+        border: 3px solid #0077aa;
+    }
+    .timeline-container {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        background: #eef5ff;
+        padding: 10px 15px;
+        border-radius: 12px;
+        border: 2px solid #bcd;
+        width: 100%;
+        justify-content: center;
+        box-sizing: border-box;
+        margin-top: 4px;
+    }
+    .slot {
+        width: 60px;
+        height: 60px;
+        border: 3px dashed #9bc;
+        border-radius: 10px;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        position: relative;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        font-size: 24px;
+        user-select: none;
+        -webkit-user-select: none;
+        transition: transform 0.15s, border-color 0.15s;
+    }
+    .slot.selected-slot {
+        border: 4px solid #007bff !important;
+        background-color: #e6f2ff !important;
+        box-shadow: 0 0 10px rgba(0,123,255,0.5);
+    }
+    .slot.active-step {
+        border: 4px solid #ffcc00 !important;
+        background-color: #fff9d6 !important;
+        box-shadow: 0 0 12px #ffcc00;
+        transform: scale(1.08);
+    }
+    .slot-label {
+        font-size: 10px;
+        font-weight: bold;
+        color: #666;
+        position: absolute;
+        bottom: 2px;
+    }
+    .palette-container {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 4px;
+    }
+    .cmd-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 65px;
+        height: 65px;
+        background: white;
+        border: 2px solid #ccc;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: bold;
+        user-select: none;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        transition: transform 0.1s, border-color 0.1s;
+    }
+    .cmd-btn:hover, .cmd-btn:active {
+        transform: scale(1.08);
+        border-color: #007bff;
+        background-color: #e6f2ff;
+    }
+    .cmd-btn .icon {
+        font-size: 24px;
+        margin-bottom: 2px;
+    }
+    .modal-actions {
+        display: flex;
+        gap: 15px;
+        width: 100%;
+        justify-content: center;
+        margin-top: 5px;
+    }
+    .modal-btn {
+        padding: 10px 20px;
+        font-size: 1.1em;
+        font-weight: bold;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        color: white;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    .modal-btn:active {
+        transform: scale(0.95);
+    }
+    .btn-test { background-color: #ff9800; }
+    .btn-clear { background-color: #dc3545; }
+    .btn-done { background-color: #28a745; }
+
+    /* 泡エフェクト */
+    .bubble-effect {
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 50%;
+        border: 2px solid white;
+        animation: rise-bubble 1s ease-out forwards;
+        pointer-events: none;
+        z-index: 50;
+    }
+    @keyframes rise-bubble {
+        0% { transform: translateY(0) scale(0.5); opacity: 1; }
+        100% { transform: translateY(-50px) scale(1.3); opacity: 0; }
+    }
+
+
+
+
+
+    .hidden {
+
+
+
+        display: none !important;
+
+
+
+    }
+
+
+
+    .control-blocks-container {
+
+
+
+        position: absolute;
+
+
+
+        display: flex;
+
+
+
+        gap: 10px;
+
+
+
+    }
+
+
+
+    .block {
+
+
+
+        width: 50px;
+
+
+
+        height: 50px;
+
+
+
+        background-size: contain;
+
+
+
+        background-repeat: no-repeat;
+
+
+
+        background-position: center;
+
+
+
+        background-color: rgba(255, 255, 255, 0.5);
+
+
+
+        border: 1px solid #fff;
+
+
+
+        border-radius: 5px;
+
+
+
+        cursor: pointer;
+
+
+
+    }
+
+
+
+    .touch-clone {
+
+
+
+        position: absolute;
+
+
+
+        opacity: 0.7;
+
+
+
+        pointer-events: none;
+
+
+
+        z-index: 1000;
+
+
+
+    }
+
+
+
+        #fish-list {
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 8px;
+
+        width: 140px;
+
+        align-items: center;
+
+        height: 100%;
+
+        padding: 4px;
+
+        box-sizing: border-box;
+
+        flex-shrink: 0;
+
+        overflow: hidden;
+
+    }
+
+    .send-wave-btn {
+
+        width: 100%;
+
+        height: 48px;
+
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+
+        border: 2px solid #38bdf8;
+
+        border-radius: 12px;
+
+        color: white;
+
+        cursor: pointer;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+        gap: 6px;
+
+        box-shadow: 0 3px 8px rgba(2, 132, 199, 0.35);
+
+        transition: transform 0.1s, filter 0.15s;
+
+        user-select: none;
+
+        -webkit-user-select: none;
+
+        flex-shrink: 0;
+
+        padding: 0 4px;
+
+    }
+
+    .send-wave-btn:hover {
+
+        filter: brightness(1.1);
+
+        transform: translateY(-1px);
+
+    }
+
+    .send-wave-btn:active {
+
+        transform: scale(0.96);
+
+    }
+
+    .send-wave-btn .sw-icon {
+
+        font-size: 1.35rem;
+
+        line-height: 1;
+
+    }
+
+    .send-wave-btn .sw-label {
+
+        font-size: 0.8rem;
+
+        font-weight: 800;
+
+        line-height: 1.1;
+
+        letter-spacing: -0.3px;
+
+        text-align: center;
+
+    }
+
+    #sub-actions-row {
+
+        display: flex;
+
+        gap: 6px;
+
+        width: 100%;
+
+        flex-shrink: 0;
+
+    }
+
+    .sub-action-btn {
+
+        flex: 1;
+
+        height: 38px;
+
+        background: #ffffff;
+
+        border: 2px solid #bce0fd;
+
+        border-radius: 10px;
+
+        cursor: pointer;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+        gap: 4px;
+
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+
+        transition: transform 0.1s, background 0.15s;
+
+        user-select: none;
+
+        -webkit-user-select: none;
+
+        padding: 0 4px;
+
+    }
+
+    .sub-action-btn:active {
+
+        transform: scale(0.94);
+
+    }
+
+    .sub-action-btn .sa-icon {
+
+        font-size: 1.1rem;
+
+        line-height: 1;
+
+    }
+
+    .sub-action-btn .sa-label {
+
+        font-size: 0.75rem;
+
+        font-weight: 800;
+
+        line-height: 1;
+
+    }
+
+    .btn-box {
+
+        border-color: #f59e0b;
+
+        background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+
+    }
+
+    .btn-box .sa-label {
+
+        color: #d97706;
+
+    }
+
+    .btn-folder {
+
+        border-color: #10b981;
+
+        background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+
+    }
+
+    .btn-folder .sa-label {
+
+        color: #059669;
+
+    }
+
+    #drawn-fish-container {
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 8px;
+
+        width: 100%;
+
+        align-items: center;
+
+        flex: 1;
+
+        overflow-y: auto;
+
+        touch-action: pan-y;
+
+        padding-bottom: 8px;
+
+        box-sizing: border-box;
+
+    }
+
+    #keypad-modal {
+
+        position: fixed;
+
+        top: 0;
+
+        left: 0;
+
+        width: 100%;
+
+        height: 100%;
+
+        background-color: rgba(0, 0, 0, 0.6);
+
+        z-index: 3000;
+
+        display: none;
+
+        justify-content: center;
+
+        align-items: center;
+
+    }
+
+    #keypad {
+
+        background-color: #f0f0f0;
+
+        padding: 20px;
+
+        border-radius: 15px;
+
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 12px;
+
+        width: 90%;
+
+        max-width: 320px;
+
+    }
+
+    #keypad-display {
+
+        background-color: #fff;
+
+        border: 2px solid #38bdf8;
+
+        border-radius: 8px;
+
+        font-size: 2.2em;
+
+        font-family: monospace;
+
+        letter-spacing: 6px;
+
+        padding: 8px;
+
+        text-align: center;
+
+        min-height: 52px;
+
+        color: #0284c7;
+
+        font-weight: bold;
+
+    }
+
+    #keypad-grid {
+
+        display: grid;
+
+        grid-template-columns: repeat(3, 1fr);
+
+        gap: 10px;
+
+    }
+
+    .keypad-btn {
+
+        font-size: 1.8em;
+
+        padding: 16px;
+
+        border: 1px solid #ccc;
+
+        border-radius: 10px;
+
+        background-color: #fff;
+
+        cursor: pointer;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+        user-select: none;
+
+    }
+
+    .keypad-btn:active {
+
+        background-color: #d0d0d0;
+
+    }
+
+    .keypad-btn.ok {
+
+        background-color: #28a745;
+
+        color: white;
+
+    }
+
+    .keypad-btn.del {
+
+        background-color: #dc3545;
+
+        color: white;
+
+    }
+
+    .bubble-effect {
+
+        position: absolute;
+
+        width: 16px;
+
+        height: 16px;
+
+        background: rgba(255, 255, 255, 0.7);
+
+        border-radius: 50%;
+
+        border: 2px solid white;
+
+        animation: rise-bubble 1s ease-out forwards;
+
+        pointer-events: none;
+
+        z-index: 50;
+
+    }
+
+    @keyframes rise-bubble {
+
+        0% { transform: translateY(0) scale(0.5); opacity: 1; }
+
+        100% { transform: translateY(-50px) scale(1.3); opacity: 0; }
+
+    }
+
+
+
+    /* 絵文字選択モーダル */
+    #emoji-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 3000;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+    #emoji-modal.hidden {
+        display: none !important;
+    }
+    .emoji-card {
+        background: #ffffff;
+        border-radius: 20px;
+        width: 100%;
+        max-width: 480px;
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+        border: 3px solid #38bdf8;
+    }
+    .emoji-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 18px;
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        color: white;
+    }
+    .emoji-card-header h3 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: bold;
+    }
+    .emoji-card-body {
+        padding: 14px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .emoji-group-title {
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #0369a1;
+        border-bottom: 2px solid #e0f2fe;
+        padding-bottom: 4px;
+    }
+    .emoji-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+    }
+    .emoji-opt-btn {
+        width: 100%;
+        aspect-ratio: 1;
+        background: #f0f9ff;
+        border: 2px solid #bae6fd;
+        border-radius: 12px;
+        font-size: 1.65rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.1s, background-color 0.15s, border-color 0.15s;
+        user-select: none;
+        -webkit-user-select: none;
+        padding: 0;
+        line-height: 1;
+    }
+    .emoji-opt-btn:hover {
+        transform: scale(1.15);
+        background: #e0f2fe;
+        border-color: #38bdf8;
+    }
+    .emoji-opt-btn:active {
+        transform: scale(0.92);
+        background: #bae6fd;
+    }
+
+
+    .aquarium-title-badge {
+        position: absolute;
+        top: 14px;
+        left: 18px;
+        background: rgba(255, 255, 255, 0.22);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border: 1.5px solid rgba(255, 255, 255, 0.45);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #ffffff;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-select: none;
+        z-index: 10;
+        letter-spacing: 0.5px;
+    }
+</style>
+
+
+
+</head>
+
+
+
+<body>
+
+
+
+<div id="main-container" style="display: flex; width: 100%; height: 100%; gap: 20px;">
+
+
+
+    <div id="aquarium"><div class="aquarium-title-badge">🐠 じぶんの すいぞくかん</div></div>
+
+
+
+    <div id="fish-list">
+
+        <button id="pencil-btn" class="pencil-btn" type="button" aria-label="さかなをかく">
+
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M14.06,9L15,9.94L5.92,19H5V18.08L14.06,9M17.66,3C17.41,3 17.15,3.1 16.96,3.29L15.13,5.12L18.88,8.87L20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18.17,3.09 17.92,3 17.66,3M14.06,6.19L3,17.25V21H6.75L17.81,9.94L14.06,6.19Z" /></svg>
+
+            <span>✏️ かく</span>
+
+        </button>
+
+
+
+        <!-- すいぞくかんにおくる（メイン操作ボタン） -->
+
+        <button id="send-wave-btn" class="send-wave-btn" type="button" aria-label="すいぞくかんにおくる" title="すいぞくかんにおくる（ながおしでばんごうへんこう）">
+
+            <span class="sw-icon">🌊</span>
+
+            <span class="sw-label">すいぞくかんにおくる</span>
+
+        </button>
+
+
+
+        <!-- しまう ＆ ひらく（サブ操作ボタン） -->
+
+        <div id="sub-actions-row">
+
+            <button id="export-box-btn" class="sub-action-btn btn-box" type="button" title="さかなを箱にしまう（保存）">
+
+                <span class="sa-icon">📦</span>
+
+                <span class="sa-label">しまう</span>
+
+            </button>
+
+            <button id="import-folder-btn" class="sub-action-btn btn-folder" type="button" title="さかなをひらく（読み込み）">
+
+                <span class="sa-icon">📂</span>
+
+                <span class="sa-label">ひらく</span>
+
+            </button>
+
+            <input type="file" id="import-file" accept=".json" style="display: none;">
+
+        </div>
+
+
+
+        <!-- 描いた魚アイコンが並ぶエリア -->
+
+        <div id="drawn-fish-container"></div>
+
+    </div>
+
+</div>
+
+
+
+<div id="drawing-editor" class="hidden">
+
+
+
+    <div id="drawing-tools">
+        <button class="tool-btn size-btn" data-size="30" type="button" aria-label="太い線">
+            <svg class="tool-icon" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg>
+            <span class="tool-name">太</span>
+        </button>
+        <button class="tool-btn size-btn" data-size="16" type="button" aria-label="普通の線">
+            <svg class="tool-icon" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>
+            <span class="tool-name">中</span>
+        </button>
+        <button class="tool-btn size-btn" data-size="5" type="button" aria-label="細い線">
+            <svg class="tool-icon" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+            <span class="tool-name">ほそ</span>
+        </button>
+        <button id="eraser-tool" class="tool-btn" type="button" aria-label="けしごむ">
+            <svg class="tool-icon" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M16.24,3.56L21.19,8.5C21.97,9.29 21.97,10.55 21.19,11.34L12,20.53C10.44,22.09 7.91,22.09 6.34,20.53L2.81,17C2.03,16.21 2.03,14.95 2.81,14.16L13.41,3.56C14.2,2.78 15.46,2.78 16.24,3.56M4.22,15.58L7.76,19.11C8.54,19.9 9.8,19.9 10.59,19.11L14.12,15.58L9.17,10.63L4.22,15.58Z"/></svg>
+            <span class="tool-name">けしごむ</span>
+        </button>
+    </div>
+
+
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+
+
+
+        <div id="canvas-container">
+
+
+
+            <canvas id="drawing-canvas" width="400" height="400"></canvas>
+
+
+
+        </div>
+
+
+
+        <button id="done-drawing-button">できた</button>
+
+
+
+    </div>
+
+
+
+    <div id="color-palette">
+
+
+
+        <div class="color-swatch active-color" data-color="#ff0000" style="background-color: #ff0000;"></div>
+
+
+
+        <div class="color-swatch" data-color="#0000ff" style="background-color: #0000ff;"></div>
+
+
+
+        <div class="color-swatch" data-color="#ffff00" style="background-color: #ffff00;"></div>
+
+
+
+        <div class="color-swatch" data-color="#00ffff" style="background-color: #00ffff;"></div>
+
+
+
+        <div class="color-swatch" data-color="#008000" style="background-color: #008000;"></div>
+
+
+
+        <div class="color-swatch" data-color="#ffc0cb" style="background-color: #ffc0cb;"></div>
+
+
+
+        <div class="color-swatch" data-color="#800080" style="background-color: #800080;"></div>
+
+
+
+        <div class="color-swatch" data-color="#000000" style="background-color: #000000;"></div>
+
+
+
+    </div>
+
+
+
+</div>
+
+
+
+<div id="keypad-modal">
+
+    <div id="keypad">
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+
+            <h3 id="keypad-title" style="margin: 0; color: #0284c7; font-size: 1.15rem; font-weight: bold;">すいぞくかんの ４けたの ばんごう</h3>
+
+            <button id="keypad-close-btn" type="button" style="background: none; border: none; font-size: 1.5rem; color: #888; cursor: pointer; padding: 0 4px; line-height: 1;">×</button>
+
+        </div>
+
+        <div id="keypad-display"></div>
+
+        <div id="keypad-grid">
+
+            <button class="keypad-btn" data-key="1">1</button>
+
+            <button class="keypad-btn" data-key="2">2</button>
+
+            <button class="keypad-btn" data-key="3">3</button>
+
+            <button class="keypad-btn" data-key="4">4</button>
+
+            <button class="keypad-btn" data-key="5">5</button>
+
+            <button class="keypad-btn" data-key="6">6</button>
+
+            <button class="keypad-btn" data-key="7">7</button>
+
+            <button class="keypad-btn" data-key="8">8</button>
+
+            <button class="keypad-btn" data-key="9">9</button>
+
+            <button class="keypad-btn del" data-key="del">⌫</button>
+
+            <button class="keypad-btn" data-key="0">0</button>
+
+            <button class="keypad-btn ok" data-key="ok">✓</button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+<!-- 絵文字マーク選択モーダル -->
+<div id="emoji-modal" class="hidden">
+    <div class="emoji-card">
+        <div class="emoji-card-header">
+            <h3>きみの マークを えらんでね！✨</h3>
+            <button id="emoji-close-btn" type="button" style="background: none; border: none; font-size: 1.5rem; color: white; cursor: pointer; padding: 2px 6px;">✕</button>
+        </div>
+        <div class="emoji-card-body">
+            <div class="emoji-group-title">🌊 うみの いきもの</div>
+            <div class="emoji-grid">
+                <button class="emoji-opt-btn" type="button" data-emoji="🐬">🐬</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐳">🐳</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐋">🐋</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🦈">🦈</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐙">🐙</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🦑">🦑</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🦐">🦐</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🦀">🦀</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐡">🐡</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐠">🐠</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐟">🐟</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐢">🐢</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🦭">🦭</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐧">🐧</button>
+            </div>
+            <div class="emoji-group-title">🐾 どうぶつ</div>
+            <div class="emoji-grid">
+                <button class="emoji-opt-btn" type="button" data-emoji="🐶">🐶</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐱">🐱</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐭">🐭</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐹">🐹</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐰">🐰</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🦊">🦊</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐻">🐻</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐼">🐼</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐨">🐨</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐯">🐯</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🦁">🦁</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐮">🐮</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐷">🐷</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🐸">🐸</button>
+            </div>
+            <div class="emoji-group-title">🌸 しぜん・たべもの・マーク</div>
+            <div class="emoji-grid">
+                <button class="emoji-opt-btn" type="button" data-emoji="🌸">🌸</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🌻">🌻</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🍀">🍀</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🍎">🍎</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🍓">🍓</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🍊">🍊</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🍉">🍉</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🌟">🌟</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🚀">🚀</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🚗">🚗</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🌈">🌈</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🎈">🎈</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="🎨">🎨</button>
+                <button class="emoji-opt-btn" type="button" data-emoji="⚽">⚽</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- プログラミングモーダル -->
+
+
+
+<div id="programming-modal" class="hidden">
+
+
+
+    <div class="modal-content">
+        <button id="prog-modal-close-btn" type="button" aria-label="とじる" style="position: absolute; top: 12px; right: 16px; background: none; border: none; font-size: 1.5rem; color: #888; cursor: pointer; padding: 4px; line-height: 1;">✕</button>
+
+
+
+        <h2 style="margin: 0; color: #007bff; font-size: 1.3em; text-align: center;">さかなの うごきを プログラミングしよう！</h2>
+
+
+
+        <div id="preview-aquarium">
+
+
+
+            <img id="preview-fish" src="" style="position: absolute; width: 100px; left: 50%; top: 50%; transform: translate(-50%, -50%); transition: all 0.6s ease;">
+
+
+
+        </div>
+
+
+
+        <div style="width: 100%; text-align: center;">
+
+
+
+            <span style="font-weight: bold; color: #555; font-size: 13px;">じゅんばんに うごきを えらんでね（ワクをえらんでいれかえできるよ）</span>
+
+
+
+            <div class="timeline-container" id="timeline-slots"></div>
+
+
+
+        </div>
+
+
+
+        <div style="width: 100%; text-align: center;">
+
+
+
+            <span style="font-weight: bold; color: #555; font-size: 13px;">うごきブロック</span>
+
+
+
+            <div class="palette-container" id="palette-buttons">
+
+
+
+                <button class="cmd-btn" data-cmd="up"><span class="icon">⬆️</span>まえ</button>
+
+
+
+                <button class="cmd-btn" data-cmd="down"><span class="icon">⬇️</span>うしろ</button>
+
+
+
+                <button class="cmd-btn" data-cmd="left"><span class="icon">⬅️</span>ひだり</button>
+
+
+
+                <button class="cmd-btn" data-cmd="right"><span class="icon">➡️</span>みぎ</button>
+
+
+
+                <button class="cmd-btn" data-cmd="spin"><span class="icon">🌀</span>くるっと</button>
+
+
+
+                <button class="cmd-btn" data-cmd="dash"><span class="icon">⚡</span>ダッシュ</button>
+
+
+
+                <button class="cmd-btn" data-cmd="bubble"><span class="icon">🫧</span>あわ</button>
+
+
+
+                <button class="cmd-btn" data-cmd="stay"><span class="icon">🐚</span>やすむ</button>
+
+
+
+                <button class="cmd-btn" data-cmd="sway"><span class="icon">🌿</span>ゆらゆら</button>
+
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+        <div class="modal-actions">
+
+
+
+            <button id="prog-test-btn" class="modal-btn btn-test">▶️ ためす</button>
+
+
+
+            <button id="prog-clear-btn" class="modal-btn btn-clear">🗑️ ぜんぶけす</button>
+
+
+
+            <button id="prog-done-btn" class="modal-btn btn-done">✓ できた！</button>
+
+
+
+        </div>
+
+
+
+    </div>
+
+
+
+</div>
+
+
+
+<script>
+
+// ＝＝＝＝ ページ読み込み時：前回の設定・キャッシュをクリアして完全初期化 ＝＝＝＝
+try {
+    localStorage.removeItem('pgm_teacher_id');
+    localStorage.removeItem('pgm_child_emoji');
+    sessionStorage.clear();
+} catch(e) {
+    console.warn('Storage cleanup error:', e);
+}
+
+
+
+
+    // ============================================================
+
+
+
+    // iPad Safari 専用: ダブルタップズーム＆ピンチズーム完全防止
+
+
+
+    // ============================================================
+
+
+
+    let lastTouchEndTime = 0;
+
+
+
+    document.addEventListener('touchend', (e) => {
+
+
+
+        const now = Date.now();
+
+
+
+        if (now - lastTouchEndTime <= 300) {
+
+
+
+            e.preventDefault();
+
+
+
+        }
+
+
+
+        lastTouchEndTime = now;
+
+
+
+    }, { passive: false });
+
+
+
+    // 2本指以上のピンチズームジェスチャーを阻止
+
+
+
+    document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+
+
+
+    document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+
+
+
+    document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+
+
+    // タッチデバイスで即座に反応するタップヘルパー関数
+
+
+
+    function bindFastTap(elem, callback) {
+        if (!elem) return;
+        let lastTouchTime = 0;
+        let startX = 0, startY = 0;
+
+        elem.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) return;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+
+        elem.addEventListener('touchend', (e) => {
+            const touch = e.changedTouches[0];
+            const dist = Math.hypot(touch.clientX - startX, touch.clientY - startY);
+            if (dist < 15) {
+                e.preventDefault();
+                lastTouchTime = Date.now();
+                callback(e);
+            }
+        }, { passive: false });
+
+        elem.addEventListener('click', (e) => {
+            if (Date.now() - lastTouchTime < 500) {
+                e.preventDefault();
+                return;
+            }
+            callback(e);
+        });
+    }
+
+
+
+    const mainContainer = document.getElementById('main-container');
+
+
+
+    const drawingEditor = document.getElementById('drawing-editor');
+
+
+
+    const pencilBtn = document.getElementById('pencil-btn') || document.getElementById('pencil-icon');
+
+
+
+    const doneDrawingButton = document.getElementById('done-drawing-button');
+
+
+
+    const canvas = document.getElementById('drawing-canvas');
+
+
+
+    const ctx = canvas.getContext('2d');
+
+
+
+    const colorSwatches = document.querySelectorAll('.color-swatch');
+
+
+
+    const sendWaveBtn = document.getElementById('send-wave-btn');
+
+    const exportBoxBtn = document.getElementById('export-box-btn');
+
+    const importFolderBtn = document.getElementById('import-folder-btn');
+
+    const importFile = document.getElementById('import-file');
+
+    const aquarium = document.getElementById("aquarium");
+
+    const drawnFishContainer = document.getElementById('drawn-fish-container');
+
+    const keypadModal = document.getElementById('keypad-modal');
+
+    const keypadDisplay = document.getElementById('keypad-display');
+
+    const keypadButtons = document.querySelectorAll('.keypad-btn');
+
+    const keypadCloseBtn = document.getElementById('keypad-close-btn');
+
+
+
+    // ▼▼▼ お絵かきツール関連の要素を取得 ▼▼▼
+
+
+
+    const eraserTool = document.getElementById('eraser-tool');
+
+
+
+    const sizeButtons = document.querySelectorAll('.size-btn');
+
+
+
+    const allToolButtons = document.querySelectorAll('.tool-btn');
+
+
+
+    let currentLineWidth = 16; // 初期値は「中」
+
+
+
+    const DIRECTIONS = [null, 'left', 'up', 'right', 'down'];
+
+
+
+    const DIRECTION_IMAGES = { left: 'left.png', up: 'up.png', right: 'right.png', down: 'down.png' };
+
+
+
+    const COMMANDS = {
+
+
+
+        up: { label: 'まえ', icon: '⬆️' },
+
+
+
+        down: { label: 'うしろ', icon: '⬇️' },
+
+
+
+        left: { label: 'ひだり', icon: '⬅️' },
+
+
+
+        right: { label: 'みぎ', icon: '➡️' },
+
+
+
+        spin: { label: 'くるっと', icon: '🌀' },
+
+
+
+        dash: { label: 'ダッシュ', icon: '⚡' },
+
+
+
+        bubble: { label: 'あわ', icon: '🫧' },
+
+
+
+        stay: { label: 'やすむ', icon: '🐚' },
+
+
+
+        sway: { label: 'ゆらゆら', icon: '🌿' }
+
+
+
+    };
+
+
+
+    const MAX_SLOTS = 5;
+
+
+
+    let currentMode = 'draw';
+
+
+
+    let currentColor = '#ff0000';
+
+
+
+    let isDrawing = false;
+
+
+
+    let lastX = 0;
+
+
+
+    let lastY = 0;
+
+
+
+    // プログラミングモーダル用変数
+
+
+
+    const programmingModal = document.getElementById('programming-modal');
+
+
+
+    const previewAquarium = document.getElementById('preview-aquarium');
+
+
+
+    const previewFish = document.getElementById('preview-fish');
+
+
+
+    const timelineSlots = document.getElementById('timeline-slots');
+
+
+
+    const paletteButtons = document.getElementById('palette-buttons');
+
+
+
+    const progTestBtn = document.getElementById('prog-test-btn');
+
+
+
+    const progClearBtn = document.getElementById('prog-clear-btn');
+
+
+
+    const progDoneBtn = document.getElementById('prog-done-btn');
+    const progModalCloseBtn = document.getElementById('prog-modal-close-btn');
+
+    if (progModalCloseBtn) {
+        bindFastTap(progModalCloseBtn, () => {
+            if (progDoneBtn) progDoneBtn.click();
+        });
+    }
+
+    if (programmingModal) {
+        programmingModal.addEventListener('click', (e) => {
+            if (e.target === programmingModal) {
+                if (progDoneBtn) progDoneBtn.click();
+            }
+        });
+    }
+
+
+
+    let currentEditingTarget = null;
+
+
+
+    let currentMovePattern = [null, null, null, null, null];
+
+
+
+    let selectedSlotIndex = 0;
+
+
+
+    let isPreviewRunning = false;
+
+
+
+    let previewTimer = null;
+
+
+
+    // お絵かきツールのイベント設定
+
+
+
+    function setActiveTool(selectedTool) {
+
+
+
+        allToolButtons.forEach(btn => btn.classList.remove('active-tool'));
+
+
+
+        if (selectedTool) {
+
+
+
+            selectedTool.classList.add('active-tool');
+
+
+
+        }
+
+
+
+    }
+
+
+
+    sizeButtons.forEach(button => {
+
+
+
+        bindFastTap(button, () => {
+
+
+
+            currentMode = 'draw';
+
+
+
+            currentLineWidth = parseInt(button.dataset.size);
+
+
+
+            setActiveTool(button);
+
+
+
+        });
+
+
+
+    });
+
+
+
+    bindFastTap(eraserTool, () => {
+
+
+
+        currentMode = 'erase';
+
+
+
+        setActiveTool(eraserTool);
+
+
+
+    });
+
+    colorSwatches.forEach(swatch => {
+        bindFastTap(swatch, () => {
+            colorSwatches.forEach(s => s.classList.remove('active-color'));
+            swatch.classList.add('active-color');
+            currentColor = swatch.dataset.color;
+            currentMode = 'draw';
+            const activeSize = document.querySelector('.size-btn.active-tool') || document.querySelector('.size-btn[data-size="16"]');
+            if (activeSize) setActiveTool(activeSize);
+        });
+    });
+
+
+
+    function openKeypadModal() {
+
+        keypadDisplay.textContent = '';
+
+        keypadModal.style.display = 'flex';
+
+    }
+
+
+
+    function closeKeypadModal() {
+
+        keypadModal.style.display = 'none';
+
+    }
+
+
+
+    if (keypadCloseBtn) {
+
+        bindFastTap(keypadCloseBtn, closeKeypadModal);
+
+    }
+
+    keypadModal.addEventListener('click', (e) => {
+
+        if (e.target === keypadModal) {
+
+            closeKeypadModal();
+
+        }
+
+    });
+
+
+
+    
+    // ＝＝＝＝ きみのマーク（絵文字）選択モーダル ＝＝＝＝
+    const emojiModal = document.getElementById('emoji-modal');
+    const emojiCloseBtn = document.getElementById('emoji-close-btn');
+    const emojiButtons = document.querySelectorAll('.emoji-opt-btn');
+    let onEmojiSelectedCallback = null;
+
+    function updateSendButtonEmoji(emoji) {
+        const swIcon = document.querySelector('#send-wave-btn .sw-icon');
+        const swLabel = document.querySelector('#send-wave-btn .sw-label');
+        const activeEmoji = emoji || localStorage.getItem('pgm_child_emoji') || '🌊';
+        if (swIcon) swIcon.textContent = activeEmoji;
+        const savedId = localStorage.getItem('pgm_teacher_id');
+        if (swLabel) {
+            swLabel.textContent = (savedId && savedId.length === 4) ? `${savedId}ばんにおくる` : 'すいぞくかんにおくる';
+        }
+    }
+
+    function setSendingState(isSending) {
+        const swIcon = document.querySelector('#send-wave-btn .sw-icon');
+        const swLabel = document.querySelector('#send-wave-btn .sw-label');
+        if (!sendWaveBtn) return;
+        if (isSending) {
+            sendWaveBtn.disabled = true;
+            sendWaveBtn.style.opacity = '0.7';
+            if (swIcon) swIcon.textContent = '⏳';
+            if (swLabel) swLabel.textContent = 'おくっているよ...';
+        } else {
+            sendWaveBtn.disabled = false;
+            sendWaveBtn.style.opacity = '1';
+            updateSendButtonEmoji();
+        }
+    }
+
+    function openEmojiModal(callback) {
+        onEmojiSelectedCallback = callback || null;
+        if (emojiModal) emojiModal.classList.remove('hidden');
+    }
+
+    function closeEmojiModal() {
+        if (emojiModal) emojiModal.classList.add('hidden');
+    }
+
+    if (emojiCloseBtn) {
+        bindFastTap(emojiCloseBtn, closeEmojiModal);
+    }
+    if (emojiModal) {
+        emojiModal.addEventListener('click', (e) => {
+            if (e.target === emojiModal) closeEmojiModal();
+        });
+    }
+
+    emojiButtons.forEach(btn => {
+        bindFastTap(btn, () => {
+            const chosenEmoji = btn.dataset.emoji || btn.textContent.trim();
+            localStorage.setItem('pgm_child_emoji', chosenEmoji);
+            updateSendButtonEmoji(chosenEmoji);
+            closeEmojiModal();
+            if (onEmojiSelectedCallback) {
+                const cb = onEmojiSelectedCallback;
+                onEmojiSelectedCallback = null;
+                cb(chosenEmoji);
+            }
+        });
+    });
+
+    // 起動時に保存済みの絵文字をボタンに反映
+    updateSendButtonEmoji();
+
+    keypadButtons.forEach(button => {
+        bindFastTap(button, () => {
+            const key = button.dataset.key;
+            let currentId = keypadDisplay.textContent;
+
+            if (key === 'ok') {
+                if (currentId.length === 4) {
+                    localStorage.setItem('pgm_teacher_id', currentId);
+                    updateSendButtonEmoji();
+                    closeKeypadModal();
+
+                    // 番号入力直後：絵文字が未設定なら絵文字を選んでもらい、その後送信！
+                    const allFish = document.querySelectorAll('.fish');
+                    const targetFishList = Array.from(allFish); // 水槽にいるすべての魚（2匹でも3匹でも全部）を送信
+
+                    const savedEmoji = localStorage.getItem('pgm_child_emoji');
+                    if (!savedEmoji) {
+                        openEmojiModal((emoji) => {
+                            if (targetFishList.length > 0) {
+                                doSendFish(currentId, targetFishList, emoji);
+                            }
+                        });
+                    } else {
+                        if (targetFishList.length > 0) {
+                            doSendFish(currentId, targetFishList, savedEmoji);
+                        }
+                    }
+                } else {
+                    alert('ばんごうは ４けた で いれてね！');
+                }
+            } else if (key === 'del') {
+                keypadDisplay.textContent = currentId.slice(0, -1);
+            } else {
+                if (currentId.length < 4) {
+                    keypadDisplay.textContent += key;
+                }
+            }
+        });
+    });
+
+    // ＝＝＝＝ 通信管理（PeerJS & WebRTC） ＝＝＝＝
+    const PEER_PREFIX = 'pgmsakana-';
+    let peer = null;
+    let conn = null;
+
+    const PEER_CONFIG = {
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ]
+        }
+    };
+
+    window.addEventListener('beforeunload', () => {
+        if (conn) { try { conn.close(); } catch(e) {} }
+        if (peer) { try { peer.destroy(); } catch(e) {} }
+    });
+
+    window.addEventListener('pageshow', (e) => {
+        if (e.persisted) {
+            if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
+            initializePeer();
+        }
+    });
+
+    function handleSessionDisconnect(reasonMsg) {
+        if (sendTimeoutTimer) clearTimeout(sendTimeoutTimer);
+        setSendingState(false);
+        currentSendingFish = null;
+
+        if (conn) {
+            try { conn.close(); } catch(e) {}
+            conn = null;
+        }
+        if (peer) {
+            try { peer.destroy(); } catch(e) {}
+            peer = null;
+        }
+        initializePeer();
+
+        localStorage.removeItem('pgm_teacher_id');
+        localStorage.removeItem('pgm_child_emoji');
+        updateSendButtonEmoji('🌊');
+
+        const allFish = document.querySelectorAll('.fish');
+        allFish.forEach(fish => {
+            fish.dataset.isSent = "false";
+        });
+
+        const defaultMsg = 'ねむっていたり じかんが たったから、\nせんせいの すいぞくかんと きれちゃったよ！💦\n\nもういちど、きょうの 先生のばんごうを いれて\nあたらしい すいそう として おくろう！✨';
+        alert(reasonMsg || defaultMsg);
+
+        if (allFish.length > 0) {
+            openKeypadModal();
+        }
+    }
+
+    // スリープ検知（タブレットが長く眠っていた後の復帰検知）
+    let lastHeartbeat = Date.now();
+    setInterval(() => {
+        const now = Date.now();
+        if (now - lastHeartbeat > 15000) {
+            console.log('スリープからの復帰を検知');
+            if (peer && (peer.disconnected || peer.destroyed)) {
+                try { peer.destroy(); } catch(e) {}
+                peer = null;
+                initializePeer();
+            }
+        }
+        lastHeartbeat = now;
+    }, 2000);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            if (peer && peer.disconnected && !peer.destroyed) {
+                try { peer.reconnect(); } catch(e) {}
+            }
+        }
+    });
+
+    function initializePeer() {
+        if (peer && !peer.destroyed) return;
+        peer = new Peer(PEER_CONFIG);
+        peer.on('open', (id) => {
+            console.log('自分のPeer ID:', id);
+        });
+        peer.on('error', (err) => {
+            console.error('Peerエラー:', err);
+            const savedId = localStorage.getItem('pgm_teacher_id') || '';
+            const msg = savedId
+                ? `すいぞくかん（${savedId}番）と つながらなかったよ！💦\n\nもういちど、きょうの 先生のばんごうを いれて\nあたらしい すいそう として おくろう！✨`
+                : 'せんせいの すいぞくかんと つながらなかったよ！💦\n\nもういちど 先生のばんごうを いれてね！';
+            handleSessionDisconnect(msg);
+        });
+    }
+
+    // 🌊 すいぞくかんにおくる（送信）
+
+    bindFastTap(sendWaveBtn, () => {
+
+        const allFish = document.querySelectorAll('.fish');
+        const unplacedFishIcons = document.querySelectorAll('#drawn-fish-container .fish-icon');
+
+        if (allFish.length === 0) {
+            if (unplacedFishIcons.length > 0) {
+                alert('かいた さかなを ゆびで\nすいそうの なかに ひっぱって いれてから\nおくってね！🐠💨');
+            } else {
+                alert('あれあれ？\nすいそうに さかなが 1ぴきも いないよ！\nさかなを かいて すいそうに いれてね。');
+            }
+            return;
+        }
+
+        // 水槽にいるすべての魚（2匹でも3匹でも全部）を送信対象にする
+        const targetFishList = Array.from(allFish);
+
+        // スリープ等でPeerが切断されていたら再接続または初期化
+        if (!peer || peer.destroyed || peer.disconnected) {
+            if (peer && peer.disconnected && !peer.destroyed) {
+                try { peer.reconnect(); } catch(e) {}
+            } else {
+                initializePeer();
+            }
+        }
+
+
+
+        const savedId = localStorage.getItem('pgm_teacher_id') || '';
+        if (!savedId || savedId.length !== 4) {
+            // 初回：番号入力を促す（完了後に絵文字選択へ）
+            openKeypadModal();
+            return;
+        }
+
+        const savedEmoji = localStorage.getItem('pgm_child_emoji') || '';
+        if (!savedEmoji) {
+            // 絵文字が未選択の場合は絵文字選択を開く
+            openEmojiModal((emoji) => {
+                doSendFish(savedId, targetFishList, emoji);
+            });
+            return;
+        }
+
+        // 2回目以降：自動で送信！
+        doSendFish(savedId, targetFishList, savedEmoji);
+
+    });
+
+
+
+    // 長押し（0.9秒）で水族館番号を変更
+
+    let sendBtnPressTimer = null;
+
+    sendWaveBtn.addEventListener('touchstart', (e) => {
+
+        sendBtnPressTimer = setTimeout(() => {
+
+            if (confirm('すいぞくかんの 番号を変更しますか？\n（「キャンセル」を押すと、きみのマーク（絵文字）を変更できます）')) {
+                openKeypadModal();
+            } else {
+                openEmojiModal();
+            }
+
+        }, 900);
+
+    }, { passive: true });
+
+    sendWaveBtn.addEventListener('touchend', () => {
+
+        if (sendBtnPressTimer) clearTimeout(sendBtnPressTimer);
+
+    });
+
+    sendWaveBtn.addEventListener('touchmove', () => {
+
+        if (sendBtnPressTimer) clearTimeout(sendBtnPressTimer);
+
+    });
+
+
+
+    let currentSendingFish = null;
+    let sendTimeoutTimer = null;
+
+    function doSendFish(teacherId, fishList, childEmoji) {
+        if (!teacherId || teacherId.length !== 4) {
+            openKeypadModal();
+            return;
+        }
+
+        initializePeer();
+
+        currentSendingFish = fishList;
+        const activeEmoji = childEmoji || localStorage.getItem('pgm_child_emoji') || '🐬';
+
+        // 送信中ステータス表示
+        setSendingState(true);
+
+        const aqW = aquarium.clientWidth || 800;
+        const aqH = aquarium.clientHeight || 450;
+        const sendData = [];
+        fishList.forEach(fish => {
+            const curL = parseFloat(fish.style.left) || 0;
+            const curT = parseFloat(fish.style.top) || 0;
+            sendData.push({
+                imageSrc: fish.src,
+                left: fish.style.left,
+                top: fish.style.top,
+                origRatioX: Math.max(0.05, Math.min(0.85, curL / aqW)),
+                origRatioY: Math.max(0.05, Math.min(0.85, curT / aqH)),
+                fishId: fish.dataset.fishId,
+                movePattern: JSON.parse(fish.dataset.movePattern || '[]'),
+                childEmoji: activeEmoji
+            });
+        });
+        const payload = JSON.stringify(sendData);
+
+        function sendPayload() {
+            try {
+                conn.send(payload);
+            } catch(e) {
+                console.error('送信エラー:', e);
+                handleSendFailure('送信中にエラーが発生しました。');
+            }
+        }
+
+        function handleSendFailure(msg) {
+            handleSessionDisconnect(msg);
+        }
+
+        function handleSendSuccess(newCount, updatedCount) {
+            if (sendTimeoutTimer) clearTimeout(sendTimeoutTimer);
+            setSendingState(false);
+            const targets = currentSendingFish || fishList;
+            targets.forEach(fish => {
+                fish.dataset.isSent = "true";
+                delete fish.dataset.moveUpdated;
+            });
+
+            const total = targets.length;
+            if (newCount > 0 && updatedCount > 0) {
+                alert(`${total}ひきの さかなを おくったよ！\n（あたらしく はいった さかな: ${newCount}ひき、うごきを こうしん: ${updatedCount}ひき）✨`);
+            } else if (newCount > 0) {
+                alert(`${newCount}ひきの さかなを\nすいぞくかんに おくったよ！✨`);
+            } else if (updatedCount > 0) {
+                alert(`${total}ひきの さかなの うごきを\nすいぞくかんに とどけたよ！✨`);
+            } else {
+                alert(`${total}ひきの さかなを\nすいぞくかんに おくったよ！✨`);
+            }
+            currentSendingFish = null;
+        }
+
+        // タイムアウト監視（5秒）
+        if (sendTimeoutTimer) clearTimeout(sendTimeoutTimer);
+        sendTimeoutTimer = setTimeout(() => {
+            if (currentSendingFish) {
+                handleSendFailure(`すいぞくかん（${teacherId}番）からの お返事がありませんでした。\n\n今日の先生の水族館番号（4けた）を 入れ直してみてね！`);
+            }
+        }, 8000);
+
+        const targetPeerId = 'pgmsakana-' + teacherId;
+
+        if (conn && conn.open && conn.peer === targetPeerId) {
+            sendPayload();
+        } else {
+            if (conn) {
+                try { conn.close(); } catch(e) {}
+                conn = null;
+            }
+
+            function connectToTeacher() {
+                try {
+                    conn = peer.connect(targetPeerId);
+                } catch(err) {
+                    console.error('peer.connect失敗:', err);
+                    handleSendFailure(`すいぞくかん（${teacherId}番）に つながらなかったよ。\n\n番号を もういちど 入れ直す？`);
+                    return;
+                }
+
+                conn.on('open', () => {
+                    sendPayload();
+                });
+
+                conn.on('data', (data) => {
+                    try {
+                        const res = JSON.parse(data);
+                        if (res.status === 'ok') {
+                            handleSendSuccess(res.count, res.updatedCount);
+                        } else if (res.status === 'paused') {
+                            if (sendTimeoutTimer) clearTimeout(sendTimeoutTimer);
+                            setSendingState(false);
+                            currentSendingFish = null;
+                            alert('せんせいの すいぞくかんは いま「うけいれ おやすみ中」だよ！\nせんせいに お願いしてみてね。');
+                        }
+                    } catch(e) {}
+                });
+
+                conn.on('error', (err) => {
+                    console.error('conn error:', err);
+                    handleSendFailure(`すいぞくかん（${teacherId}番）に つながらなかったよ。\n\n番号を もういちど 入れ直す？`);
+                });
+            }
+
+            if (peer && peer.open) {
+                connectToTeacher();
+            } else if (peer) {
+                peer.once('open', () => {
+                    connectToTeacher();
+                });
+            } else {
+                handleSendFailure('通信の準備ができていません。もう一度おしてみてね！');
+            }
+        }
+    }
+
+    initializePeer();
+function getAquariumDataAsJson() {
+
+
+
+        const fishElements = document.querySelectorAll('.fish');
+
+
+
+        const aquariumData = [];
+
+
+
+        fishElements.forEach(fish => {
+
+
+
+            aquariumData.push({
+
+
+
+                imageSrc: fish.src,
+
+
+
+                left: fish.style.left,
+
+
+
+                top: fish.style.top,
+
+
+
+                movePattern: JSON.parse(fish.dataset.movePattern || '[]')
+
+
+
+            });
+
+
+
+        });
+
+
+
+        return JSON.stringify(aquariumData);
+
+
+
+    }
+
+
+
+    function importAquarium(data) {
+
+
+
+        if (!Array.isArray(data)) {
+
+
+
+            alert('無効なデータ形式です。');
+
+
+
+            return;
+
+
+
+        }
+
+
+
+        data.forEach(fishData => {
+
+
+
+            const fish = addFish(0, 0, fishData.imageSrc, fishData.movePattern);
+
+
+
+            fish.style.left = fishData.left;
+
+
+
+            fish.style.top = fishData.top;
+
+
+
+            startFishMovement(fish);
+
+
+
+        });
+
+
+
+    }
+
+
+
+    function isCanvasBlank(canvas) {
+
+
+
+        const context = canvas.getContext('2d');
+
+
+
+        const pixelBuffer = new Uint32Array(context.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
+
+
+
+        return !pixelBuffer.some(color => color !== 0);
+
+
+
+    }
+
+
+
+    function getMousePos(canvas, evt) {
+
+
+
+        const rect = canvas.getBoundingClientRect();
+
+
+
+        const touch = evt.touches ? evt.touches[0] : null;
+
+
+
+        return {
+
+
+
+            x: (touch ? touch.clientX : evt.clientX) - rect.left,
+
+
+
+            y: (touch ? touch.clientY : evt.clientY) - rect.top
+
+
+
+        };
+
+
+
+    }
+
+
+
+    function draw(e) {
+
+
+
+        if (!isDrawing) return;
+
+
+
+        e.preventDefault();
+
+
+
+        const pos = getMousePos(canvas, e);
+
+
+
+        ctx.beginPath();
+
+
+
+        ctx.moveTo(lastX, lastY);
+
+
+
+        ctx.lineTo(pos.x, pos.y);
+
+
+
+        if (currentMode === 'draw') {
+
+
+
+            ctx.strokeStyle = currentColor;
+
+
+
+        }
+
+
+
+        ctx.lineCap = 'round';
+
+
+
+        ctx.stroke();
+
+
+
+        [lastX, lastY] = [pos.x, pos.y];
+
+
+
+    }
+
+
+
+    function startDrawing(e) {
+
+
+
+        if (e.type.startsWith('touch')) {
+
+
+
+            e.preventDefault();
+
+
+
+        }
+
+
+
+        isDrawing = true;
+
+
+
+        if (currentMode === 'draw') {
+
+
+
+            ctx.globalCompositeOperation = 'source-over';
+
+
+
+            ctx.lineWidth = currentLineWidth;
+
+
+
+        } else {
+
+
+
+            ctx.globalCompositeOperation = 'destination-out';
+
+
+
+            ctx.lineWidth = 40;
+
+
+
+        }
+
+
+
+        const pos = getMousePos(canvas, e);
+
+        [lastX, lastY] = [pos.x, pos.y];
+
+    }
+
+    function openDrawingEditor() {
+        mainContainer.classList.add('hidden');
+        drawingEditor.classList.remove('hidden');
+        setActiveTool(document.querySelector('.size-btn[data-size="16"]'));
+        currentLineWidth = 16;
+        currentMode = 'draw';
+    }
+
+    if (pencilBtn) {
+        bindFastTap(pencilBtn, openDrawingEditor);
+    }
+
+    function completeDrawing() {
+        const imageDataUrl = canvas.toDataURL('image/png');
+        if (!isCanvasBlank(canvas)) {
+            createFishIcon(imageDataUrl);
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        mainContainer.classList.remove('hidden');
+        drawingEditor.classList.add('hidden');
+    }
+
+    if (doneDrawingButton) {
+        bindFastTap(doneDrawingButton, completeDrawing);
+    }
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseout', () => isDrawing = false);
+    canvas.addEventListener('touchstart', startDrawing, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', () => isDrawing = false);
+
+    // 📦 しまう（保存・書き出し）
+    if (exportBoxBtn) {
+        bindFastTap(exportBoxBtn, () => {
+            const allFish = document.querySelectorAll('.fish');
+            if (allFish.length === 0) {
+                alert('あれあれ？\nすいそうに さかなが 1ぴきも いないよ！\nさかなを かいて すいそうに いれてから しまってね。');
+                return;
+            }
+            const jsonString = getAquariumDataAsJson();
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'aquarium_data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('さかなたちを 箱にしまったよ！📦✨');
+        });
+    }
+
+    // 📂 ひらく（読み込み）
+    if (importFolderBtn) {
+        bindFastTap(importFolderBtn, () => {
+            if (importFile) importFile.click();
+        });
+    }
+
+    if (importFile) {
+        importFile.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    importAquarium(importedData);
+                    alert('しまった さかなたちを 水槽によびだしたよ！📂✨');
+                } catch (error) {
+                    alert('ファイルの読み込みに失敗しました。');
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        });
+    }
+
+
+
+    let activeDragIcon = null;
+
+
+
+    let touchClone = null;
+
+
+
+    let touchStartX = 0;
+
+
+
+    let touchStartY = 0;
+
+
+
+    let touchMoved = false;
+
+
+
+    function createFishIcon(imageDataUrl) {
+
+        const newIcon = document.createElement('img');
+
+        newIcon.src = imageDataUrl;
+
+        newIcon.className = 'fish-icon';
+
+        newIcon.draggable = true;
+
+        newIcon.dataset.movePattern = JSON.stringify(['up', 'up', 'left']);
+        newIcon.dataset.fishId = 'fish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+
+
+        makeIconDraggableAndClickable(newIcon);
+
+        const container = document.getElementById('drawn-fish-container');
+
+        if (container) {
+
+            container.prepend(newIcon);
+
+        } else {
+
+            document.getElementById('fish-list').appendChild(newIcon);
+
+        }
+
+    }
+
+
+
+    function makeIconDraggableAndClickable(icon) {
+
+
+
+        // PC用マウスドラッグ
+
+
+
+        icon.addEventListener('dragstart', (event) => {
+
+
+
+            activeDragIcon = icon;
+
+
+
+            event.dataTransfer.setData('text/plain', icon.src);
+
+
+
+            event.dataTransfer.setData('application/json', icon.dataset.movePattern || '["up","up","left"]');
+
+
+
+        });
+
+
+
+        // PC用マウスクリック（タッチ直後の誤発火防止フラグをチェック）
+
+
+
+        icon.addEventListener('click', () => {
+
+
+
+            if (icon.dataset.justTouched === 'true') {
+
+
+
+                delete icon.dataset.justTouched;
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            openProgrammingModal(icon);
+
+
+
+        });
+
+
+
+        // タッチ操作（画面スクロール完全防止＆指追従クローン生成）
+
+
+
+        icon.addEventListener('touchstart', (event) => {
+
+
+
+            if (event.touches.length > 1) return;
+
+
+
+            event.preventDefault(); // 画面全体のスクロール・スワイプを完全に防止
+
+
+
+            const touch = event.touches[0];
+
+
+
+            touchStartX = touch.clientX;
+
+
+
+            touchStartY = touch.clientY;
+
+
+
+            touchMoved = false;
+
+
+
+            activeDragIcon = icon;
+
+
+
+            if (touchClone) {
+
+
+
+                touchClone.remove();
+
+
+
+                touchClone = null;
+
+
+
+            }
+
+
+
+            touchClone = document.createElement('img');
+
+
+
+            touchClone.src = icon.src;
+
+
+
+            touchClone.style.position = 'fixed';
+
+
+
+            touchClone.style.width = '130px';
+
+
+
+            touchClone.style.height = '85px';
+
+
+
+            touchClone.style.objectFit = 'contain';
+
+
+
+            touchClone.style.opacity = '0.92';
+
+
+
+            touchClone.style.pointerEvents = 'none';
+
+
+
+            touchClone.style.zIndex = '9999';
+
+
+
+            touchClone.style.transform = 'translate(-50%, -50%) scale(1.15)';
+
+
+
+            touchClone.style.filter = 'drop-shadow(0 10px 20px rgba(0,0,0,0.45))';
+
+
+
+            touchClone.style.transition = 'transform 0.08s ease';
+
+
+
+            updateTouchClonePosition(touch.clientX, touch.clientY);
+
+
+
+            document.body.appendChild(touchClone);
+
+
+
+        }, { passive: false });
+
+
+
+    }
+
+
+
+    function updateTouchClonePosition(clientX, clientY) {
+
+
+
+        if (!touchClone) return;
+
+
+
+        touchClone.style.left = `${clientX}px`;
+
+
+
+        touchClone.style.top = `${clientY}px`;
+
+
+
+        const aquariumRect = aquarium.getBoundingClientRect();
+
+
+
+        if (clientX >= aquariumRect.left && clientX <= aquariumRect.right &&
+
+
+
+            clientY >= aquariumRect.top && clientY <= aquariumRect.bottom) {
+
+
+
+            aquarium.classList.add('drag-over');
+
+
+
+            touchClone.style.transform = 'translate(-50%, -50%) scale(1.3)';
+
+
+
+        } else {
+
+
+
+            aquarium.classList.remove('drag-over');
+
+
+
+            touchClone.style.transform = 'translate(-50%, -50%) scale(1.15)';
+
+
+
+        }
+
+
+
+    }
+
+
+
+    document.addEventListener('touchmove', (event) => {
+
+
+
+        if (!touchClone) return;
+
+
+
+        event.preventDefault(); // ドラッグ中のスクロールを完全にブロック
+
+
+
+        const touch = event.touches[0];
+
+
+
+        const dist = Math.hypot(touch.clientX - touchStartX, touch.clientY - touchStartY);
+
+
+
+        if (dist > 16) {
+
+
+
+            touchMoved = true;
+
+
+
+        }
+
+
+
+        updateTouchClonePosition(touch.clientX, touch.clientY);
+
+
+
+    }, { passive: false });
+
+
+
+    document.addEventListener('touchend', (event) => {
+
+
+
+        if (!touchClone) return;
+
+
+
+        aquarium.classList.remove('drag-over');
+
+
+
+        const touch = event.changedTouches[0];
+
+
+
+        const currentIcon = activeDragIcon;
+
+
+
+        if (currentIcon) {
+
+
+
+            currentIcon.dataset.justTouched = 'true';
+
+
+
+            setTimeout(() => {
+
+
+
+                if (currentIcon) delete currentIcon.dataset.justTouched;
+
+
+
+            }, 400);
+
+
+
+        }
+
+
+
+        if (!touchMoved) {
+
+
+
+            // 指を動かさずに離した ＝ 「タップ」操作！
+
+
+
+            touchClone.remove();
+
+
+
+            touchClone = null;
+
+
+
+            if (currentIcon) {
+
+
+
+                openProgrammingModal(currentIcon);
+
+
+
+            }
+
+
+
+            activeDragIcon = null;
+
+
+
+            return;
+
+
+
+        }
+
+
+
+        // 移動して離した ＝ 「ドラッグ＆ドロップ」操作！
+
+
+
+        const aquariumRect = aquarium.getBoundingClientRect();
+
+
+
+        if (touch.clientX >= aquariumRect.left && touch.clientX <= aquariumRect.right &&
+
+
+
+            touch.clientY >= aquariumRect.top && touch.clientY <= aquariumRect.bottom) {
+
+
+
+            const x = touch.clientX - aquariumRect.left;
+
+
+
+            const y = touch.clientY - aquariumRect.top;
+
+
+
+            let movePattern = ['up', 'up', 'left'];
+
+
+
+            if (currentIcon && currentIcon.dataset.movePattern) {
+
+
+
+                try {
+
+
+
+                    movePattern = JSON.parse(currentIcon.dataset.movePattern);
+
+
+
+                } catch(e) {}
+
+
+
+            }
+
+
+
+            addFish(x, y, currentIcon ? currentIcon.src : touchClone.src, movePattern); // 水槽ごとに固有の魚IDを自動発行
+
+
+
+        }
+
+
+
+        touchClone.remove();
+
+
+
+        touchClone = null;
+
+
+
+        activeDragIcon = null;
+
+
+
+    });
+
+
+
+    document.addEventListener('touchcancel', () => {
+
+
+
+        if (touchClone) {
+
+
+
+            touchClone.remove();
+
+
+
+            touchClone = null;
+
+
+
+        }
+
+
+
+        aquarium.classList.remove('drag-over');
+
+
+
+        activeDragIcon = null;
+
+
+
+    });
+
+
+
+    // PC用マウスドラッグ＆ドロップ対応
+
+
+
+    aquarium.addEventListener('dragover', (event) => {
+
+
+
+        event.preventDefault();
+
+
+
+        aquarium.classList.add('drag-over');
+
+
+
+    });
+
+
+
+    aquarium.addEventListener('dragleave', () => {
+
+
+
+        aquarium.classList.remove('drag-over');
+
+
+
+    });
+
+
+
+    aquarium.addEventListener('drop', (event) => {
+
+
+
+        event.preventDefault();
+
+
+
+        aquarium.classList.remove('drag-over');
+
+
+
+        const imageSrc = event.dataTransfer.getData('text/plain');
+
+
+
+        if (!imageSrc) return;
+
+
+
+        const patternStr = event.dataTransfer.getData('application/json');
+
+
+
+        const movePattern = patternStr ? JSON.parse(patternStr) : ['up', 'up', 'left'];
+
+
+
+        const rect = aquarium.getBoundingClientRect();
+
+
+
+        const x = event.clientX - rect.left;
+
+
+
+        const y = event.clientY - rect.top;
+
+
+
+        addFish(x, y, imageSrc, movePattern); // 水槽ごとに固有の魚IDを自動発行
+
+
+
+    });
+
+
+
+    function addFish(x, y, imageSrc, movePattern = ['up', 'left', 'right'], fishId = null) {
+
+
+
+        const fish = document.createElement("img");
+
+
+
+        fish.src = imageSrc;
+
+
+
+        fish.className = "fish";
+
+
+
+        fish.style.left = `${x - 70}px`;
+
+
+
+        fish.style.top = `${y - 35}px`;
+
+
+
+        fish.dataset.isEditing = "false";
+
+
+
+        fish.dataset.isSent = "false";
+
+
+
+        fish.dataset.movePattern = JSON.stringify(movePattern);
+
+
+
+        fish.dataset.moveStep = 0;
+        fish.dataset.fishId = fishId || ('fish_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8));
+
+
+
+        let isDragging = false;
+
+
+
+        let offsetX, offsetY;
+
+
+
+        let startX, startY;
+
+
+
+        const clickThreshold = 5;
+
+
+
+        function onDragStart(e) {
+
+
+
+            e.preventDefault();
+
+
+
+            const touch = e.touches ? e.touches[0] : e;
+
+
+
+            startX = touch.clientX;
+
+
+
+            startY = touch.clientY;
+
+
+
+            isDragging = true;
+
+
+
+            stopFishMovement(fish);
+
+
+
+            const rect = fish.getBoundingClientRect();
+
+
+
+            offsetX = touch.clientX - rect.left;
+
+
+
+            offsetY = touch.clientY - rect.top;
+
+
+
+            document.addEventListener('mousemove', onDragMove);
+
+
+
+            document.addEventListener('touchmove', onDragMove, { passive: false });
+
+
+
+            document.addEventListener('mouseup', onDragEnd);
+
+
+
+            document.addEventListener('touchend', onDragEnd);
+
+
+
+        }
+
+
+
+        function onDragMove(e) {
+
+
+
+            if (!isDragging) return;
+
+
+
+            e.preventDefault();
+
+
+
+            const touch = e.touches ? e.touches[0] : e;
+
+
+
+            const moveX = Math.abs(touch.clientX - startX);
+
+
+
+            const moveY = Math.abs(touch.clientY - startY);
+
+
+
+            if (moveX > clickThreshold || moveY > clickThreshold) {
+
+
+
+                fish.classList.add('dragging');
+
+
+
+            }
+
+
+
+            const aquariumRect = aquarium.getBoundingClientRect();
+
+
+
+            let newX = touch.clientX - aquariumRect.left - offsetX;
+
+
+
+            let newY = touch.clientY - aquariumRect.top - offsetY;
+
+
+
+            fish.style.left = `${newX}px`;
+
+
+
+            fish.style.top = `${newY}px`;
+
+
+
+        }
+
+
+
+        function onDragEnd(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            const touch = e.changedTouches ? e.changedTouches[0] : e;
+            const moveX = Math.abs(touch.clientX - startX);
+            const moveY = Math.abs(touch.clientY - startY);
+
+            if (moveX < clickThreshold && moveY < clickThreshold) {
+                openProgrammingModal(fish);
+            } else {
+                // 水槽の外にドラッグして離したか判定（お片付け機能）
+                const aqRect = aquarium.getBoundingClientRect();
+                const isOutside = (
+                    touch.clientX < aqRect.left ||
+                    touch.clientX > aqRect.right ||
+                    touch.clientY < aqRect.top ||
+                    touch.clientY > aqRect.bottom
+                );
+
+                if (isOutside) {
+                    // 水槽の外に出された：優しくお片付け（フェードアウト削除）
+                    stopFishMovement(fish);
+                    fish.style.transition = 'all 0.35s ease-out';
+                    fish.style.transform = 'scale(0.1) rotate(25deg)';
+                    fish.style.opacity = '0';
+                    createBubbleEffect(touch.clientX, touch.clientY);
+                    setTimeout(() => {
+                        fish.remove();
+                    }, 350);
+                } else {
+                    // 水槽の中：少し待ってから泳ぎ再開
+                    setTimeout(() => {
+                        if (fish.dataset.isEditing === 'false') {
+                            startFishMovement(fish);
+                        }
+                    }, 400);
+                }
+            }
+
+            fish.classList.remove('dragging');
+            document.removeEventListener('mousemove', onDragMove);
+            document.removeEventListener('touchmove', onDragMove);
+            document.removeEventListener('mouseup', onDragEnd);
+            document.removeEventListener('touchend', onDragEnd);
+        }
+
+        fish.addEventListener('mousedown', onDragStart);
+
+
+
+        fish.addEventListener('touchstart', onDragStart, { passive: false });
+
+
+
+        aquarium.appendChild(fish);
+
+
+
+        startFishMovement(fish);
+
+
+
+        return fish;
+
+
+
+    }
+
+
+
+    // -----------------------------------------------------------------
+
+
+
+    // ▼▼▼ プログラミングモーダル（非詰化・差替対応）ロジック ▼▼▼
+
+
+
+    // -----------------------------------------------------------------
+
+
+
+    function openProgrammingModal(target) {
+
+
+
+        currentEditingTarget = target;
+
+
+
+        stopPreviewAnimation();
+
+
+
+        // 固定長5配列として復元
+
+
+
+        let loaded = [];
+
+
+
+        try {
+
+
+
+            loaded = JSON.parse(target.dataset.movePattern || '[]');
+
+
+
+        } catch(e) {
+
+
+
+            loaded = ['up', 'up', 'left'];
+
+
+
+        }
+
+
+
+        currentMovePattern = [null, null, null, null, null];
+
+
+
+        for (let i = 0; i < MAX_SLOTS; i++) {
+
+
+
+            if (loaded[i] !== undefined) {
+
+
+
+                currentMovePattern[i] = loaded[i];
+
+
+
+            }
+
+
+
+        }
+
+
+
+        selectedSlotIndex = 0; // 最初の枠をデフォルト選択
+
+
+
+        if (target.classList.contains('fish')) {
+
+
+
+            stopFishMovement(target);
+
+
+
+            target.dataset.isEditing = "true";
+
+
+
+        }
+
+
+
+        previewFish.src = target.src;
+
+
+
+        resetPreviewFishPos();
+
+
+
+        renderSlots();
+
+
+
+        programmingModal.classList.remove('hidden');
+
+
+
+    }
+
+
+
+    function resetPreviewFishPos() {
+
+
+
+        previewFish.style.transition = 'none';
+
+
+
+        previewFish.style.left = '50%';
+
+
+
+        previewFish.style.top = '50%';
+
+
+
+        previewFish.style.transform = 'translate(-50%, -50%) scaleX(1) rotate(0deg)';
+
+
+
+    }
+
+
+
+    function renderSlots() {
+
+
+
+        timelineSlots.innerHTML = '';
+
+
+
+        for (let i = 0; i < MAX_SLOTS; i++) {
+
+
+
+            const slot = document.createElement('div');
+
+
+
+            slot.className = 'slot';
+
+
+
+            if (i === selectedSlotIndex) {
+
+
+
+                slot.classList.add('selected-slot');
+
+
+
+            }
+
+
+
+            slot.dataset.index = i;
+
+
+
+            const cmdKey = currentMovePattern[i];
+
+
+
+            if (cmdKey && COMMANDS[cmdKey]) {
+
+
+
+                const cmd = COMMANDS[cmdKey];
+
+
+
+                slot.innerHTML = `<span>${cmd.icon}</span><span class="slot-label">${cmd.label}</span>`;
+
+
+
+            } else {
+
+
+
+                slot.innerHTML = `<span style="color:#ccc; font-size:18px;">+</span><span class="slot-label">${i+1}</span>`;
+
+
+
+            }
+
+
+
+            // スロットタップイベント（iPad Safari即時反応）
+
+
+
+            bindFastTap(slot, () => {
+
+
+
+                if (selectedSlotIndex === i && currentMovePattern[i] !== null) {
+
+
+
+                    currentMovePattern[i] = null;
+
+
+
+                } else {
+
+
+
+                    selectedSlotIndex = i;
+
+
+
+                }
+
+
+
+                renderSlots();
+
+
+
+            });
+
+
+
+            timelineSlots.appendChild(slot);
+
+
+
+        }
+
+
+
+    }
+
+
+
+    // パレットボタンのイベント（選択スロットへの挿入・置換）
+
+
+
+    paletteButtons.querySelectorAll('.cmd-btn').forEach(btn => {
+
+
+
+        bindFastTap(btn, () => {
+
+
+
+            const cmd = btn.dataset.cmd;
+
+
+
+            if (selectedSlotIndex >= 0 && selectedSlotIndex < MAX_SLOTS) {
+
+
+
+                currentMovePattern[selectedSlotIndex] = cmd;
+
+
+
+                selectedSlotIndex = (selectedSlotIndex + 1) % MAX_SLOTS;
+
+
+
+            } else {
+
+
+
+                const emptyIdx = currentMovePattern.indexOf(null);
+
+
+
+                if (emptyIdx !== -1) {
+
+
+
+                    currentMovePattern[emptyIdx] = cmd;
+
+
+
+                    selectedSlotIndex = (emptyIdx + 1) % MAX_SLOTS;
+
+
+
+                }
+
+
+
+            }
+
+
+
+            renderSlots();
+
+
+
+        });
+
+
+
+    });
+
+
+
+    // ぜんぶけす
+
+
+
+    bindFastTap(progClearBtn, () => {
+
+
+
+        currentMovePattern = [null, null, null, null, null];
+
+
+
+        selectedSlotIndex = 0;
+
+
+
+        renderSlots();
+
+
+
+        stopPreviewAnimation();
+
+
+
+        resetPreviewFishPos();
+
+
+
+    });
+
+
+
+    // できた！（完了）
+
+
+
+    bindFastTap(progDoneBtn, () => {
+
+
+
+        stopPreviewAnimation();
+
+
+
+        if (currentEditingTarget) {
+
+
+
+            const validCmds = currentMovePattern.filter(c => c !== null);
+
+
+
+            const finalPattern = validCmds.length > 0 ? currentMovePattern : ['stay', null, null, null, null];
+
+
+
+            currentEditingTarget.dataset.movePattern = JSON.stringify(finalPattern);
+            currentEditingTarget.dataset.moveUpdated = "true";
+
+            if (currentEditingTarget.classList.contains('fish')) {
+                currentEditingTarget.dataset.isEditing = "false";
+                startFishMovement(currentEditingTarget);
+            } else {
+                const targetId = currentEditingTarget.dataset.fishId;
+                document.querySelectorAll('.fish').forEach(f => {
+                    if ((targetId && f.dataset.fishId === targetId) || f.src === currentEditingTarget.src) {
+                        f.dataset.movePattern = JSON.stringify(finalPattern);
+                        f.dataset.moveUpdated = "true";
+                    }
+                });
+            }
+
+
+
+            if (currentEditingTarget.classList.contains('fish')) {
+
+
+
+                currentEditingTarget.dataset.isEditing = "false";
+
+
+
+                startFishMovement(currentEditingTarget);
+
+
+
+            }
+
+
+
+        }
+
+
+
+        programmingModal.classList.add('hidden');
+
+
+
+        currentEditingTarget = null;
+
+
+
+    });
+
+
+
+    // ためす（▶️ プレビュー実行）
+
+
+
+    bindFastTap(progTestBtn, () => {
+
+
+
+        if (isPreviewRunning) {
+
+
+
+            stopPreviewAnimation();
+
+
+
+            return;
+
+
+
+        }
+
+
+
+        runPreviewAnimation();
+
+
+
+    });
+
+
+
+    function runPreviewAnimation() {
+
+
+
+        isPreviewRunning = true;
+
+
+
+        progTestBtn.textContent = '⏹️ とめる';
+
+
+
+        progTestBtn.style.backgroundColor = '#dc3545';
+
+
+
+        resetPreviewFishPos();
+
+
+
+        let step = 0;
+
+
+
+        function executeStep() {
+
+
+
+            if (!isPreviewRunning) return;
+
+
+
+            const slots = timelineSlots.querySelectorAll('.slot');
+
+
+
+            slots.forEach((s, idx) => {
+
+
+
+                if (idx === step) s.classList.add('active-step');
+
+
+
+                else s.classList.remove('active-step');
+
+
+
+            });
+
+
+
+            const cmdKey = currentMovePattern[step];
+
+
+
+            if (cmdKey) {
+
+
+
+                animateFishElement(previewFish, cmdKey, previewAquarium);
+
+
+
+            }
+
+
+
+            step = (step + 1) % MAX_SLOTS;
+
+
+
+            previewTimer = setTimeout(executeStep, 1000);
+
+
+
+        }
+
+
+
+        executeStep();
+
+
+
+    }
+
+
+
+    function stopPreviewAnimation() {
+
+
+
+        isPreviewRunning = false;
+
+
+
+        if (previewTimer) clearTimeout(previewTimer);
+
+
+
+        progTestBtn.textContent = '▶️ ためす';
+
+
+
+        progTestBtn.style.backgroundColor = '#ff9800';
+
+
+
+        const slots = timelineSlots.querySelectorAll('.slot');
+
+
+
+        slots.forEach(s => s.classList.remove('active-step'));
+
+
+
+        resetPreviewFishPos();
+
+
+
+    }
+
+
+
+    // アニメーション汎用処理（端のワープ対応）
+
+
+
+    function animateFishElement(fishEl, cmdKey, containerEl) {
+
+
+
+        fishEl.style.transition = 'all 0.6s ease';
+
+
+
+        let currentScaleX = fishEl.dataset.scaleX || '1';
+
+
+
+        switch (cmdKey) {
+
+
+
+            case 'up':
+
+
+
+                fishEl.style.top = `${fishEl.offsetTop - 50}px`;
+
+
+
+                break;
+
+
+
+            case 'down':
+
+
+
+                fishEl.style.top = `${fishEl.offsetTop + 50}px`;
+
+
+
+                break;
+
+
+
+            case 'left':
+
+
+
+                fishEl.dataset.scaleX = '1';
+
+
+
+                fishEl.style.left = `${fishEl.offsetLeft - 60}px`;
+
+
+
+                fishEl.style.transform = `scaleX(1)`;
+
+
+
+                break;
+
+
+
+            case 'right':
+
+
+
+                fishEl.dataset.scaleX = '-1';
+
+
+
+                fishEl.style.left = `${fishEl.offsetLeft + 60}px`;
+
+
+
+                fishEl.style.transform = `scaleX(-1)`;
+
+
+
+                break;
+
+
+
+            case 'spin':
+
+
+
+                fishEl.style.transform = `scaleX(${currentScaleX}) rotate(360deg)`;
+
+
+
+                setTimeout(() => {
+
+
+
+                    fishEl.style.transition = 'none';
+
+
+
+                    fishEl.style.transform = `scaleX(${currentScaleX}) rotate(0deg)`;
+
+
+
+                }, 600);
+
+
+
+                break;
+
+
+
+            case 'dash':
+
+
+
+                fishEl.style.transition = 'all 0.3s ease';
+
+
+
+                const directionX = currentScaleX === '1' ? -120 : 120;
+
+
+
+                fishEl.style.left = `${fishEl.offsetLeft + directionX}px`;
+
+
+
+                break;
+
+
+
+            case 'bubble':
+
+
+
+                createBubbleEffect(fishEl, containerEl);
+
+
+
+                break;
+
+
+
+            case 'stay':
+
+
+
+                fishEl.style.transform = `scaleX(${currentScaleX})`;
+
+
+
+                break;
+
+
+
+            case 'sway':
+
+
+
+                fishEl.style.transform = `scaleX(${currentScaleX}) rotate(-15deg)`;
+
+
+
+                setTimeout(() => {
+
+
+
+                    fishEl.style.transform = `scaleX(${currentScaleX}) rotate(15deg)`;
+
+
+
+                }, 300);
+
+
+
+                setTimeout(() => {
+
+
+
+                    fishEl.style.transform = `scaleX(${currentScaleX}) rotate(0deg)`;
+
+
+
+                }, 600);
+
+
+
+                break;
+
+
+
+        }
+
+
+
+        checkScreenWrap(fishEl, containerEl);
+
+
+
+    }
+
+
+
+    function checkScreenWrap(fishEl, containerEl) {
+        const cWidth = containerEl.clientWidth || 800;
+        const cHeight = containerEl.clientHeight || 450;
+        const fishWidth = fishEl.offsetWidth || 100;
+        const fishHeight = fishEl.offsetHeight || 60;
+        let left = fishEl.offsetLeft;
+        let top = fishEl.offsetTop;
+
+        if (left > cWidth + 5) {
+            fishEl.style.transition = 'none';
+            fishEl.style.left = `${-fishWidth}px`;
+            void fishEl.offsetWidth;
+            fishEl.style.transition = 'all 0.6s ease';
+            fishEl.style.left = `${Math.min(60, cWidth - fishWidth)}px`;
+            return;
+        } else if (left < -fishWidth - 5) {
+            fishEl.style.transition = 'none';
+            fishEl.style.left = `${cWidth}px`;
+            void fishEl.offsetWidth;
+            fishEl.style.transition = 'all 0.6s ease';
+            fishEl.style.left = `${Math.max(0, cWidth - fishWidth - 60)}px`;
+            return;
+        }
+
+        if (top > cHeight + 5) {
+            fishEl.style.transition = 'none';
+            fishEl.style.top = `${-fishHeight}px`;
+            void fishEl.offsetHeight;
+            fishEl.style.transition = 'all 0.6s ease';
+            fishEl.style.top = `${Math.min(50, cHeight - fishHeight)}px`;
+            return;
+        } else if (top < -fishHeight - 5) {
+            fishEl.style.transition = 'none';
+            fishEl.style.top = `${cHeight}px`;
+            void fishEl.offsetHeight;
+            fishEl.style.transition = 'all 0.6s ease';
+            fishEl.style.top = `${Math.max(0, cHeight - fishHeight - 50)}px`;
+            return;
+        }
+    }
+
+    function createBubbleEffect(fishOrX, containerOrY) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble-effect';
+        let targetContainer = aquarium;
+        let bLeft = 0, bTop = 0;
+
+        if (typeof fishOrX === 'number') {
+            const aqRect = aquarium.getBoundingClientRect();
+            bLeft = fishOrX - aqRect.left;
+            bTop = (containerOrY || 0) - aqRect.top;
+        } else if (fishOrX && fishOrX.getBoundingClientRect) {
+            const cont = containerOrY || aquarium;
+            targetContainer = cont;
+            const rect = fishOrX.getBoundingClientRect();
+            const cRect = cont.getBoundingClientRect();
+            bLeft = rect.left - cRect.left + rect.width / 2;
+            bTop = rect.top - cRect.top;
+        }
+        bubble.style.left = `${bLeft}px`;
+        bubble.style.top = `${bTop}px`;
+        targetContainer.appendChild(bubble);
+        setTimeout(() => bubble.remove(), 1000);
+    }
+
+    // 本番の水槽内魚のアニメーションループ
+    function startFishMovement(fish) {
+
+
+
+        if (fish.moveTimer) clearTimeout(fish.moveTimer);
+
+
+
+        function moveNext() {
+
+
+
+            if (fish.dataset.isEditing === 'true' || fish.classList.contains('dragging')) return;
+
+
+
+            let movePattern = [];
+
+
+
+            try {
+
+
+
+                movePattern = JSON.parse(fish.dataset.movePattern || '[]');
+
+
+
+            } catch(e) {
+
+
+
+                movePattern = ['up', 'left'];
+
+
+
+            }
+
+
+
+            if (movePattern.length === 0) movePattern = ['up'];
+
+
+
+            let step = parseInt(fish.dataset.moveStep || 0);
+
+
+
+            const cmdKey = movePattern[step];
+
+
+
+            if (cmdKey) {
+
+
+
+                animateFishElement(fish, cmdKey, aquarium);
+
+
+
+            }
+
+
+
+            fish.dataset.moveStep = (step + 1) % MAX_SLOTS;
+
+
+
+            fish.moveTimer = setTimeout(moveNext, 1200);
+
+
+
+        }
+
+
+
+        moveNext();
+
+
+
+    }
+
+
+
+    function stopFishMovement(fish) {
+
+
+
+        if(fish.moveTimer) clearTimeout(fish.moveTimer);
+
+
+
+    }
+
+
+
+</script>
+
+
+
+</body>
+
+
+
+</html>
