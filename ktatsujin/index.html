@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>てがき けいさんカード</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 縦向きロック画面 -->
+  <div id="portrait-lock" class="portrait-lock" aria-live="polite" aria-hidden="true">
+    <div class="portrait-lock-card">
+      <div class="rotate-ipad-icon" aria-hidden="true">
+        <div class="ipad-shape">
+          <div class="ipad-screen">📱 ➔ 📲</div>
+        </div>
+      </div>
+      <h2>iPadを よこむき にしてね！</h2>
+      <p>このアプリは よこむき で つかうよ。<br>くるっと まわして はじめよう！</p>
+    </div>
+  </div>
+
+  <!-- アプリ全体コンテナ（100dvh 固定） -->
+  <div id="app-shell" class="app-shell">
+    <!-- ヘッダー -->
+    <header class="top-bar">
+      <div class="brand-group" id="brand-tap-target" title="てがき けいさんカード">
+        <span class="brand-badge">✏️</span>
+        <h1 class="brand-title">てがき けいさんカード</h1>
+        <span class="mode-pill" id="mode-pill">たしざん 10もん</span>
+      </div>
+
+      <div class="progress-dots" id="progress-dots" aria-label="すすみぐあい"></div>
+
+      <div class="top-actions">
+        <button type="button" id="btn-open-map" class="icon-pill-btn btn-map-pill">
+          <span>🗺️</span>
+          <span id="top-map-label">さいきし (0/10)</span>
+        </button>
+        <button type="button" id="btn-sound" class="icon-pill-btn" aria-label="おとのオンオフ">
+          <span id="sound-icon">🔊</span>
+          <span id="sound-label">おと ON</span>
+        </button>
+        <button type="button" id="btn-home" class="icon-pill-btn btn-secondary-pill" hidden>
+          <span>🏠</span>
+          <span>さいしょへ</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 1. スタート画面 -->
+    <section id="screen-start" class="screen screen-start">
+      <div class="start-layout">
+        <!-- 左：サンプルカード＋カードの下に「たしざん／ひきざん」コース選択 -->
+        <div class="start-left">
+          <div class="demo-card-wrapper">
+            <div class="ring-deck" id="demo-deck">
+              <div class="card-under card-under-2"></div>
+              <div class="card-under card-under-1"></div>
+              <!-- 左中央の1つリング -->
+              <div class="single-ring" id="demo-ring" aria-hidden="true">
+                <svg viewBox="0 0 64 64" class="ring-svg">
+                  <defs>
+                    <linearGradient id="ringMetal1" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#f8fafc"/>
+                      <stop offset="45%" stop-color="#94a3b8"/>
+                      <stop offset="100%" stop-color="#475569"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M 38 14 A 20 20 0 1 0 38 50" fill="none" stroke="url(#ringMetal1)" stroke-width="8" stroke-linecap="round"/>
+                  <path d="M 34 14 A 20 20 0 0 1 52 32 A 20 20 0 0 1 34 50" fill="none" stroke="url(#ringMetal1)" stroke-width="8" stroke-linecap="round"/>
+                  <circle cx="51" cy="32" r="3" fill="#64748b"/>
+                </svg>
+              </div>
+              <button type="button" class="calc-card demo-card" id="demo-card-btn" title="タップしてめくってみよう！">
+                <span class="card-hole"></span>
+                <span class="demo-tag" id="demo-tag">サンプル（タップでめくれるよ！）</span>
+                <span class="card-equation" id="demo-equation">3 ＋ 5 ＝</span>
+                <span class="demo-hint" id="demo-hint">クリッ！と めくれる けいさんカード</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- カードの下：たしざん・ひきざん ボタン＆くりあがり/くりさがり選択 -->
+          <div class="mode-selector-panel">
+            <div class="op-buttons-row">
+              <button type="button" id="btn-mode-add" class="btn-op-select is-active">
+                <span class="op-icon">➕</span>
+                <span class="op-label">たしざん</span>
+              </button>
+              <button type="button" id="btn-mode-sub" class="btn-op-select">
+                <span class="op-icon">➖</span>
+                <span class="op-label">ひきざん</span>
+              </button>
+            </div>
+
+            <!-- くりあがり / くりさがり 選択 -->
+            <div class="regroup-row" id="regroup-row">
+              <button type="button" class="btn-sub-pill" data-regroup="none" id="btn-regroup-none">
+                <span class="pill-main" id="label-regroup-none">くりあがり なし</span>
+                <span class="pill-ex" id="ex-regroup-none">れい：3＋4</span>
+              </button>
+              <button type="button" class="btn-sub-pill" data-regroup="only" id="btn-regroup-only">
+                <span class="pill-main" id="label-regroup-only">くりあがり あり</span>
+                <span class="pill-ex" id="ex-regroup-only">れい：8＋7</span>
+              </button>
+              <button type="button" class="btn-sub-pill is-active" data-regroup="mix" id="btn-regroup-mix">
+                <span class="pill-main">まぜまぜ</span>
+                <span class="pill-ex" id="ex-regroup-mix">あり・なし</span>
+              </button>
+            </div>
+
+            <!-- ひきざん・くりさがりなし時のレベル1/2/3選択 -->
+            <div class="sublevel-row" id="sublevel-row" hidden>
+              <button type="button" class="btn-level-pill is-active" data-level="lv1" id="btn-sub-lv1">
+                <span>レベル1：1けた−1けた</span>
+                <span class="pill-ex">れい：8−3</span>
+              </button>
+              <button type="button" class="btn-level-pill" data-level="lv2" id="btn-sub-lv2">
+                <span>レベル2：2けた−1けた</span>
+                <span class="pill-ex">れい：16−4</span>
+              </button>
+              <button type="button" class="btn-level-pill" data-level="lv3" id="btn-sub-lv3">
+                <span>レベル3：まぜまぜ</span>
+                <span class="pill-ex">れい：8−3・16−4</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右：あそびかた＋佐伯市1周すごろく状況＋スタートボタン -->
+        <div class="start-right">
+          <div class="welcome-box">
+            <h2>ゆび や ペン で<br>すうじ を かいて こたえよう！</h2>
+            <ul class="welcome-points">
+              <li>🃏 えらんだ コースから <strong>10もん</strong> でるよ</li>
+              <li>✍️ わく の なかに こたえの すうじを かいてね</li>
+              <li>🔥 れんぞく せいかいで <strong>コンボ＆どうぶつ</strong> が とびだすよ！</li>
+            </ul>
+
+            <!-- 佐伯市一周すごろく 進捗カード -->
+            <button type="button" id="btn-start-map-preview" class="sugoroku-mini-card">
+              <div class="sugoroku-mini-head">
+                <span>🗺️ <strong>さいきし 1しゅう すごろく</strong></span>
+                <span class="sugoroku-lap-badge" id="start-lap-badge">1しゅうめ</span>
+              </div>
+              <div class="sugoroku-mini-track" id="start-mini-track"></div>
+              <div class="sugoroku-mini-status" id="start-mini-status">
+                10もん クリアで 1マス すすむよ！（タップで マップを ひらく）
+              </div>
+            </button>
+
+            <button type="button" id="btn-start" class="btn-primary-big">
+              🚀 チャレンジ はじめる！
+            </button>
+            <p class="start-sub-note">※ ひとけたの こたえは みぎの「いちの くらい」だけに かいてね</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. クイズ画面 -->
+    <section id="screen-quiz" class="screen screen-quiz" hidden>
+      <div class="quiz-layout">
+        <!-- 左：リング付き計算カード＋ヒント＋コンボ＋動物応援エリア -->
+        <div class="quiz-left">
+          <div class="question-counter-row">
+            <span class="question-counter" id="question-counter">1 もんめ / 10 もん</span>
+            <span class="streak-badge" id="streak-badge" hidden>🔥 0 れんぞく</span>
+          </div>
+
+          <div class="ring-deck quiz-deck" id="quiz-deck">
+            <div class="card-under card-under-2" id="card-under-2"></div>
+            <div class="card-under card-under-1" id="card-under-1"></div>
+
+            <!-- 左中央の1つリング -->
+            <div class="single-ring" id="quiz-ring" aria-hidden="true">
+              <svg viewBox="0 0 64 64" class="ring-svg">
+                <defs>
+                  <linearGradient id="ringMetal2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ffffff"/>
+                    <stop offset="40%" stop-color="#cbd5e1"/>
+                    <stop offset="100%" stop-color="#475569"/>
+                  </linearGradient>
+                </defs>
+                <path d="M 38 14 A 20 20 0 1 0 38 50" fill="none" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+                <path d="M 32 13 A 20 20 0 0 1 52 32 A 20 20 0 0 1 32 51" fill="none" stroke="url(#ringMetal2)" stroke-width="8" stroke-linecap="round"/>
+                <circle cx="51" cy="32" r="2.8" fill="#475569"/>
+              </svg>
+            </div>
+
+            <!-- 現在の計算カード -->
+            <div class="calc-card" id="active-card">
+              <span class="card-hole" aria-hidden="true"></span>
+              <div class="card-top-meta">
+                <span class="card-num-tag" id="card-num-tag">No.1</span>
+              </div>
+              <div class="card-equation" id="card-equation">8 ＋ 7 ＝</div>
+              <div class="card-feedback-stamp" id="card-stamp" hidden>
+                <span class="stamp-mark" id="stamp-mark">◯</span>
+                <span class="stamp-text" id="stamp-text">せいかい！</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- まちがえたときにカードの下へ出るヒントボタン -->
+          <div class="hint-trigger-row" id="hint-trigger-row" hidden>
+            <button type="button" id="btn-show-hint" class="btn-hint-trigger">
+              <span>💡 ヒントを みる！（●で かんがえよう）</span>
+            </button>
+          </div>
+
+          <!-- 10のかたまり（5×2配列）操作ヒントボード（たしざん／ひきざん共用） -->
+          <div class="hint-board" id="hint-board" hidden>
+            <div class="hint-board-header">
+              <span class="hint-board-title" id="hint-board-title">💡 10の まとまりで かんがえよう！</span>
+              <button type="button" id="btn-close-hint" class="btn-hint-close">とじる ✕</button>
+            </div>
+            <p class="hint-instruction" id="hint-instruction"></p>
+            <div class="ten-frames-row" id="ten-frames-row">
+              <div class="ten-frame-wrap" id="ten-wrap-left">
+                <div class="ten-frame" id="ten-frame-left" data-side="left"></div>
+                <div class="ten-frame-count" id="ten-count-left">ひだり：0</div>
+              </div>
+              <div class="ten-frame-plus" id="ten-frame-op" aria-hidden="true">＋</div>
+              <div class="ten-frame-wrap" id="ten-wrap-right">
+                <div class="ten-frame" id="ten-frame-right" data-side="right"></div>
+                <div class="ten-frame-count" id="ten-count-right">みぎ：0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- コンボ表示＆応援動物エリア（カードの空きスペース） -->
+          <div class="celebration-zone" id="celebration-zone">
+            <div class="combo-stage" id="combo-stage" aria-live="polite"></div>
+            <div class="animal-parade-box">
+              <div class="animal-parade-label" id="animal-label">おうえんたい：</div>
+              <div class="animal-parade" id="animal-parade"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右：手書きパネル（十の位・一の位）＋ こたえる / けす ボタン -->
+        <div class="quiz-right">
+          <div class="helper-banner" id="helper-banner" aria-live="polite">
+            ゆび や ペンで こたえを かいてね！
+          </div>
+
+          <div class="answer-board">
+            <!-- 2つの手書き枠 -->
+            <div class="digit-boxes">
+              <!-- 十の位 -->
+              <div class="digit-slot">
+                <div class="recognize-bubble" id="bubble-tens">ここに かいてね</div>
+                <div class="canvas-frame" id="frame-tens">
+                  <div class="crosshair-guide" aria-hidden="true"></div>
+                  <span class="place-watermark" aria-hidden="true">じゅう</span>
+                  <canvas id="canvas-tens" class="digit-canvas" aria-label="じゅうのくらい"></canvas>
+                </div>
+                <div class="slot-footer">
+                  <span class="place-label">じゅうの くらい</span>
+                  <button type="button" id="btn-clear-tens" class="btn-slot-clear">🧹 けす</button>
+                </div>
+              </div>
+
+              <!-- 一の位 -->
+              <div class="digit-slot">
+                <div class="recognize-bubble" id="bubble-ones">ここに かいてね</div>
+                <div class="canvas-frame" id="frame-ones">
+                  <div class="crosshair-guide" aria-hidden="true"></div>
+                  <span class="place-watermark" aria-hidden="true">いち</span>
+                  <canvas id="canvas-ones" class="digit-canvas" aria-label="いちのくらい"></canvas>
+                </div>
+                <div class="slot-footer">
+                  <span class="place-label">いちの くらい</span>
+                  <button type="button" id="btn-clear-ones" class="btn-slot-clear">🧹 けす</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 右側の「こたえる」「けす」ボタン -->
+            <div class="action-buttons-col">
+              <button type="button" id="btn-submit" class="btn-answer-submit">
+                <span class="btn-big-icon">⭕</span>
+                <span class="btn-big-text">こたえる！</span>
+              </button>
+              <button type="button" id="btn-clear-all" class="btn-answer-clear">
+                <span class="btn-small-icon">🧽</span>
+                <span class="btn-small-text">ぜんぶ けす</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 結果発表画面 -->
+    <section id="screen-result" class="screen screen-result" hidden>
+      <div id="confetti-layer" class="confetti-layer" aria-hidden="true"></div>
+      <div class="result-container" id="result-container">
+        <div class="perfect-frame-top" id="perfect-frame-top" hidden>
+          🌸 🐶 🌺 🐱 🌻 🐰 🌷 🐻 💐 🐼 🌼 🦁 🌸
+        </div>
+
+        <div class="result-grid">
+          <!-- 左：スコア＆すごろく到着＆にがてアドバイス -->
+          <div class="result-summary-card">
+            <div class="result-badge" id="result-badge">🌟</div>
+            <div class="result-score-line">
+              <span class="result-score-num" id="result-score-num">10</span>
+              <span class="result-score-denom" id="result-score-denom">/ 10 もん（1かいめ せいかい）</span>
+            </div>
+            <h2 class="result-headline" id="result-headline">ぜんもん せいかい！</h2>
+
+            <div class="result-stats-pills">
+              <div class="stat-pill">🔥 さいだい <strong id="stat-max-combo">0</strong> コンボ</div>
+              <div class="stat-pill">⏱️ へいきん <strong id="stat-avg-sec">0.0</strong> びょう</div>
+            </div>
+
+            <!-- すごろく到着お知らせ -->
+            <button type="button" id="btn-result-map" class="result-sugoroku-banner" hidden>
+              <span id="result-sugoroku-text">🗺️ 「かみうら」に とうちゃく！ マップを みる</span>
+            </button>
+
+            <div class="weakness-box">
+              <div class="weakness-title">📊 けいさん アドバイス</div>
+              <p class="weakness-text" id="result-advice"></p>
+              <div class="carry-breakdown" id="carry-breakdown"></div>
+            </div>
+
+            <div class="result-actions">
+              <button type="button" id="btn-retry-all" class="btn-primary-big btn-result-action">
+                <span>🔁 もういちど 10もん！</span>
+              </button>
+              <button type="button" id="btn-retry-wrong" class="btn-retry-wrong" hidden>
+                <span>💪 まちがえた もんだいだけ！</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 右：10問の結果一覧 -->
+          <div class="result-list-card">
+            <h3>📝 10もんの けっか いちらん</h3>
+            <div class="result-table-wrap">
+              <table class="result-table">
+                <thead>
+                  <tr>
+                    <th>ばん</th>
+                    <th>もんだい</th>
+                    <th>さいしょのこたえ</th>
+                    <th>せいかい</th>
+                    <th>けっか</th>
+                  </tr>
+                </thead>
+                <tbody id="result-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="perfect-frame-bottom" id="perfect-frame-bottom" hidden>
+          🌷 🦊 🌸 🐨 🌻 🐯 🌺 🦄 💐 🐶 🌼 🐱 🌷
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 佐伯市一周すごろく マップモーダル -->
+  <div id="modal-map" class="modal-backdrop" hidden>
+    <div class="modal-card modal-map-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">🗺️ さいきし ぐるっと 1しゅう すごろく</h2>
+          <p class="modal-sub" id="map-modal-sub">10もん クリアするごとに 1マス すすむよ！（全問1かいめ正解で 👑 がつくよ）</p>
+        </div>
+        <button type="button" id="btn-close-map" class="btn-modal-close">とじる ✕</button>
+      </div>
+
+      <div class="sugoroku-board" id="sugoroku-board"></div>
+
+      <div class="map-modal-footer">
+        <span class="map-stats-pill" id="map-stats-pill">クリア回数：0かい ／ 1しゅうめ</span>
+        <span class="map-future-note">🌱 2ねんせい（かけざん：おおいたけん1しゅう）も 今後とうじょう予定！</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 隠し5回タップ：データ引き継ぎ・管理モーダル -->
+  <div id="modal-transfer" class="modal-backdrop" hidden>
+    <div class="modal-card modal-transfer-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">💾 データ ひきつぎ・かんり</h2>
+          <p class="modal-sub">別のiPadへうつすときや、きろくをバックアップするときに使います。</p>
+        </div>
+        <button type="button" id="btn-close-transfer" class="btn-modal-close">とじる ✕</button>
+      </div>
+
+      <div class="transfer-summary" id="transfer-summary"></div>
+
+      <div class="transfer-actions">
+        <button type="button" id="btn-export-json" class="btn-transfer btn-export">
+          <span>📥 JSONファイルで ほぞん（ダウンロード）</span>
+        </button>
+
+        <label class="btn-transfer btn-import" for="import-json-input">
+          <span>📤 JSONファイルを よみこむ</span>
+          <input type="file" id="import-json-input" accept=".json,application/json" hidden>
+        </label>
+
+        <button type="button" id="btn-reset-data" class="btn-transfer btn-reset">
+          <span id="reset-btn-label">🗑️ データを さいしょからにする（リセット）</span>
+        </button>
+      </div>
+
+      <p class="transfer-status" id="transfer-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- すべてのスクリプトは dist 内で完結 -->
+  <script src="js/mnist-weights.js"></script>
+  <script src="js/mnist.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/mathCards.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/handwriting.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
