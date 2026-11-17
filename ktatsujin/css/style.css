@@ -1828,16 +1828,8 @@ body.is-portrait .portrait-lock {
 }
 
 .tile-icon {
-  font-size: clamp(26px, 3.6vw, 38px);
+  font-size: clamp(32px, 4.4vw, 46px);
   line-height: 1;
-}
-
-.tile-desc {
-  font-size: clamp(10px, 1.05vw, 11px);
-  font-weight: 700;
-  color: #64748b;
-  text-align: center;
-  line-height: 1.2;
 }
 
 /* 通過(🌸)・1回目全問正解(👑)スタンプ */

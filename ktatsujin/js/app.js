@@ -421,7 +421,7 @@
       header.textContent = item.label;
       tile.appendChild(header);
 
-      // マスの中身（アイコン・説明・🌸・👑）
+      // マスの中身（アイコン・🌸・👑）
       const body = document.createElement("div");
       body.className = "tile-body";
 
@@ -429,11 +429,6 @@
       icon.className = "tile-icon";
       icon.textContent = item.icon;
       body.appendChild(icon);
-
-      const desc = document.createElement("span");
-      desc.className = "tile-desc";
-      desc.textContent = item.desc;
-      body.appendChild(desc);
 
       const stamps = document.createElement("div");
       stamps.className = "tile-stamps";
