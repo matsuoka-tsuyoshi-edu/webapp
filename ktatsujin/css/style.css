@@ -319,21 +319,22 @@ body.is-portrait .portrait-lock {
 
 .op-buttons-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
 }
 
 .btn-op-select {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 9px 12px;
-  border-radius: 16px;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 15px;
   background: #f1f5f9;
   color: #334155;
   border: 2.5px solid #cbd5e1;
-  font-size: clamp(15px, 1.9vw, 18px);
+  font-size: clamp(12px, 1.4vw, 15px);
   font-weight: 900;
   transition: transform 0.08s ease, background 0.15s ease;
 }
@@ -353,6 +354,115 @@ body.is-portrait .portrait-lock {
   background: linear-gradient(180deg, #f472b6 0%, #db2777 100%);
   border-color: #be185d;
   box-shadow: 0 4px 0 #be185d;
+}
+
+.btn-op-select#btn-mode-mul.is-active {
+  background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);
+  border-color: #c2410c;
+  box-shadow: 0 4px 0 #c2410c;
+}
+
+.btn-op-select#btn-mode-div.is-active {
+  background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
+  border-color: #6d28d9;
+  box-shadow: 0 4px 0 #6d28d9;
+}
+
+.div-options-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.div-master-bar {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #5b21b6;
+  background: #f5f3ff;
+  border: 1.5px solid #ddd6fe;
+  border-radius: 10px;
+  padding: 4px 8px;
+}
+
+.btn-japan-pill {
+  background: linear-gradient(180deg, #fef08a 0%, #fde047 100%);
+  color: #713f12;
+  border-color: #eab308;
+}
+
+.btn-japan-hero {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #f59e0b 0%, #ef4444 50%, #ec4899 100%);
+  color: #ffffff;
+  font-size: clamp(14px, 1.75vw, 17px);
+  font-weight: 900;
+  box-shadow: 0 4px 0 #b91c1c, 0 8px 18px rgba(239, 68, 68, 0.25);
+}
+
+.btn-japan-hero:active {
+  transform: scale(0.98);
+}
+
+.mul-summary-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #fff7ed;
+  border: 2px solid #fdba74;
+  border-radius: 15px;
+  padding: 8px 10px;
+}
+
+.mul-summary-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mul-summary-course {
+  font-size: clamp(12px, 1.5vw, 14px);
+  font-weight: 900;
+  color: #9a3412;
+}
+
+.mul-summary-badges {
+  font-size: 12px;
+  font-weight: 800;
+  color: #c2410c;
+}
+
+.btn-open-mul-modal {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 3px 0 #c2410c;
+}
+
+.btn-open-mul-modal:active {
+  transform: scale(0.97);
+}
+
+.mul-secret-hint {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  border: 2px dashed #fb923c;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: #9a3412;
+  text-align: center;
 }
 
 .regroup-row,
@@ -591,24 +701,45 @@ body.is-portrait .portrait-lock {
   align-items: center;
   justify-content: center;
   padding: 12px 24px 12px 46px;
-  /* 左中央リングを中心にめくれる！ */
+  /* 左中央リングを中心にペラッとめくれる！ */
   transform-origin: 18px 50%;
-  backface-visibility: hidden;
-  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease-in;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
 }
 
 .calc-card.is-flipping-out {
-  transform: rotateY(-122deg) rotateZ(-5deg) translateX(-10px);
-  opacity: 0;
+  animation: cardFlipPage 0.52s cubic-bezier(0.32, 0.08, 0.24, 1) forwards;
+}
+
+@keyframes cardFlipPage {
+  0% {
+    transform: rotateY(0deg) rotateZ(0deg) scale(1);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
+    opacity: 1;
+  }
+  22% {
+    transform: rotateY(-18deg) rotateZ(-2deg) scale(1.03);
+    box-shadow: 18px 20px 32px rgba(15, 23, 42, 0.22);
+    opacity: 1;
+  }
+  65% {
+    transform: rotateY(-102deg) rotateZ(-5deg) scale(1.02);
+    box-shadow: 24px 18px 34px rgba(15, 23, 42, 0.2);
+    opacity: 0.92;
+  }
+  100% {
+    transform: rotateY(-158deg) rotateZ(-7deg) translateX(-14px) scale(0.96);
+    opacity: 0;
+  }
 }
 
 .calc-card.is-entering {
-  animation: cardSettle 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: cardSettle 0.26s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes cardSettle {
-  0% { transform: scale(0.96) translate(4px, 4px); }
-  100% { transform: scale(1) translate(0, 0); }
+  0% { transform: scale(0.96) translate(6px, 6px); opacity: 0.7; }
+  100% { transform: scale(1) translate(0, 0); opacity: 1; }
 }
 
 /* 左中央のパンチ穴 */
@@ -2037,4 +2168,677 @@ body.is-portrait .portrait-lock {
   color: #0f766e;
   text-align: center;
 }
+
+/* ==========================================================================
+   かけざん用 ●アレイ図ヒント
+   ========================================================================== */
+.mul-hint-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.mul-array-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  background: #f8fafc;
+  border: 2px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 6px 10px;
+}
+
+.mul-array-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.mul-array-row.is-lit {
+  background: #fef3c7;
+}
+
+.mul-array-row-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mul-array-dot {
+  width: var(--mul-dot-size, 16px);
+  height: var(--mul-dot-size, 16px);
+  border-radius: 50%;
+  background: #cbd5e1;
+  border: 1.5px solid #94a3b8;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.mul-array-row.is-lit .mul-array-dot {
+  background: radial-gradient(circle at 32% 30%, #fb923c, #ea580c);
+  border-color: #c2410c;
+  transform: scale(1.06);
+}
+
+.mul-row-sum {
+  font-size: 12px;
+  font-weight: 900;
+  color: #94a3b8;
+  min-width: 44px;
+  text-align: right;
+}
+
+.mul-array-row.is-lit .mul-row-sum {
+  color: #b45309;
+}
+
+.mul-hint-controls {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+}
+
+.btn-mul-step {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 3px 0 #c2410c;
+}
+
+.btn-mul-step:active,
+.btn-mul-step-reset:active {
+  transform: scale(0.97);
+}
+
+.btn-mul-step-reset {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1.5px solid #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   結果画面（かけざんメダル・別の段ボタン）＆ 大分県すごろくテーマ
+   ========================================================================== */
+.result-mul-award {
+  width: 100%;
+  padding: 7px 12px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #ffedd5 0%, #fef3c7 100%);
+  border: 2px solid #fb923c;
+  color: #9a3412;
+  font-size: clamp(12px, 1.45vw, 14px);
+  font-weight: 900;
+  text-align: center;
+}
+
+.btn-result-pick-mul {
+  flex: 0.9;
+  padding: 11px 10px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);
+  color: #ffffff;
+  font-size: clamp(13px, 1.6vw, 16px);
+  font-weight: 800;
+  box-shadow: 0 5px 0 #c2410c;
+}
+
+.btn-result-pick-mul:active {
+  transform: scale(0.98);
+}
+
+.map-screen-shell.is-oita-theme {
+  border-color: #fdba74;
+}
+
+.map-screen-shell.is-oita-theme .sugoroku-board {
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 50%, #fce7f3 100%);
+  border-color: #fb923c;
+}
+
+.map-screen-shell.is-oita-theme .tile-connector {
+  color: #ea580c;
+}
+
+/* ==========================================================================
+   かけざんコース選択ポップアップ（#modal-mul）
+   ========================================================================== */
+.modal-mul-card {
+  width: min(860px, 95vw);
+  max-height: 92dvh;
+  padding: 14px 18px;
+  gap: 10px;
+}
+
+.mul-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 6px;
+}
+
+.mul-table-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 2.5px solid #cbd5e1;
+  color: #1e293b;
+  font-weight: 900;
+}
+
+.mul-table-tile.is-selected {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.28);
+}
+
+.mul-table-tile.is-mastered {
+  background: linear-gradient(180deg, #fefce8 0%, #fef08a 100%);
+  border-color: #eab308;
+}
+
+.mul-tile-name {
+  font-size: clamp(12px, 1.45vw, 15px);
+}
+
+.mul-tile-badge {
+  font-size: 12px;
+  min-height: 16px;
+  line-height: 1;
+}
+
+.mul-subpanel {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mul-subpanel-title {
+  font-size: 14px;
+  font-weight: 900;
+  color: #9a3412;
+  text-align: center;
+}
+
+.mul-order-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mul-mix-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.btn-mul-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 8px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 2.5px solid #cbd5e1;
+  color: #1e293b;
+  font-weight: 800;
+  text-align: center;
+}
+
+.btn-mul-choice.is-selected {
+  background: #fff7ed;
+  border-color: #ea580c;
+  color: #9a3412;
+  box-shadow: 0 3px 0 #fdba74;
+}
+
+.btn-mul-choice.is-special {
+  grid-column: span 2;
+  background: linear-gradient(180deg, #fefce8 0%, #fef9c3 100%);
+  border-color: #eab308;
+}
+
+.btn-mul-choice.is-special.is-selected {
+  background: linear-gradient(180deg, #fef08a 0%, #fde047 100%);
+  border-color: #ca8a04;
+}
+
+.choice-main {
+  font-size: clamp(12px, 1.45vw, 15px);
+  font-weight: 900;
+}
+
+.choice-sub {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.choice-stamp {
+  font-size: 13px;
+  min-height: 16px;
+  line-height: 1;
+}
+
+.mul-custom-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #ffffff;
+  border: 2px dashed #fb923c;
+  border-radius: 14px;
+  padding: 8px 12px;
+}
+
+.mul-picker-prompt {
+  font-size: 13px;
+  font-weight: 900;
+  color: #9a3412;
+}
+
+.mul-picker-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-pick-num {
+  width: 38px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  border: 2px solid #cbd5e1;
+  font-size: 15px;
+  font-weight: 900;
+  color: #334155;
+}
+
+.btn-pick-num.is-picked {
+  background: #ea580c;
+  border-color: #c2410c;
+  color: #ffffff;
+}
+
+.mul-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mul-selected-preview {
+  font-size: 14px;
+  font-weight: 900;
+  color: #334155;
+}
+
+.btn-mul-start {
+  padding: 11px 22px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+  box-shadow: 0 4px 0 #15803d;
+}
+
+.btn-mul-start:disabled {
+  opacity: 0.45;
+}
+
+.btn-mul-start:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ==========================================================================
+   わりざん（あまりの仕切り・●グループ分けヒント・九州沖縄テーマ）
+   ========================================================================== */
+.div-rem-separator {
+  flex: 0 0 auto;
+  font-size: clamp(13px, 1.5vw, 16px);
+  font-weight: 900;
+  color: #6d28d9;
+  background: #f5f3ff;
+  border: 2px solid #c4b5fd;
+  border-radius: 12px;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.div-hint-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.div-dots-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #f8fafc;
+  border: 2px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 6px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.div-group-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #ede9fe;
+  border: 2px solid #8b5cf6;
+  animation: cardSettle 0.2s ease;
+}
+
+.div-ungrouped-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 2px 4px;
+}
+
+.div-dot-unit {
+  width: var(--div-dot-size, 11px);
+  height: var(--div-dot-size, 11px);
+  border-radius: 50%;
+  background: #94a3b8;
+  border: 1px solid #64748b;
+}
+
+.div-group-box .div-dot-unit {
+  background: radial-gradient(circle at 32% 30%, #a78bfa, #7c3aed);
+  border-color: #5b21b6;
+}
+
+.div-ungrouped-wrap.is-remainder .div-dot-unit {
+  background: radial-gradient(circle at 32% 30%, #fbbf24, #d97706);
+  border-color: #b45309;
+}
+
+.sugoroku-board.is-kyushu-board {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.map-screen-shell.is-kyushu-theme {
+  border-color: #c4b5fd;
+}
+
+.map-screen-shell.is-kyushu-theme .sugoroku-board {
+  background: linear-gradient(135deg, #f5f3ff 0%, #e0f2fe 50%, #fef9c3 100%);
+  border-color: #a78bfa;
+}
+
+.map-screen-shell.is-kyushu-theme .tile-connector {
+  color: #7c3aed;
+}
+
+.btn-result-japan {
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 5px 0 #b45309;
+}
+
+/* ==========================================================================
+   5. 日本一周 計算の旅（47都道府県マップ＆シルエットモーダル）
+   ========================================================================== */
+.japan-screen-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 3px solid #93c5fd;
+  border-radius: 26px;
+  padding: clamp(8px, 1.5vh, 14px) clamp(12px, 2vw, 18px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.japan-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.japan-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.japan-title {
+  margin: 0;
+  font-size: clamp(16px, 2.1vw, 22px);
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.japan-progress-pill {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1.5px solid #f59e0b;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.japan-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.japan-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #475569;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.japan-map-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  background: linear-gradient(160deg, #e0f2fe 0%, #eff6ff 60%, #f0fdf4 100%);
+  border: 2.5px solid #7dd3fc;
+  border-radius: 20px;
+  padding: 8px;
+}
+
+.japan-tile-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  grid-template-rows: repeat(12, 1fr);
+  gap: 3px;
+}
+
+.pref-tile {
+  position: relative;
+  border-radius: 7px;
+  background: #ffffff;
+  border: 1.5px solid #94a3b8;
+  color: #1e293b;
+  padding: 1px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(9px, 1.05vw, 12px);
+  font-weight: 900;
+  line-height: 1.05;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+}
+
+.pref-tile:active {
+  transform: scale(0.95);
+}
+
+.pref-tile.region-北海道 { background: #e0f2fe; border-color: #38bdf8; }
+.pref-tile.region-東北 { background: #ecfeff; border-color: #22d3ee; }
+.pref-tile.region-関東 { background: #dcfce7; border-color: #4ade80; }
+.pref-tile.region-中部 { background: #fef9c3; border-color: #facc15; }
+.pref-tile.region-近畿 { background: #ffedd5; border-color: #fb923c; }
+.pref-tile.region-中国 { background: #fce7f3; border-color: #f472b6; }
+.pref-tile.region-四国 { background: #f3e8ff; border-color: #c084fc; }
+.pref-tile.region-九州 { background: #fee2e2; border-color: #f87171; }
+.pref-tile.region-沖縄 { background: #ccfbf1; border-color: #2dd4bf; }
+
+.pref-tile.is-cleared {
+  border-width: 2.5px;
+  border-color: #db2777;
+  box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.35);
+}
+
+.pref-tile.is-perfect {
+  background: linear-gradient(135deg, #fef08a 0%, #fde047 100%) !important;
+  border-color: #ca8a04;
+  color: #713f12;
+}
+
+.pref-tile-status {
+  font-size: clamp(8px, 0.9vw, 11px);
+  line-height: 1;
+}
+
+/* 都道府県チャレンジ ポップアップ */
+.modal-pref-card {
+  width: min(560px, 92vw);
+}
+
+.pref-region-pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 2px 10px;
+  border-radius: 999px;
+  margin-bottom: 4px;
+}
+
+.pref-preview-body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 14px 16px;
+}
+
+.pref-shape-box {
+  flex: 0 0 auto;
+  width: 128px;
+  height: 128px;
+  background: #eff6ff;
+  border: 2.5px solid #93c5fd;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.pref-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pref-svg path {
+  fill: #60a5fa;
+  stroke: #1d4ed8;
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+}
+
+.pref-challenge-info {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pref-op-announce {
+  font-size: clamp(18px, 2.2vw, 22px);
+  font-weight: 900;
+  color: #c2410c;
+  background: #ffedd5;
+  border: 2px solid #fb923c;
+  border-radius: 14px;
+  padding: 6px 12px;
+  text-align: center;
+}
+
+.pref-op-desc {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #334155;
+}
+
+.pref-status-badge {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0369a1;
+  background: #e0f2fe;
+  border-radius: 10px;
+  padding: 5px 10px;
+  text-align: center;
+}
+
+
 
