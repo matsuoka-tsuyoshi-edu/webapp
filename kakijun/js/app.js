@@ -66,9 +66,39 @@
     $('home-qcount').textContent = String(state.settings.questionCount);
   }
 
+  function isKanjiType(tp) {
+    return tp && tp.indexOf('kanji') === 0;
+  }
+
   function buildQuestionSet(mode, count) {
+    if (mode === 'mixed') {
+      const types = ['hiragana', 'katakana', 'kanji1', 'kanji2', 'kanji3'];
+      for (let i = types.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = types[i];
+        types[i] = types[j];
+        types[j] = tmp;
+      }
+      const picked = [];
+      let tIdx = 0;
+      const usedTargets = new Set();
+      while (picked.length < count) {
+        const t = types[tIdx % types.length];
+        const candidates = Kakijun.WORDS.filter(function (w) {
+          return w.type === t && !usedTargets.has(w.target);
+        });
+        if (candidates.length > 0) {
+          const item = candidates[Math.floor(Math.random() * candidates.length)];
+          usedTargets.add(item.target);
+          picked.push(item);
+        }
+        tIdx++;
+        if (tIdx > 40) break;
+      }
+      return picked;
+    }
+
     const pool = Kakijun.WORDS.filter(function (w) {
-      if (mode === 'mixed') return true;
       return w.type === mode;
     });
 
@@ -108,17 +138,25 @@
   function renderQuizWordTiles(container, item, filled) {
     container.innerHTML = '';
     const chars = Array.from(item.word);
+    container.classList.toggle('is-long-word', chars.length >= 6);
     chars.forEach(function (ch, idx) {
       const span = document.createElement('span');
       span.className = 'char-tile';
       if (idx === item.blankIndex) {
-        if (filled) {
-          span.classList.add('is-filled');
-          span.textContent = ch;
+        if (item.reading) {
+          span.classList.add('has-ruby');
+          const ruby = document.createElement('span');
+          ruby.className = 'tile-ruby';
+          ruby.textContent = item.reading;
+          const main = document.createElement('span');
+          main.className = 'tile-main';
+          main.textContent = filled ? ch : '□';
+          span.appendChild(ruby);
+          span.appendChild(main);
         } else {
-          span.classList.add('is-blank');
-          span.textContent = '□';
+          span.textContent = filled ? ch : '□';
         }
+        span.classList.add(filled ? 'is-filled' : 'is-blank');
       } else {
         span.textContent = ch;
       }
@@ -130,13 +168,31 @@
     const stage = $('practice-word-stage');
     const wrapper = $('practice-canvas-wrapper');
 
-    stage.querySelectorAll('.practice-fixed-char').forEach(function (el) {
+    stage.querySelectorAll('.practice-fixed-char, .practice-fixed-phrase').forEach(function (el) {
       el.remove();
     });
 
     const chars = Array.from(item.word);
     stage.classList.remove('len-2', 'len-3', 'len-4', 'len-5', 'len-6');
     stage.classList.add('len-' + Math.min(6, Math.max(2, chars.length)));
+
+    if (isKanjiType(item.type)) {
+      const before = chars.slice(0, item.blankIndex).join('');
+      const after = chars.slice(item.blankIndex + 1).join('');
+      if (before) {
+        const div = document.createElement('div');
+        div.className = before.length === 1 ? 'practice-fixed-char' : 'practice-fixed-phrase';
+        div.textContent = before;
+        stage.insertBefore(div, wrapper);
+      }
+      if (after) {
+        const div = document.createElement('div');
+        div.className = after.length === 1 ? 'practice-fixed-char' : 'practice-fixed-phrase';
+        div.textContent = after;
+        stage.appendChild(div);
+      }
+      return;
+    }
 
     for (let i = 0; i < item.blankIndex; i++) {
       const div = document.createElement('div');
@@ -174,6 +230,9 @@
     list.classList.remove('hidden');
 
     const chars = Array.from(item.word);
+    const before = chars.slice(0, item.blankIndex).join('');
+    const after = chars.slice(item.blankIndex + 1).join('');
+
     for (let stepIdx = 0; stepIdx < upToCount; stepIdx++) {
       const row = document.createElement('div');
       row.className = 'prev-mini-row';
@@ -186,21 +245,24 @@
       const wordWrap = document.createElement('div');
       wordWrap.className = 'mini-word-inline';
 
-      chars.forEach(function (ch, idx) {
-        if (idx === item.blankIndex) {
-          const cv = document.createElement('canvas');
-          cv.className = 'mini-inline-canvas';
-          cv.width = 76;
-          cv.height = 76;
-          Kakijun.HandwritingCanvas.drawStrokesToCanvas(cv, state.practiceAttempts[stepIdx].strokes);
-          wordWrap.appendChild(cv);
-        } else {
-          const sp = document.createElement('span');
-          sp.className = 'mini-inline-char';
-          sp.textContent = ch;
-          wordWrap.appendChild(sp);
-        }
-      });
+      if (before) {
+        const spB = document.createElement('span');
+        spB.className = 'mini-inline-char';
+        spB.textContent = before;
+        wordWrap.appendChild(spB);
+      }
+      const cv = document.createElement('canvas');
+      cv.className = 'mini-inline-canvas';
+      cv.width = 76;
+      cv.height = 76;
+      Kakijun.HandwritingCanvas.drawStrokesToCanvas(cv, state.practiceAttempts[stepIdx].strokes);
+      wordWrap.appendChild(cv);
+      if (after) {
+        const spA = document.createElement('span');
+        spA.className = 'mini-inline-char';
+        spA.textContent = after;
+        wordWrap.appendChild(spA);
+      }
 
       row.appendChild(wordWrap);
       list.appendChild(row);
@@ -300,6 +362,14 @@
     $('quiz-reveal-emoji').textContent = item.emoji;
     $('quiz-reveal-word').textContent = item.word;
 
+    const quizRuby = $('quiz-ruby-badge');
+    if (item.reading) {
+      quizRuby.textContent = item.reading;
+      quizRuby.classList.remove('hidden');
+    } else {
+      quizRuby.classList.add('hidden');
+    }
+
     $('btn-quiz-demo').classList.remove('hidden');
     $('btn-quiz-demo').textContent = '👀 おてほん';
     $('btn-quiz-demo').classList.remove('is-write-mode');
@@ -377,7 +447,7 @@
       Kakijun.Sound.correct();
     }
     global.setTimeout(function () {
-      Kakijun.Sound.speak(item.word);
+      Kakijun.Sound.speak(item.speakText || item.word);
     }, 300);
   }
 
@@ -404,11 +474,19 @@
     const chars = Array.from(item.word);
     const blankText = chars.map(function (ch, idx) {
       return idx === item.blankIndex ? '□' : ch;
-    }).join(' ');
+    }).join(isKanjiType(item.type) ? '' : ' ');
 
     $('practice-emoji').textContent = item.emoji;
     $('practice-prompt-blank').textContent = blankText;
-    $('practice-prompt-reading').textContent = '（' + item.word + '）';
+    $('practice-prompt-reading').textContent = '（' + (item.reading || item.word) + '）';
+
+    const pRuby = $('practice-ruby-badge');
+    if (item.reading) {
+      pRuby.textContent = item.reading;
+      pRuby.classList.remove('hidden');
+    } else {
+      pRuby.classList.add('hidden');
+    }
     renderPracticeWordStage(item);
   }
 
@@ -582,21 +660,44 @@
       // 2. 横書き単語＋書いた文字のミニ枠
       const wordCol = document.createElement('div');
       wordCol.className = 'review-word-inline';
-      chars.forEach(function (ch, cIdx) {
-        if (cIdx === item.blankIndex) {
-          const cv = document.createElement('canvas');
-          cv.className = 'review-drawn-canvas';
-          cv.width = 160;
-          cv.height = 160;
-          Kakijun.HandwritingCanvas.drawStrokesToCanvas(cv, att.strokes);
-          wordCol.appendChild(cv);
-        } else {
-          const box = document.createElement('div');
-          box.className = 'review-char-box';
-          box.textContent = ch;
-          wordCol.appendChild(box);
+      if (isKanjiType(item.type)) {
+        const before = chars.slice(0, item.blankIndex).join('');
+        const after = chars.slice(item.blankIndex + 1).join('');
+        if (before) {
+          const boxB = document.createElement('div');
+          boxB.className = before.length === 1 ? 'review-char-box' : 'review-phrase-box';
+          boxB.textContent = before;
+          wordCol.appendChild(boxB);
         }
-      });
+        const cv = document.createElement('canvas');
+        cv.className = 'review-drawn-canvas';
+        cv.width = 160;
+        cv.height = 160;
+        Kakijun.HandwritingCanvas.drawStrokesToCanvas(cv, att.strokes);
+        wordCol.appendChild(cv);
+        if (after) {
+          const boxA = document.createElement('div');
+          boxA.className = after.length === 1 ? 'review-char-box' : 'review-phrase-box';
+          boxA.textContent = after;
+          wordCol.appendChild(boxA);
+        }
+      } else {
+        chars.forEach(function (ch, cIdx) {
+          if (cIdx === item.blankIndex) {
+            const cv = document.createElement('canvas');
+            cv.className = 'review-drawn-canvas';
+            cv.width = 160;
+            cv.height = 160;
+            Kakijun.HandwritingCanvas.drawStrokesToCanvas(cv, att.strokes);
+            wordCol.appendChild(cv);
+          } else {
+            const box = document.createElement('div');
+            box.className = 'review-char-box';
+            box.textContent = ch;
+            wordCol.appendChild(box);
+          }
+        });
+      }
       row.appendChild(wordCol);
 
       // 3. 先生コメント
@@ -903,7 +1004,7 @@
     $('btn-quiz-speak').addEventListener('click', function () {
       Kakijun.Sound.unlock();
       const item = state.questions[state.currentIndex];
-      if (item) Kakijun.Sound.speak(item.word, 0.85);
+      if (item) Kakijun.Sound.speak(item.speakText || item.word, 0.85);
     });
     $('btn-quiz-demo').addEventListener('click', function () {
       if (state.busy || state.quizSolved) return;
@@ -932,7 +1033,7 @@
     $('btn-practice-speak').addEventListener('click', function () {
       Kakijun.Sound.unlock();
       const item = state.questions[state.currentIndex];
-      if (item) Kakijun.Sound.speak(item.word, 0.85);
+      if (item) Kakijun.Sound.speak(item.speakText || item.word, 0.85);
     });
     $('btn-practice-demo').addEventListener('click', function () {
       if (state.busy) return;

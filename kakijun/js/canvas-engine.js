@@ -373,9 +373,14 @@
       if (!tmpl) return;
 
       const self = this;
+      const isManyStrokes = tmpl.strokes.length >= 9;
+      const stepUnit = isManyStrokes ? 1.85 : 1.25;
+      const minPts = isManyStrokes ? 10 : 16;
+      const pauseMs = isManyStrokes ? 140 : 260;
+
       const denseList = tmpl.strokes.map(function (st) {
         const len = strokeLength(st);
-        const pointCount = Math.max(16, Math.min(180, Math.round(len / 1.25)));
+        const pointCount = Math.max(minPts, Math.min(180, Math.round(len / stepUnit)));
         return densifyStroke(st, pointCount);
       });
 
@@ -456,7 +461,7 @@
           pIdx = 0;
           self.demoAnimId = global.setTimeout(function () {
             self.demoAnimId = global.requestAnimationFrame(step);
-          }, 260);
+          }, pauseMs);
         } else {
           self.demoAnimId = global.requestAnimationFrame(step);
         }

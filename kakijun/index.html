@@ -59,10 +59,25 @@
               <div class="mode-name">カタカナ</div>
               <div class="mode-sub">ぜんぶ 45もじ</div>
             </button>
+            <button class="mode-card mode-kanji1" data-mode="kanji1" type="button">
+              <div class="mode-sample">山</div>
+              <div class="mode-name">1ねん かんじ</div>
+              <div class="mode-sub">80もじ</div>
+            </button>
+            <button class="mode-card mode-kanji2" data-mode="kanji2" type="button">
+              <div class="mode-sample">星</div>
+              <div class="mode-name">2ねん かんじ</div>
+              <div class="mode-sub">160もじ</div>
+            </button>
+            <button class="mode-card mode-kanji3" data-mode="kanji3" type="button">
+              <div class="mode-sample">漢</div>
+              <div class="mode-name">3ねん かんじ</div>
+              <div class="mode-sub">200もじ</div>
+            </button>
             <button class="mode-card mode-mixed" data-mode="mixed" type="button">
-              <div class="mode-sample">あア</div>
+              <div class="mode-sample">あア漢</div>
               <div class="mode-name">ミックス</div>
-              <div class="mode-sub">どちらも でるよ</div>
+              <div class="mode-sub">ぜんぶ でるよ</div>
             </button>
           </div>
           <div class="home-footer-info">
@@ -112,6 +127,7 @@
 
             <div class="quiz-center-stage">
               <div class="canvas-wrapper size-quiz" id="quiz-canvas-wrapper">
+                <div id="quiz-ruby-badge" class="canvas-ruby-badge hidden">やま</div>
                 <canvas id="quiz-guide-canvas" class="canvas-layer guide-layer"></canvas>
                 <canvas id="quiz-draw-canvas" class="canvas-layer draw-layer"></canvas>
                 <div id="quiz-judge-overlay" class="judge-overlay hidden">
@@ -169,6 +185,7 @@
           <!-- 中央メイン：単語の大きい文字タイル ＋ 大きな手書き枠が横並び -->
           <div class="practice-word-stage" id="practice-word-stage">
             <div class="canvas-wrapper size-practice" id="practice-canvas-wrapper">
+              <div id="practice-ruby-badge" class="canvas-ruby-badge hidden">やま</div>
               <canvas id="practice-guide-canvas" class="canvas-layer guide-layer"></canvas>
               <canvas id="practice-draw-canvas" class="canvas-layer draw-layer"></canvas>
               <div id="practice-judge-overlay" class="judge-overlay hidden">
