@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>かいて おぼえる！ひらがな・カタカナ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 縦向き警告オーバーレイ -->
+  <div id="portrait-overlay" class="portrait-overlay" aria-live="polite">
+    <div class="portrait-card">
+      <div class="portrait-icon" aria-hidden="true">📱➡️📲</div>
+      <h2>iPadを よこむき にしてね！</h2>
+      <p>このアプリは よこむき で つかいます。</p>
+    </div>
+  </div>
+
+  <div id="app" class="app-shell">
+    <!-- 共通ヘッダー -->
+    <header class="app-header">
+      <div class="header-left">
+        <button id="btn-home" class="btn-pill btn-home hidden" type="button" aria-label="さいしょにもどる">
+          <span class="icon">🏠</span><span>さいしょへ</span>
+        </button>
+        <h1 class="app-title">✏️ かいて おぼえる！</h1>
+      </div>
+
+      <div id="progress-badge" class="progress-badge hidden">
+        <span id="progress-text">1 / 3 もんめ</span>
+      </div>
+
+      <div class="header-right">
+        <button id="btn-sound" class="btn-pill btn-sound" type="button" aria-pressed="true">
+          <span class="icon">🔊</span><span id="sound-label">おと ON</span>
+        </button>
+        <button id="btn-settings" class="btn-pill btn-settings" type="button" title="おとなの せってい">
+          <span class="icon">⚙️</span><span>せってい</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="app-main">
+      <!-- 1. スタート画面 -->
+      <section id="screen-home" class="screen screen-home active">
+        <div class="home-hero">
+          <p class="home-lead">□に はいる もじを ゆびで かいて、ことばを つくろう！</p>
+          <div class="mode-cards">
+            <button class="mode-card mode-hiragana" data-mode="hiragana" type="button">
+              <div class="mode-sample">あ</div>
+              <div class="mode-name">ひらがな</div>
+              <div class="mode-sub">ぜんぶ 46もじ</div>
+            </button>
+            <button class="mode-card mode-katakana" data-mode="katakana" type="button">
+              <div class="mode-sample">ア</div>
+              <div class="mode-name">カタカナ</div>
+              <div class="mode-sub">ぜんぶ 45もじ</div>
+            </button>
+            <button class="mode-card mode-mixed" data-mode="mixed" type="button">
+              <div class="mode-sample">あア</div>
+              <div class="mode-name">ミックス</div>
+              <div class="mode-sub">どちらも でるよ</div>
+            </button>
+          </div>
+          <div class="home-footer-info">
+            <span class="badge-guide" id="home-guide-badge">🌟 ガイドモード：ON</span>
+            <span class="badge-count" id="home-count-badge">📝 1セット：<strong id="home-qcount">3</strong>もん（＋3かいれんしゅう）</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. ステップ1：クイズ画面（上中央：大きな問題、右横：なにがでてくるかな、下中央：特大手書き枠、左下：応援サポート） -->
+      <section id="screen-quiz" class="screen screen-quiz">
+        <div class="quiz-layout">
+          <div class="quiz-top-row">
+            <div class="quiz-top-left">
+              <div class="phase-pill phase-quiz">もんだい</div>
+              <button id="btn-quiz-speak" class="btn-speak" type="button" title="よみあげる">
+                🔈 ことばを きく
+              </button>
+            </div>
+
+            <div class="quiz-word-hero" id="quiz-word-card">
+              <div class="word-chars" id="quiz-word-chars"></div>
+            </div>
+
+            <div class="reveal-box" id="quiz-reveal-box">
+              <div class="reveal-placeholder" id="quiz-reveal-placeholder">
+                <span class="q-mark">？</span>
+                <p>なにが でてくるかな？</p>
+              </div>
+              <div class="reveal-answer hidden" id="quiz-reveal-answer">
+                <div class="reveal-emoji" id="quiz-reveal-emoji">👶</div>
+                <div class="reveal-word" id="quiz-reveal-word">あかちゃん</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-bottom-row">
+            <div class="support-zone">
+              <div class="support-bubble" id="quiz-feedback">
+                <div class="support-avatar" aria-hidden="true">🐥</div>
+                <div class="support-content">
+                  <div class="support-title">おうえんメッセージ</div>
+                  <div class="feedback-text">●（まる）から かいてみよう！ できるかな？✨</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="quiz-center-stage">
+              <div class="canvas-wrapper size-quiz" id="quiz-canvas-wrapper">
+                <canvas id="quiz-guide-canvas" class="canvas-layer guide-layer"></canvas>
+                <canvas id="quiz-draw-canvas" class="canvas-layer draw-layer"></canvas>
+                <div id="quiz-judge-overlay" class="judge-overlay hidden">
+                  <div class="judge-banner" id="quiz-judge-banner">はんてい！！</div>
+                  <div class="judge-mark" id="quiz-judge-mark">⭕</div>
+                </div>
+              </div>
+
+              <div class="canvas-controls">
+                <button id="btn-quiz-demo" class="btn-action btn-demo" type="button">👀 おてほん</button>
+                <button id="btn-quiz-undo" class="btn-action btn-undo" type="button">↩️ 1つもどる</button>
+                <button id="btn-quiz-clear" class="btn-action btn-clear" type="button">🗑️ けす</button>
+                <button id="btn-quiz-submit" class="btn-action btn-primary" type="button">✨ こたえる！</button>
+                <button id="btn-quiz-next" class="btn-action btn-next hidden" type="button">📝 れんしゅうへ！ ➡️</button>
+              </div>
+            </div>
+
+            <div class="quiz-bottom-right">
+              <div class="tip-badge" id="quiz-tip-badge">
+                <span class="tip-icon">👆</span>
+                <span>□に ゆびで<br>かいてね！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. ステップ2：れんしゅう＆まちがえなおし画面（書いて没頭！1〜2回目のミニ履歴を空きエリアに表示） -->
+      <section id="screen-practice" class="screen screen-practice">
+        <div class="practice-layout">
+          <div class="practice-top-row">
+            <div class="practice-top-left">
+              <div class="phase-pill phase-practice" id="practice-step-pill">れんしゅう 1/3</div>
+              <span class="step-hint-chip" id="practice-step-label">おてほん あり（●ガイド）</span>
+            </div>
+
+            <div class="practice-prompt-card">
+              <span class="prompt-emoji" id="practice-emoji">🐘</span>
+              <div class="prompt-blank-word" id="practice-prompt-blank">ゾ □</div>
+              <div class="prompt-reading" id="practice-prompt-reading">（ゾウ）</div>
+              <button id="btn-practice-speak" class="btn-speak-sm" type="button" aria-label="よみあげる">🔊</button>
+            </div>
+
+            <!-- 2回目・3回目のとき、1回目・2回目に書いた単語と文字を小さく表示するエリア -->
+            <div class="practice-prev-area" id="practice-prev-area">
+              <div class="prev-placeholder" id="practice-prev-placeholder">
+                <span>1かいめ → 2かいめ → 3かいめ<br>つづけて かいてみよう！</span>
+              </div>
+              <div class="prev-mini-list hidden" id="practice-prev-list">
+                <!-- JSで過去回のミニ単語＋書いた文字を追加 -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 中央メイン：単語の大きい文字タイル ＋ 大きな手書き枠が横並び -->
+          <div class="practice-word-stage" id="practice-word-stage">
+            <div class="canvas-wrapper size-practice" id="practice-canvas-wrapper">
+              <canvas id="practice-guide-canvas" class="canvas-layer guide-layer"></canvas>
+              <canvas id="practice-draw-canvas" class="canvas-layer draw-layer"></canvas>
+              <div id="practice-judge-overlay" class="judge-overlay hidden">
+                <div class="judge-banner" id="practice-judge-banner">はんてい！！</div>
+                <div class="judge-mark" id="practice-judge-mark">⭕</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 下段：左下（応援吹き出し） ＋ 操作ボタン -->
+          <div class="practice-bottom-row">
+            <div class="support-zone">
+              <div class="support-bubble" id="practice-feedback">
+                <div class="support-avatar" aria-hidden="true">🐥</div>
+                <div class="support-content">
+                  <div class="support-title">おうえんメッセージ</div>
+                  <div class="feedback-text">1かいめ！ ●から なぞってみよう✨</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="canvas-controls practice-controls">
+              <button id="btn-practice-demo" class="btn-action btn-demo" type="button">👀 おてほん</button>
+              <button id="btn-practice-undo" class="btn-action btn-undo" type="button">↩️ もどる</button>
+              <button id="btn-practice-clear" class="btn-action btn-clear" type="button">🗑️ けす</button>
+              <button id="btn-practice-next-write" class="btn-action btn-primary" type="button">つぎへ ➡️</button>
+              <button id="btn-practice-submit" class="btn-action btn-primary hidden" type="button">✨ できた！</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. ステップ3：せんせいの まとめてマル付け画面（縦に1・2・3回目＋タップでまちがえなおし） -->
+      <section id="screen-review" class="screen screen-review">
+        <div class="review-layout">
+          <div class="review-header">
+            <div class="review-title-wrap">
+              <span class="phase-pill phase-review">まるつけ</span>
+              <span class="review-word-badge" id="review-word-badge">🐘 ゾウ</span>
+            </div>
+            <div class="review-banner" id="review-banner">
+              せんせいが まるつけ するよ！ どれどれ…？
+            </div>
+          </div>
+
+          <!-- 1回目・2回目・3回目が縦に並ぶ -->
+          <div class="review-rows" id="review-rows">
+            <!-- JSで3行を生成 -->
+          </div>
+
+          <div class="review-footer">
+            <div class="support-bubble review-support" id="review-support">
+              <div class="support-avatar" aria-hidden="true">🐥</div>
+              <div class="support-content">
+                <div class="support-title">せんせいメッセージ</div>
+                <div class="feedback-text" id="review-support-text">3かいとも しっかり かけたね！</div>
+              </div>
+            </div>
+
+            <button id="btn-review-proceed" class="btn-action btn-next btn-lg hidden" type="button">
+              つぎの もんだいへ！ ➡️
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. 結果画面 -->
+      <section id="screen-result" class="screen screen-result">
+        <div class="result-card">
+          <div class="result-hanamaru">💮</div>
+          <h2>よく がんばったね！</h2>
+          <p class="result-sub">ぜんぶの ことばを じょうずに かけたよ！</p>
+          <div class="result-words" id="result-words"></div>
+          <div class="result-actions">
+            <button id="btn-result-again" class="btn-action btn-primary btn-lg" type="button">🔄 もう1かい やる！</button>
+            <button id="btn-result-home" class="btn-action btn-home-big btn-lg" type="button">🏠 さいしょに もどる</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 大人・先生向け設定モーダル -->
+  <div id="settings-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="settings-title">⚙️ おとな・せんせい用 せってい</h2>
+        <button id="btn-settings-close" class="btn-close" type="button" aria-label="とじる">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">ガイドモード（●と先導ガイド）</div>
+            <div class="setting-help">ONにすると、書き始めの●と指の少し先を動くガイドが表示されます。</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="opt-guide" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">1セットの問題数</div>
+            <div class="setting-help">集中力に合わせて3問・5問を切り替えられます。</div>
+          </div>
+          <div class="segmented" id="opt-qcount">
+            <button type="button" class="seg-btn active" data-val="3">3もん（おすすめ）</button>
+            <button type="button" class="seg-btn" data-val="5">5もん</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">クイズ画面（最初）の判定</div>
+            <div class="setting-help">「判定なし」にすると、どんな線でも文字が完成します。</div>
+          </div>
+          <div class="segmented" id="opt-quiz-judge">
+            <button type="button" class="seg-btn active" data-val="shape">書き順なし判定</button>
+            <button type="button" class="seg-btn" data-val="none">判定なし</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">判定のやさしさ</div>
+            <div class="setting-help">手書き認識の許容度を調整します（子ども向けは「やさしい」推奨）。</div>
+          </div>
+          <div class="segmented" id="opt-strictness">
+            <button type="button" class="seg-btn active" data-val="easy">やさしい（甘め）</button>
+            <button type="button" class="seg-btn" data-val="normal">ふつう</button>
+            <button type="button" class="seg-btn" data-val="strict">しっかり</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-settings-save" class="btn-action btn-primary" type="button">このせっていで とじる</button>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="js/data/strokes.js"></script>
+  <script defer src="js/data/words.js"></script>
+  <script defer src="js/audio.js"></script>
+  <script defer src="js/recognizer.js"></script>
+  <script defer src="js/canvas-engine.js"></script>
+  <script defer src="js/app.js"></script>
+</body>
+</html>
