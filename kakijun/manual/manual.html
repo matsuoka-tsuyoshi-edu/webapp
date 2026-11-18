@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>「かいて おぼえる！ひらがな・カタカナ」操作・指導マニュアル</title>
+  <style>
+    :root {
+      --ink: #1e293b;
+      --sub: #475569;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --orange: #ea580c;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --border: #cbd5e1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px 18px 60px;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Hiragino Maru Gothic ProN", "BIZ UDPGothic", "Yu Gothic UI", "Meiryo", sans-serif;
+      line-height: 1.7;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 18px;
+      padding: 36px 42px;
+      box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      border-bottom: 4px solid var(--orange);
+      padding-bottom: 10px;
+    }
+    .lead {
+      color: var(--sub);
+      margin-bottom: 24px;
+    }
+    h2 {
+      margin-top: 34px;
+      font-size: 21px;
+      padding: 8px 14px;
+      background: #fff7ed;
+      border-left: 6px solid var(--orange);
+      border-radius: 6px;
+    }
+    h3 {
+      margin-top: 22px;
+      font-size: 17px;
+      color: #0f172a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 22px;
+      font-size: 14.5px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 800;
+    }
+    .callout {
+      background: #eff6ff;
+      border: 2px solid #93c5fd;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin: 16px 0;
+    }
+    .callout strong {
+      color: #1d4ed8;
+    }
+    .diagram-box {
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 16px;
+      margin: 18px 0;
+      background: #ffffff;
+      text-align: center;
+    }
+    .diagram-caption {
+      font-size: 13px;
+      color: var(--sub);
+      margin-top: 8px;
+      font-weight: 700;
+    }
+    .slide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .slide-card {
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: #fffdf7;
+    }
+    .slide-card .s-num {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 2px 10px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+    .slide-card h4 {
+      margin: 0 0 6px;
+      font-size: 15px;
+    }
+    .slide-card ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 13.5px;
+    }
+    .badge {
+      display: inline-block;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 1px 7px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    @media print {
+      body { background: #ffffff; padding: 0; }
+      .container { box-shadow: none; padding: 12px; }
+      h2 { break-after: avoid; }
+      .diagram-box, .slide-card { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✏️ 「かいて おぼえる！ひらがな・カタカナ」マニュアル</h1>
+    <p class="lead">未就学児・小学校1年生・特別支援学級向け iPad（横向き・Safari）手書き学習アプリ（v0.6.0）<br>
+    ※ 本ページはそのまま印刷／PDF保存、または表・図を Word / PowerPoint にコピーしてご活用いただけます。</p>
+
+    <h2>1. アプリの目的と全体フロー</h2>
+    <p>文字を1文字ずつ孤立して書くのではなく、<strong>「単語が出てきて、その中で文字の書き方を練習する」</strong>設計です。クイズで「う □ ぎ」を当てたあと、1〜3回目まで止めずに集中して書き切り、最後に<strong>「せんせいの まとめてマル付け」</strong>→<strong>「❌をタップして1箇所ずつ間違い直し」</strong>を行います。</p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 880 155" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+          </marker>
+        </defs>
+        <rect x="10" y="25" width="125" height="95" rx="14" fill="#fff7ed" stroke="#fb923c" stroke-width="3"/>
+        <text x="72" y="58" text-anchor="middle" font-size="14" font-weight="800" fill="#ea580c">① モード選択</text>
+        <text x="72" y="84" text-anchor="middle" font-size="12" fill="#334155">ひらがな / カタカナ</text>
+        <text x="72" y="104" text-anchor="middle" font-size="12" fill="#334155">（1セット 3問）</text>
+
+        <line x1="135" y1="72" x2="158" y2="72" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+
+        <rect x="160" y="25" width="140" height="95" rx="14" fill="#fef3c7" stroke="#f59e0b" stroke-width="3"/>
+        <text x="230" y="55" text-anchor="middle" font-size="14" font-weight="800" fill="#b45309">② 穴埋めクイズ</text>
+        <text x="230" y="80" text-anchor="middle" font-size="12" fill="#334155">う □ ぎ → 「さ」</text>
+        <text x="230" y="100" text-anchor="middle" font-size="12" fill="#475569">完成→ 🐰＋音声!</text>
+
+        <line x1="300" y1="72" x2="323" y2="72" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+
+        <rect x="325" y="18" width="210" height="108" rx="14" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"/>
+        <text x="430" y="42" text-anchor="middle" font-size="14" font-weight="800" fill="#1d4ed8">③ 書いて没頭（1→2→3）</text>
+        <text x="430" y="68" text-anchor="middle" font-size="12" fill="#1e40af">1かいめ（濃）→ つぎへ</text>
+        <text x="430" y="88" text-anchor="middle" font-size="12" fill="#1e40af">2かいめ（薄）→ つぎへ</text>
+        <text x="430" y="108" text-anchor="middle" font-size="12" fill="#ea580c" font-weight="800">3かいめ（無）→ できた✨</text>
+
+        <line x1="535" y1="72" x2="558" y2="72" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+
+        <rect x="560" y="18" width="165" height="108" rx="14" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="3"/>
+        <text x="642" y="42" text-anchor="middle" font-size="14" font-weight="800" fill="#6d28d9">④ 先生マル付け</text>
+        <text x="642" y="68" text-anchor="middle" font-size="12" fill="#334155">縦3段で順番に ⭕/❌</text>
+        <text x="642" y="90" text-anchor="middle" font-size="12" fill="#e11d48" font-weight="800">❌タップで1箇所ずつ</text>
+        <text x="642" y="108" text-anchor="middle" font-size="12" fill="#e11d48" font-weight="800">まちがえなおし！</text>
+
+        <line x1="725" y1="72" x2="748" y2="72" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+
+        <rect x="750" y="25" width="120" height="95" rx="14" fill="#f0fdf4" stroke="#22c55e" stroke-width="3"/>
+        <text x="810" y="58" text-anchor="middle" font-size="14" font-weight="800" fill="#15803d">⑤ はなまる 💮</text>
+        <text x="810" y="84" text-anchor="middle" font-size="12" fill="#334155">3問クリアで</text>
+        <text x="810" y="104" text-anchor="middle" font-size="12" fill="#334155">復習表示</text>
+      </svg>
+      <div class="diagram-caption">図1：1問ごとに「当てて・集中して3回書き切り・まとめてマル付け＆直し」を行う学習サイクル</div>
+    </div>
+
+    <h2>2. iPad（横向き・Safari）画面構成と誤操作防止機能</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:26%">項目</th>
+          <th>仕様・児童への配慮</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>横向き専用ロック</strong></td>
+          <td>縦向きにすると画面全体をグレーアウトし、「iPadを よこむき にしてね！」と表示します。横向きに戻すと即座に再開できます。</td>
+        </tr>
+        <tr>
+          <td><strong>スクロール・拡大禁止</strong></td>
+          <td>指で文字を書く途中に画面がスクロールしたり、ピンチイン・アウトで拡大縮小されたりするのを防ぎます。</td>
+        </tr>
+        <tr>
+          <td><strong>1画面完結レイアウト</strong></td>
+          <td>Safari のアドレスバー・タブバーが表示されていても、画面がはみ出さず 1 画面に収まる高さ設計です。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 840 315" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+        <!-- iPad Frame -->
+        <rect x="20" y="10" width="800" height="295" rx="22" fill="#fffdf6" stroke="#334155" stroke-width="6"/>
+        <!-- Header -->
+        <rect x="34" y="22" width="772" height="34" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2"/>
+        <text x="52" y="44" font-size="14" font-weight="800" fill="#1e293b">🏠 さいしょへ　✏️ かいて おぼえる！</text>
+        <rect x="370" y="26" width="100" height="26" rx="13" fill="#ffffff" stroke="#fbbf24" stroke-width="2"/>
+        <text x="420" y="44" text-anchor="middle" font-size="13" font-weight="800" fill="#1e293b">1 / 3 もんめ</text>
+        <text x="690" y="44" font-size="13" font-weight="800" fill="#1e293b">🔊 おとON　⚙️ せってい</text>
+
+        <!-- Practice Top Row -->
+        <rect x="44" y="66" width="160" height="24" rx="12" fill="#3b82f6"/>
+        <text x="124" y="82" text-anchor="middle" font-size="12" font-weight="800" fill="#ffffff">れんしゅう 1/3</text>
+        <rect x="275" y="64" width="290" height="42" rx="14" fill="#ffffff" stroke="#93c5fd" stroke-width="3"/>
+        <text x="420" y="91" text-anchor="middle" font-size="18" font-weight="800" fill="#1e293b">🐘 ゾ □ （ゾウ） 🔊</text>
+        <rect x="615" y="70" width="175" height="30" rx="10" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+        <text x="702" y="90" text-anchor="middle" font-size="12" font-weight="800" fill="#1e40af">おてほん あり（●ガイド）</text>
+
+        <!-- Center Main: ゾ + Big Canvas -->
+        <rect x="245" y="122" width="135" height="122" rx="18" fill="#ffffff" stroke="#cbd5e1" stroke-width="4"/>
+        <text x="312" y="205" text-anchor="middle" font-size="76" font-weight="900" fill="#1e293b">ゾ</text>
+
+        <rect x="405" y="114" width="142" height="142" rx="18" fill="#ffffff" stroke="#334155" stroke-width="4"/>
+        <line x1="476" y1="120" x2="476" y2="250" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,5"/>
+        <line x1="411" y1="185" x2="541" y2="185" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,5"/>
+        <text x="476" y="210" text-anchor="middle" font-size="78" font-weight="800" fill="#cbd5e1">ウ</text>
+        <circle cx="476" cy="138" r="9" fill="#ff6b00"/>
+        <text x="476" y="142" text-anchor="middle" font-size="10" font-weight="800" fill="#ffffff">1</text>
+
+        <!-- Bottom Left Support Bubble -->
+        <rect x="44" y="236" width="320" height="54" rx="14" fill="#ffffff" stroke="#93c5fd" stroke-width="2.5"/>
+        <text x="64" y="268" font-size="22">🐥</text>
+        <text x="98" y="258" font-size="11" font-weight="800" fill="#3b82f6">おうえんメッセージ</text>
+        <text x="98" y="277" font-size="13" font-weight="800" fill="#1e293b">おっ、いいね✨ つぎは どこから かくかな？</text>
+
+        <!-- Action buttons -->
+        <rect x="400" y="262" width="84" height="30" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+        <text x="442" y="282" text-anchor="middle" font-size="12" font-weight="800" fill="#1e293b">👀 おてほん</text>
+        <rect x="492" y="262" width="76" height="30" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+        <text x="530" y="282" text-anchor="middle" font-size="12" font-weight="800" fill="#1e293b">↩️ もどる</text>
+        <rect x="576" y="262" width="72" height="30" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+        <text x="612" y="282" text-anchor="middle" font-size="12" font-weight="800" fill="#1e293b">🗑️ けす</text>
+        <rect x="656" y="262" width="110" height="30" rx="10" fill="#ff8c38"/>
+        <text x="711" y="282" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff">✨ できた！</text>
+      </svg>
+      <div class="diagram-caption">図2：練習画面のレイアウト（上にお題「ゾ □（ゾウ）」、中央に大きな「ゾ」と手書き枠、左下に応援メッセージ）</div>
+    </div>
+
+    <h2>3. ガイドモード・リアルタイム応援・文字判定のしくみ</h2>
+    <div class="callout">
+      <strong>💡 リアルタイム応援＆ポジティブフィードバック</strong><br>
+      文字を書いている途中（1画ごと）に、画面左下のキャラクター（🐥）が「おっ、いいね✨ つぎは どこから かくかな？」「わあ！『ウ』の もじに みえるね✨」とリアルタイムで声をかけます。また、3回目（見本なし）の判定は、サイズや位置のズレを自動補正して<strong>かなり甘め</strong>に判定するよう調整しています。
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">場面</th>
+          <th style="width:28%">見本・ガイドの表示</th>
+          <th>判定方法と演出</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>最初のクイズ</strong></td>
+          <td>上中央に問題（例：`う □ ぎ`）、横に「？ なにが でてくるかな？」＋「👀 おてほん⇄✏️ かく」</td>
+          <td><strong>「はんてい！！」→ ⭕ / ❌</strong>（初期設定は「書き順なし判定」／設定で「判定なし」に変更可）。正解で絵文字＋音声！</td>
+        </tr>
+        <tr>
+          <td><strong>練習 1〜2かいめ</strong></td>
+          <td>1かいめ：画別カラー見本（①薄赤②薄青③薄緑④薄黄⑤薄紫⑥薄灰）＋●＋先導ガイド<br>2かいめ：さらに薄いカラー見本＋●（右上に1かいめ表示）</td>
+          <td><strong>判定を挟まず「つぎへ ➡️」</strong>で集中して書き進めます。「👀 おてほん」を押すと「✏️ かく」へ切り替わります。</td>
+        </tr>
+        <tr>
+          <td><strong>練習 3かいめ</strong></td>
+          <td><strong>見本なし</strong>（右上に1・2かいめミニ表示）</td>
+          <td><strong>「✨ できた！」</strong>を押すと先生マル付け画面へ移動します。</td>
+        </tr>
+        <tr>
+          <td><strong>せんせいの まるつけ</strong></td>
+          <td>横書きの 1〜3かいめが縦3段に並んで表示</td>
+          <td><strong>順番に ⭕ / ❌ スタンプ</strong>（書き順あり、3回目は甘め）。❌をタップすると単語の並びで1箇所ずつ書き直せます。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4. おとな・先生向け設定（<span class="badge">⚙️ せってい</span>）</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>項目</th>
+          <th>選択肢（太字が初期値）</th>
+          <th>指導上の活用ヒント</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ガイドモード</td>
+          <td><strong>ON</strong> / OFF</td>
+          <td>まずは ON で楽しく書く経験を積み、慣れてきたら OFF にして自力書字に挑戦します。</td>
+        </tr>
+        <tr>
+          <td>1セットの問題数</td>
+          <td><strong>3もん（おすすめ）</strong> / 5もん</td>
+          <td>3問（計12回書字）で達成感を味わうのが基本です。集中力が続く場合は5問も選べます。</td>
+        </tr>
+        <tr>
+          <td>クイズ画面の判定</td>
+          <td><strong>書き順なし判定</strong> / 判定なし</td>
+          <td>導入クイズで文字の形に厳しくなりすぎないよう「書き順なし」または「判定なし」を選べます。</td>
+        </tr>
+        <tr>
+          <td>判定のやさしさ</td>
+          <td><strong>やさしい（甘め）</strong> / ふつう / しっかり</td>
+          <td>未就学児・特別支援学級は「やさしい（甘め）」を推奨。書き順を厳密に見たい場合は「ふつう」以上にします。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. PowerPoint 説明資料用 スライド構成カード（全6枚）</h2>
+    <div class="slide-grid">
+      <div class="slide-card">
+        <span class="s-num">スライド 1</span>
+        <h4>アプリの紹介とねらい</h4>
+        <ul>
+          <li>対象：未就学児〜小1・特別支援学級</li>
+          <li>単語の中で文字の書き方を学ぶ</li>
+          <li>iPad 横向き Safari ですぐ使える</li>
+        </ul>
+      </div>
+      <div class="slide-card">
+        <span class="s-num">スライド 2</span>
+        <h4>画面のくふう（iPad最適化）</h4>
+        <ul>
+          <li>縦向きロック表示で向きを誘導</li>
+          <li>スクロール・拡大縮小を無効化</li>
+          <li>左下のキャラクターが書字中に応援</li>
+        </ul>
+      </div>
+      <div class="slide-card">
+        <span class="s-num">スライド 3</span>
+        <h4>ステップ① 穴埋めクイズ</h4>
+        <ul>
+          <li>上中央に `う □ ぎ`、横に絵文字ボックス</li>
+          <li>下中央の手書き枠に書いて「はんてい！！」</li>
+          <li>正解で 🐰 うさぎ＋音声読み上げ</li>
+        </ul>
+      </div>
+      <div class="slide-card">
+        <span class="s-num">スライド 4</span>
+        <h4>ステップ② 没頭練習＆先生マル付け</h4>
+        <ul>
+          <li>大きな `ゾ` の横に手書き枠 `□`</li>
+          <li>1・2回目は「つぎへ」で集中して書き切る</li>
+          <li>3回目の後、縦3段マル付け＆❌タップで直し</li>
+        </ul>
+      </div>
+      <div class="slide-card">
+        <span class="s-num">スライド 5</span>
+        <h4>ガイドモード＆カラーお手本</h4>
+        <ul>
+          <li>①薄赤②薄青③薄緑④薄黄⑤薄紫⑥薄灰</li>
+          <li>「👀 おてほん」→「✏️ かく」で書きモードへ</li>
+          <li>なぞり書きも同カラー、2回目はより薄く表示</li>
+        </ul>
+      </div>
+      <div class="slide-card">
+        <span class="s-num">スライド 6</span>
+        <h4>収録内容（v0.6.0）</h4>
+        <ul>
+          <li>ひらがな 全46文字（あ〜ん）</li>
+          <li>カタカナ 全45文字（計255単語）</li>
+          <li>やさしい形判定＋紛らわしい文字の急所識別</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
