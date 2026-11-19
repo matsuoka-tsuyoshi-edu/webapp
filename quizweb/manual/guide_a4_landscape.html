@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>POP QUIZ SHOW - 先生のための1枚かんたん使い方ガイド (A4横・PDF対応)</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts: M PLUS Rounded 1c & Fredoka -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"M PLUS Rounded 1c"', 'Fredoka', 'sans-serif'],
+          },
+          colors: {
+            'pop-yellow': '#FDCB6E',
+            'pop-pink': '#FF7675',
+            'pop-blue': '#74B9FF',
+            'pop-green': '#55EFC4',
+            'pop-purple': '#6C5CE7',
+            'pop-dark': '#1E1B2E',
+            'pop-card': '#2D2845',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* A4 横向き印刷用設定 (297mm × 210mm) */
+    @page {
+      size: A4 landscape;
+      margin: 8mm;
+    }
+
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "M PLUS Rounded 1c", sans-serif;
+      background-color: #0f0d1a;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* 印刷時の用紙ピッタリサイズ (余白8mmを引いた 281mm × 194mm) */
+    .a4-landscape-page {
+      width: 281mm;
+      height: 194mm;
+      max-height: 194mm;
+      margin: 0 auto;
+      background: #ffffff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-after: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ネオブロータリズムUI 装飾スタイル */
+    .neo-border {
+      border: 2px solid #000000;
+    }
+    .neo-border-sm {
+      border: 1.5px solid #000000;
+    }
+    .neo-shadow-sm {
+      box-shadow: 2px 2px 0px #000000;
+    }
+    .neo-shadow {
+      box-shadow: 3px 3px 0px #000000;
+    }
+
+    /* 画面プレビュー用の外枠（印刷時は非表示） */
+    @media screen {
+      body {
+        padding: 20px 10px 40px;
+        background-color: #1a1728;
+      }
+      .screen-wrapper {
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        border: 3px solid #332d52;
+        border-radius: 8px;
+      }
+    }
+
+    @media print {
+      body {
+        background: transparent !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .screen-wrapper {
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+      }
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-start min-h-screen">
+
+  <!-- 画面閲覧用 操作ツールバー (印刷時は非表示) -->
+  <aside aria-label="操作ツールバー" class="no-print w-full max-w-[281mm] mb-4 bg-pop-dark neo-border rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-white shadow-lg">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 bg-pop-yellow text-black font-black rounded-lg neo-border-sm flex items-center justify-center text-base">
+        📖
+      </div>
+      <div>
+        <h2 class="text-sm font-black text-pop-yellow">先生のための1枚かんたんガイド (A4横)</h2>
+        <p class="text-[11px] text-gray-300">ブラウザの印刷機能（Ctrl+P / ⌘+P）で「A4横・余白なし/最小」でPDF保存・カラー印刷できます</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="window.print()" class="bg-pop-yellow hover:bg-amber-300 text-black px-4 py-2 rounded-xl font-black text-xs neo-border-sm neo-shadow-sm flex items-center gap-1.5 transition-transform active:translate-y-0.5">
+        <i class="fa-solid fa-print text-sm"></i>
+        <span>A4横で印刷 / PDF保存</span>
+      </button>
+      <a href="manual.html" class="bg-pop-purple hover:bg-purple-600 text-white px-3.5 py-2 rounded-xl font-bold text-xs neo-border-sm neo-shadow-sm flex items-center gap-1">
+        <i class="fa-solid fa-book-open"></i>
+        <span>詳細マニュアル</span>
+      </a>
+      <a href="../index.html" class="bg-gray-700 hover:bg-gray-600 text-white px-3.5 py-2 rounded-xl font-bold text-xs neo-border-sm flex items-center gap-1">
+        <i class="fa-solid fa-house"></i>
+        <span>トップへ</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ==================== A4 横向き用紙コンテナ (281mm × 194mm) ==================== -->
+  <main class="a4-landscape-page screen-wrapper p-3.5 text-black">
+
+    <!-- ==================== HEADER (大見出し ＆ アプリURL・QRコード) ==================== -->
+    <header class="flex items-center justify-between border-b-2 border-black pb-2 mb-2 gap-3 shrink-0">
+      
+      <!-- Title & Concept -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="bg-pop-purple text-white text-[10px] font-black px-2.5 py-0.5 rounded-full neo-border-sm uppercase tracking-wider">
+            学校・研修・イベント用公式ガイド
+          </span>
+          <span class="bg-pop-pink text-white text-[10px] font-black px-2 py-0.5 rounded-full neo-border-sm">
+            Ver 3.3.9 最新版
+          </span>
+          <span class="text-[11px] font-bold text-gray-600">
+            ★ サーバー・ログイン・専用アプリ 不要！
+          </span>
+        </div>
+        
+        <div class="flex items-baseline gap-2">
+          <h1 class="text-2xl font-black tracking-tight text-black flex items-center gap-2">
+            <span class="text-pop-purple">POP QUIZ SHOW</span>
+            <span class="text-base text-gray-800 font-black">先生のための1枚かんたん使い方ガイド</span>
+          </h1>
+        </div>
+        
+        <p class="text-[11px] font-bold text-gray-700 mt-0.5 leading-tight">
+          iPadやPCのブラウザだけで即起動！大画面のQRコードを子どもたちがカメラで読み取るだけで、クラス全員と白熱のリアルタイム対戦クイズが楽しめます。
+        </p>
+      </div>
+
+      <!-- App Access QR & URL Box -->
+      <div class="flex items-center gap-2.5 bg-[#FFF9E6] neo-border rounded-xl p-1.5 px-2.5 shrink-0 neo-shadow-sm">
+        <div class="w-16 h-16 bg-white p-1 rounded-lg neo-border-sm flex items-center justify-center shrink-0">
+          <img src="img/qr_app_url.png" alt="アプリQRコード" class="w-full h-full object-contain">
+        </div>
+        <div class="text-left">
+          <span class="bg-pop-yellow text-black text-[9px] font-black px-1.5 py-0.5 rounded neo-border-sm inline-block mb-0.5">
+            まずはここへアクセス！
+          </span>
+          <p class="text-[10px] font-black text-gray-900 leading-tight">
+            先生のiPad / PCで開く
+          </p>
+          <p class="text-[8.5px] font-bold text-blue-700 underline break-all max-w-[175px] leading-tight select-all">
+            https://matsuoka-tsuyoshi-edu.github.io/webapp/quizweb/
+          </p>
+          <span class="text-[8px] font-bold text-gray-500">※カメラでQRを読み取っても開けます</span>
+        </div>
+      </div>
+
+    </header>
+
+    <!-- ==================== MAIN CONTENT: 3-STEP GRID (横3列レイアウト) ==================== -->
+    <div class="flex-1 grid grid-cols-3 gap-3 min-h-0">
+
+      <!-- ==================== COLUMN 1: STEP 1 準備と参加 ==================== -->
+      <div class="flex flex-col justify-between bg-slate-50 neo-border rounded-xl p-2.5 neo-shadow-sm overflow-hidden">
+        <div>
+          <!-- Step Header -->
+          <div class="flex items-center justify-between bg-pop-purple text-white px-2 py-1 rounded-lg neo-border-sm mb-2">
+            <div class="flex items-center gap-1.5 font-black text-xs">
+              <span class="w-4 h-4 bg-pop-yellow text-black rounded flex items-center justify-center text-[10px]">1</span>
+              <span>準備と参加（たった1分！）</span>
+            </div>
+            <span class="text-[9px] font-bold bg-white/20 px-1 rounded">生徒はQR即参加</span>
+          </div>
+
+          <!-- Description Steps -->
+          <ul class="text-[10px] font-bold text-gray-800 space-y-1 mb-2 leading-snug">
+            <li class="flex items-start gap-1">
+              <span class="text-pop-purple font-black">①</span>
+              <span>トップ画面から<strong>「ホスト画面（親機）」</strong>を開きます。</span>
+            </li>
+            <li class="flex items-start gap-1">
+              <span class="text-pop-purple font-black">②</span>
+              <span>テレビやプロジェクターに先生の画面を映し出します。</span>
+            </li>
+            <li class="flex items-start gap-1">
+              <span class="text-pop-purple font-black">③</span>
+              <span>子どもたちは手元のiPad/スマホの<strong>カメラで大画面のQRコードをスキャン！</strong></span>
+            </li>
+            <li class="flex items-start gap-1">
+              <span class="text-pop-purple font-black">④</span>
+              <span>好きな<strong>動物アバターと名前</strong>を入力して参加完了！</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Screenshots -->
+        <div class="grid grid-cols-2 gap-1.5 pt-1 border-t border-gray-200">
+          <div class="flex flex-col items-center">
+            <div class="w-full h-20 bg-black rounded-lg neo-border-sm overflow-hidden">
+              <img src="img/step1_lobby.png" alt="ホスト待機画面" class="w-full h-full object-cover">
+            </div>
+            <span class="text-[8px] font-black text-gray-600 mt-0.5">大画面にQRコードを表示</span>
+          </div>
+          <div class="flex flex-col items-center">
+            <div class="w-full h-20 bg-black rounded-lg neo-border-sm overflow-hidden">
+              <img src="img/player_ox.png" alt="子ども画面" class="w-full h-full object-cover">
+            </div>
+            <span class="text-[8px] font-black text-gray-600 mt-0.5">子ども手元画面（即同期）</span>
+          </div>
+        </div>
+
+        <!-- Column Tip -->
+        <div class="bg-amber-100 border border-amber-400 rounded-md p-1 mt-1 text-[8.5px] font-bold text-amber-900 leading-tight">
+          <i class="fa-solid fa-lightbulb text-amber-600 mr-0.5"></i>
+          <strong>QRコードを大きく見せたい時:</strong> コード横の「🔍 QR拡大」を押せば画面いっぱいに特大表示できます！
+        </div>
+      </div>
+
+      <!-- ==================== COLUMN 2: STEP 2 問題の用意 ==================== -->
+      <div class="flex flex-col justify-between bg-slate-50 neo-border rounded-xl p-2.5 neo-shadow-sm overflow-hidden">
+        <div>
+          <!-- Step Header -->
+          <div class="flex items-center justify-between bg-pop-blue text-black px-2 py-1 rounded-lg neo-border-sm mb-2">
+            <div class="flex items-center gap-1.5 font-black text-xs">
+              <span class="w-4 h-4 bg-black text-white rounded flex items-center justify-center text-[10px]">2</span>
+              <span>問題の用意（選べる3スタイル）</span>
+            </div>
+            <span class="text-[9px] font-bold bg-black/10 px-1 rounded">自由自在に作成</span>
+          </div>
+
+          <!-- Description Steps -->
+          <div class="space-y-1.5 mb-2">
+            <div class="bg-white p-1 rounded-lg border border-gray-300">
+              <p class="text-[10px] font-black text-pop-purple leading-tight">
+                ★ スタイルA: サンプルライブラリから選ぶ (新機能)
+              </p>
+              <p class="text-[9px] font-bold text-gray-700 leading-snug">
+                「サンプル問題」から中学校保健（10セット30問）等、校種・教科別の良問セットをワンタップでセット！
+              </p>
+            </div>
+
+            <div class="bg-white p-1 rounded-lg border border-gray-300">
+              <p class="text-[10px] font-black text-emerald-700 leading-tight">
+                ★ スタイルB: アプリ内で直感作成（クイズスタジオ）
+              </p>
+              <p class="text-[9px] font-bold text-gray-700 leading-snug">
+                「✏️ クイズを作成・編集」から、4択・3択・2択（〇×）を簡単作成。画像や10秒以内の動画も添付可能！
+              </p>
+            </div>
+
+            <div class="bg-white p-1 rounded-lg border border-gray-300">
+              <p class="text-[10px] font-black text-blue-700 leading-tight">
+                ★ スタイルC: Googleドライブ / Excel / ZIP読み込み
+              </p>
+              <p class="text-[9px] font-bold text-gray-700 leading-snug">
+                PCで作ったExcelやZIPをGoogleドライブに保存し、iPadの「ファイル」アプリから選ぶだけで即読込！
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screenshots -->
+        <div class="pt-1 border-t border-gray-200">
+          <div class="w-full h-20 bg-black rounded-lg neo-border-sm overflow-hidden mb-0.5">
+            <img src="img/step2_studio.png" alt="クイズスタジオ" class="w-full h-full object-cover">
+          </div>
+          <span class="text-[8px] font-black text-gray-600 block text-center">クイズスタジオ画面（動画10秒制限＆ZIP保存対応）</span>
+        </div>
+
+        <!-- Column Tip -->
+        <div class="bg-blue-100 border border-blue-400 rounded-md p-1 mt-1 text-[8.5px] font-bold text-blue-900 leading-tight">
+          <i class="fa-solid fa-cloud-arrow-down text-blue-600 mr-0.5"></i>
+          <strong>保存もワンクリック:</strong> 作成したクイズは「ZIP保存」しておけば、次回以降いつでも読み込んで再利用できます。
+        </div>
+      </div>
+
+      <!-- ==================== COLUMN 3: STEP 3 クイズスタート＆演出 ==================== -->
+      <div class="flex flex-col justify-between bg-slate-50 neo-border rounded-xl p-2.5 neo-shadow-sm overflow-hidden">
+        <div>
+          <!-- Step Header -->
+          <div class="flex items-center justify-between bg-pop-pink text-white px-2 py-1 rounded-lg neo-border-sm mb-2">
+            <div class="flex items-center gap-1.5 font-black text-xs">
+              <span class="w-4 h-4 bg-pop-yellow text-black rounded flex items-center justify-center text-[10px]">3</span>
+              <span>スタート！白熱のクイズ進行</span>
+            </div>
+            <span class="text-[9px] font-bold bg-white/20 px-1 rounded">完全自動演出</span>
+          </div>
+
+          <!-- Description Steps -->
+          <ul class="text-[10px] font-bold text-gray-800 space-y-1 mb-2 leading-snug">
+            <li class="flex items-start gap-1">
+              <span class="text-pop-pink font-black">①</span>
+              <span><strong>出題 ＆ カウントダウン:</strong> 回答状況がリアルタイムにポップ表示！動画問題は先生画面で見てから早押し開始。</span>
+            </li>
+            <li class="flex items-start gap-1">
+              <span class="text-pop-pink font-black">②</span>
+              <span><strong>回答分布グラフ ➔ 運命の正解発表:</strong> ドラムロール後に大迫力の正解開示！左に問題・動画、右に正解＆解説が並びます。</span>
+            </li>
+            <li class="flex items-start gap-1">
+              <span class="text-pop-pink font-black">③</span>
+              <span><strong>子ども手元で教育的振り返り:</strong> 自分の回答と正解がパッとわかり、学習効果が抜群です。</span>
+            </li>
+            <li class="flex items-start gap-1">
+              <span class="text-pop-pink font-black">④</span>
+              <span><strong>感動の表彰式:</strong> 4位以下から順に発表し、1位はドラムロール＆手元で紙吹雪が炸裂！</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Screenshots -->
+        <div class="grid grid-cols-2 gap-1.5 pt-1 border-t border-gray-200">
+          <div class="flex flex-col items-center">
+            <div class="w-full h-20 bg-black rounded-lg neo-border-sm overflow-hidden">
+              <img src="img/step3_reveal.png" alt="正解発表画面" class="w-full h-full object-cover">
+            </div>
+            <span class="text-[8px] font-black text-gray-600 mt-0.5">大画面正解＆動画振り返り</span>
+          </div>
+          <div class="flex flex-col items-center">
+            <div class="w-full h-20 bg-black rounded-lg neo-border-sm overflow-hidden">
+              <img src="img/step3_ranking.png" alt="表彰式画面" class="w-full h-full object-cover">
+            </div>
+            <span class="text-[8px] font-black text-gray-600 mt-0.5">表彰台＆紙吹雪（自動進行）</span>
+          </div>
+        </div>
+
+        <!-- Column Tip -->
+        <div class="bg-rose-100 border border-rose-400 rounded-md p-1 mt-1 text-[8.5px] font-bold text-rose-900 leading-tight">
+          <i class="fa-solid fa-trophy text-rose-600 mr-0.5"></i>
+          <strong>終盤戦シークレット演出:</strong> ラスト2問は手元順位が「第 ❓ 位」になり、最後の表彰式まで大逆転のワクワク感が持続します！
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== FOOTER: TIPS & NOTICE (授業で役立つ3大ワザ) ==================== -->
+    <footer class="bg-[#2D2845] text-white neo-border rounded-xl p-2 px-3 mt-2 shrink-0">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="w-5 h-5 bg-pop-yellow text-black font-black rounded-md neo-border-sm flex items-center justify-center text-xs">
+            💡
+          </span>
+          <span class="text-xs font-black text-pop-yellow">授業がもっと快適になる！知っておくと便利な3大ワザ</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 flex-1 text-[9px] font-bold">
+          <div class="bg-white/10 p-1 rounded-md border border-white/20">
+            <span class="text-pop-green font-black">【技1】動画は10秒以内＆大画面視聴</span>
+            <p class="text-gray-300 leading-tight">「参加者へ動画配信」をOFFにすれば通信量ゼロ！学校のWi-Fiでも遅延ゼロで快適です。</p>
+          </div>
+          <div class="bg-white/10 p-1 rounded-md border border-white/20">
+            <span class="text-pop-yellow font-black">【技2】〇×問題は特大ボタン自動生成</span>
+            <p class="text-gray-300 leading-tight">2択（〇×）を選ぶと、子ども画面に超特大の〇×ボタンが出現！低学年でも直感回答できます。</p>
+          </div>
+          <div class="bg-white/10 p-1 rounded-md border border-white/20">
+            <span class="text-pop-blue font-black">【技3】デザインが崩れたら「再読込」</span>
+            <p class="text-gray-300 leading-tight">画面右上の「🔄 最新版を読み込む」を押すと、古いキャッシュが消えて即座に最新化されます。</p>
+          </div>
+        </div>
+
+        <div class="text-right text-[8px] text-gray-400 shrink-0 font-bold leading-tight">
+          POP QUIZ SHOW (Ver 3.3.9)<br>
+          © 2026 佐伯市教育委員会
+        </div>
+      </div>
+    </footer>
+
+  </main>
+
+</body>
+</html>
