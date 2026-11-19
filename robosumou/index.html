@@ -117,7 +117,7 @@
     .step-view {
         width: 33.3333%;
         height: 100%;
-        padding: 20px 30px;
+        padding: 12px 24px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
@@ -128,7 +128,7 @@
         background: var(--panel-bg);
         border: 1px solid var(--panel-border);
         border-radius: 20px;
-        padding: 24px;
+        padding: 16px 20px;
         backdrop-filter: blur(15px);
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
         display: flex;
@@ -139,9 +139,9 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        padding-bottom: 12px;
+        padding-bottom: 10px;
     }
     .panel-title {
         font-size: 1.3rem;
@@ -272,39 +272,96 @@
         overflow: hidden;
     }
     #toolbox {
-        background: rgba(0, 0, 0, 0.25);
+        background: rgba(0, 0, 0, 0.35);
         border-radius: 16px;
         padding: 15px;
-        padding-right: 120px; /* 右側に120pxの広いスクロール用スワイプ余白を確保 */
-        overflow-y: auto;
+        padding-right: 25px;
+        overflow-y: scroll; /* 常時スクロールバーを表示して下に続きがあることを明示 */
         display: flex;
         flex-direction: column;
         gap: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(0, 243, 255, 0.2);
         align-items: flex-start;
+        scrollbar-width: thin;
+        scrollbar-color: var(--accent-cyan) rgba(0, 0, 0, 0.5);
     }
     #workspace {
         background: rgba(255, 255, 255, 0.01);
-        border: 2px dashed rgba(0, 243, 255, 0.2);
+        border: 2px dashed rgba(0, 243, 255, 0.3);
         border-radius: 16px;
         padding: 20px;
-        overflow-y: auto;
+        overflow-y: scroll; /* 常時スクロールバーを表示してスクロールしやすくする */
         display: flex;
         flex-direction: column;
         gap: 10px;
         position: relative;
+        scrollbar-width: thin;
+        scrollbar-color: var(--accent-cyan) rgba(0, 0, 0, 0.5);
     }
     #workspace:empty::after {
-        content: "ここにブロックをドラッグ＆ドロップしてね！\A（上からじゅんばんにうごくよ）";
+        content: "ここにブロックをドラッグ＆ドロップしてね！\A\A💡 ブロックは【上から順番に1つずつ実行】されて、\A一番下までいったら【自動で一番上にもどって何度でもくり返す】よ！\A（下まで行っても途中で止まらないから安心して作戦を組もう！）";
         white-space: pre-wrap;
         position: absolute;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         color: var(--text-muted);
         text-align: center;
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         line-height: 1.6;
         pointer-events: none;
+    }
+
+    /* ツールボックス & ワークスペースの常時表示サイバースクロールバー */
+    #toolbox::-webkit-scrollbar,
+    #workspace::-webkit-scrollbar {
+        width: 12px;
+    }
+    #toolbox::-webkit-scrollbar-track,
+    #workspace::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 6px;
+        border: 1px solid rgba(0, 243, 255, 0.15);
+    }
+    #toolbox::-webkit-scrollbar-thumb,
+    #workspace::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, var(--accent-cyan), rgba(0, 243, 255, 0.4));
+        border-radius: 6px;
+        border: 2px solid #060913;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+    }
+    #toolbox::-webkit-scrollbar-thumb:hover,
+    #workspace::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-cyan);
+        box-shadow: 0 0 15px var(--accent-cyan);
+    }
+
+    /* 生徒向け安心ガイダンスバナー */
+    .step2-info-banner {
+        background: rgba(0, 243, 255, 0.08);
+        border: 1px solid rgba(0, 243, 255, 0.3);
+        border-radius: 12px;
+        padding: 9px 14px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.8rem;
+        line-height: 1.45;
+        color: var(--text-color);
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+    }
+    .toolbox-header-hint {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--accent-cyan);
+        background: rgba(0, 243, 255, 0.12);
+        padding: 4px 10px;
+        border-radius: 6px;
+        width: 100%;
+        text-align: center;
+        margin-bottom: 6px;
+        letter-spacing: 0.5px;
+        border: 1px dashed rgba(0, 243, 255, 0.35);
     }
 
     /* ブロックのデザイン */
@@ -843,6 +900,7 @@
                 <div class="panel">
                     <div class="panel-header">
                         <div class="panel-title">🤖 STEP 1. ロボットカスタマイズ</div>
+                        <button class="btn primary" onclick="goToStep(2)" style="padding: 10px 22px; font-size: 0.95rem; font-weight: 800;">作戦（プログラム）へ進む ➔</button>
                     </div>
                     
                     <div class="step1-content">
@@ -927,11 +985,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="view-actions">
-                        <div style="flex-grow: 1;"></div>
-                        <button class="btn primary" onclick="goToStep(2)">作戦（プログラム）へ進む ➔</button>
-                    </div>
                 </div>
             </div>
 
@@ -939,41 +992,56 @@
             <div id="step-2" class="step-view">
                 <div class="panel">
                     <div class="panel-header">
-                        <div class="panel-title">🧩 STEP 2. プログラミング</div>
-                        
-                        <!-- アイコンツールバー -->
-                        <div class="icon-toolbar">
-                            <div class="menu-container">
-                                <button id="menu-preset-btn" class="icon-btn" data-tooltip="作戦サンプル" style="border-color: rgba(255, 255, 0, 0.3); background: rgba(255, 255, 0, 0.05); color: #ffff00;">💡</button>
-                                <div id="preset-menu" class="dropdown-menu">
-                                    <div class="menu-item" data-preset="charge">⚡ 猪突猛進（突撃型）</div>
-                                    <div class="menu-item" data-preset="sniper">☄️ スナイパー（射撃型）</div>
-                                    <div class="menu-item" data-preset="counter">🛡️ 土俵際カウンター（反撃型）</div>
-                                    <div class="menu-item" data-preset="spin">🌀 トリッキー（旋回撹乱型）</div>
-                                </div>
-                            </div>
-                            <div class="menu-container">
-                                <button id="menu-save-btn" class="icon-btn" data-tooltip="マイロボをセーブ">💾</button>
-                                <div id="save-menu" class="dropdown-menu">
-                                    <div class="menu-item" id="save-local-opt">ブラウザに保存 (マイロボリスト)</div>
-                                    <div class="menu-item" id="save-file-opt">JSONファイルとしてダウンロード</div>
-                                </div>
-                            </div>
-                            <div class="menu-container">
-                                <button id="menu-load-btn" class="icon-btn" data-tooltip="マイロボをロード">📂</button>
-                                <div id="load-menu" class="dropdown-menu">
-                                    <div class="menu-item" id="load-local-opt">ブラウザから読み込み (マイロボリスト)</div>
-                                    <div class="menu-item" id="load-file-opt">JSONファイルから読み込み</div>
-                                </div>
-                            </div>
-                            <button id="clear-workspace-btn" class="icon-btn" data-tooltip="全部けす" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #ef4444;">🗑️</button>
-                            <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <button class="btn back-btn" onclick="goToStep(1)" style="padding: 7px 14px; font-size: 0.85rem;">↩ 戻る</button>
+                            <div class="panel-title">🧩 STEP 2. プログラミング</div>
                         </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <!-- アイコンツールバー -->
+                            <div class="icon-toolbar">
+                                <div class="menu-container">
+                                    <button id="menu-preset-btn" class="icon-btn" data-tooltip="作戦サンプル" style="border-color: rgba(255, 255, 0, 0.3); background: rgba(255, 255, 0, 0.05); color: #ffff00;">💡</button>
+                                    <div id="preset-menu" class="dropdown-menu">
+                                        <div class="menu-item" data-preset="charge">⚡ 猪突猛進（突撃型）</div>
+                                        <div class="menu-item" data-preset="sniper">☄️ スナイパー（射撃型）</div>
+                                        <div class="menu-item" data-preset="counter">🛡️ 土俵際カウンター（反撃型）</div>
+                                        <div class="menu-item" data-preset="spin">🌀 トリッキー（旋回撹乱型）</div>
+                                    </div>
+                                </div>
+                                <div class="menu-container">
+                                    <button id="menu-save-btn" class="icon-btn" data-tooltip="マイロボをセーブ">💾</button>
+                                    <div id="save-menu" class="dropdown-menu">
+                                        <div class="menu-item" id="save-local-opt">ブラウザに保存 (マイロボリスト)</div>
+                                        <div class="menu-item" id="save-file-opt">JSONファイルとしてダウンロード</div>
+                                    </div>
+                                </div>
+                                <div class="menu-container">
+                                    <button id="menu-load-btn" class="icon-btn" data-tooltip="マイロボをロード">📂</button>
+                                    <div id="load-menu" class="dropdown-menu">
+                                        <div class="menu-item" id="load-local-opt">ブラウザから読み込み (マイロボリスト)</div>
+                                        <div class="menu-item" id="load-file-opt">JSONファイルから読み込み</div>
+                                    </div>
+                                </div>
+                                <button id="clear-workspace-btn" class="icon-btn" data-tooltip="全部けす" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #ef4444;">🗑️</button>
+                                <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                            </div>
+                            
+                            <!-- 試合会場へ進むボタン（右上配置） -->
+                            <button class="btn primary" onclick="goToStep(3)" style="padding: 9px 20px; font-size: 0.95rem; font-weight: 800;">試合会場へ進む ➔</button>
+                        </div>
+                    </div>
+
+                    <!-- 生徒向け安心ガイダンスバナー -->
+                    <div class="step2-info-banner">
+                        <span style="font-size: 1.15rem; flex-shrink: 0;">💡</span>
+                        <span>ここで作ったブロックの順番通りにロボットが動くよ！ブロックは<strong>【上から順に実行】</strong>され、いちばん下まで行くと<strong>【自動で一番上にもどって何度でもくり返す（ループ）】</strong>から、途中で止まる心配はないよ！ブロック一覧は<strong>下にスクロール</strong>して他のブロックも探してみよう！</span>
                     </div>
 
                     <div class="step2-layout">
                         <!-- ブロックパレット -->
                         <div id="toolbox">
+                            <div class="toolbox-header-hint">📜 ブロック一覧（下にスクロール▼）</div>
                             <div class="block" data-command="forward">まえに <input type="text" value="80" readonly> すすむ</div>
                             <div class="block" data-command="backward">うしろに <input type="text" value="60" readonly> すすむ</div>
                             <div class="block" data-command="turnRight">みぎに <input type="text" value="90" readonly> まわる</div>
@@ -1024,11 +1092,6 @@
                         <!-- ワークスペース -->
                         <div id="workspace"></div>
                     </div>
-
-                    <div class="view-actions">
-                        <button class="btn back-btn" onclick="goToStep(1)">↩ 戻る</button>
-                        <button class="btn primary" onclick="goToStep(3)">試合会場へ進む ➔</button>
-                    </div>
                 </div>
             </div>
 
@@ -1038,22 +1101,27 @@
                     <div class="panel-header">
                         <div class="panel-title">🏟️ STEP 3. 試合会場</div>
                         
-                        <!-- 試合会場用のセーブ・ロードツールバー -->
-                        <div class="icon-toolbar">
-                            <div class="menu-container">
-                                <button id="menu-save-btn-step3" class="icon-btn" data-tooltip="マイロボをセーブ">💾</button>
-                                <div id="save-menu-step3" class="dropdown-menu">
-                                    <div class="menu-item" id="save-local-opt-step3">ブラウザに保存 (マイロボリスト)</div>
-                                    <div class="menu-item" id="save-file-opt-step3">JSONファイルとしてダウンロード</div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <!-- 試合会場用のセーブ・ロードツールバー -->
+                            <div class="icon-toolbar">
+                                <div class="menu-container">
+                                    <button id="menu-save-btn-step3" class="icon-btn" data-tooltip="マイロボをセーブ">💾</button>
+                                    <div id="save-menu-step3" class="dropdown-menu">
+                                        <div class="menu-item" id="save-local-opt-step3">ブラウザに保存 (マイロボリスト)</div>
+                                        <div class="menu-item" id="save-file-opt-step3">JSONファイルとしてダウンロード</div>
+                                    </div>
+                                </div>
+                                <div class="menu-container">
+                                    <button id="menu-load-btn-step3" class="icon-btn" data-tooltip="マイロボをロード">📂</button>
+                                    <div id="load-menu-step3" class="dropdown-menu">
+                                        <div class="menu-item" id="load-local-opt-step3">ブラウザから読み込み (マイロボリスト)</div>
+                                        <div class="menu-item" id="load-file-opt-step3">JSONファイルから読み込み</div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="menu-container">
-                                <button id="menu-load-btn-step3" class="icon-btn" data-tooltip="マイロボをロード">📂</button>
-                                <div id="load-menu-step3" class="dropdown-menu">
-                                    <div class="menu-item" id="load-local-opt-step3">ブラウザから読み込み (マイロボリスト)</div>
-                                    <div class="menu-item" id="load-file-opt-step3">JSONファイルから読み込み</div>
-                                </div>
-                            </div>
+
+                            <!-- プログラミングに戻るボタン（右上配置） -->
+                            <button class="btn back-btn" onclick="goToStep(2)" style="padding: 8px 18px; font-size: 0.88rem; font-weight: 800;">↩ プログラミングへ戻る</button>
                         </div>
                     </div>
 
@@ -1124,38 +1192,24 @@
                                 </div>
                             </div>
 
-                            <!-- 試合速度コントロール -->
-                            <div class="speed-btn-group">
-                                <span style="font-size: 0.72rem; color: var(--text-muted); margin-right: 4px;">⚡ 速度:</span>
-                                <button class="speed-btn" data-speed="0.5">0.5x</button>
-                                <button class="speed-btn active" data-speed="1.0">1.0x</button>
-                                <button class="speed-btn" data-speed="1.5">1.5x</button>
-                                <button class="speed-btn" data-speed="2.0">2.0x</button>
-                            </div>
-
                             <!-- 試合開始コントロール -->
                             <div style="display: flex; gap: 8px;">
                                 <button id="start-battle-btn" class="btn primary" style="flex: 2; padding: 12px; font-size: 1.1rem; font-weight: 800; white-space: nowrap;">🔥 のこった！</button>
                                 <button id="reset-battle-btn" class="btn" style="flex: 1.2; padding: 12px; font-size: 0.85rem; white-space: nowrap;">🔄 リセット</button>
                             </div>
 
-                            <!-- 実況コンソール -->
-                            <div class="settings-card" style="margin-top: 2px; flex-grow: 1; min-height: 130px; display: flex; flex-direction: column; padding: 10px;">
-                                <div class="settings-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.8rem;">
+                            <!-- 実況コンソール（見切れ解消・縦幅大幅拡大） -->
+                            <div class="settings-card" style="margin-top: 2px; flex-grow: 1; min-height: 160px; display: flex; flex-direction: column; padding: 12px;">
+                                <div class="settings-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.82rem;">
                                     <span>🎙️ 試合実況中継</span>
                                     <span id="clear-debug-btn" style="cursor: pointer; font-size: 0.75rem; color: var(--accent-cyan); text-decoration: underline;">履歴クリア</span>
                                 </div>
-                                <div id="debug-console" style="background: rgba(0,0,0,0.65); border: 1px solid var(--accent-green); border-radius: 8px; padding: 8px; font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 0.75rem; color: var(--accent-green); overflow-y: auto; flex-grow: 1; max-height: 110px; line-height: 1.4; white-space: pre-wrap; word-break: break-all; text-align: left;"></div>
+                                <div id="debug-console" style="background: rgba(0,0,0,0.65); border: 1px solid var(--accent-green); border-radius: 8px; padding: 10px; font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 0.78rem; color: var(--accent-green); overflow-y: auto; flex-grow: 1; min-height: 140px; max-height: 220px; line-height: 1.45; white-space: pre-wrap; word-break: break-all; text-align: left;"></div>
                             </div>
 
                             <!-- バトルメッセージ (勝ち負け表示) -->
-                            <div id="battle-status-msg" style="margin-top: 10px; font-size: 1.5rem; font-weight: 900; text-align: center; min-height: 40px; text-shadow: 0 0 10px currentColor;"></div>
+                            <div id="battle-status-msg" style="margin-top: 6px; font-size: 1.4rem; font-weight: 900; text-align: center; min-height: 36px; text-shadow: 0 0 10px currentColor;"></div>
                         </div>
-                    </div>
-
-                    <div class="view-actions">
-                        <button class="btn back-btn" onclick="goToStep(2)">↩ プログラミングへ戻る</button>
-                        <div style="flex-grow: 1;"></div>
                     </div>
                 </div>
             </div>
