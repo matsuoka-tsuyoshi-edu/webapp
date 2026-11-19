@@ -218,8 +218,8 @@
       lastTouchEnd = now;
     }, { passive: false });
 
-    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.4.1)
-    const APP_VERSION = "3.4.1";
+    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.5.0)
+    const APP_VERSION = "3.5.0";
 
     async function clearAllAppCaches() {
       try {
@@ -308,7 +308,7 @@
 
   <!-- Floating Controls (Version Badge, Force Cache Reload & Sound) -->
   <div class="fixed top-3 right-3 z-40 flex items-center space-x-2">
-    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.4.1</span>
+    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.5.0</span>
     <button onclick="forceReloadLatestHost()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-yellow text-base neo-button hover:bg-slate-800" title="キャッシュを削除して最新版に更新">
       <i class="fa-solid fa-rotate"></i>
     </button>
@@ -906,52 +906,87 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- SAMPLE QUESTION LIBRARY MODAL (校種・教科から選べるサンプル問題ライブラリ) -->
+  <!-- SAMPLE QUESTION LIBRARY MODAL (ツリー探索型サンプル問題ライブラリ) -->
   <!-- ========================================================================= -->
-  <div id="sample-library-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col p-3 md:p-6" onclick="closeSampleLibraryModal()">
-    <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl flex-1 flex flex-col overflow-hidden max-w-5xl w-full mx-auto" onclick="event.stopPropagation()">
+  <div id="sample-library-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col p-2.5 sm:p-4 md:p-6" onclick="closeSampleLibraryModal()">
+    <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl flex-1 flex flex-col overflow-hidden max-w-6xl w-full mx-auto" onclick="event.stopPropagation()">
       
       <!-- Modal Header -->
-      <div class="bg-pop-purple px-4 md:px-6 py-3 md:py-3.5 border-b-2 border-black flex items-center justify-between shrink-0">
-        <div class="flex items-center gap-2.5">
+      <div class="bg-pop-purple px-4 md:px-6 py-3 border-b-4 border-black flex items-center justify-between shrink-0 gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
           <div class="w-9 h-9 md:w-10 md:h-10 bg-pop-yellow text-black rounded-xl neo-border-sm flex items-center justify-center text-lg font-black shrink-0 shadow-sm">
-            📚
+            🗂️
           </div>
-          <div>
-            <h3 class="text-base md:text-lg font-black text-white flex items-center gap-2 leading-tight">
-              <span>お手本サンプル問題ライブラリ</span>
-              <span class="text-xs bg-pop-yellow text-black px-2 py-0.5 rounded-full neo-border-sm font-black hidden sm:inline-block">授業ですぐ使える</span>
+          <div class="min-w-0">
+            <h3 class="text-base md:text-lg font-black text-white flex items-center gap-2 leading-tight truncate">
+              <span>サンプル問題ライブラリ</span>
+              <span class="text-[10px] md:text-xs bg-pop-yellow text-black px-2 py-0.5 rounded-full neo-border-sm font-black hidden sm:inline-block">ツリー探索・即セット</span>
             </h3>
-            <p class="text-[11px] text-purple-200 font-bold leading-tight">校種・教科・単元から3問セットを選んで、ワンタップでクイズを開始できます</p>
+            <p class="text-[11px] text-purple-200 font-bold leading-tight truncate">左のツリー（校種・教科・単元）や検索から選んでワンタップでセット</p>
           </div>
         </div>
-        <button onclick="closeSampleLibraryModal()" class="w-9 h-9 md:w-10 md:h-10 bg-pop-pink hover:bg-rose-400 text-black rounded-xl neo-border-sm flex items-center justify-center text-base font-black neo-button shadow" title="閉じる">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
 
-      <!-- Filter Controls Bar -->
-      <div class="bg-pop-dark px-4 md:px-6 py-2.5 border-b border-gray-700 flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <!-- School Level Filter -->
-        <div class="flex items-center gap-1.5 text-xs font-bold">
-          <span class="text-gray-400 text-[11px] mr-1 flex items-center gap-1"><i class="fa-solid fa-school"></i> 校種:</span>
-          <button onclick="setSampleSchoolFilter('all')" id="sample-flt-school-all" class="sample-school-btn bg-pop-yellow text-black px-2.5 py-1 rounded-lg neo-border-sm font-black text-xs shadow-xs">すべて</button>
-          <button onclick="setSampleSchoolFilter('jh')" id="sample-flt-school-jh" class="sample-school-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">中学校</button>
-          <button onclick="setSampleSchoolFilter('elem')" id="sample-flt-school-elem" class="sample-school-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">小学校</button>
-        </div>
-
-        <!-- Subject Filter -->
-        <div class="flex items-center gap-1.5 text-xs font-bold">
-          <span class="text-gray-400 text-[11px] mr-1 flex items-center gap-1"><i class="fa-solid fa-book"></i> 教科:</span>
-          <button onclick="setSampleSubjectFilter('all')" id="sample-flt-subj-all" class="sample-subj-btn bg-pop-yellow text-black px-2.5 py-1 rounded-lg neo-border-sm font-black text-xs shadow-xs">すべて</button>
-          <button onclick="setSampleSubjectFilter('health')" id="sample-flt-subj-health" class="sample-subj-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">保健体育</button>
-          <button onclick="setSampleSubjectFilter('general')" id="sample-flt-subj-general" class="sample-subj-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">お試し・宇宙</button>
+        <!-- Search Box + Close -->
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="relative hidden sm:block">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+            <input type="text" id="sample-search-input" oninput="onSampleSearchInput(this.value)" placeholder="単元・キーワード検索..." class="bg-pop-dark text-white text-xs font-bold pl-8 pr-7 py-2 rounded-xl border-2 border-black focus:border-pop-yellow outline-none w-44 md:w-56">
+            <button id="sample-search-clear-btn" onclick="clearSampleSearch()" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs">
+              <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+          </div>
+          <button onclick="closeSampleLibraryModal()" class="w-9 h-9 md:w-10 md:h-10 bg-pop-pink hover:bg-rose-400 text-black rounded-xl neo-border-sm flex items-center justify-center text-base font-black neo-button shadow" title="閉じる">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
       </div>
 
-      <!-- Library Cards Grid (Scrollable) -->
-      <div id="sample-library-list" class="flex-1 overflow-y-auto p-3.5 md:p-5 grid grid-cols-1 md:grid-cols-2 gap-3.5 md:gap-4">
-        <!-- Dynamically rendered via renderSampleLibraryList() -->
+      <!-- Mobile Search Bar (shown only on small screens) -->
+      <div class="sm:hidden bg-pop-dark px-3 py-2 border-b border-gray-700 shrink-0">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+          <input type="text" id="sample-search-input-mobile" oninput="onSampleSearchInput(this.value)" placeholder="単元・キーワード検索..." class="w-full bg-pop-card text-white text-xs font-bold pl-8 pr-7 py-1.5 rounded-xl border border-gray-600 focus:border-pop-yellow outline-none">
+        </div>
+      </div>
+
+      <!-- 2-Pane Explorer Body (Left Tree + Right Set List) -->
+      <div class="flex-1 grid grid-cols-1 md:grid-cols-12 min-h-0 overflow-hidden">
+        
+        <!-- Left Pane: Hierarchical Tree Sidebar -->
+        <aside class="md:col-span-4 bg-pop-dark/90 border-b-4 md:border-b-0 md:border-r-4 border-black flex flex-col min-h-0 max-h-[210px] md:max-h-none">
+          <div class="px-3.5 py-2 border-b border-gray-700/80 flex items-center justify-between shrink-0 bg-pop-dark">
+            <span class="text-[11px] font-black text-pop-cyan flex items-center gap-1.5">
+              <i class="fa-solid fa-folder-tree"></i>
+              <span>カテゴリ ツリー</span>
+            </span>
+            <div class="flex items-center gap-1">
+              <button onclick="expandAllSampleTree()" class="text-[10px] font-bold text-gray-300 hover:text-pop-yellow bg-gray-800 px-2 py-0.5 rounded border border-gray-700" title="すべて展開">全開</button>
+              <button onclick="collapseAllSampleTree()" class="text-[10px] font-bold text-gray-300 hover:text-pop-yellow bg-gray-800 px-2 py-0.5 rounded border border-gray-700" title="すべて折りたたむ">全閉</button>
+            </div>
+          </div>
+          <div id="sample-tree-container" class="flex-1 overflow-y-auto p-2.5 space-y-1">
+            <!-- Dynamically rendered via renderSampleTree() -->
+          </div>
+        </aside>
+
+        <!-- Right Pane: Breadcrumb + Compact Set List -->
+        <div class="md:col-span-8 flex flex-col min-h-0 bg-[#1c1830]">
+          <!-- Breadcrumb & Count Bar -->
+          <div class="px-4 py-2.5 border-b border-gray-700/80 bg-pop-card/60 flex items-center justify-between gap-2 shrink-0">
+            <div id="sample-breadcrumb" class="text-xs font-black text-gray-200 flex items-center gap-1.5 flex-wrap truncate">
+              <!-- Dynamically rendered -->
+            </div>
+            <span id="sample-result-count" class="text-[11px] font-black bg-pop-dark text-pop-yellow px-2.5 py-0.5 rounded-full border border-gray-600 shrink-0">
+              0セット
+            </span>
+          </div>
+
+          <!-- Sets Container (Scrollable) -->
+          <div id="sample-library-list" class="flex-1 overflow-y-auto p-3 md:p-4 space-y-2.5">
+            <!-- Dynamically rendered via renderSampleLibraryList() -->
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -1606,12 +1641,31 @@
 ];
 
     let sampleLibraryTarget = 'host'; // 'host' or 'studio'
-    let sampleFilterSchool = 'all';   // 'all', 'jh', 'elem', 'general'
-    let sampleFilterSubject = 'all';  // 'all', 'health', 'science', 'general'
+    let sampleSelectedNode = { school: 'all', subject: 'all', topic: 'all' };
+    let sampleExpandedTreeNodes = new Set(['school:jh', 'subj:jh:health']);
+    let sampleExpandedSetPreviews = new Set();
+    let sampleSearchQuery = '';
+
+    const SAMPLE_SCHOOL_META = {
+      jh: { icon: '🏫', order: 1 },
+      elem: { icon: '🎒', order: 2 },
+      general: { icon: '✨', order: 3 }
+    };
+
+    const SAMPLE_SUBJECT_ICONS = {
+      health: '🏃',
+      science: '🔬',
+      math: '📐',
+      japanese: '📖',
+      social: '🌍',
+      english: '🔤',
+      general: '🚀'
+    };
 
     function openSampleLibraryModal(target = 'host') {
       initAudio();
       sampleLibraryTarget = target;
+      renderSampleTree();
       renderSampleLibraryList();
       const modal = document.getElementById('sample-library-modal');
       if (modal) {
@@ -1625,124 +1679,379 @@
       document.getElementById('sample-library-modal').classList.add('hidden');
     }
 
-    function setSampleSchoolFilter(school) {
-      sampleFilterSchool = school;
-      updateSampleFilterButtonStyles();
+    function onSampleSearchInput(val) {
+      sampleSearchQuery = val || '';
+      const desk = document.getElementById('sample-search-input');
+      const mob = document.getElementById('sample-search-input-mobile');
+      if (desk && desk.value !== sampleSearchQuery) desk.value = sampleSearchQuery;
+      if (mob && mob.value !== sampleSearchQuery) mob.value = sampleSearchQuery;
+      const clr = document.getElementById('sample-search-clear-btn');
+      if (clr) {
+        if (sampleSearchQuery.trim().length > 0) clr.classList.remove('hidden');
+        else clr.classList.add('hidden');
+      }
       renderSampleLibraryList();
-      playBeep(700, 'sine', 0.06);
     }
 
-    function setSampleSubjectFilter(subject) {
-      sampleFilterSubject = subject;
-      updateSampleFilterButtonStyles();
-      renderSampleLibraryList();
-      playBeep(700, 'sine', 0.06);
+    function clearSampleSearch() {
+      onSampleSearchInput('');
     }
 
-    function updateSampleFilterButtonStyles() {
-      // School buttons
-      ['all', 'jh', 'elem'].forEach(s => {
-        const btn = document.getElementById(`sample-flt-school-${s}`);
-        if (btn) {
-          if (sampleFilterSchool === s) {
-            btn.className = "sample-school-btn bg-pop-yellow text-black px-2.5 py-1 rounded-lg neo-border-sm font-black text-xs shadow-xs";
-          } else {
-            btn.className = "sample-school-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs";
-          }
+    function buildSampleTreeData() {
+      const treeMap = new Map();
+
+      SAMPLE_QUESTION_LIBRARY.forEach(item => {
+        const sKey = item.school || 'general';
+        if (!treeMap.has(sKey)) {
+          treeMap.set(sKey, {
+            key: sKey,
+            name: item.schoolName || 'その他',
+            icon: (SAMPLE_SCHOOL_META[sKey] && SAMPLE_SCHOOL_META[sKey].icon) || '📁',
+            order: (SAMPLE_SCHOOL_META[sKey] && SAMPLE_SCHOOL_META[sKey].order) || 99,
+            count: 0,
+            subjects: new Map()
+          });
         }
+        const schoolObj = treeMap.get(sKey);
+        schoolObj.count += 1;
+
+        const subKey = item.subject || 'general';
+        if (!schoolObj.subjects.has(subKey)) {
+          schoolObj.subjects.set(subKey, {
+            key: subKey,
+            name: item.subjectName || '一般',
+            icon: SAMPLE_SUBJECT_ICONS[subKey] || '📘',
+            count: 0,
+            topics: new Map()
+          });
+        }
+        const subObj = schoolObj.subjects.get(subKey);
+        subObj.count += 1;
+
+        const tKey = item.topic || '標準';
+        if (!subObj.topics.has(tKey)) {
+          subObj.topics.set(tKey, { key: tKey, name: tKey, count: 0 });
+        }
+        subObj.topics.get(tKey).count += 1;
       });
 
-      // Subject buttons
-      ['all', 'health', 'general'].forEach(sub => {
-        const btn = document.getElementById(`sample-flt-subj-${sub}`);
-        if (btn) {
-          if (sampleFilterSubject === sub) {
-            btn.className = "sample-subj-btn bg-pop-yellow text-black px-2.5 py-1 rounded-lg neo-border-sm font-black text-xs shadow-xs";
-          } else {
-            btn.className = "sample-subj-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs";
+      // 将来追加予定の「小学校」枠を常に整理用ノードとして表示（0件時は準備中表示）
+      if (!treeMap.has('elem')) {
+        const elemSubjects = new Map();
+        elemSubjects.set('japanese', { key: 'japanese', name: '国語 (予定)', icon: '📖', count: 0, topics: new Map() });
+        elemSubjects.set('math', { key: 'math', name: '算数 (予定)', icon: '📐', count: 0, topics: new Map() });
+        elemSubjects.set('science', { key: 'science', name: '理科 (予定)', icon: '🔬', count: 0, topics: new Map() });
+        elemSubjects.set('social', { key: 'social', name: '社会 (予定)', icon: '🌍', count: 0, topics: new Map() });
+        treeMap.set('elem', {
+          key: 'elem',
+          name: '小学校',
+          icon: '🎒',
+          order: 2,
+          count: 0,
+          subjects: elemSubjects
+        });
+      }
+
+      return Array.from(treeMap.values()).sort((a, b) => a.order - b.order);
+    }
+
+    function toggleSampleTreeNode(nodeId, ev) {
+      if (ev) ev.stopPropagation();
+      if (sampleExpandedTreeNodes.has(nodeId)) {
+        sampleExpandedTreeNodes.delete(nodeId);
+      } else {
+        sampleExpandedTreeNodes.add(nodeId);
+      }
+      renderSampleTree();
+      playBeep(660, 'sine', 0.04);
+    }
+
+    function selectSampleTreeNode(school, subject, topic) {
+      sampleSelectedNode = { school, subject, topic };
+      if (school !== 'all') {
+        sampleExpandedTreeNodes.add(`school:${school}`);
+      }
+      if (subject !== 'all') {
+        sampleExpandedTreeNodes.add(`subj:${school}:${subject}`);
+      }
+      renderSampleTree();
+      renderSampleLibraryList();
+      playBeep(760, 'sine', 0.05);
+    }
+
+    function expandAllSampleTree() {
+      const tree = buildSampleTreeData();
+      tree.forEach(s => {
+        sampleExpandedTreeNodes.add(`school:${s.key}`);
+        s.subjects.forEach(sub => {
+          sampleExpandedTreeNodes.add(`subj:${s.key}:${sub.key}`);
+        });
+      });
+      renderSampleTree();
+    }
+
+    function collapseAllSampleTree() {
+      sampleExpandedTreeNodes.clear();
+      renderSampleTree();
+    }
+
+    function toggleSampleSetPreview(setId) {
+      if (sampleExpandedSetPreviews.has(setId)) {
+        sampleExpandedSetPreviews.delete(setId);
+      } else {
+        sampleExpandedSetPreviews.add(setId);
+      }
+      renderSampleLibraryList();
+    }
+
+    function renderSampleTree() {
+      const container = document.getElementById('sample-tree-container');
+      if (!container) return;
+
+      const tree = buildSampleTreeData();
+      const totalCount = SAMPLE_QUESTION_LIBRARY.length;
+      const isAllSelected = (sampleSelectedNode.school === 'all');
+
+      let html = `
+        <button onclick="selectSampleTreeNode('all', 'all', 'all')" class="w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between text-xs font-black transition-all ${isAllSelected ? 'bg-pop-yellow text-black neo-border-sm shadow-xs' : 'text-gray-200 hover:bg-gray-800'}">
+          <span class="flex items-center gap-2 truncate">
+            <span>🏠</span>
+            <span class="truncate">すべて表示</span>
+          </span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full font-black ${isAllSelected ? 'bg-black text-pop-yellow' : 'bg-gray-700 text-gray-300'}">${totalCount}</span>
+        </button>
+      `;
+
+      tree.forEach(school => {
+        const sNodeId = `school:${school.key}`;
+        const isExpanded = sampleExpandedTreeNodes.has(sNodeId);
+        const isSelected = (sampleSelectedNode.school === school.key && sampleSelectedNode.subject === 'all');
+        const hasChildren = school.subjects.size > 0;
+
+        html += `
+          <div class="mt-1">
+            <div onclick="selectSampleTreeNode('${escapeHtml(school.key)}', 'all', 'all')" class="w-full px-2 py-1.5 rounded-xl flex items-center justify-between text-xs font-black cursor-pointer transition-all ${isSelected ? 'bg-pop-yellow text-black neo-border-sm shadow-xs' : 'text-gray-200 hover:bg-gray-800/90'}">
+              <div class="flex items-center gap-1.5 min-w-0">
+                ${hasChildren ? `<button type="button" onclick="toggleSampleTreeNode('${escapeHtml(sNodeId)}', event)" class="w-5 h-5 flex items-center justify-center rounded hover:bg-black/20 shrink-0 text-[10px]"><i class="fa-solid ${isExpanded ? 'fa-chevron-down' : 'fa-chevron-right'}"></i></button>` : '<span class="w-5"></span>'}
+                <span class="shrink-0">${school.icon}</span>
+                <span class="truncate">${escapeHtml(school.name)}</span>
+              </div>
+              ${school.count > 0
+                ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full font-black shrink-0 ${isSelected ? 'bg-black text-pop-yellow' : 'bg-pop-purple text-white'}">${school.count}</span>`
+                : `<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${isSelected ? 'bg-black/20 text-black' : 'bg-gray-800 text-gray-400 border border-gray-700'}">準備中</span>`
+              }
+            </div>
+        `;
+
+        if (isExpanded && hasChildren) {
+          html += `<div class="ml-4 pl-2 border-l-2 border-gray-700/80 mt-0.5 space-y-0.5">`;
+          school.subjects.forEach(subj => {
+            const subNodeId = `subj:${school.key}:${subj.key}`;
+            const isSubExpanded = sampleExpandedTreeNodes.has(subNodeId);
+            const isSubSelected = (sampleSelectedNode.school === school.key && sampleSelectedNode.subject === subj.key && sampleSelectedNode.topic === 'all');
+            const hasTopics = subj.topics.size > 0;
+
+            html += `
+              <div>
+                <div onclick="selectSampleTreeNode('${escapeHtml(school.key)}', '${escapeHtml(subj.key)}', 'all')" class="w-full px-2 py-1.5 rounded-lg flex items-center justify-between text-[11px] font-black cursor-pointer transition-all ${isSubSelected ? 'bg-pop-cyan text-black neo-border-sm' : (subj.count === 0 ? 'text-gray-500 hover:bg-gray-800/50' : 'text-gray-300 hover:bg-gray-800')}">
+                  <div class="flex items-center gap-1 min-w-0">
+                    ${hasTopics ? `<button type="button" onclick="toggleSampleTreeNode('${escapeHtml(subNodeId)}', event)" class="w-4 h-4 flex items-center justify-center rounded hover:bg-black/20 shrink-0 text-[9px]"><i class="fa-solid ${isSubExpanded ? 'fa-chevron-down' : 'fa-chevron-right'}"></i></button>` : '<span class="w-4 shrink-0"></span>'}
+                    <span class="shrink-0">${subj.icon}</span>
+                    <span class="truncate">${escapeHtml(subj.name)}</span>
+                  </div>
+                  ${subj.count > 0 ? `<span class="text-[10px] px-1.5 rounded-full font-black shrink-0 ${isSubSelected ? 'bg-black text-pop-cyan' : 'bg-gray-700 text-gray-200'}">${subj.count}</span>` : ''}
+                </div>
+            `;
+
+            if (isSubExpanded && hasTopics) {
+              html += `<div class="ml-4 pl-2 border-l border-gray-700 mt-0.5 space-y-0.5">`;
+              subj.topics.forEach(t => {
+                const isTopicSelected = (sampleSelectedNode.school === school.key && sampleSelectedNode.subject === subj.key && sampleSelectedNode.topic === t.key);
+                const encodedTopic = encodeURIComponent(t.key);
+                html += `
+                  <button type="button" onclick="selectSampleTreeNode('${escapeHtml(school.key)}', '${escapeHtml(subj.key)}', decodeURIComponent('${encodedTopic}'))" class="w-full text-left px-2 py-1 rounded-lg flex items-center justify-between text-[11px] font-bold transition-all ${isTopicSelected ? 'bg-pop-green text-black font-black' : 'text-gray-400 hover:text-white hover:bg-gray-800/70'}">
+                    <span class="flex items-center gap-1.5 truncate">
+                      <i class="fa-regular fa-file-lines text-[10px] shrink-0"></i>
+                      <span class="truncate">${escapeHtml(t.name)}</span>
+                    </span>
+                    <span class="text-[9px] px-1.5 rounded-full font-black shrink-0 ${isTopicSelected ? 'bg-black text-pop-green' : 'bg-gray-800 text-gray-400'}">${t.count}</span>
+                  </button>
+                `;
+              });
+              html += `</div>`;
+            }
+
+            html += `</div>`;
+          });
+          html += `</div>`;
+        }
+
+        html += `</div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderSampleBreadcrumb(count) {
+      const bc = document.getElementById('sample-breadcrumb');
+      const cntEl = document.getElementById('sample-result-count');
+      if (cntEl) cntEl.textContent = `${count}セット`;
+      if (!bc) return;
+
+      const parts = [];
+      parts.push(`<button onclick="selectSampleTreeNode('all','all','all')" class="hover:text-pop-yellow transition-colors flex items-center gap-1">🏠 すべて</button>`);
+
+      if (sampleSelectedNode.school !== 'all') {
+        const tree = buildSampleTreeData();
+        const sObj = tree.find(s => s.key === sampleSelectedNode.school);
+        const sName = sObj ? sObj.name : sampleSelectedNode.school;
+        parts.push(`<span class="text-gray-500">/</span>`);
+        parts.push(`<button onclick="selectSampleTreeNode('${escapeHtml(sampleSelectedNode.school)}','all','all')" class="hover:text-pop-yellow transition-colors">${escapeHtml(sName)}</button>`);
+
+        if (sampleSelectedNode.subject !== 'all' && sObj) {
+          const subObj = sObj.subjects.get(sampleSelectedNode.subject);
+          const subName = subObj ? subObj.name : sampleSelectedNode.subject;
+          parts.push(`<span class="text-gray-500">/</span>`);
+          parts.push(`<button onclick="selectSampleTreeNode('${escapeHtml(sampleSelectedNode.school)}','${escapeHtml(sampleSelectedNode.subject)}','all')" class="hover:text-pop-yellow transition-colors">${escapeHtml(subName)}</button>`);
+
+          if (sampleSelectedNode.topic !== 'all') {
+            parts.push(`<span class="text-gray-500">/</span>`);
+            parts.push(`<span class="text-pop-green">${escapeHtml(sampleSelectedNode.topic)}</span>`);
           }
         }
-      });
+      }
+
+      if (sampleSearchQuery.trim() !== '') {
+        parts.push(`<span class="text-gray-500 ml-1">|</span>`);
+        parts.push(`<span class="text-pop-yellow text-[11px]">🔍 "${escapeHtml(sampleSearchQuery.trim())}"</span>`);
+      }
+
+      bc.innerHTML = parts.join('');
     }
 
     function renderSampleLibraryList() {
       const container = document.getElementById('sample-library-list');
       if (!container) return;
 
+      const kw = sampleSearchQuery.trim().toLowerCase();
+
       const filtered = SAMPLE_QUESTION_LIBRARY.filter(item => {
-        const matchSchool = (sampleFilterSchool === 'all') || (item.school === sampleFilterSchool);
-        const matchSubject = (sampleFilterSubject === 'all') || (item.subject === sampleFilterSubject);
-        return matchSchool && matchSubject;
+        const matchSchool = (sampleSelectedNode.school === 'all') || (item.school === sampleSelectedNode.school);
+        const matchSubj = (sampleSelectedNode.subject === 'all') || (item.subject === sampleSelectedNode.subject);
+        const matchTopic = (sampleSelectedNode.topic === 'all') || (item.topic === sampleSelectedNode.topic);
+        if (!matchSchool || !matchSubj || !matchTopic) return false;
+
+        if (kw !== '') {
+          const haystack = [
+            item.title,
+            item.description,
+            item.schoolName,
+            item.subjectName,
+            item.topic,
+            ...(item.questions || []).map(q => q.question + ' ' + (q.explanation || ''))
+          ].join(' ').toLowerCase();
+          if (!haystack.includes(kw)) return false;
+        }
+        return true;
       });
 
+      renderSampleBreadcrumb(filtered.length);
+
       if (filtered.length === 0) {
+        const isComingSoon = (sampleSelectedNode.school === 'elem' && kw === '');
         container.innerHTML = `
-          <div class="col-span-full py-12 text-center text-gray-400">
-            <i class="fa-solid fa-folder-open text-4xl mb-2 opacity-50"></i>
-            <p class="font-bold text-sm">該当するサンプル問題セットが見つかりませんでした。</p>
-            <p class="text-xs text-gray-500 mt-1">フィルターを変更してお試しください。</p>
+          <div class="py-12 px-4 text-center text-gray-300 flex flex-col items-center justify-center">
+            <div class="w-16 h-16 bg-pop-dark rounded-2xl border-2 border-gray-700 flex items-center justify-center text-3xl mb-3">
+              ${isComingSoon ? '🎒' : '🔍'}
+            </div>
+            <p class="font-black text-base text-white mb-1">
+              ${isComingSoon ? '小学校のサンプル問題は現在準備中です！' : '該当するサンプル問題セットが見つかりませんでした。'}
+            </p>
+            <p class="text-xs text-gray-400 font-bold mb-4 max-w-md">
+              ${isComingSoon
+                ? '今後のアップデートで国語・算数・理科・社会などの公式セットを順次追加予定です。今はスタジオから自作問題やExcel/ZIPもご利用いただけます！'
+                : '左のツリーや検索キーワードを変更してお試しください。'}
+            </p>
+            <button onclick="clearSampleSearch(); selectSampleTreeNode('all','all','all')" class="bg-pop-yellow hover:bg-amber-300 text-black font-black text-xs px-4 py-2 rounded-xl neo-border-sm neo-button">
+              🏠 すべてのサンプルを表示する
+            </button>
           </div>
         `;
         return;
       }
 
+      // 単元ごとにグループ化して見やすく整理表示
       let html = '';
+      let lastGroupKey = '';
+
       filtered.forEach(item => {
-        const qCount = item.questions.length;
-        const qTypes = Array.from(new Set(item.questions.map(q => q.type === '2choice' ? '〇×' : '4択'))).join('・');
-        
-        let qPreviewHtml = '';
-        item.questions.forEach((q, idx) => {
-          const typeBadge = q.type === '2choice' ? '<span class="bg-pop-pink/20 text-pop-pink px-1 rounded text-[9px] font-black">〇×</span>' : '<span class="bg-pop-blue/20 text-pop-blue px-1 rounded text-[9px] font-black">4択</span>';
-          qPreviewHtml += `
-            <div class="flex items-start gap-1.5 text-[11px] text-gray-300">
-              <span class="font-black text-pop-yellow shrink-0">Q${idx + 1}.</span>
-              ${typeBadge}
-              <span class="truncate">${escapeHtml(q.question)}</span>
+        const groupKey = `${item.schoolName}｜${item.subjectName}｜${item.topic}`;
+        if (groupKey !== lastGroupKey) {
+          lastGroupKey = groupKey;
+          html += `
+            <div class="flex items-center gap-2 pt-1 pb-0.5 px-1">
+              <span class="bg-pop-purple text-white text-[10px] font-black px-2 py-0.5 rounded-md neo-border-sm">${escapeHtml(item.schoolName)}</span>
+              <span class="bg-pop-cyan text-black text-[10px] font-black px-2 py-0.5 rounded-md neo-border-sm">${escapeHtml(item.subjectName)}</span>
+              <span class="text-xs font-black text-gray-200 truncate">📖 ${escapeHtml(item.topic)}</span>
             </div>
           `;
-        });
+        }
+
+        const qCount = item.questions.length;
+        const qTypes = Array.from(new Set(item.questions.map(q => q.type === '2choice' ? '〇×' : '4択'))).join('・');
+        const isExpanded = sampleExpandedSetPreviews.has(item.id) || (kw !== '');
+
+        let qPreviewHtml = '';
+        if (isExpanded) {
+          let rows = '';
+          item.questions.forEach((q, idx) => {
+            const typeBadge = q.type === '2choice'
+              ? '<span class="bg-pop-pink/20 text-pop-pink px-1.5 py-0.5 rounded text-[10px] font-black shrink-0">〇×</span>'
+              : '<span class="bg-pop-blue/20 text-pop-blue px-1.5 py-0.5 rounded text-[10px] font-black shrink-0">4択</span>';
+            rows += `
+              <div class="flex items-start gap-2 text-xs text-gray-200 py-1 border-b border-gray-800 last:border-b-0">
+                <span class="font-black text-pop-yellow shrink-0">Q${idx + 1}.</span>
+                ${typeBadge}
+                <span class="leading-snug font-bold">${escapeHtml(q.question)}</span>
+              </div>
+            `;
+          });
+          qPreviewHtml = `
+            <div class="mt-2.5 bg-pop-dark/90 rounded-xl p-2.5 border border-gray-700 space-y-0.5">
+              ${rows}
+            </div>
+          `;
+        }
 
         html += `
-          <div class="bg-pop-card neo-border shadow-neo rounded-2xl p-3.5 md:p-4 flex flex-col justify-between hover:border-pop-yellow transition-all group">
-            <div>
-              <!-- Badges & Topic -->
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="bg-pop-purple text-white text-[10px] font-black px-2 py-0.5 rounded-full neo-border-sm">
-                    ${escapeHtml(item.schoolName)}
-                  </span>
-                  <span class="bg-pop-green text-black text-[10px] font-black px-2 py-0.5 rounded-full neo-border-sm">
-                    ${escapeHtml(item.subjectName)}
-                  </span>
-                  <span class="bg-pop-yellow text-black text-[10px] font-black px-2 py-0.5 rounded-full neo-border-sm">
+          <div class="bg-pop-card neo-border-sm shadow-neo-sm rounded-2xl p-3 hover:border-pop-yellow transition-all">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                  <span class="bg-pop-yellow text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-black">
                     ${qCount}問 (${qTypes})
                   </span>
+                  <h4 class="font-black text-sm text-white leading-snug">
+                    ${escapeHtml(item.title)}
+                  </h4>
                 </div>
-                <span class="text-[10px] font-bold text-gray-400">
-                  ${escapeHtml(item.topic)}
-                </span>
+                <p class="text-[11px] text-gray-300 font-bold leading-snug line-clamp-2">
+                  ${escapeHtml(item.description)}
+                </p>
               </div>
 
-              <!-- Title -->
-              <h4 class="font-black text-sm md:text-base text-white mb-1.5 group-hover:text-pop-yellow transition-colors leading-snug">
-                ${escapeHtml(item.title)}
-              </h4>
-              <p class="text-xs text-gray-300 font-bold mb-3 leading-relaxed">
-                ${escapeHtml(item.description)}
-              </p>
-
-              <!-- Question Preview List -->
-              <div class="bg-pop-dark/80 rounded-xl p-2.5 border border-gray-700/80 space-y-1 mb-3.5">
-                ${qPreviewHtml}
+              <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="toggleSampleSetPreview('${escapeHtml(item.id)}')" class="bg-pop-dark hover:bg-slate-800 text-gray-200 font-black text-[11px] py-2 px-3 rounded-xl border-2 border-black flex items-center gap-1.5 transition-colors">
+                  <i class="fa-solid ${isExpanded ? 'fa-chevron-up text-pop-cyan' : 'fa-eye text-pop-cyan'}"></i>
+                  <span>${isExpanded ? '閉じる' : '問題を見る'}</span>
+                </button>
+                <button type="button" onclick="applySampleSet('${escapeHtml(item.id)}')" class="bg-pop-green hover:bg-emerald-400 text-black font-black text-xs py-2 px-3.5 rounded-xl neo-border-sm neo-button flex items-center gap-1.5 shadow-xs">
+                  <i class="fa-solid fa-check"></i>
+                  <span>セットする</span>
+                </button>
               </div>
             </div>
-
-            <!-- Action Button -->
-            <button onclick="applySampleSet('${item.id}')" class="w-full bg-pop-yellow hover:bg-amber-300 text-black font-black text-xs md:text-sm py-2 px-3 rounded-xl neo-border-sm neo-button flex items-center justify-center gap-2 shadow transition-transform active:translate-y-0.5">
-              <i class="fa-solid fa-check text-sm"></i>
-              <span>このセットをセットする (${qCount}問)</span>
-            </button>
+            ${qPreviewHtml}
           </div>
         `;
       });
