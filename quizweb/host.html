@@ -218,8 +218,8 @@
       lastTouchEnd = now;
     }, { passive: false });
 
-    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.4.0)
-    const APP_VERSION = "3.4.0";
+    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.4.1)
+    const APP_VERSION = "3.4.1";
 
     async function clearAllAppCaches() {
       try {
@@ -300,15 +300,15 @@
   </div>
 
   <!-- 1. 縦向き注意ダイアログ (Portrait Warning for iPad) -->
-  <div id="portrait-warning" class="hidden fixed inset-0 bg-pop-dark z-50 flex-col items-center justify-center p-8 text-center border-8 border-pop-pink">
+  <div id="portrait-warning" class="hidden fixed inset-0 bg-pop-dark z-[90] flex-col items-center justify-center p-8 text-center border-8 border-pop-pink">
     <i class="fa-solid font-bold fa-rotate-left text-7xl text-pop-yellow mb-6 animate-spin"></i>
     <h1 class="text-3xl font-black text-pop-yellow mb-2">画面を横向きにしてください</h1>
     <p class="text-lg text-gray-300">本クイズホスト画面は iPad の横向き（Landscape）表示に最適化されています。</p>
   </div>
 
   <!-- Floating Controls (Version Badge, Force Cache Reload & Sound) -->
-  <div class="fixed top-3 right-3 z-50 flex items-center space-x-2">
-    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.4.0</span>
+  <div class="fixed top-3 right-3 z-40 flex items-center space-x-2">
+    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.4.1</span>
     <button onclick="forceReloadLatestHost()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-yellow text-base neo-button hover:bg-slate-800" title="キャッシュを削除して最新版に更新">
       <i class="fa-solid fa-rotate"></i>
     </button>
@@ -818,71 +818,6 @@
     </div>
   </div>
 
-  <!-- ==================== IMAGE ZOOM MODAL (EXPANDED TO FULL VIEWPORT) ==================== -->
-  <div id="image-zoom-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 cursor-pointer" onclick="closeImageZoom()">
-    <div class="relative w-[96vw] max-w-6xl h-[88dvh] max-h-[88dvh] bg-pop-dark neo-border shadow-neo-lg rounded-3xl p-3 md:p-4 flex flex-col items-center justify-center overflow-hidden" onclick="event.stopPropagation()">
-      <button onclick="closeImageZoom()" class="absolute top-2 right-2 md:top-3 md:right-3 w-10 h-10 md:w-12 md:h-12 bg-pop-pink hover:bg-rose-400 text-black rounded-xl md:rounded-2xl neo-border-sm flex items-center justify-center font-black neo-button z-20 text-lg md:text-xl shadow" title="閉じる">
-        ✕
-      </button>
-      <div class="w-full h-full flex items-center justify-center overflow-hidden">
-        <img id="zoom-modal-img" src="" class="w-full h-full object-contain rounded-xl md:rounded-2xl mx-auto drop-shadow-2xl">
-        <video id="zoom-modal-video" src="" controls autoplay playsinline class="hidden w-full h-full object-contain rounded-xl md:rounded-2xl mx-auto"></video>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- SAMPLE QUESTION LIBRARY MODAL (校種・教科から選べるサンプル問題ライブラリ) -->
-  <!-- ========================================================================= -->
-  <div id="sample-library-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col p-3 md:p-6" onclick="closeSampleLibraryModal()">
-    <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl flex-1 flex flex-col overflow-hidden max-w-5xl w-full mx-auto" onclick="event.stopPropagation()">
-      
-      <!-- Modal Header -->
-      <div class="bg-pop-purple px-4 md:px-6 py-3 md:py-3.5 border-b-2 border-black flex items-center justify-between shrink-0">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 md:w-10 md:h-10 bg-pop-yellow text-black rounded-xl neo-border-sm flex items-center justify-center text-lg font-black shrink-0 shadow-sm">
-            📚
-          </div>
-          <div>
-            <h3 class="text-base md:text-lg font-black text-white flex items-center gap-2 leading-tight">
-              <span>お手本サンプル問題ライブラリ</span>
-              <span class="text-xs bg-pop-yellow text-black px-2 py-0.5 rounded-full neo-border-sm font-black hidden sm:inline-block">授業ですぐ使える</span>
-            </h3>
-            <p class="text-[11px] text-purple-200 font-bold leading-tight">校種・教科・単元から3問セットを選んで、ワンタップでクイズを開始できます</p>
-          </div>
-        </div>
-        <button onclick="closeSampleLibraryModal()" class="w-9 h-9 md:w-10 md:h-10 bg-pop-pink hover:bg-rose-400 text-black rounded-xl neo-border-sm flex items-center justify-center text-base font-black neo-button shadow" title="閉じる">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <!-- Filter Controls Bar -->
-      <div class="bg-pop-dark px-4 md:px-6 py-2.5 border-b border-gray-700 flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <!-- School Level Filter -->
-        <div class="flex items-center gap-1.5 text-xs font-bold">
-          <span class="text-gray-400 text-[11px] mr-1 flex items-center gap-1"><i class="fa-solid fa-school"></i> 校種:</span>
-          <button onclick="setSampleSchoolFilter('all')" id="sample-flt-school-all" class="sample-school-btn bg-pop-yellow text-black px-2.5 py-1 rounded-lg neo-border-sm font-black text-xs shadow-xs">すべて</button>
-          <button onclick="setSampleSchoolFilter('jh')" id="sample-flt-school-jh" class="sample-school-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">中学校</button>
-          <button onclick="setSampleSchoolFilter('elem')" id="sample-flt-school-elem" class="sample-school-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">小学校</button>
-        </div>
-
-        <!-- Subject Filter -->
-        <div class="flex items-center gap-1.5 text-xs font-bold">
-          <span class="text-gray-400 text-[11px] mr-1 flex items-center gap-1"><i class="fa-solid fa-book"></i> 教科:</span>
-          <button onclick="setSampleSubjectFilter('all')" id="sample-flt-subj-all" class="sample-subj-btn bg-pop-yellow text-black px-2.5 py-1 rounded-lg neo-border-sm font-black text-xs shadow-xs">すべて</button>
-          <button onclick="setSampleSubjectFilter('health')" id="sample-flt-subj-health" class="sample-subj-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">保健体育</button>
-          <button onclick="setSampleSubjectFilter('general')" id="sample-flt-subj-general" class="sample-subj-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">お試し・宇宙</button>
-        </div>
-      </div>
-
-      <!-- Library Cards Grid (Scrollable) -->
-      <div id="sample-library-list" class="flex-1 overflow-y-auto p-3.5 md:p-5 grid grid-cols-1 md:grid-cols-2 gap-3.5 md:gap-4">
-        <!-- Dynamically rendered via renderSampleLibraryList() -->
-      </div>
-
-    </div>
-  </div>
-
   <!-- ==================== QUIZ STUDIO (CREATOR & EDITOR MODAL) ==================== -->
   <div id="quiz-studio-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col p-4 md:p-6" onclick="closeQuizStudio()">
     <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl flex-1 flex flex-col overflow-hidden max-w-6xl w-full mx-auto" onclick="event.stopPropagation()">
@@ -967,6 +902,71 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- SAMPLE QUESTION LIBRARY MODAL (校種・教科から選べるサンプル問題ライブラリ) -->
+  <!-- ========================================================================= -->
+  <div id="sample-library-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col p-3 md:p-6" onclick="closeSampleLibraryModal()">
+    <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl flex-1 flex flex-col overflow-hidden max-w-5xl w-full mx-auto" onclick="event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="bg-pop-purple px-4 md:px-6 py-3 md:py-3.5 border-b-2 border-black flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 md:w-10 md:h-10 bg-pop-yellow text-black rounded-xl neo-border-sm flex items-center justify-center text-lg font-black shrink-0 shadow-sm">
+            📚
+          </div>
+          <div>
+            <h3 class="text-base md:text-lg font-black text-white flex items-center gap-2 leading-tight">
+              <span>お手本サンプル問題ライブラリ</span>
+              <span class="text-xs bg-pop-yellow text-black px-2 py-0.5 rounded-full neo-border-sm font-black hidden sm:inline-block">授業ですぐ使える</span>
+            </h3>
+            <p class="text-[11px] text-purple-200 font-bold leading-tight">校種・教科・単元から3問セットを選んで、ワンタップでクイズを開始できます</p>
+          </div>
+        </div>
+        <button onclick="closeSampleLibraryModal()" class="w-9 h-9 md:w-10 md:h-10 bg-pop-pink hover:bg-rose-400 text-black rounded-xl neo-border-sm flex items-center justify-center text-base font-black neo-button shadow" title="閉じる">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Filter Controls Bar -->
+      <div class="bg-pop-dark px-4 md:px-6 py-2.5 border-b border-gray-700 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <!-- School Level Filter -->
+        <div class="flex items-center gap-1.5 text-xs font-bold">
+          <span class="text-gray-400 text-[11px] mr-1 flex items-center gap-1"><i class="fa-solid fa-school"></i> 校種:</span>
+          <button onclick="setSampleSchoolFilter('all')" id="sample-flt-school-all" class="sample-school-btn bg-pop-yellow text-black px-2.5 py-1 rounded-lg neo-border-sm font-black text-xs shadow-xs">すべて</button>
+          <button onclick="setSampleSchoolFilter('jh')" id="sample-flt-school-jh" class="sample-school-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">中学校</button>
+          <button onclick="setSampleSchoolFilter('elem')" id="sample-flt-school-elem" class="sample-school-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">小学校</button>
+        </div>
+
+        <!-- Subject Filter -->
+        <div class="flex items-center gap-1.5 text-xs font-bold">
+          <span class="text-gray-400 text-[11px] mr-1 flex items-center gap-1"><i class="fa-solid fa-book"></i> 教科:</span>
+          <button onclick="setSampleSubjectFilter('all')" id="sample-flt-subj-all" class="sample-subj-btn bg-pop-yellow text-black px-2.5 py-1 rounded-lg neo-border-sm font-black text-xs shadow-xs">すべて</button>
+          <button onclick="setSampleSubjectFilter('health')" id="sample-flt-subj-health" class="sample-subj-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">保健体育</button>
+          <button onclick="setSampleSubjectFilter('general')" id="sample-flt-subj-general" class="sample-subj-btn bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg border border-gray-600 font-bold text-xs">お試し・宇宙</button>
+        </div>
+      </div>
+
+      <!-- Library Cards Grid (Scrollable) -->
+      <div id="sample-library-list" class="flex-1 overflow-y-auto p-3.5 md:p-5 grid grid-cols-1 md:grid-cols-2 gap-3.5 md:gap-4">
+        <!-- Dynamically rendered via renderSampleLibraryList() -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== IMAGE ZOOM MODAL (EXPANDED TO FULL VIEWPORT) ==================== -->
+  <div id="image-zoom-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[80] flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 cursor-pointer" onclick="closeImageZoom()">
+    <div class="relative w-[96vw] max-w-6xl h-[88dvh] max-h-[88dvh] bg-pop-dark neo-border shadow-neo-lg rounded-3xl p-3 md:p-4 flex flex-col items-center justify-center overflow-hidden" onclick="event.stopPropagation()">
+      <button onclick="closeImageZoom()" class="absolute top-2 right-2 md:top-3 md:right-3 w-10 h-10 md:w-12 md:h-12 bg-pop-pink hover:bg-rose-400 text-black rounded-xl md:rounded-2xl neo-border-sm flex items-center justify-center font-black neo-button z-20 text-lg md:text-xl shadow" title="閉じる">
+        ✕
+      </button>
+      <div class="w-full h-full flex items-center justify-center overflow-hidden">
+        <img id="zoom-modal-img" src="" class="w-full h-full object-contain rounded-xl md:rounded-2xl mx-auto drop-shadow-2xl">
+        <video id="zoom-modal-video" src="" controls autoplay playsinline class="hidden w-full h-full object-contain rounded-xl md:rounded-2xl mx-auto"></video>
+      </div>
     </div>
   </div>
 
@@ -1613,7 +1613,11 @@
       initAudio();
       sampleLibraryTarget = target;
       renderSampleLibraryList();
-      document.getElementById('sample-library-modal').classList.remove('hidden');
+      const modal = document.getElementById('sample-library-modal');
+      if (modal) {
+        modal.style.zIndex = '70';
+        modal.classList.remove('hidden');
+      }
       playBeep(600, 'triangle', 0.1);
     }
 
