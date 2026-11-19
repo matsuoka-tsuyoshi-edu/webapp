@@ -205,9 +205,12 @@
       }
     }, { passive: false });
 
-    // 3. ダブルタップによるズーム拡大を防止
+    // 3. ダブルタップによるズーム拡大を防止（ボタンや入力操作は絶対に妨げない）
     let lastTouchEnd = 0;
     document.addEventListener('touchend', function (event) {
+      if (event.target && event.target.closest('button, a, input, select, textarea, label')) {
+        return;
+      }
       const now = Date.now();
       if (now - lastTouchEnd <= 300) {
         event.preventDefault();
@@ -215,11 +218,73 @@
       lastTouchEnd = now;
     }, { passive: false });
 
-    // 4. キャッシュクリア＆最新版強制再読込関数
-    function forceReloadLatestHost() {
-      if (confirm("最新版のデザイン・スクリプトで画面を再読み込みしますか？")) {
+    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.4.0)
+    const APP_VERSION = "3.4.0";
+
+    async function clearAllAppCaches() {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            await reg.unregister();
+          }
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          for (const key of keys) {
+            await caches.delete(key);
+          }
+        }
+      } catch (e) {
+        console.warn('Cache cleanup skipped:', e);
+      }
+    }
+
+    async function checkVersionAndPurgeCache() {
+      try {
+        const storedVer = localStorage.getItem('popquiz_app_version');
+        if (storedVer !== APP_VERSION) {
+          await clearAllAppCaches();
+          localStorage.setItem('popquiz_app_version', APP_VERSION);
+        }
+        if (location.protocol.startsWith('http')) {
+          const res = await fetch('./version.json?nocache=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.version && data.version !== APP_VERSION) {
+              const guardKey = 'popquiz_host_reloaded_' + data.version;
+              if (!sessionStorage.getItem(guardKey)) {
+                sessionStorage.setItem(guardKey, '1');
+                await clearAllAppCaches();
+                const url = new URL(window.location.href);
+                url.searchParams.set('v', data.version);
+                url.searchParams.set('t', Date.now().toString());
+                window.location.replace(url.toString());
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // file:// 等では安全に無視
+      }
+    }
+    checkVersionAndPurgeCache();
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        checkVersionAndPurgeCache();
+      }
+    });
+
+    // 5. キャッシュ完全クリア＆最新版強制再読込関数
+    async function forceReloadLatestHost() {
+      if (confirm("ブラウザのキャッシュを削除し、最新版の画面を再読み込みしますか？")) {
+        await clearAllAppCaches();
+        try {
+          localStorage.removeItem('popquiz_app_version');
+          sessionStorage.clear();
+        } catch (e) {}
         const url = new URL(window.location.href);
-        url.searchParams.set('v', '3.3.9');
+        url.searchParams.set('v', APP_VERSION);
         url.searchParams.set('t', Date.now().toString());
         window.location.replace(url.toString());
       }
@@ -228,6 +293,12 @@
 </head>
 <body class="flex flex-col h-full min-h-screen w-full bg-[#141221] text-white overflow-hidden">
 
+  <!-- Global Notification Toast -->
+  <div id="host-global-toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[100] bg-pop-green text-black px-5 py-3 rounded-2xl neo-border shadow-neo-lg font-black text-sm md:text-base flex items-center gap-2.5 pointer-events-none transition-all duration-300">
+    <i class="fa-solid fa-circle-check text-xl"></i>
+    <span id="host-global-toast-text">完了しました</span>
+  </div>
+
   <!-- 1. 縦向き注意ダイアログ (Portrait Warning for iPad) -->
   <div id="portrait-warning" class="hidden fixed inset-0 bg-pop-dark z-50 flex-col items-center justify-center p-8 text-center border-8 border-pop-pink">
     <i class="fa-solid font-bold fa-rotate-left text-7xl text-pop-yellow mb-6 animate-spin"></i>
@@ -235,9 +306,10 @@
     <p class="text-lg text-gray-300">本クイズホスト画面は iPad の横向き（Landscape）表示に最適化されています。</p>
   </div>
 
-  <!-- Floating Controls (Sound & Force Cache Reload) -->
+  <!-- Floating Controls (Version Badge, Force Cache Reload & Sound) -->
   <div class="fixed top-3 right-3 z-50 flex items-center space-x-2">
-    <button onclick="forceReloadLatestHost()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-yellow text-base neo-button hover:bg-slate-800" title="最新版に更新（キャッシュクリア再読込）">
+    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.4.0</span>
+    <button onclick="forceReloadLatestHost()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-yellow text-base neo-button hover:bg-slate-800" title="キャッシュを削除して最新版に更新">
       <i class="fa-solid fa-rotate"></i>
     </button>
     <button id="sound-btn" onclick="toggleSound()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-cyan text-lg neo-button hover:bg-slate-800" title="サウンド切り替え">
@@ -1674,6 +1746,19 @@
       container.innerHTML = html;
     }
 
+    let hostToastTimer = null;
+    function showHostGlobalToast(message) {
+      const toast = document.getElementById('host-global-toast');
+      const textEl = document.getElementById('host-global-toast-text');
+      if (!toast || !textEl) return;
+      textEl.textContent = message;
+      toast.classList.remove('hidden');
+      if (hostToastTimer) clearTimeout(hostToastTimer);
+      hostToastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3200);
+    }
+
     function applySampleSet(setId) {
       initAudio();
       const targetItem = SAMPLE_QUESTION_LIBRARY.find(s => s.id === setId);
@@ -1698,6 +1783,7 @@
         }
 
         closeSampleLibraryModal();
+        showHostGlobalToast(`「${targetItem.title}」(${questions.length}問) をセットしました！`);
         playBeep(880, 'triangle', 0.15);
         setTimeout(() => playBeep(1174.66, 'triangle', 0.2), 120);
       } else {
@@ -1712,6 +1798,7 @@
         renderStudioList();
         renderStudioForm();
         closeSampleLibraryModal();
+        showHostGlobalToast(`スタジオに「${targetItem.title}」(${qList.length}問) を読み込みました！`);
         playBeep(880, 'triangle', 0.15);
         setTimeout(() => playBeep(1174.66, 'triangle', 0.2), 120);
       }
@@ -1964,9 +2051,11 @@
 
     // 先生のiPadの現在URLを逐一チェックして参加用URLを組み立てる (キャッシュバスター自動付与で常に最新版を子機に配布)
     function getPlayerJoinUrl() {
-      const currentUrl = window.location.href;
-      let baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-      return baseUrl + 'player.html?room=' + roomCode + '&v=3.3.9&t=' + Date.now();
+      const targetUrl = new URL('player.html', window.location.href);
+      targetUrl.searchParams.set('room', roomCode);
+      targetUrl.searchParams.set('v', APP_VERSION);
+      targetUrl.searchParams.set('t', Date.now().toString());
+      return targetUrl.toString();
     }
 
     function initPeerHost(retryCount = 0) {

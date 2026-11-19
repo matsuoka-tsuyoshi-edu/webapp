@@ -8,7 +8,61 @@
   <meta http-equiv="Expires" content="0">
   <!-- iPad Safari / iOS 完全固定ビューポート (ズーム・拡大縮小の完全抑止) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
-  <title>POP QUIZ - Player</title>
+  <title>POP QUIZ - Player (Ver 3.4.0)</title>
+  <script>
+    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.4.0)
+    const APP_VERSION = "3.4.0";
+
+    async function clearAllAppCaches() {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            await reg.unregister();
+          }
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          for (const key of keys) {
+            await caches.delete(key);
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function checkVersionAndPurgeCache() {
+      try {
+        const storedVer = localStorage.getItem('popquiz_app_version');
+        if (storedVer !== APP_VERSION) {
+          await clearAllAppCaches();
+          localStorage.setItem('popquiz_app_version', APP_VERSION);
+        }
+        if (location.protocol.startsWith('http')) {
+          const res = await fetch('./version.json?nocache=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.version && data.version !== APP_VERSION) {
+              const guardKey = 'popquiz_player_reloaded_' + data.version;
+              if (!sessionStorage.getItem(guardKey)) {
+                sessionStorage.setItem(guardKey, '1');
+                await clearAllAppCaches();
+                const url = new URL(window.location.href);
+                url.searchParams.set('v', data.version);
+                url.searchParams.set('t', Date.now().toString());
+                window.location.replace(url.toString());
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
+    checkVersionAndPurgeCache();
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        checkVersionAndPurgeCache();
+      }
+    });
+  </script>
   <!-- PeerJS CDN -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <!-- Canvas Confetti CDN (表彰式の瞬間に手元でも紙吹雪が炸裂！) -->
@@ -1610,9 +1664,14 @@
     // ==========================================
     // 7. CACHE CLEAR & FORCE RELOAD LATEST
     // ==========================================
-    function forceReloadLatest() {
+    async function forceReloadLatest() {
+      await clearAllAppCaches();
+      try {
+        localStorage.removeItem('popquiz_app_version');
+        sessionStorage.clear();
+      } catch (e) {}
       const url = new URL(window.location.href);
-      url.searchParams.set('v', '3.3.9');
+      url.searchParams.set('v', APP_VERSION);
       url.searchParams.set('t', Date.now().toString());
       window.location.replace(url.toString());
     }
