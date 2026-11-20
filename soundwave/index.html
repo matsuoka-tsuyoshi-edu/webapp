@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>音の波ラボ 〜振幅と振動数の探究〜</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="js/audio-engine.js" defer></script>
+  <script src="js/waveform-renderer.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <!-- 縦向き時のグレーアウト＆横向き案内オーバーレイ -->
+  <div id="portrait-overlay" class="portrait-overlay" aria-live="polite" role="dialog" aria-modal="true" aria-label="画面の向きのお知らせ">
+    <div class="portrait-card">
+      <div class="rotate-icon" aria-hidden="true">
+        <svg viewBox="0 0 80 80" width="84" height="84" fill="none">
+          <rect x="22" y="10" width="36" height="52" rx="6" stroke="currentColor" stroke-width="4" fill="rgba(255,255,255,0.1)"/>
+          <circle cx="40" cy="55" r="2.5" fill="currentColor"/>
+          <path d="M12 42 C12 24, 24 14, 34 14" stroke="#60A5FA" stroke-width="4" stroke-linecap="round"/>
+          <path d="M64 36 C68 50, 56 66, 42 66" stroke="#34D399" stroke-width="4" stroke-linecap="round"/>
+          <polyline points="29,9 36,14 30,20" stroke="#60A5FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2>タブレットを横向きにしてね！</h2>
+      <p>この「音の波ラボ」は<strong>横画面専用</strong>です。<br>iPadを横にたおすと、実験が始められます。</p>
+    </div>
+  </div>
+
+  <!-- メインアプリシェル -->
+  <div class="app-shell">
+    <!-- ヘッダーエリア -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-badge" aria-hidden="true">
+          <svg viewBox="0 0 28 28" width="22" height="22" fill="none">
+            <path d="M2 14 Q6 4, 10 14 T18 14 T26 14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <div class="brand-text">
+          <h1 class="app-title">音の波ラボ</h1>
+          <span class="app-subtitle" id="app-subtitle">〜音の大きさと高さを波でしらべよう〜</span>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- 用語モード切替スイッチ -->
+        <div class="mode-switch-wrap" role="group" aria-label="ことばの表示モード切り替え">
+          <span class="mode-label">ことば：</span>
+          <div class="segmented-control" id="term-mode-control">
+            <button type="button" class="seg-btn is-active" data-mode="simple" aria-pressed="true">かんたん表記</button>
+            <button type="button" class="seg-btn" data-mode="science" aria-pressed="false">理科用語（中1）</button>
+          </div>
+        </div>
+
+        <button type="button" id="btn-help" class="btn-help" aria-haspopup="dialog">
+          <span class="help-q">?</span> つかい方
+        </button>
+      </div>
+    </header>
+
+    <!-- メインエリア（上下2段トラック＋中央連携バー） -->
+    <main class="tracks-workspace">
+      <!-- 上段トラック（Track A：基準の音） -->
+      <section class="track-card track-a" id="track-a" aria-label="上の音（基準の音）">
+        <div class="track-canvas-col">
+          <div class="canvas-header-bar">
+            <div class="track-badge track-badge-a">
+              <span class="dot dot-a"></span>
+              <span class="track-name" data-role="track-title">上の音（基準の音）</span>
+            </div>
+            <div class="wave-stats" data-role="wave-stats">
+              <span class="stat-pill" data-role="source-badge">音叉（おんさ）440Hz</span>
+              <span class="stat-pill stat-hz is-hidden" data-role="hz-badge">約 440 Hz</span>
+            </div>
+          </div>
+          <div class="canvas-wrapper">
+            <canvas class="wave-canvas" data-role="canvas"></canvas>
+            <div class="rec-indicator is-hidden" data-role="rec-indicator">
+              <span class="rec-dot"></span>
+              <span data-role="rec-text">録音中… 音を出してね</span>
+              <div class="rec-meter-bg"><div class="rec-meter-fill" data-role="rec-meter"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="track-control-col">
+          <!-- 入力・再生コントロール行 -->
+          <div class="control-row-top">
+            <button type="button" class="btn btn-record" data-action="record">
+              <span class="btn-icon" aria-hidden="true">🎤</span>
+              <span data-role="record-label">録音する</span>
+            </button>
+
+            <div class="select-wrap">
+              <select class="preset-select" data-action="preset" aria-label="上の音のサンプルをえらぶ">
+                <option value="tuningFork440">音叉（ふつう）440Hz</option>
+                <option value="tuningFork220">音叉（ひくい）220Hz</option>
+                <option value="recorder440">リコーダーの音</option>
+                <option value="voiceA">人の声「あー」</option>
+              </select>
+            </div>
+
+            <button type="button" class="btn btn-play btn-play-a" data-action="play">
+              <span class="btn-icon" data-role="play-icon" aria-hidden="true">▶</span>
+              <span data-role="play-label">音を聞く</span>
+            </button>
+          </div>
+
+          <!-- スライダー1：振幅（波の高さ） -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <label class="slider-title" for="slider-amp-a">
+                <span data-term="amp">波の高さ</span>
+                <span class="slider-hint" data-term="amp-hint">（音の大きさ）</span>
+              </label>
+              <span class="slider-value" data-role="amp-val">×1.0</span>
+            </div>
+            <div class="slider-input-row">
+              <span class="scale-edge">小 (0)</span>
+              <input id="slider-amp-a" type="range" class="range-slider range-amp" data-param="amp" min="0" max="2" step="0.1" value="1">
+              <span class="scale-edge">大 (2.0)</span>
+            </div>
+          </div>
+
+          <!-- スライダー2：振動数（波の細かさ） -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <label class="slider-title" for="slider-freq-a">
+                <span data-term="freq">波の細かさ</span>
+                <span class="slider-hint" data-term="freq-hint">（音の高さ）</span>
+              </label>
+              <span class="slider-value" data-role="freq-val">×1.0</span>
+            </div>
+            <div class="slider-input-row">
+              <span class="scale-edge">低 (0.5)</span>
+              <input id="slider-freq-a" type="range" class="range-slider range-freq" data-param="freq" min="0.5" max="2" step="0.1" value="1">
+              <span class="scale-edge">高 (2.0)</span>
+            </div>
+          </div>
+
+          <!-- 下部補助行：ループ＆もとに戻す -->
+          <div class="control-row-bottom">
+            <label class="toggle-chip">
+              <input type="checkbox" data-action="loop">
+              <span>くり返し再生</span>
+            </label>
+            <button type="button" class="btn btn-reset" data-action="reset">
+              ↺ もとに戻す
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 中央連携バー -->
+      <div class="center-bar">
+        <div class="center-left-info">
+          <span class="grid-scale-pill" id="grid-scale-info">方眼：よこ1マス = 0.002秒（2ms）</span>
+        </div>
+
+        <div class="center-actions">
+          <button type="button" id="btn-copy-a-to-b" class="btn btn-copy">
+            ⬇ 上の音を下にコピー
+          </button>
+
+          <label class="overlay-toggle" for="chk-overlay">
+            <input type="checkbox" id="chk-overlay">
+            <span class="overlay-switch-ui" aria-hidden="true"></span>
+            <span class="overlay-text">上の波を重ねて見る</span>
+          </label>
+        </div>
+
+        <div class="center-right-info">
+          <span class="legend-item"><span class="legend-line legend-a"></span>上の音</span>
+          <span class="legend-item"><span class="legend-line legend-b"></span>下の音</span>
+        </div>
+      </div>
+
+      <!-- 下段トラック（Track B：比べる音） -->
+      <section class="track-card track-b" id="track-b" aria-label="下の音（比べる音）">
+        <div class="track-canvas-col">
+          <div class="canvas-header-bar">
+            <div class="track-badge track-badge-b">
+              <span class="dot dot-b"></span>
+              <span class="track-name" data-role="track-title">下の音（比べる音）</span>
+            </div>
+            <div class="wave-stats" data-role="wave-stats">
+              <span class="stat-pill" data-role="source-badge">音叉（おんさ）440Hz</span>
+              <span class="stat-pill stat-hz is-hidden" data-role="hz-badge">約 440 Hz</span>
+            </div>
+          </div>
+          <div class="canvas-wrapper">
+            <canvas class="wave-canvas" data-role="canvas"></canvas>
+            <div class="rec-indicator is-hidden" data-role="rec-indicator">
+              <span class="rec-dot"></span>
+              <span data-role="rec-text">録音中… 音を出してね</span>
+              <div class="rec-meter-bg"><div class="rec-meter-fill" data-role="rec-meter"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="track-control-col">
+          <!-- 入力・再生コントロール行 -->
+          <div class="control-row-top">
+            <button type="button" class="btn btn-record" data-action="record">
+              <span class="btn-icon" aria-hidden="true">🎤</span>
+              <span data-role="record-label">録音する</span>
+            </button>
+
+            <div class="select-wrap">
+              <select class="preset-select" data-action="preset" aria-label="下の音のサンプルをえらぶ">
+                <option value="tuningFork440">音叉（ふつう）440Hz</option>
+                <option value="tuningFork220">音叉（ひくい）220Hz</option>
+                <option value="recorder440">リコーダーの音</option>
+                <option value="voiceA">人の声「あー」</option>
+              </select>
+            </div>
+
+            <button type="button" class="btn btn-play btn-play-b" data-action="play">
+              <span class="btn-icon" data-role="play-icon" aria-hidden="true">▶</span>
+              <span data-role="play-label">音を聞く</span>
+            </button>
+          </div>
+
+          <!-- スライダー1：振幅（波の高さ） -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <label class="slider-title" for="slider-amp-b">
+                <span data-term="amp">波の高さ</span>
+                <span class="slider-hint" data-term="amp-hint">（音の大きさ）</span>
+              </label>
+              <span class="slider-value" data-role="amp-val">×1.0</span>
+            </div>
+            <div class="slider-input-row">
+              <span class="scale-edge">小 (0)</span>
+              <input id="slider-amp-b" type="range" class="range-slider range-amp" data-param="amp" min="0" max="2" step="0.1" value="1">
+              <span class="scale-edge">大 (2.0)</span>
+            </div>
+          </div>
+
+          <!-- スライダー2：振動数（波の細かさ） -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <label class="slider-title" for="slider-freq-b">
+                <span data-term="freq">波の細かさ</span>
+                <span class="slider-hint" data-term="freq-hint">（音の高さ）</span>
+              </label>
+              <span class="slider-value" data-role="freq-val">×1.0</span>
+            </div>
+            <div class="slider-input-row">
+              <span class="scale-edge">低 (0.5)</span>
+              <input id="slider-freq-b" type="range" class="range-slider range-freq" data-param="freq" min="0.5" max="2" step="0.1" value="1">
+              <span class="scale-edge">高 (2.0)</span>
+            </div>
+          </div>
+
+          <!-- 下部補助行：ループ＆もとに戻す -->
+          <div class="control-row-bottom">
+            <label class="toggle-chip">
+              <input type="checkbox" data-action="loop">
+              <span>くり返し再生</span>
+            </label>
+            <button type="button" class="btn btn-reset" data-action="reset">
+              ↺ もとに戻す
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- つかい方ヘルプモーダル -->
+  <div id="help-modal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="help-modal-title">音の波ラボのつかい方</h2>
+        <button type="button" id="btn-close-help" class="btn-close-modal" aria-label="閉じる">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-grid">
+          <div class="help-step">
+            <div class="step-num">1</div>
+            <div>
+              <h3>音を用意しよう</h3>
+              <p><strong>「🎤 録音する」</strong>で自分の声や楽器を録音するか、サンプルの音（音叉など）をえらびます。</p>
+            </div>
+          </div>
+          <div class="help-step">
+            <div class="step-num">2</div>
+            <div>
+              <h3>下にコピーして比べよう</h3>
+              <p>真ん中の<strong>「⬇ 上の音を下にコピー」</strong>をおすと、上下で同じ音をセットして対照実験ができます。</p>
+            </div>
+          </div>
+          <div class="help-step">
+            <div class="step-num">3</div>
+            <div>
+              <h3>波の形を変えて聴き比べよう</h3>
+              <p>下の音の<strong>「波の高さ（振幅）」</strong>や<strong>「波の細かさ（振動数）」</strong>のスライダーを動かして、波と音の変化をたしかめよう！</p>
+            </div>
+          </div>
+          <div class="help-step">
+            <div class="step-num">4</div>
+            <div>
+              <h3>波を重ねて観察しよう</h3>
+              <p><strong>「上の波を重ねて見る」</strong>をオンにすると、上の波と下の波を同じ方眼の上で比べられます。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div id="toast" class="toast is-hidden" role="status" aria-live="polite"></div>
+</body>
+</html>
