@@ -1,573 +1,460 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>シン・学習アプリ＋１０</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-    <script src="./qrcode.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'"></script>
-    <style>
-        /* --- デザイン設定 --- */
-        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333; display: flex; flex-direction: column; height: 100vh; }
-        header { background-color: #4a90e2; color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
-        header h1 { margin: 0; font-size: 1.4rem; font-weight: bold; }
-        .main-container { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 240px; background-color: #fff; border-right: 1px solid #ddd; overflow-y: auto; padding: 20px; flex-shrink: 0; }
-        .sidebar h3 { font-size: 0.85rem; color: #999; margin-top: 25px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; font-weight: bold; }
-        .sidebar h3:first-child { margin-top: 0; }
-        .sidebar ul { list-style: none; padding: 0; margin: 0; }
-        .sidebar li { margin-bottom: 4px; }
-        .filter-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; background: none; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; color: #555; transition: all 0.2s; }
-        .filter-btn:hover { background-color: #f5f5f5; }
-        .filter-btn.active { background-color: #e6f0fa; color: #4a90e2; font-weight: bold; }
-        .filter-btn.active .count { background-color: #bad6f5; color: #335e8a; }
-        .filter-btn.new-btn { color: #d35400; } /* What's NEW用の強調色 */
-        .filter-btn.new-btn.active { background-color: #fde8cd; color: #d35400; }
-        .filter-btn.new-btn.active .count { background-color: #fbd5aa; color: #8a3800; }
-        .count { font-size: 0.75rem; background: #eee; padding: 2px 8px; border-radius: 12px; color: #777; }
-        .content-area { flex: 1; padding: 30px; overflow-y: auto; background-color: #f4f7f6; }
-        .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
-        .app-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #eaeaea; display: flex; flex-direction: column; height: 100%; }
-        .app-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-        .card-img-area { height: 150px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; border-bottom: 1px solid #f0f0f0; position: relative; }
-        .card-img-area img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; z-index: 2; }
-        .app-card:hover .card-img-area img { transform: scale(1.05); }
-        .default-icon { font-size: 4rem; color: #d1d5db; display: none; z-index: 1; }
-        .card-body { padding: 18px; flex-grow: 1; display: flex; flex-direction: column; }
-        .card-meta { font-size: 0.75rem; margin-bottom: 10px; display: flex; gap: 4px; flex-wrap: wrap; }
-        .tag { background-color: #f0f2f5; color: #555; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem; border: 1px solid #e0e0e0; }
-        .tag.subject { background-color: #e1effe; color: #1e429f; border-color: #c3ddfd; }
-        .card-title { margin: 0 0 8px; font-size: 1.15rem; line-height: 1.4; color: #333; font-weight: bold; }
-        .card-desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; line-height: 1.6; flex-grow: 1; }
-        .card-actions { display: flex; gap: 8px; margin-top: auto; }
-        .card-link { flex: 1; display: block; text-align: center; background-color: #4a90e2; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-size: 0.95rem; font-weight: bold; transition: background 0.2s; }
-        .card-link:hover { background-color: #357abd; }
-        .qr-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            padding: 0 12px;
-            background-color: #fff;
-            color: #4a90e2;
-            border: 1.5px solid #4a90e2;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .qr-btn:hover { background-color: #e6f0fa; }
-        .qr-btn svg { width: 16px; height: 16px; fill: currentColor; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>音速ラボ 〜音の速さと伝わり方の探究〜</title>
 
-        /* QRモーダル (iPad横向きや大画面でどーんと表示) */
-        .qr-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.65);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .qr-modal.active { display: flex; }
-        .qr-modal-content {
-            background: white;
-            border-radius: 16px;
-            padding: 24px 28px;
-            max-width: min(92vw, 560px);
-            width: 100%;
-            max-height: 96vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.3);
-            position: relative;
-            box-sizing: border-box;
-            animation: modalFadeIn 0.2s ease-out;
-            overflow-y: auto;
-        }
-        @keyframes modalFadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .modal-close-btn {
-            position: absolute;
-            top: 12px;
-            right: 14px;
-            background: none;
-            border: none;
-            font-size: 2rem;
-            color: #888;
-            cursor: pointer;
-            line-height: 1;
-            padding: 4px 10px;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-        .modal-close-btn:hover { color: #111; background-color: #f0f0f0; }
-        .modal-title {
-            margin: 0 0 12px;
-            font-size: 1.45rem;
-            font-weight: bold;
-            color: #222;
-            padding: 0 30px;
-            word-break: break-all;
-            line-height: 1.3;
-        }
-        .modal-qrcode-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-            background: #fff;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            margin: 0 auto 14px;
-            /* iPad横向き画面の中央にどーんと大きく広がるサイズ */
-            width: min(78vw, 56vh, 440px);
-            height: min(78vw, 56vh, 440px);
-            box-sizing: border-box;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-        }
-        .modal-qrcode-container img, .modal-qrcode-container canvas {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: contain;
-            display: block;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-            image-rendering: pixelated;
-        }
-        .modal-url {
-            font-size: 0.85rem;
-            color: #555;
-            word-break: break-all;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 8px 12px;
-            border-radius: 6px;
-            margin: 0 0 14px;
-            max-height: 48px;
-            overflow-y: auto;
-            text-align: left;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-            width: 100%;
-        }
-        .modal-btn {
-            flex: 1;
-            padding: 11px 14px;
-            font-size: 0.95rem;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            border: 1px solid #cbd5e1;
-            background: #fff;
-            color: #334155;
-            transition: all 0.2s;
-        }
-        .modal-btn:hover { background: #f1f5f9; }
-        .modal-btn.primary {
-            background: #4a90e2;
-            color: #fff;
-            border-color: #4a90e2;
-        }
-        .modal-btn.primary:hover { background: #357abd; }
+  <!-- 読み込み前のフラッシュ防止と縦向き警告の基本スタイル -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: #f0f6ff;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+    #app-loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0f6ff;
+      color: #1e3a8a;
+      font-weight: 700;
+      font-size: 1.1rem;
+      z-index: 9000;
+    }
+    body.assets-ready #app-loading {
+      display: none;
+    }
+  </style>
 
-        /* 横向き（iPad横向きなど）で縦幅が狭い場合でも1画面にすっきり収める調整 */
-        @media (orientation: landscape) and (max-height: 700px) {
-            .qr-modal-content { padding: 14px 20px; }
-            .modal-title { font-size: 1.25rem; margin-bottom: 8px; }
-            .modal-qrcode-container { margin-bottom: 8px; width: min(78vw, 54vh, 380px); height: min(78vw, 54vh, 380px); padding: 10px; }
-            .modal-url { margin-bottom: 8px; padding: 5px 10px; font-size: 0.75rem; }
-            .modal-btn { padding: 8px 10px; font-size: 0.85rem; }
+  <!-- キャッシュ無効化・キャッシュクリア & 最新アセット動的読み込み -->
+  <script>
+    (function () {
+      try {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (reg) { reg.unregister(); });
+          }).catch(function () {});
         }
+        if ('caches' in window) {
+          caches.keys().then(function (keys) {
+            keys.forEach(function (key) { caches.delete(key); });
+          }).catch(function () {});
+        }
+        try { sessionStorage.clear(); } catch (e) {}
+      } catch (e) {}
 
-        #error-msg { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; padding: 20px; margin: 20px; border: 1px solid transparent; border-radius: .25rem; display: none; }
-        @media (max-width: 768px) { .main-container { flex-direction: column; } .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #ddd; padding: 10px; } .sidebar h3 { margin-top: 10px; display: inline-block; margin-right: 10px; border: none; } .sidebar ul { display: inline; } .filter-btn { display: inline-flex; width: auto; padding: 5px 10px; } .content-area { padding: 15px; } }
-    </style>
+      window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+          window.location.reload();
+        }
+      });
+
+      var cacheBust = Date.now();
+      window.__ONSOKU_CACHE_BUST__ = cacheBust;
+
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'css/style.css?v=' + cacheBust;
+      link.onload = function () {
+        document.body && document.body.classList.add('assets-ready');
+      };
+      link.onerror = function () {
+        document.body && document.body.classList.add('assets-ready');
+      };
+      document.head.appendChild(link);
+
+      var scripts = [
+        'js/audio.js',
+        'js/hunter.js',
+        'js/race.js',
+        'js/app.js'
+      ];
+      scripts.forEach(function (src) {
+        var s = document.createElement('script');
+        s.src = src + '?v=' + cacheBust;
+        s.async = false;
+        s.defer = true;
+        document.head.appendChild(s);
+      });
+    })();
+  </script>
 </head>
 <body>
+  <div id="app-loading">音速ラボを読み込んでいます...</div>
 
-<header>
-    <h1>シン・学習アプリ＋１０</h1>
-</header>
-
-<div id="error-msg"></div>
-
-<div class="main-container">
-    <aside class="sidebar" id="sidebar"></aside>
-    <main class="content-area">
-        <div class="app-grid" id="appGrid">Loading...</div>
-    </main>
-</div>
-
-<!-- QRコード表示モーダル -->
-<div id="qr-modal" class="qr-modal" onclick="closeQrModal(event)">
-    <div class="qr-modal-content" onclick="event.stopPropagation()">
-        <button class="modal-close-btn" onclick="closeQrModal()">&times;</button>
-        <h3 id="modal-title" class="modal-title"></h3>
-        <div id="modal-qrcode" class="modal-qrcode-container"></div>
-        <p class="modal-url" id="modal-url"></p>
-        <div class="modal-buttons">
-            <button class="modal-btn" id="copy-btn" onclick="copyUrl()">URLをコピー</button>
-            <button class="modal-btn primary" onclick="downloadQr()">QR画像を保存</button>
-        </div>
+  <!-- 縦向き時グレーアウト警告オーバーレイ -->
+  <div id="orientation-overlay" class="orientation-overlay" aria-live="polite" hidden>
+    <div class="orientation-card">
+      <div class="rotate-icon" aria-hidden="true">
+        <svg viewBox="0 0 120 120" width="96" height="96">
+          <rect x="34" y="16" width="52" height="78" rx="8" fill="none" stroke="#94a3b8" stroke-width="3" stroke-dasharray="5 4"/>
+          <rect x="20" y="34" width="78" height="52" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="4"/>
+          <circle cx="89" cy="60" r="3" fill="#38bdf8"/>
+          <path d="M88 22 C102 28, 108 42, 106 54" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+          <polygon points="106,58 99,49 112,50" fill="#fbbf24"/>
+        </svg>
+      </div>
+      <h2>タブレットを「横向き」にしてください</h2>
+      <p>このアプリは iPad の横画面専用です。<br>タブレットを横に回転させて使ってください。</p>
     </div>
-</div>
+  </div>
 
-<script>
-    let appData = [];
-    let finalSubjectList = [];
+  <!-- メインアプリコンテナ -->
+  <div id="app-root" class="app-root">
 
-    const IMG_DIR = "./img/"; 
-    const DEFAULT_EXT = ".png"; // 基本はpngとして扱う（失敗したらjpgを試す）
+    <!-- ==================== トップメニュー画面 ==================== -->
+    <section id="view-home" class="view view-home active" aria-label="トップメニュー">
+      <header class="home-header">
+        <div class="brand-badge">中学1年 理科「音による現象」探究アプリ</div>
+        <h1 class="home-title">
+          <span class="title-wave-icon" aria-hidden="true">
+            <svg viewBox="0 0 36 36" width="34" height="34">
+              <circle cx="18" cy="18" r="16" fill="#2563eb"/>
+              <path d="M7 18 Q11 10 15 18 T23 18 T30 18" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </span>
+          音速ラボ
+          <span class="home-subtitle">〜音の速さと伝わり方の探究〜</span>
+        </h1>
+      </header>
 
-    const STANDARD_SUBJECTS = [
-        "算数",
-        "数学",
-        "国語",
-        "理科",
-        "社会",
-        "英語",
-        "音楽",
-        "体育",
-        "道徳"
-    ];
+      <main class="home-cards">
+        <!-- カード1: 音速ハンター -->
+        <button type="button" id="btn-go-hunter" class="mode-card mode-card-hunter">
+          <div class="mode-card-top">
+            <span class="mode-tag tag-real">【実測】実験ツール</span>
+            <span class="mode-tag-sub">校庭・体育館などで測ろう</span>
+          </div>
+          <div class="mode-visual" aria-hidden="true">
+            <svg viewBox="0 0 180 90" width="180" height="90">
+              <!-- 旗 -->
+              <line x1="36" y1="74" x2="36" y2="18" stroke="#1e293b" stroke-width="4" stroke-linecap="round"/>
+              <polygon points="38,18 76,28 38,40" fill="#ef4444"/>
+              <!-- 音波 -->
+              <path d="M84 36 Q92 45 84 54" fill="none" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+              <path d="M95 28 Q107 45 95 62" fill="none" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+              <!-- ストップウォッチ -->
+              <circle cx="138" cy="48" r="24" fill="#ffffff" stroke="#0f172a" stroke-width="3.5"/>
+              <rect x="132" y="18" width="12" height="6" rx="2" fill="#0f172a"/>
+              <line x1="138" y1="48" x2="138" y2="33" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+              <line x1="138" y1="48" x2="150" y2="54" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="138" cy="48" r="3" fill="#0f172a"/>
+            </svg>
+          </div>
+          <h2 class="mode-title">音速ハンター</h2>
+          <p class="mode-desc">光が見えてから音が届くまでの時間を測って、実際の音の速さ（m/s）を計算しよう！</p>
+          <div class="mode-features">
+            <span>⏱ 0.001秒単位の計測</span>
+            <span>🎤 マイク自動ストップ</span>
+            <span>📊 平均値・理論値と比較</span>
+          </div>
+          <div class="mode-cta">はじめる ▶</div>
+        </button>
 
-    // 学年の定義（ここに tokushi があるか確認してください）
-    const GRADE_MAP = {
-        'grades1': '小1', 'grades2': '小2', 'grades3': '小3',
-        'grades4': '小4', 'grades5': '小5', 'grades6': '小6',
-        'gradejh1': '中1', 'gradejh2': '中2', 'gradejh3': '中3',
-        'tokushi': '特別支援' // ← これがサイドバー表示用
-    };
+        <!-- カード2: 音速レース -->
+        <button type="button" id="btn-go-race" class="mode-card mode-card-race">
+          <div class="mode-card-top">
+            <span class="mode-tag tag-sim">【実験】シミュレーター</span>
+            <span class="mode-tag-sub">条件を1つ変えて比べよう</span>
+          </div>
+          <div class="mode-visual" aria-hidden="true">
+            <svg viewBox="0 0 180 90" width="180" height="90">
+              <!-- レーン1 -->
+              <rect x="12" y="14" width="156" height="26" rx="8" fill="#dbeafe" stroke="#60a5fa" stroke-width="2"/>
+              <circle cx="34" cy="27" r="5" fill="#2563eb"/>
+              <circle cx="56" cy="27" r="5" fill="#2563eb" opacity="0.7"/>
+              <circle cx="78" cy="27" r="5" fill="#2563eb" opacity="0.4"/>
+              <path d="M90 19 L104 27 L90 35 Z" fill="#2563eb"/>
+              <!-- レーン2 -->
+              <rect x="12" y="50" width="156" height="26" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+              <circle cx="34" cy="63" r="4" fill="#d97706"/>
+              <circle cx="48" cy="63" r="4" fill="#d97706"/>
+              <circle cx="62" cy="63" r="4" fill="#d97706"/>
+              <circle cx="76" cy="63" r="4" fill="#d97706"/>
+              <circle cx="90" cy="63" r="4" fill="#d97706"/>
+              <circle cx="104" cy="63" r="4" fill="#d97706"/>
+              <circle cx="118" cy="63" r="4" fill="#d97706"/>
+              <path d="M134 55 L148 63 L134 71 Z" fill="#d97706"/>
+            </svg>
+          </div>
+          <h2 class="mode-title">音速レース</h2>
+          <p class="mode-desc">空気・水・鉄・宇宙や、気温を変えると音の伝わり方はどう変わるか比べよう！</p>
+          <div class="mode-features">
+            <span>🔬 物質の粒の動きを観察</span>
+            <span>🌡 気温と速さの関係</span>
+            <span>🐢 スローモーション再生</span>
+          </div>
+          <div class="mode-cta">はじめる ▶</div>
+        </button>
+      </main>
 
-    // 並び順の重み付け
-    const GRADE_ORDER = {
-        '小1': 1, '小2': 2, '小3': 3, '小4': 4, '小5': 5, '小6': 6,
-        '中1': 7, '中2': 8, '中3': 9,
-        '特別支援': 10
-    };
+      <footer class="home-footer">
+        <div class="formula-pill">💡 音の速さ (m/s) ＝ 進んだ距離 (m) ÷ かかった時間 (秒)</div>
+        <div class="version-pill" id="app-version-label">Ver 1.0.0</div>
+      </footer>
+    </section>
 
-    async function loadExcelData() {
-        try {
-            const response = await fetch('./list.xlsx?' + new Date().getTime());
-            if (!response.ok) throw new Error(`list.xlsx が見つかりません`);
+    <!-- ==================== モード1：音速ハンター ==================== -->
+    <section id="view-hunter" class="view view-hunter" aria-label="音速ハンター" hidden>
+      <header class="app-header">
+        <button type="button" class="btn-back" data-nav="home">← メニューへ戻る</button>
+        <h1 class="app-header-title">🚩 音速ハンター <span class="header-sub">〜実際の音の速さを測ろう〜</span></h1>
+        <div class="header-right-info">
+          <span class="header-badge">速さ ＝ 距離 ÷ 時間</span>
+        </div>
+      </header>
 
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer);
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(sheet);
-            
-            appData = jsonData.map((row, index) => {
-                let rawPath = row.path ? String(row.path).trim() : "";
-                let folderName = "";
-                let finalPath = "#";
+      <div class="hunter-layout">
+        <!-- 左パネル：距離設定 & 計測操作 -->
+        <div class="hunter-left">
+          <!-- 距離設定カード -->
+          <div class="panel-card distance-card">
+            <div class="card-row-header">
+              <span class="card-label">📏 音を出す場所までの距離</span>
+              <div class="preset-group">
+                <button type="button" class="btn-preset" data-distance="50">50m</button>
+                <button type="button" class="btn-preset active" data-distance="100">100m</button>
+                <button type="button" class="btn-preset" data-distance="150">150m</button>
+                <button type="button" class="btn-preset" data-distance="200">200m</button>
+              </div>
+            </div>
+            <div class="distance-control-row">
+              <input type="range" id="hunter-distance-slider" class="range-slider" min="10" max="500" step="1" value="100" aria-label="距離スライダー" />
+              <div class="number-stepper">
+                <button type="button" id="btn-dist-minus" class="btn-step" aria-label="1m減らす">−</button>
+                <input type="number" id="hunter-distance-input" class="num-input" min="10" max="500" step="1" value="100" aria-label="距離数値入力" />
+                <span class="unit-label">m</span>
+                <button type="button" id="btn-dist-plus" class="btn-step" aria-label="1m増やす">＋</button>
+              </div>
+            </div>
+          </div>
 
-                if (rawPath) {
-                    if (/^https?:\/\//i.test(rawPath)) {
-                        finalPath = rawPath;
-                        try {
-                            const urlObj = new URL(rawPath);
-                            const segments = urlObj.pathname.split('/').filter(Boolean);
-                            if (segments.length > 0) {
-                                let last = segments[segments.length - 1];
-                                if (last.toLowerCase() === 'index.html' || last.toLowerCase() === 'index.htm') {
-                                    folderName = segments.length > 1 ? segments[segments.length - 2] : '';
-                                } else {
-                                    folderName = last.replace(/\.[^/.]+$/, '');
-                                }
-                            }
-                        } catch (e) {
-                            const parts = rawPath.split('/').filter(Boolean);
-                            folderName = parts[parts.length - 1] || "";
-                        }
-                    } else if (rawPath.startsWith('./') && rawPath.endsWith('.html')) {
-                        finalPath = rawPath;
-                        const parts = rawPath.split('/');
-                        folderName = parts[parts.length - 1].replace('.html', '');
-                    } else {
-                        finalPath = `./${rawPath}/index.html`;
-                        folderName = rawPath;
-                    }
-                }
+          <!-- 計測モード切替 & マイク設定 -->
+          <div class="panel-card mode-switch-card">
+            <div class="segment-control" role="tablist" aria-label="ストップ方法の切り替え">
+              <button type="button" id="btn-mode-manual" class="segment-btn active" role="tab" aria-selected="true">
+                👆 手動ストップ
+              </button>
+              <button type="button" id="btn-mode-mic" class="segment-btn" role="tab" aria-selected="false">
+                🎤 マイク自動ストップ
+              </button>
+            </div>
 
-                let finalImage = "";
-                if (row.image) {
-                    // Excelで指定があればそれを使う
-                    finalImage = (row.image.startsWith('./') || /^https?:\/\//i.test(row.image)) 
-                        ? row.image 
-                        : IMG_DIR + row.image;
-                } else {
-                    // 指定がなければ一旦 .png とする（ロード失敗時に onerror で .jpg を試す）
-                    finalImage = IMG_DIR + folderName + DEFAULT_EXT;
-                }
+            <div id="mic-panel" class="mic-panel" hidden>
+              <div class="mic-meter-row">
+                <span class="mic-label">今の音の大きさ</span>
+                <div class="mic-meter-track">
+                  <div id="mic-meter-fill" class="mic-meter-fill"></div>
+                  <div id="mic-threshold-marker" class="mic-threshold-marker" style="left: 55%;"></div>
+                </div>
+                <span id="mic-status-text" class="mic-status-badge">準備中</span>
+              </div>
+              <div class="mic-sensitivity-row">
+                <label for="mic-threshold-slider">反応する音の大きさ（感度）:</label>
+                <input type="range" id="mic-threshold-slider" class="range-slider small-slider" min="10" max="95" step="1" value="55" />
+                <span id="mic-threshold-value" class="value-chip">55</span>
+              </div>
+              <div id="mic-error-msg" class="mic-error-msg" hidden></div>
+            </div>
+          </div>
 
-                const myGrades = [];
-                for (const [colKey, label] of Object.entries(GRADE_MAP)) {
-                    if (row[colKey]) myGrades.push(label);
-                }
+          <!-- 超大型計測ボタン & リアルタイムタイマー -->
+          <div class="panel-card measure-action-card">
+            <div class="timer-display-row">
+              <span class="timer-label" id="hunter-timer-status">じゅんび完了</span>
+              <div class="timer-value" id="hunter-timer-display">0.000 <span class="timer-unit">秒</span></div>
+              <button type="button" id="btn-hunter-cancel" class="btn-cancel-measure" hidden>✕ やり直す</button>
+            </div>
+            <button type="button" id="btn-hunter-main" class="btn-hunter-mega state-ready">
+              <span class="mega-icon">🚩</span>
+              <span class="mega-text">光が見えた！（スタート）</span>
+            </button>
+          </div>
+        </div>
 
-                return {
-                    id: index,
-                    title: row.title || "No Title",
-                    path: finalPath,
-                    image: finalImage,
-                    desc: row.desc || "",
-                    gradeList: myGrades, 
-                    subject: row.subject ? row.subject.trim() : "その他" 
-                };
-            });
+        <!-- 右パネル：結果・理論値比較・履歴 -->
+        <div class="hunter-right">
+          <!-- 今回の結果 -->
+          <div class="panel-card result-card">
+            <div class="card-row-header">
+              <span class="card-label">🎯 今回の計測結果</span>
+              <span id="hunter-result-formula" class="formula-mini">距離 ÷ 時間 ＝ 速さ</span>
+            </div>
+            <div class="result-metrics">
+              <div class="metric-box">
+                <span class="metric-label">かかった時間</span>
+                <strong class="metric-val" id="res-time">--.--- 秒</strong>
+              </div>
+              <div class="metric-arrow">➡</div>
+              <div class="metric-box highlight">
+                <span class="metric-label">計算された音の速さ</span>
+                <strong class="metric-val accent" id="res-speed">---.- m/s</strong>
+              </div>
+            </div>
+          </div>
 
-            const allSubjectsInData = [...new Set(appData.map(d => d.subject))];
-            
-            const extraSubjects = allSubjectsInData.filter(s => 
-                !STANDARD_SUBJECTS.includes(s) && s !== "その他"
-            ).sort(); 
+          <!-- 参考データ（折りたたみ可能） -->
+          <div class="panel-card reference-card">
+            <button type="button" id="btn-toggle-ref" class="ref-toggle-btn" aria-expanded="false">
+              <span>🌡 参考データ：気温から計算した理論値と比べる</span>
+              <span id="ref-toggle-arrow">▼ ひらく</span>
+            </button>
+            <div id="ref-body" class="ref-body" hidden>
+              <div class="ref-temp-row">
+                <label for="hunter-temp-input">今の気温:</label>
+                <input type="range" id="hunter-temp-slider" class="range-slider small-slider" min="-10" max="40" step="1" value="15" />
+                <input type="number" id="hunter-temp-input" class="num-input small-num" min="-10" max="40" step="1" value="15" />
+                <span>℃</span>
+              </div>
+              <div class="ref-compare-row">
+                <div>計算上の速さ（理論値）：<strong id="ref-theoretical-speed">340.5 m/s</strong></div>
+                <div>今回の結果とのちがい：<strong id="ref-diff-text">--</strong></div>
+              </div>
+              <p class="ref-hint">※人が見てからボタンを押すまで約0.15〜0.25秒かかるため、短い距離だと計算結果が遅く出やすくなります。</p>
+            </div>
+          </div>
 
-            finalSubjectList = [...STANDARD_SUBJECTS, ...extraSubjects, "その他"];
+          <!-- 計測履歴 & 平均 -->
+          <div class="panel-card history-card">
+            <div class="card-row-header">
+              <span class="card-label">📝 計測のきろく（直近5回）</span>
+              <button type="button" id="btn-clear-history" class="btn-clear-small">すべて消す</button>
+            </div>
+            <div class="history-table-wrap">
+              <table class="history-table">
+                <thead>
+                  <tr>
+                    <th>回</th>
+                    <th>距離</th>
+                    <th>時間</th>
+                    <th>音の速さ</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="hunter-history-body">
+                  <tr class="empty-row"><td colspan="5">まだ記録がありません</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="history-average-bar">
+              <span>記録の平均（<span id="avg-count">0</span>回）：</span>
+              <strong id="avg-speed-value">---.- m/s</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-            renderSidebar();
-            filterBy('all', null, document.querySelector('.filter-btn')); 
+    <!-- ==================== モード2：音速レース ==================== -->
+    <section id="view-race" class="view view-race" aria-label="音速レース" hidden>
+      <header class="app-header">
+        <button type="button" class="btn-back" data-nav="home">← メニューへ戻る</button>
+        <h1 class="app-header-title">🏁 音速レース <span class="header-sub">〜物質と気温で音の伝わり方を比べよう〜</span></h1>
+        <div class="header-right-info">
+          <button type="button" id="btn-sound-mute" class="btn-sound-toggle" aria-pressed="false">🔊 音 ON</button>
+        </div>
+      </header>
 
-        } catch (error) {
-            console.error(error);
-            const errorDiv = document.getElementById('error-msg');
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML = `<strong>エラー</strong><br>${error.message}`;
-        }
-    }
+      <!-- 共通コース設定バー -->
+      <div class="race-toolbar">
+        <div class="toolbar-group">
+          <span class="toolbar-label">コース距離:</span>
+          <div class="btn-group" id="race-distance-group">
+            <button type="button" class="btn-option active" data-race-dist="100">100m</button>
+            <button type="button" class="btn-option" data-race-dist="500">500m</button>
+            <button type="button" class="btn-option" data-race-dist="1000">1000m</button>
+            <button type="button" class="btn-option" data-race-dist="3000">3000m</button>
+          </div>
+        </div>
 
-    function renderGrid(data) {
-        const grid = document.getElementById('appGrid');
-        grid.innerHTML = ''; 
-        if(data.length === 0) { grid.innerHTML = '<p style="color:#666;">該当する教材はありません。</p>'; return; }
+        <div class="toolbar-group">
+          <span class="toolbar-label">再生スピード:</span>
+          <div class="btn-group" id="race-speed-group">
+            <button type="button" class="btn-option" data-race-scale="1">等倍（リアル）</button>
+            <button type="button" class="btn-option active" data-race-scale="0.1">1/10倍 スロー</button>
+            <button type="button" class="btn-option" data-race-scale="0.02">1/50倍 スロー</button>
+          </div>
+        </div>
 
-        data.forEach(item => {
-            // ★ここが画像切り替えのミソです
-            const imgTag = `<img src="${item.image}" alt="${item.title}" 
-                            onerror="if(this.src.endsWith('.png')){ this.src = this.src.replace('.png', '.jpg'); } else { this.style.display='none'; this.nextElementSibling.style.display='block'; }">`;
-            
-            const defaultIcon = `<div class="default-icon">📱</div>`;
-            const gradeTags = item.gradeList.map(g => `<span class="tag">${g}</span>`).join('');
-            const subjectTag = `<span class="tag subject">${item.subject}</span>`;
+        <div class="toolbar-actions">
+          <div class="race-clock">経過（リアル時間）: <strong id="race-elapsed-display">0.000 秒</strong></div>
+          <button type="button" id="btn-race-start" class="btn-race-start">▶ 一斉スタート！</button>
+          <button type="button" id="btn-race-reset" class="btn-race-reset">↺ リセット</button>
+        </div>
+      </div>
 
-            grid.innerHTML += `
-                <div class="app-card">
-                    <div class="card-img-area">${imgTag}${defaultIcon}</div>
-                    <div class="card-body">
-                        <div class="card-meta">${subjectTag}${gradeTags}</div>
-                        <h2 class="card-title">${item.title}</h2>
-                        <p class="card-desc">${item.desc}</p>
-                        <div class="card-actions">
-                            <a href="${item.path}" class="card-link">アプリを開く</a>
-                            <button type="button" class="qr-btn" onclick="openQrModal(${item.id})" title="QRコードを表示">
-                                <svg viewBox="0 0 24 24">
-                                    <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v3h-3v-3zm-5 0h3v3h-3v-3zm2 5h3v3h-3v-3zm3 0h3v3h-3v-3zm-5-2h2v2h-2v-2zm7 0h2v2h-2v-2z"/>
-                                </svg>
-                                QR
-                            </button>
-                        </div>
-                    </div>
-                </div>`;
-        });
-    }
+      <!-- 比較レーン（上下2段） -->
+      <div class="race-lanes">
+        <!-- レーン1 -->
+        <div class="lane-card" id="lane-card-1">
+          <div class="lane-controls">
+            <div class="lane-badge lane-badge-1">レーン 1</div>
+            <div class="lane-select-wrap">
+              <label for="lane1-medium">物質（媒質）:</label>
+              <select id="lane1-medium" class="medium-select">
+                <option value="vacuum">宇宙（真空）</option>
+                <option value="air" selected>空気（気体）</option>
+                <option value="water">水（液体）</option>
+                <option value="iron">鉄（固体）</option>
+              </select>
+            </div>
+            <div class="lane-temp-wrap" id="lane1-temp-wrap">
+              <label for="lane1-temp">気温:</label>
+              <input type="range" id="lane1-temp" class="range-slider lane-slider" min="-10" max="40" step="1" value="15" />
+              <span id="lane1-temp-val" class="temp-readout">15 ℃</span>
+            </div>
+            <div class="lane-speed-badge" id="lane1-speed-badge">音速: 340.5 m/s</div>
+            <div class="lane-finish-badge" id="lane1-finish-badge">待機中</div>
+          </div>
+          <div class="lane-canvas-wrap">
+            <canvas id="lane1-canvas" class="lane-canvas"></canvas>
+          </div>
+        </div>
 
-    function renderSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const gradeCounts = {};
-        for (const label of Object.values(GRADE_MAP)) { gradeCounts[label] = 0; }
-        const subjectCounts = {};
+        <!-- レーン2 -->
+        <div class="lane-card" id="lane-card-2">
+          <div class="lane-controls">
+            <div class="lane-badge lane-badge-2">レーン 2</div>
+            <div class="lane-select-wrap">
+              <label for="lane2-medium">物質（媒質）:</label>
+              <select id="lane2-medium" class="medium-select">
+                <option value="vacuum">宇宙（真空）</option>
+                <option value="air">空気（気体）</option>
+                <option value="water" selected>水（液体）</option>
+                <option value="iron">鉄（固体）</option>
+              </select>
+            </div>
+            <div class="lane-temp-wrap" id="lane2-temp-wrap">
+              <label for="lane2-temp">気温:</label>
+              <input type="range" id="lane2-temp" class="range-slider lane-slider" min="-10" max="40" step="1" value="15" />
+              <span id="lane2-temp-val" class="temp-readout">15 ℃</span>
+            </div>
+            <div class="lane-speed-badge" id="lane2-speed-badge">音速: 1467.5 m/s</div>
+            <div class="lane-finish-badge" id="lane2-finish-badge">待機中</div>
+          </div>
+          <div class="lane-canvas-wrap">
+            <canvas id="lane2-canvas" class="lane-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        appData.forEach(item => {
-            item.gradeList.forEach(g => { if (gradeCounts[g] !== undefined) gradeCounts[g]++; });
-            subjectCounts[item.subject] = (subjectCounts[item.subject] || 0) + 1;
-        });
-
-        // 「すべて表示」と「What's NEW」ボタンを作成
-        let html = `<ul>
-            <li><button class="filter-btn active" onclick="filterBy('all', null, this)">すべて表示 <span class="count">${appData.length}</span></button></li>
-            <li><button class="filter-btn new-btn" onclick="filterBy('new', null, this)">✨ What's NEW <span class="count">10</span></button></li>
-        </ul>`;
-        
-        html += `<h3>学年</h3><ul>`;
-        // 定義順（小1...特別支援）に表示
-        Object.values(GRADE_MAP).forEach(label => {
-            html += `<li><button class="filter-btn" onclick="filterBy('grade', '${label}', this)">${label} <span class="count">${gradeCounts[label]}</span></button></li>`;
-        });
-        html += `</ul>`;
-
-        html += `<h3>教科</h3><ul>`;
-        finalSubjectList.forEach(s => {
-            if (subjectCounts[s]) {
-                html += `<li><button class="filter-btn" onclick="filterBy('subject', '${s}', this)">${s} <span class="count">${subjectCounts[s]}</span></button></li>`;
-            }
-        });
-        html += `</ul>`;
-
-        sidebar.innerHTML = html;
-    }
-
-    function getMinGradeValue(app) {
-        if (!app.gradeList || app.gradeList.length === 0) return 99;
-        const values = app.gradeList.map(g => GRADE_ORDER[g] || 99);
-        return Math.min(...values);
-    }
-
-    function getSubjectWeight(subject) {
-        const index = finalSubjectList.indexOf(subject);
-        return index === -1 ? 999 : index;
-    }
-
-    window.filterBy = function(type, value, btnElement) {
-        if (btnElement) {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btnElement.classList.add('active');
-        }
-
-        let filtered = [];
-        if (type === 'all') {
-            filtered = [...appData]; 
-        } else if (type === 'new') {
-            // 末尾10件を取得し、逆順にする（最新を先頭へ）
-            filtered = [...appData].slice(-10).reverse();
-        } else if (type === 'grade') {
-            filtered = appData.filter(item => item.gradeList.includes(value));
-        } else { 
-            filtered = appData.filter(item => item[type] === value);
-        }
-
-        // ソート処理
-        // What's NEWの場合はソートせず、新着順（逆順）のまま表示
-        if (type === 'new') {
-            // Do nothing (keep reverse order)
-        } else if (type === 'subject' || type === 'all') {
-            filtered.sort((a, b) => {
-                const gradeDiff = getMinGradeValue(a) - getMinGradeValue(b);
-                if (gradeDiff !== 0) return gradeDiff;
-                return getSubjectWeight(a.subject) - getSubjectWeight(b.subject);
-            });
-        } else if (type === 'grade') {
-            filtered.sort((a, b) => {
-                return getSubjectWeight(a.subject) - getSubjectWeight(b.subject);
-            });
-        }
-
-        renderGrid(filtered);
-    };
-
-    // --- QRコードモーダル制御 ---
-    let currentQrUrl = "";
-    let currentQrTitle = "";
-
-    function openQrModal(id) {
-        const item = appData.find(d => d.id === id);
-        if (!item) return;
-
-        // 相対パスの場合は完全な絶対URLに解決する
-        const fullUrl = new URL(item.path, window.location.href).href;
-        currentQrUrl = fullUrl;
-        currentQrTitle = item.title;
-
-        document.getElementById('modal-title').textContent = item.title;
-        document.getElementById('modal-url').textContent = fullUrl;
-
-        const qrContainer = document.getElementById('modal-qrcode');
-        qrContainer.innerHTML = '';
-
-        if (typeof QRCode !== 'undefined') {
-            // 拡大時や印刷時にもシャープになるよう高解像度(512x512)で生成
-            new QRCode(qrContainer, {
-                text: fullUrl,
-                width: 512,
-                height: 512,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M
-            });
-        } else {
-            qrContainer.innerHTML = '<p style="color:#d9534f;font-size:0.85rem;">QRコードライブラリの読み込みに失敗しました</p>';
-        }
-
-        document.getElementById('qr-modal').classList.add('active');
-    }
-
-    function closeQrModal(e) {
-        if (e && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) return;
-        document.getElementById('qr-modal').classList.remove('active');
-    }
-
-    function copyUrl() {
-        if (!currentQrUrl) return;
-        const btn = document.getElementById('copy-btn');
-        const origText = btn.textContent;
-
-        const updateBtn = () => {
-            btn.textContent = 'コピー完了！';
-            setTimeout(() => { btn.textContent = origText; }, 1500);
-        };
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(currentQrUrl).then(updateBtn).catch(() => fallbackCopy(currentQrUrl, updateBtn));
-        } else {
-            fallbackCopy(currentQrUrl, updateBtn);
-        }
-    }
-
-    function fallbackCopy(text, callback) {
-        const tempInput = document.createElement('textarea');
-        tempInput.value = text;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-        if (callback) callback();
-    }
-
-    function downloadQr() {
-        const qrContainer = document.getElementById('modal-qrcode');
-        const img = qrContainer.querySelector('img');
-        const canvas = qrContainer.querySelector('canvas');
-        let dataUrl = "";
-
-        if (img && img.src && img.src.startsWith('data:image/')) {
-            dataUrl = img.src;
-        } else if (canvas) {
-            dataUrl = canvas.toDataURL('image/png');
-        }
-
-        if (dataUrl) {
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = `QR_${currentQrTitle || 'app'}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } else {
-            alert('QRコード画像の保存に失敗しました。');
-        }
-    }
-
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const modal = document.getElementById('qr-modal');
-            if (modal && modal.classList.contains('active')) {
-                modal.classList.remove('active');
-            }
-        }
-    });
-
-    loadExcelData();
-</script>
-
+  </div>
 </body>
 </html>
