@@ -42,8 +42,9 @@
      * メイン描画
      * @param {Object} track - { waveData, ampScale, freqScale }
      * @param {Object|null} overlayTrack - 重ねて表示する上の音のデータ（任意）
+     * @param {number|null} playProgress - 再生中の進捗 (0.0〜1.0)。停止時は null
      */
-    render(track, overlayTrack) {
+    render(track, overlayTrack, playProgress = null) {
       this.resize();
       const ctx = this.ctx;
       const w = this.width;
@@ -70,6 +71,11 @@
           lineWidth: 2.8,
           dashed: null
         });
+
+        // 4. 再生中のプレイヘッド（●が波の上を流れる）
+        if (typeof playProgress === 'number' && playProgress >= 0 && playProgress <= 1) {
+          this._drawPlayhead(ctx, w, h, track, playProgress);
+        }
       }
     }
 
@@ -130,11 +136,11 @@
       }
     }
 
-    _drawWave(ctx, w, h, track, style) {
+    _getWaveYAtX(w, h, track, x) {
       const waveData = track.waveData;
       const samples = waveData.samples;
       const len = samples.length;
-      if (!len) return;
+      if (!len) return h / 2;
 
       const padTop = 8;
       const padBottom = 8;
@@ -150,6 +156,23 @@
       const sampleRate = waveData.sampleRate || 44100;
       const freqScale = track.freqScale || 1.0;
 
+      const t = (x / w) * WINDOW_SECONDS;
+      const offsetSamples = t * freqScale * sampleRate;
+      const rawIdx = startIdx + offsetSamples;
+
+      // 安全な折り返し＋線形補間
+      const i0 = Math.floor(rawIdx) % len;
+      const i1 = (i0 + 1) % len;
+      const frac = rawIdx - Math.floor(rawIdx);
+      const val = samples[i0] * (1 - frac) + samples[i1] * frac;
+
+      return centerY - val * totalAmpPx;
+    }
+
+    _drawWave(ctx, w, h, track, style) {
+      const samples = track.waveData.samples;
+      if (!samples || !samples.length) return;
+
       ctx.save();
       ctx.strokeStyle = style.color;
       ctx.lineWidth = style.lineWidth;
@@ -162,17 +185,7 @@
       ctx.beginPath();
       const stepPx = 1.5; // 高密度かつ滑らか
       for (let x = 0; x <= w; x += stepPx) {
-        const t = (x / w) * WINDOW_SECONDS;
-        const offsetSamples = t * freqScale * sampleRate;
-        const rawIdx = startIdx + offsetSamples;
-
-        // 安全な折り返し＋線形補間
-        const i0 = Math.floor(rawIdx) % len;
-        const i1 = (i0 + 1) % len;
-        const frac = rawIdx - Math.floor(rawIdx);
-        const val = samples[i0] * (1 - frac) + samples[i1] * frac;
-
-        const y = centerY - val * totalAmpPx;
+        const y = this._getWaveYAtX(w, h, track, x);
         if (x === 0) {
           ctx.moveTo(x, y);
         } else {
@@ -181,6 +194,43 @@
       }
 
       ctx.stroke();
+      ctx.restore();
+    }
+
+    _drawPlayhead(ctx, w, h, track, progress) {
+      const px = Math.max(0, Math.min(w, progress * w));
+      const py = this._getWaveYAtX(w, h, track, px);
+      const padTop = 8;
+      const padBottom = 8;
+
+      ctx.save();
+
+      // 現在の時間位置を示す細い縦ガイド線
+      ctx.globalAlpha = 0.25;
+      ctx.strokeStyle = this.primaryColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px, padTop);
+      ctx.lineTo(px, h - padBottom);
+      ctx.stroke();
+
+      // 波の上をなぞる●の外側グロー（光輪）
+      ctx.globalAlpha = 0.24;
+      ctx.fillStyle = this.primaryColor;
+      ctx.beginPath();
+      ctx.arc(px, py, 13, 0, Math.PI * 2);
+      ctx.fill();
+
+      // ●本体（白縁取り付き）
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = this.primaryColor;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(px, py, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
       ctx.restore();
     }
   }

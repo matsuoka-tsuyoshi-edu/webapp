@@ -28,6 +28,8 @@
     }
   };
 
+  const PLAY_SCAN_DURATION_MS = 2000;
+
   class SoundWaveApp {
     constructor() {
       this.engine = new SoundAudioEngine();
@@ -35,6 +37,12 @@
       this.overlayEnabled = false;
       this.recordingTrackId = null;
       this.toastTimer = null;
+      this.playAnim = {
+        trackId: null,
+        startTime: 0,
+        rafId: null,
+        progress: null
+      };
 
       this.tracks = {
         a: this._createTrackState('a', '#track-a', '#2563eb', 'tuningFork440'),
@@ -404,6 +412,49 @@
         tr.els.playIcon.textContent = playingThis ? '■' : '▶';
         tr.els.playLabel.textContent = playingThis ? 'とめる' : '音を聞く';
       });
+
+      if (isPlaying && activeTrackId) {
+        this._startPlayAnimation(activeTrackId);
+      } else {
+        this._stopPlayAnimation();
+      }
+    }
+
+    _startPlayAnimation(trackId) {
+      this._stopPlayAnimation();
+
+      this.playAnim.trackId = trackId;
+      this.playAnim.startTime = performance.now();
+      this.playAnim.progress = 0;
+
+      const tick = (now) => {
+        if (this.playAnim.trackId !== trackId) return;
+        const tr = this.tracks[trackId];
+        const elapsed = now - this.playAnim.startTime;
+        this.playAnim.progress = tr.loop
+          ? (elapsed % PLAY_SCAN_DURATION_MS) / PLAY_SCAN_DURATION_MS
+          : Math.min(1, elapsed / PLAY_SCAN_DURATION_MS);
+
+        this.renderTrack(trackId);
+        this.playAnim.rafId = requestAnimationFrame(tick);
+      };
+
+      this.playAnim.rafId = requestAnimationFrame(tick);
+    }
+
+    _stopPlayAnimation() {
+      if (this.playAnim.rafId !== null) {
+        cancelAnimationFrame(this.playAnim.rafId);
+        this.playAnim.rafId = null;
+      }
+      const prevId = this.playAnim.trackId;
+      this.playAnim.trackId = null;
+      this.playAnim.progress = null;
+      if (prevId) {
+        this.renderTrack(prevId);
+      } else {
+        this.renderAll();
+      }
     }
 
     _updateTrackReadouts(track) {
@@ -439,7 +490,8 @@
     renderTrack(trackId) {
       const tr = this.tracks[trackId];
       const overlay = trackId === 'b' && this.overlayEnabled ? this.tracks.a : null;
-      tr.renderer.render(tr, overlay);
+      const progress = this.playAnim.trackId === trackId ? this.playAnim.progress : null;
+      tr.renderer.render(tr, overlay, progress);
     }
 
     renderAll() {
