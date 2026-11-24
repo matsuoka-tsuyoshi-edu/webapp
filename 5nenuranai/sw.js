@@ -3,7 +3,7 @@
  * Chrome PWAインストール要件（fetchハンドラ）を満たしつつ、
  * ブラウザキャッシュによる古いファイルの読み込みを防ぐため Network-Only（cache: 'no-store'）で動作します。
  */
-const SW_VERSION = '20261124-02';
+const SW_VERSION = '20261124-03';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());

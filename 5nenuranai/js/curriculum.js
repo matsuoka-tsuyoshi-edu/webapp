@@ -1,5 +1,9 @@
 /**
- * カリキュラム定義・ひらがな変換ロジック・7色データ・クリア判定
+ * 教科書（小5算数 P.258〜259）準拠カリキュラム定義
+ * ・ひらがな＆カタカナ→母音数字連結変換（「さんすうしゅうた」→「10332331」）
+ * ・フローチャート6スロット（ア〜カ）
+ * ・7色マッピング（0:赤〜6:むらさき）
+ * ・段階的ブロックプログラミング評価（ステージA/B/C）
  */
 (function (global) {
   'use strict';
@@ -8,9 +12,10 @@
     {
       mod: 0,
       name: '赤',
-      hex: '#ff4757',
+      hex: '#ff3b5c',
+      glow: 'rgba(255, 59, 92, 0.78)',
       textColor: '#ffffff',
-      emoji: '❤️',
+      emoji: '🔴',
       defaultMsg: 'パワーがみなぎる1日！むずかしい算数にも元気にチャレンジしてみよう！',
       defaultItem: '赤いえんぴつ'
     },
@@ -18,8 +23,9 @@
       mod: 1,
       name: 'オレンジ',
       hex: '#ff8c1a',
+      glow: 'rgba(255, 140, 26, 0.78)',
       textColor: '#1f0c00',
-      emoji: '🍊',
+      emoji: '🟠',
       defaultMsg: 'えがおが光るハッピーデー！友だちにやさしい声をかけるとさらに吉！',
       defaultItem: 'ハンカチ'
     },
@@ -27,8 +33,9 @@
       mod: 2,
       name: '黄',
       hex: '#ffd32a',
+      glow: 'rgba(255, 211, 42, 0.78)',
       textColor: '#261d00',
-      emoji: '⭐',
+      emoji: '🟡',
       defaultMsg: 'ひらめきがさえる予感！授業でたくさん発表できるかも！',
       defaultItem: '星がたのシール'
     },
@@ -36,8 +43,9 @@
       mod: 3,
       name: '緑',
       hex: '#2ed573',
+      glow: 'rgba(46, 213, 115, 0.78)',
       textColor: '#042411',
-      emoji: '🍀',
+      emoji: '🟢',
       defaultMsg: '心がおちついて集中できる日！じっくり考えればきっと解けるよ！',
       defaultItem: '緑のノート'
     },
@@ -45,8 +53,9 @@
       mod: 4,
       name: '青',
       hex: '#1e90ff',
+      glow: 'rgba(30, 144, 255, 0.78)',
       textColor: '#ffffff',
-      emoji: '💎',
+      emoji: '🔵',
       defaultMsg: 'さわやかな風のようないい日！忘れ物チェックをすると大成功！',
       defaultItem: '水筒（すいとう）'
     },
@@ -54,8 +63,9 @@
       mod: 5,
       name: 'あい色',
       hex: '#3b4cca',
+      glow: 'rgba(59, 76, 202, 0.82)',
       textColor: '#ffffff',
-      emoji: '🌌',
+      emoji: '🫐',
       defaultMsg: 'ふしぎなちえがわいてくる日！本をよむと新しい発見があるよ！',
       defaultItem: '青いしおり'
     },
@@ -63,21 +73,23 @@
       mod: 6,
       name: 'むらさき',
       hex: '#9c4dff',
+      glow: 'rgba(156, 77, 255, 0.82)',
       textColor: '#ffffff',
-      emoji: '🔮',
+      emoji: '🟣',
       defaultMsg: 'まほうのようにラッキーが重なる日！じぶんの得意なことをのばそう！',
       defaultItem: 'きらきらキーホルダー'
     }
   ];
 
-  // ひらがな → 母音番号マッピング（1:あ段, 2:い段, 3:う段, 4:え段, 5:お段, 0:ん/っ）
+  // 教科書P.258「名前の置きかえルール」準拠
+  // 「小さい文字は、大きい文字と同じ段。」→ ぁゃゎ=1, ぃ=2, ぅゅっ=3, ぇ=4, ぉょ=5, ん=0
   const VOWEL_GROUPS = {
     1: 'あかさたなはまやらわがざだばぱぁゃゎ',
     2: 'いきしちにひみりぎじぢびぴぃゐ',
-    3: 'うくすつぬふむゆるぐずづぶぷぅゅゔ',
+    3: 'うくすつぬふむゆるぐずづぶぷぅゅっゔ',
     4: 'えけせてねへめれげぜでべぺぇゑ',
     5: 'おこそとのほもよろをごぞどぼぽぉょ',
-    0: 'んっ'
+    0: 'ん'
   };
 
   const VOWEL_LABELS = {
@@ -86,7 +98,7 @@
     3: 'う段',
     4: 'え段',
     5: 'お段',
-    0: 'そのほか'
+    0: 'ん'
   };
 
   const CHAR_TO_NUM = {};
@@ -98,33 +110,68 @@
     }
   });
 
-  function convertNameToNumbers(rawInput) {
-    const normalized = String(rawInput || '')
+  function toHiragana(raw) {
+    return String(raw || '')
       .normalize('NFKC')
+      // カタカナ（ァ-ヶ、ヴ）をひらがなへ変換
       .replace(/[\u30a1-\u30f6]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60))
+      .replace(/\s+/g, '')
       .trim();
+  }
 
+  /**
+   * 名前を1文字ずつ分解し、教科書通りに数字を「連結」したひとつの数にする
+   * 例：「さんすうしゅうた」→「10332331」
+   */
+  function convertNameToNumbers(rawInput) {
+    const normalized = toHiragana(rawInput);
     const items = [];
-    let total = 0;
+    let digitStr = '';
     let prevNum = 0;
 
     for (let i = 0; i < normalized.length; i++) {
+      if (items.length >= 14) break; // JS安全整数範囲（15桁以内）
       const ch = normalized[i];
       if (ch === 'ー') {
-        items.push({ char: ch, num: prevNum, vowel: 'のばす音' });
-        total += prevNum;
+        const n = prevNum;
+        items.push({ char: ch, num: n, vowel: 'のばす音' });
+        digitStr += String(n);
         continue;
       }
       if (Object.prototype.hasOwnProperty.call(CHAR_TO_NUM, ch)) {
         const n = CHAR_TO_NUM[ch];
         items.push({ char: ch, num: n, vowel: VOWEL_LABELS[n] });
-        total += n;
+        digitStr += String(n);
         prevNum = n;
       }
     }
 
-    return { normalized: normalized, items: items, total: total };
+    return {
+      normalized: normalized,
+      items: items,
+      digitString: digitStr || '0',
+      numberValue: digitStr ? Number(digitStr) : 0
+    };
   }
+
+  // フローチャート（教科書P.258準拠・6スロット）
+  const FLOWCHART_ITEMS = [
+    { id: 'name_to_num', label: '名前を数字に置きかえる', kind: 'process' },
+    { id: 'add_date', label: '名前の数に日付をたす', kind: 'process' },
+    { id: 'repeat_5', label: '5回くり返す', kind: 'loop' },
+    { id: 'div_2', label: '2でわる', kind: 'process' },
+    { id: 'round_1', label: '小数第一位を四捨五入する', kind: 'process' },
+    { id: 'mod_7', label: '7でわったあまりがいくらか', kind: 'decision' }
+  ];
+
+  const FLOWCHART_SLOTS = [
+    { key: 'ア', answerId: 'name_to_num', kind: 'process', stage: 'A' },
+    { key: 'イ', answerId: 'add_date', kind: 'process', stage: 'A' },
+    { key: 'ウ', answerId: 'repeat_5', kind: 'loop', stage: 'B' },
+    { key: 'エ', answerId: 'div_2', kind: 'process', stage: 'B' },
+    { key: 'オ', answerId: 'round_1', kind: 'process', stage: 'B' },
+    { key: 'カ', answerId: 'mod_7', kind: 'decision', stage: 'C' }
+  ];
 
   function getTodayDayOfMonth() {
     return new Date().getDate();
@@ -137,116 +184,47 @@
     return null;
   }
 
-  function getStepsMeta(nameNum, todayDate) {
-    const nVal = Number(nameNum) || 9;
-    const dVal = Number(todayDate) || getTodayDayOfMonth();
+  function getColorByMod(modVal) {
+    const m = Number(modVal);
+    for (let i = 0; i < FORTUNE_COLORS.length; i++) {
+      if (FORTUNE_COLORS[i].mod === m) return FORTUNE_COLORS[i];
+    }
+    return null;
+  }
 
-    return {
-      0: {
-        id: 0,
-        title: 'ステップ0：名前の数字変換マシン',
-        desc: '自分の名前（ひらがな）を母音のルールで数字にへんかんしよう！',
-        hint: '「あ・か・さ…」は1、「い・き・し…」は2、「う・く・す…」は3、「え・け・せ…」は4、「お・こ・そ…」は5、「ん」は0だよ。',
-        allowedBlocks: [],
-        starterBlocks: [],
-        exampleBlocks: []
-      },
-      1: {
-        id: 1,
-        title: 'ステップ1：名前と日付をたそう！',
-        desc: '「名前」「日付」の変数に数字を入れて、2つをたし算した答えを「名前と日付の和」に入れよう！',
-        hint: '①[名前]を(...)にする → ②[日付]を(...)にする → ③[名前と日付の和]を([名前]+[日付])にする、のじゅんばんに並べよう！',
+  // プログラミング画面（Scene 4）のステージ定義（フローチャート連動ステップ解放方式）
+  function getProgStageMeta(stageId) {
+    const map = {
+      A: {
+        id: 'A',
+        title: 'ミッション1：名前と日付をたそう！（手順①②）',
+        owlMsg: 'まずは光っている「ア」「イ」の部分じゃ！[名前]・[日付]をセットして、[名前と日付の和]を計算するブロックを並べるのじゃ。',
         allowedBlocks: ['set_name', 'set_date', 'add_sum'],
-        starterBlocks: [],
-        exampleBlocks: [
-          { type: 'set_name', value: nVal },
-          { type: 'set_date', value: dVal },
-          { type: 'add_sum' }
-        ]
+        highlightSlots: ['ア', 'イ']
       },
-      2: {
-        id: 2,
-        title: 'ステップ2：2でわって四捨五入をくり返そう！',
-        desc: '「名前と日付の和」を「2でわって四捨五入」する計算を、「5回くり返す」ブロックを使って組み立てよう！',
-        hint: '「5回くり返す」ブロックのなかに、「[名前と日付の和]を(([名前と日付の和]÷2)を四捨五入)にする」ブロックを入れよう！',
+      B: {
+        id: 'B',
+        title: 'ミッション2：5回くり返そう！（手順③）',
+        owlMsg: 'すばらしい！つぎは光っている「ウ・エ・オ」の部分じゃ！[5回くり返す]の中に[2でわって四捨五入]を入れるのじゃ。',
         allowedBlocks: ['set_name', 'set_date', 'add_sum', 'repeat', 'halve_round'],
-        starterBlocks: [
-          { type: 'set_name', value: nVal },
-          { type: 'set_date', value: dVal },
-          { type: 'add_sum' }
-        ],
-        exampleBlocks: [
-          { type: 'set_name', value: nVal },
-          { type: 'set_date', value: dVal },
-          { type: 'add_sum' },
-          {
-            type: 'repeat',
-            count: 5,
-            children: [{ type: 'halve_round' }]
-          }
-        ]
+        highlightSlots: ['ウ', 'エ', 'オ']
       },
-      3: {
-        id: 3,
-        title: 'ステップ3：7でわったあまりで色をきめよう！',
-        desc: 'まず「7でわったあまり」を計算し、「もし〜なら」ブロックで0〜6の余りに合わせた色をセットしよう！（少なくとも今の余りに合う分岐をつくってみよう）',
-        hint: '①[7でわったあまり]を計算する → ②「もし<[7でわったあまり]=○>なら」の中に「[今日のラッキーカラー]を(色)にする」を入れよう！7色ぶん作るとかんぺき！',
-        allowedBlocks: ['mod7', 'if_else_mod', 'if_mod', 'set_color'],
-        starterBlocks: [
-          { type: 'set_name', value: nVal },
-          { type: 'set_date', value: dVal },
-          { type: 'add_sum' },
-          {
-            type: 'repeat',
-            count: 5,
-            children: [{ type: 'halve_round' }]
-          },
-          { type: 'mod7' }
-        ],
-        exampleBlocks: [
-          { type: 'set_name', value: nVal },
-          { type: 'set_date', value: dVal },
-          { type: 'add_sum' },
-          {
-            type: 'repeat',
-            count: 5,
-            children: [{ type: 'halve_round' }]
-          },
-          { type: 'mod7' }
-        ].concat(
-          FORTUNE_COLORS.map((c) => ({
-            type: 'if_mod',
-            modValue: c.mod,
-            children: [{ type: 'set_color', color: c.name }]
-          }))
-        )
+      C: {
+        id: 'C',
+        title: 'ミッション3：7でわったあまりで色をきめよう！（手順④⑤）',
+        owlMsg: 'あと少しじゃ！[7でわったあまり]を求めて、0〜6のすべてに合う[もし〜なら]で7つのラッキーカラーをきめるのじゃ！',
+        allowedBlocks: ['mod7', 'if_mod', 'if_else_mod', 'set_color', 'set_name', 'set_date', 'add_sum', 'repeat', 'halve_round'],
+        highlightSlots: ['カ']
       },
-      4: {
-        id: 4,
-        title: 'ステップ4：占いの館 オープン！',
-        desc: '完全版の占いプログラムを実行しよう！下のボタンから「7色のメッセージ」を書いたり、「友だちをうらなう」ことができるよ！',
-        hint: 'まずは「うらないを実行！」で占ってみよう。ブロックを変えたり、オリジナルのアドバイスを書いて友達と占い合おう！',
-        allowedBlocks: ['set_name', 'set_date', 'add_sum', 'repeat', 'halve_round', 'mod7', 'if_else_mod', 'if_mod', 'set_color'],
-        starterBlocks: null, // Step 4 はステップ3を引き継ぐか完全版プリセットを使用
-        exampleBlocks: [
-          { type: 'set_name', value: nVal },
-          { type: 'set_date', value: dVal },
-          { type: 'add_sum' },
-          {
-            type: 'repeat',
-            count: 5,
-            children: [{ type: 'halve_round' }]
-          },
-          { type: 'mod7' }
-        ].concat(
-          FORTUNE_COLORS.map((c) => ({
-            type: 'if_mod',
-            modValue: c.mod,
-            children: [{ type: 'set_color', color: c.name }]
-          }))
-        )
+      DONE: {
+        id: 'DONE',
+        title: 'プログラムかんせい！',
+        owlMsg: 'おみごと！完璧な魔法のプログラムができたぞ！下の「占いの館（シミュレータ）へ！」ボタンを押すのじゃ！',
+        allowedBlocks: ['set_name', 'set_date', 'add_sum', 'repeat', 'halve_round', 'mod7', 'if_mod', 'if_else_mod', 'set_color'],
+        highlightSlots: ['ア', 'イ', 'ウ', 'エ', 'オ', 'カ']
       }
     };
+    return map[stageId] || map.A;
   }
 
   function flattenBlocks(blocks) {
@@ -259,60 +237,73 @@
     return out;
   }
 
-  function evaluateStepGoal(stepId, blocks, vars) {
+  function checkStageA(blocks) {
     const flat = flattenBlocks(blocks);
-    if (stepId === 1) {
-      const hasName = flat.some((b) => b.type === 'set_name');
-      const hasDate = flat.some((b) => b.type === 'set_date');
-      const hasAdd = flat.some((b) => b.type === 'add_sum');
-      if (hasName && hasDate && hasAdd && vars['名前と日付の和'] === vars['名前'] + vars['日付']) {
-        return { cleared: true, message: 'バッチリ！変数「名前」と「日付」をたし算できたね！ステップ2へ進もう！' };
-      }
-      return { cleared: false, reason: '「名前」「日付」「名前と日付の和（たし算）」の3つのブロックをつなげて実行してみよう！' };
-    }
+    const iName = flat.findIndex((b) => b.type === 'set_name');
+    const iDate = flat.findIndex((b) => b.type === 'set_date');
+    const iAdd = flat.findIndex((b) => b.type === 'add_sum');
+    return iName !== -1 && iDate !== -1 && iAdd !== -1 && iAdd > iName && iAdd > iDate;
+  }
 
-    if (stepId === 2) {
-      const repeatBlock = flat.find((b) => b.type === 'repeat' && Number(b.count) === 5);
-      const hasHalveInside = repeatBlock && (repeatBlock.children || []).some((c) => c.type === 'halve_round');
-      if (repeatBlock && hasHalveInside) {
-        return { cleared: true, message: 'すごい！「5回くり返す」ブロックでスッキリ計算できたね！次はステップ3だ！' };
-      }
-      return { cleared: false, reason: '「5回くり返す」ブロックのなかに「2でわって四捨五入」ブロックを入れて実行しよう！' };
-    }
+  function checkStageB(blocks) {
+    if (!checkStageA(blocks)) return false;
+    const flat = flattenBlocks(blocks);
+    const rep = flat.find((b) => b.type === 'repeat' && Number(b.count) === 5);
+    return !!(rep && (rep.children || []).some((c) => c.type === 'halve_round'));
+  }
 
-    if (stepId === 3) {
-      const hasMod7 = flat.some((b) => b.type === 'mod7');
-      const hasIf = flat.some((b) => b.type === 'if_mod' || b.type === 'if_else_mod');
-      const colorSet = vars['今日のラッキーカラー'] && vars['今日のラッキーカラー'] !== 'まだきまっていない';
-      if (hasMod7 && hasIf && colorSet) {
-        return {
-          cleared: true,
-          message: 'おめでとう！7でわったあまりで「今日のラッキーカラー」がきまったね！いよいよ「占いの館」オープンだよ！'
-        };
-      }
-      return {
-        cleared: false,
-        reason: '「7でわったあまり」を計算し、「もし〜なら」ブロックを使って「今日のラッキーカラー」が決まるようにしよう！（ヒント：おてほんボタンも参考になるよ）'
-      };
-    }
+  function checkStageC(blocks) {
+    if (!checkStageB(blocks)) return false;
+    const flat = flattenBlocks(blocks);
+    const hasMod7 = flat.some((b) => b.type === 'mod7');
+    if (!hasMod7) return false;
 
-    if (stepId === 4) {
-      const colorSet = vars['今日のラッキーカラー'] && vars['今日のラッキーカラー'] !== 'まだきまっていない';
-      if (colorSet) {
-        return { cleared: true, message: '🌟 占いの館・完全クリア！自分だけのオリジナルメッセージを書いて友だちと占い合おう！' };
+    // 0〜6 の7色すべての分岐が揃っているか確認（if_mod / if_else_mod）
+    const coveredMods = {};
+    flat.forEach((b) => {
+      if ((b.type === 'if_mod' || b.type === 'if_else_mod') && (b.children || []).some((c) => c.type === 'set_color')) {
+        coveredMods[String(b.modValue)] = true;
       }
-      return { cleared: false, reason: '「今日のラッキーカラー」が決まるようにプログラムを動かしてみよう！' };
+    });
+    for (let m = 0; m <= 6; m++) {
+      if (!coveredMods[String(m)]) return false;
     }
+    return true;
+  }
 
-    return { cleared: false, reason: '' };
+  function getCompletePreset(nameNum, todayDate) {
+    return [
+      { type: 'set_name', value: Number(nameNum) || 10332331 },
+      { type: 'set_date', value: Number(todayDate) || getTodayDayOfMonth() },
+      { type: 'add_sum' },
+      {
+        type: 'repeat',
+        count: 5,
+        children: [{ type: 'halve_round' }]
+      },
+      { type: 'mod7' }
+    ].concat(
+      FORTUNE_COLORS.map((c) => ({
+        type: 'if_mod',
+        modValue: c.mod,
+        children: [{ type: 'set_color', color: c.name }]
+      }))
+    );
   }
 
   global.UranaiCurriculum = {
     FORTUNE_COLORS: FORTUNE_COLORS,
+    FLOWCHART_ITEMS: FLOWCHART_ITEMS,
+    FLOWCHART_SLOTS: FLOWCHART_SLOTS,
+    toHiragana: toHiragana,
     convertNameToNumbers: convertNameToNumbers,
     getTodayDayOfMonth: getTodayDayOfMonth,
     getColorByName: getColorByName,
-    getStepsMeta: getStepsMeta,
-    evaluateStepGoal: evaluateStepGoal
+    getColorByMod: getColorByMod,
+    getProgStageMeta: getProgStageMeta,
+    checkStageA: checkStageA,
+    checkStageB: checkStageB,
+    checkStageC: checkStageC,
+    getCompletePreset: getCompletePreset
   };
 })(window);

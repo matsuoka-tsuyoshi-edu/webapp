@@ -6,92 +6,77 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>オンラインマニュアル | 魔法のプログラミング占いの館</title>
-  <link rel="stylesheet" href="./manual.css?v=20261124-02">
+  <title>オンラインマニュアル | 魔法の占いの館</title>
+  <link rel="stylesheet" href="./manual.css?v=20261124-03">
 </head>
 <body>
   <header class="topbar">
-    <h1>📖 オンラインマニュアル 〜<ruby>魔法<rt>まほう</rt></ruby>のプログラミング<ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>〜</h1>
+    <h1>📖 オンラインマニュアル 〜<ruby>魔法<rt>まほう</rt></ruby>の<ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>〜</h1>
     <nav class="topbar-nav">
       <a class="nav-pill" href="#student-guide">児童むけ（あそびかた）</a>
-      <a class="nav-pill" href="#step-guide">ステップ0〜4</a>
-      <a class="nav-pill" href="#teacher-guide">先生むけ（授業・全画面）</a>
+      <a class="nav-pill" href="#step-guide">5つのシーン</a>
+      <a class="nav-pill" href="#teacher-guide">先生むけ（授業・リセット）</a>
       <a class="nav-pill primary" href="../index.html">🔮 アプリにもどる</a>
     </nav>
   </header>
 
   <main class="container">
     <section id="student-guide" class="section-card">
-      <h2>🧙‍♀️ 1. あそびかた（<ruby>児童<rt>じどう</rt></ruby>むけガイド）</h2>
+      <h2>🔮 1. あそびかた（<ruby>児童<rt>じどう</rt></ruby>むけガイド）</h2>
       <p>
-        このアプリは、小学5年生の算数「<ruby>今日<rt>きょう</rt></ruby>のラッキーカラーをきめよう！」を、
-        <ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>のプログラマーになって体験できるアプリだよ！
+        「<ruby>魔法<rt>まほう</rt></ruby>の<ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>」は、小学5年生の算数「<ruby>今日<rt>きょう</rt></ruby>のラッキーカラーをきめよう！」を、
+        水晶玉といっしょにステップバイステップで学べるアプリだよ！
       </p>
 
       <div class="tip-callout">
         <strong>📱 大事なルール：</strong>
-        iPadやスマホでは、かならず<strong>よこむき</strong>にして使ってね！たて向きにすると「よこむきにしてね！」の画面が出るよ。
+        iPadやスマホでは、かならず<strong>よこむき</strong>にして使ってね！画面の右上にはいつでも見られる <code>📜 きめ方をみる</code> ボタンがあるよ。
       </div>
 
-      <h3>画面の3つのエリア</h3>
-      <div class="step-grid">
-        <div class="step-box">
-          <strong>① 左：フクロウ先生とブロック</strong>
-          いまのミッションやヒント、使えるブロックが並んでいるよ。ブロックは<strong>タップ</strong>するだけで中央に追加できるよ！
-        </div>
-        <div class="step-box">
-          <strong>② 中央：魔法のレシピ</strong>
-          ブロックを並べる場所だよ。ドラッグで順番をかえたり、<code>▲</code> <code>▼</code> ボタンで順番を入れかえられるよ。
-        </div>
-        <div class="step-box">
-          <strong>③ 右：水晶玉と変数モニター</strong>
-          <code>🔮 うらないを実行！</code> をおすとプログラムが動くよ。<code>👣 1つずつ</code> をおすと、数字のかわりかたをゆっくり見られるよ！
-        </div>
-      </div>
-
-      <h3>「くり返し」や「もし〜なら」の中にブロックを入れる方法</h3>
+      <h3>名前の数字のルール（教科書P.258準拠）</h3>
       <ul>
-        <li>方法A：左のパレットやレシピから、ブロックを「このなかにブロックを入れる」のわくの中へドラッグする。</li>
-        <li>方法B：わくの上にある <code>+ なかに追加</code> ボタンをタップして、入れたいブロックをえらぶ（iPadでかんたん！）。</li>
+        <li>ひらがな（カタカナもOK）1文字ずつを、母音（あ段=1、い段=2、う段=3、え段=4、お段=5、ん=0）の数字にかえて<strong>ならべたひとつの数</strong>にするよ。</li>
+        <li>小さい文字（ゃゅょっ 等）は大きい文字と同じ段！のばす音「ー」はまえの文字と同じ数字になるよ。</li>
+        <li>例：<code>さんすうしゅうた</code> → <code>10332331</code></li>
       </ul>
     </section>
 
     <section id="step-guide" class="section-card">
-      <h2>🎯 2. ステップ0〜4のながれ</h2>
+      <h2>🎯 2. 5つのシーンのながれ</h2>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>ステップ</th>
-              <th>学習する内容</th>
+              <th>シーン</th>
+              <th>やること</th>
               <th>クリアのポイント</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>ステップ0</strong><br>名前の数字</td>
-              <td>順次・ルールの理解</td>
-              <td>自分のひらがなの名前を入れて、母音（あ=1, い=2, う=3, え=4, お=5, ん=0）の合計をたしかめよう。</td>
+              <td><strong>1. 入口</strong></td>
+              <td>タイトル＆水晶玉のあいさつ</td>
+              <td>水晶玉のお話を聞いて「つぎへ すすむ」をおそう。</td>
             </tr>
             <tr>
-              <td><strong>ステップ1</strong><br>たし算</td>
-              <td>変数と演算</td>
-              <td><code>名前</code> と <code>日付</code> に数字を入れて、<code>名前と日付の和</code> を計算しよう。</td>
+              <td><strong>2. きめ方</strong></td>
+              <td>ラッキーカラーのルール確認</td>
+              <td>数字の置きかえルールと、1〜5の手順をたしかめよう。</td>
             </tr>
             <tr>
-              <td><strong>ステップ2</strong><br>くり返し</td>
-              <td>反復処理（ループ）</td>
-              <td><code>5回くり返す</code> の中に「2でわって四捨五入」ブロックを入れて実行しよう。</td>
+              <td><strong>3. フローチャート</strong></td>
+              <td>設計図を完成させる</td>
+              <td>真ん中の6つのブロックを右の「ア〜カ」へドラッグ（またはタップ）して正しく並べよう。</td>
             </tr>
             <tr>
-              <td><strong>ステップ3</strong><br>もし〜なら</td>
-              <td>条件分岐（あまり）</td>
-              <td><code>7でわったあまり</code>（0〜6）を計算して、<code>もし〜なら</code> でラッキーカラーを決めよう。</td>
+              <td><strong>4. プログラミング</strong></td>
+              <td>フローチャートに合わせてブロックを組む</td>
+              <td>光っている場所に合わせてブロックを並べると、右下にリアルタイムで計算結果が出るよ！3段階すべて完成させよう。</td>
             </tr>
             <tr>
-              <td><strong>ステップ4</strong><br>館オープン</td>
-              <td>総合・オリジナル</td>
-              <td>「占いの館モード」で友だちを占ったり、7色のメッセージを書こう！「プログラムをみる・なおす」からレシピの改造もできるよ。</td>
+              <td><strong>5. 占いの館</strong></td>
+              <td>魔法のシミュレータで占う！</td>
+              <td>名前を入力してできた数字カードを水晶玉にドラッグ！色が変わったフローチャートをタップして計算し、最後は「いにしえのルール」の7つの玉から色を選ぼう！（1回クリアすると⚡自動モードも使えるよ）</td>
             </tr>
           </tbody>
         </table>
@@ -99,46 +84,25 @@
     </section>
 
     <section id="teacher-guide" class="section-card">
-      <h2>👩‍🏫 3. 先生むけガイド（授業運用・全画面・PWA・安全機能）</h2>
+      <h2>👩‍🏫 3. 先生・開発者むけガイド（授業運用・リセット・安全設計）</h2>
 
       <div class="teacher-callout">
-        <strong>🔑 先生用「全ステージ解放モード」の開き方：</strong><br>
-        画面左上のタイトルロゴ（🔮 魔法のプログラミング占いの館）を<strong>5回連続でタップ</strong>するか、
-        キーボードで <code>Shift + T</code> を押すと「先生用管理メニュー」が開きます。
+        <strong>🔑 先生・開発用メニューの開き方：</strong><br>
+        画面左上のタイトル（🔮 魔法の占いの館）を<strong>5回連続でタップ</strong>するか、
+        キーボードで <code>Shift + T</code> を押すと管理メニューが開きます。
         <ul>
-          <li><strong>全ステージ解放</strong>：ステップ0〜4をすべて自由に切り替えられるようになります（途中からの授業やまとめの時間に便利）。</li>
-          <li><strong>お手本プログラムをセット</strong>：現在のステップの模範プログラムを一瞬で配置できます（一斉指導でのデモ用）。</li>
-          <li><strong>初期化</strong>：保存データ（<code>localStorage</code>）を消去して初期状態に戻します。</li>
+          <li><strong>すべての画面（1〜5）を自由に行き来する</strong>：途中からの授業確認やデモに便利です。</li>
+          <li><strong>フローチャート＆プログラムを完成状態にする</strong>：シーン5（シミュレータ）をすぐ試したいときに使えます。</li>
+          <li><strong>保存データをすべてリセット（最初から）</strong>：ヘッダー右上の <code>↺ リセット</code> ボタンからも同様に初期化できます。</li>
         </ul>
       </div>
 
-      <h3>対応ブラウザと全画面表示・アプリインストール方法</h3>
+      <h3>教育的安全設計・誤操作防止・キャッシュ無効化</h3>
       <ul>
-        <li><strong>PC Chrome / Android Chrome：</strong>
-          <ul>
-            <li>画面右上の <code>⛶ 全画面</code> ボタンで全画面表示（Androidでは横向きロックも試行）になります。</li>
-            <li>HTTPS（または <code>localhost</code>）配信時、アドレスバーまたは右上ボタン <code>📲 アプリを入れる</code> からPWAアプリとしてインストールできます。</li>
-          </ul>
-        </li>
-        <li><strong>iPad / iOS Safari：</strong>
-          <ul>
-            <li>Safari の共有ボタン（□↑）→ <strong>「ホーム画面に追加」</strong> を選ぶと、アドレスバーのない全画面アプリとして起動できます。</li>
-            <li>ピンチイン／ピンチアウトによる拡大縮小、画面全体のバウンススクロールは無効化済みです。</li>
-          </ul>
-        </li>
+        <li><strong>NGワードフィルター</strong>：名前入力時に暴力的・卑猥・差別的表現（ひらがな・カタカナ・漢字・ローマ字・伏せ字）を自動ブロックします。</li>
+        <li><strong>誤操作防止</strong>：横画面固定、ピンチイン/アウト・ダブルタップ拡大・バウンススクロールを抑制済みです。</li>
+        <li><strong>キャッシュ無効化</strong>：HTMLヘッダ、バージョン付与、`cache: 'no-store'` 型 Service Worker により更新が即時反映されます。</li>
       </ul>
-
-      <h3>教育的安全設計（不適切ワードフィルター）</h3>
-      <p>
-        ステップ0の名前入力やステップ4のメッセージ編集・友だち占い入力では、暴力的・卑猥・差別的な言葉（ひらがな・カタカナ・漢字・ローマ字・伏せ字を含む）を自動検知し、
-        フクロウ先生の優しい注意メッセージを表示して実行・保存をブロックします。
-      </p>
-
-      <h3>キャッシュ無効化について</h3>
-      <p>
-        HTMLの <code>Cache-Control: no-store</code> 指定、アセットURLへのバージョン付与、および Service Worker の <code>network-only (no-store)</code> 動作により、
-        更新後に古いファイルが残りにくい設計になっています。さらに Apache（<code>.htaccess</code>）や静的ホスティング（<code>_headers</code>）用の設定ファイルも配布一式に同梱しています。
-      </p>
     </section>
   </main>
 </body>

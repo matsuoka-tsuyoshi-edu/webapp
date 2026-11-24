@@ -1,5 +1,5 @@
 /**
- * ブロックエンジン＆インタプリタ（ドラッグ＆ドロップ＋タップ操作両対応）
+ * ブロックエンジン＆インタプリタ（ドラッグ＆ドロップ＋タップ操作＋フラッシュ表示対応）
  */
 (function (global) {
   'use strict';
@@ -16,12 +16,12 @@
       category: 'cat-var',
       paletteLabel: '[名前] を (数字) にする',
       isContainer: false,
-      createDefault: (ctx) => ({ id: nextId(), type: 'set_name', value: Number(ctx.nameNum) || 9 })
+      createDefault: (ctx) => ({ id: nextId(), type: 'set_name', value: Number(ctx.nameNum) || 10332331 })
     },
     set_date: {
       type: 'set_date',
       category: 'cat-var',
-      paletteLabel: '[日付] を (数字) にする',
+      paletteLabel: '[日付] を (今日の日) にする',
       isContainer: false,
       createDefault: (ctx) => ({ id: nextId(), type: 'set_date', value: Number(ctx.todayDate) || 24 })
     },
@@ -107,18 +107,18 @@
     };
   }
 
-  // 実行トレース（1ステップずつ＆アニメーション再生用）を生成
   function buildExecutionTrace(blocks, overrideInput) {
     const vars = createDefaultVars();
     const trace = [];
     let guard = 0;
     const MAX_STEPS = 200;
 
-    function pushStep(blockId, changedVar, log) {
+    function pushStep(blockId, blockType, changedVar, log) {
       guard += 1;
       if (guard > MAX_STEPS) return;
       trace.push({
         blockId: blockId,
+        blockType: blockType,
         changedVar: changedVar,
         log: log,
         vars: Object.assign({}, vars)
@@ -135,64 +135,51 @@
             ? Number(overrideInput.nameNum)
             : Number(b.value) || 0;
           vars['名前'] = val;
-          pushStep(b.id, '名前', '変数「名前」に ' + val + ' を入れました。');
+          pushStep(b.id, b.type, '名前', '名前を「' + val + '」にしました。');
         } else if (b.type === 'set_date') {
           const val = overrideInput && overrideInput.dateNum !== undefined
             ? Number(overrideInput.dateNum)
             : Number(b.value) || 0;
           vars['日付'] = val;
-          pushStep(b.id, '日付', '変数「日付」に ' + val + ' を入れました。');
+          pushStep(b.id, b.type, '日付', '日付を「' + val + '」にしました。');
         } else if (b.type === 'add_sum') {
           const sum = Number(vars['名前']) + Number(vars['日付']);
           vars['名前と日付の和'] = sum;
-          pushStep(b.id, '名前と日付の和', vars['名前'] + ' + ' + vars['日付'] + ' = ' + sum + ' を計算しました！');
+          pushStep(b.id, b.type, '名前と日付の和', vars['名前'] + ' + ' + vars['日付'] + ' = ' + sum);
         } else if (b.type === 'repeat') {
           const cnt = Math.max(1, Math.min(20, Number(b.count) || 1));
-          pushStep(b.id, null, cnt + ' 回くり返しをスタート！');
+          pushStep(b.id, b.type, null, cnt + '回くり返しを開始！');
           for (let r = 1; r <= cnt; r++) {
             if (guard >= MAX_STEPS) break;
-            pushStep(b.id, null, 'くり返し ' + r + ' 回目');
+            pushStep(b.id, b.type, null, r + '回目のくり返し');
             runList(b.children || []);
           }
         } else if (b.type === 'halve_round') {
           const prev = Number(vars['名前と日付の和']) || 0;
           const next = Math.round(prev / 2);
           vars['名前と日付の和'] = next;
-          pushStep(b.id, '名前と日付の和', prev + ' ÷ 2 を四捨五入して ' + next + ' になりました。');
+          pushStep(b.id, b.type, '名前と日付の和', prev + ' ÷ 2 (四捨五入) → ' + next);
         } else if (b.type === 'mod7') {
           const cur = Number(vars['名前と日付の和']) || 0;
           const rem = ((cur % 7) + 7) % 7;
           vars['7でわったあまり'] = rem;
-          pushStep(b.id, '7でわったあまり', cur + ' を 7 でわったあまりは「' + rem + '」です！');
+          pushStep(b.id, b.type, '7でわったあまり', cur + ' を 7 でわったあまり → ' + rem);
         } else if (b.type === 'if_mod') {
           const target = Number(b.modValue) || 0;
           const actual = vars['7でわったあまり'];
           const matched = actual !== '?' && Number(actual) === target;
-          pushStep(
-            b.id,
-            null,
-            'もし あまり(' + actual + ') = ' + target + ' なら → ' + (matched ? 'あたった！中を実行！' : 'ちがうのでスキップ')
-          );
-          if (matched) {
-            runList(b.children || []);
-          }
+          pushStep(b.id, b.type, null, 'あまり(' + actual + ') = ' + target + ' ？ → ' + (matched ? 'あたり！' : 'ちがう'));
+          if (matched) runList(b.children || []);
         } else if (b.type === 'if_else_mod') {
           const target = Number(b.modValue) || 0;
           const actual = vars['7でわったあまり'];
           const matched = actual !== '?' && Number(actual) === target;
-          pushStep(
-            b.id,
-            null,
-            'もし あまり(' + actual + ') = ' + target + ' なら → ' + (matched ? '「なら」を実行！' : '「でなければ」を実行！')
-          );
-          if (matched) {
-            runList(b.children || []);
-          } else {
-            runList(b.elseChildren || []);
-          }
+          pushStep(b.id, b.type, null, 'あまり(' + actual + ') = ' + target + ' ？');
+          if (matched) runList(b.children || []);
+          else runList(b.elseChildren || []);
         } else if (b.type === 'set_color') {
           vars['今日のラッキーカラー'] = b.color || '赤';
-          pushStep(b.id, '今日のラッキーカラー', '今日のラッキーカラーは「' + vars['今日のラッキーカラー'] + '」にきまりました！');
+          pushStep(b.id, b.type, '今日のラッキーカラー', 'ラッキーカラー → ' + vars['今日のラッキーカラー']);
         }
       }
     }
@@ -201,14 +188,11 @@
     return { trace: trace, finalVars: vars };
   }
 
-  // 配列操作ヘルパー（ネスト対応）
   function findContainerInfo(rootList, targetId, parentList) {
     const list = parentList || rootList;
     for (let i = 0; i < list.length; i++) {
       const b = list[i];
-      if (b.id === targetId) {
-        return { list: list, index: i, block: b };
-      }
+      if (b.id === targetId) return { list: list, index: i, block: b };
       if (b.children) {
         const res = findContainerInfo(rootList, targetId, b.children);
         if (res) return res;
@@ -249,10 +233,13 @@
   }
 
   function createBlockElement(block, options) {
+    const opts = options || {};
+    const readOnly = !!opts.readOnly;
     const meta = BLOCK_CATALOG[block.type];
     const el = document.createElement('div');
     el.className = 'prog-block ' + (meta ? meta.category : 'cat-var');
     el.dataset.blockId = block.id;
+    el.dataset.blockType = block.type;
 
     const head = document.createElement('div');
     head.className = 'prog-block-head';
@@ -260,11 +247,12 @@
     const labelWrap = document.createElement('div');
     labelWrap.className = 'prog-block-label';
 
-    const dragHandle = document.createElement('span');
-    dragHandle.className = 'blk-drag-handle';
-    dragHandle.textContent = '⠿';
-    dragHandle.title = 'ドラッグして移動';
-    labelWrap.appendChild(dragHandle);
+    if (!readOnly) {
+      const dragHandle = document.createElement('span');
+      dragHandle.className = 'blk-drag-handle';
+      dragHandle.textContent = '⠿';
+      labelWrap.appendChild(dragHandle);
+    }
 
     function addText(txt) {
       const s = document.createElement('span');
@@ -272,10 +260,17 @@
       labelWrap.appendChild(s);
     }
 
-    function addNumberInput(val, min, max, onChange) {
+    function addNumberInput(val, min, max, wide, onChange) {
+      if (readOnly) {
+        const pill = document.createElement('span');
+        pill.className = 'blk-readonly-pill';
+        pill.textContent = String(val);
+        labelWrap.appendChild(pill);
+        return;
+      }
       const inp = document.createElement('input');
       inp.type = 'number';
-      inp.className = 'blk-input';
+      inp.className = 'blk-input' + (wide ? ' blk-input-wide' : '');
       inp.value = val;
       inp.min = min;
       inp.max = max;
@@ -292,24 +287,24 @@
 
     if (block.type === 'set_name') {
       addText('[名前] を');
-      addNumberInput(block.value, 0, 200, (v) => {
+      addNumberInput(block.value, 0, 99999999999999, true, (v) => {
         block.value = v;
-        options.onChange();
+        if (opts.onChange) opts.onChange();
       });
       addText('にする');
     } else if (block.type === 'set_date') {
       addText('[日付] を');
-      addNumberInput(block.value, 1, 31, (v) => {
+      addNumberInput(block.value, 1, 31, false, (v) => {
         block.value = v;
-        options.onChange();
+        if (opts.onChange) opts.onChange();
       });
       addText('にする');
     } else if (block.type === 'add_sum') {
       addText('[名前と日付の和] を ([名前] + [日付]) にする');
     } else if (block.type === 'repeat') {
-      addNumberInput(block.count, 1, 20, (v) => {
+      addNumberInput(block.count, 1, 20, false, (v) => {
         block.count = v;
-        options.onChange();
+        if (opts.onChange) opts.onChange();
       });
       addText('回くり返す');
     } else if (block.type === 'halve_round') {
@@ -318,83 +313,97 @@
       addText('[7でわったあまり] を ([名前と日付の和] を 7 でわった余り) にする');
     } else if (block.type === 'if_mod' || block.type === 'if_else_mod') {
       addText('もし <[7でわったあまり] =');
-      const sel = document.createElement('select');
-      sel.className = 'blk-select';
-      for (let m = 0; m <= 6; m++) {
-        const opt = document.createElement('option');
-        opt.value = String(m);
-        opt.textContent = String(m);
-        if (Number(block.modValue) === m) opt.selected = true;
-        sel.appendChild(opt);
+      if (readOnly) {
+        const pill = document.createElement('span');
+        pill.className = 'blk-readonly-pill';
+        pill.textContent = String(block.modValue);
+        labelWrap.appendChild(pill);
+      } else {
+        const sel = document.createElement('select');
+        sel.className = 'blk-select';
+        for (let m = 0; m <= 6; m++) {
+          const opt = document.createElement('option');
+          opt.value = String(m);
+          opt.textContent = String(m);
+          if (Number(block.modValue) === m) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        sel.addEventListener('pointerdown', (e) => e.stopPropagation());
+        sel.addEventListener('change', () => {
+          block.modValue = Number(sel.value);
+          if (opts.onChange) opts.onChange();
+        });
+        labelWrap.appendChild(sel);
       }
-      sel.addEventListener('pointerdown', (e) => e.stopPropagation());
-      sel.addEventListener('change', () => {
-        block.modValue = Number(sel.value);
-        options.onChange();
-      });
-      labelWrap.appendChild(sel);
       addText('> なら');
     } else if (block.type === 'set_color') {
       addText('[今日のラッキーカラー] を');
-      const sel = document.createElement('select');
-      sel.className = 'blk-select';
-      global.UranaiCurriculum.FORTUNE_COLORS.forEach((c) => {
-        const opt = document.createElement('option');
-        opt.value = c.name;
-        opt.textContent = c.emoji + ' ' + c.name;
-        if (block.color === c.name) opt.selected = true;
-        sel.appendChild(opt);
-      });
-      sel.addEventListener('pointerdown', (e) => e.stopPropagation());
-      sel.addEventListener('change', () => {
-        block.color = sel.value;
-        options.onChange();
-      });
-      labelWrap.appendChild(sel);
+      if (readOnly) {
+        const pill = document.createElement('span');
+        pill.className = 'blk-readonly-pill';
+        pill.textContent = block.color;
+        labelWrap.appendChild(pill);
+      } else {
+        const sel = document.createElement('select');
+        sel.className = 'blk-select';
+        global.UranaiCurriculum.FORTUNE_COLORS.forEach((c) => {
+          const opt = document.createElement('option');
+          opt.value = c.name;
+          opt.textContent = c.emoji + ' ' + c.name;
+          if (block.color === c.name) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.addEventListener('pointerdown', (e) => e.stopPropagation());
+        sel.addEventListener('change', () => {
+          block.color = sel.value;
+          if (opts.onChange) opts.onChange();
+        });
+        labelWrap.appendChild(sel);
+      }
       addText('にする');
     }
 
-    const controls = document.createElement('div');
-    controls.className = 'blk-controls';
-
-    const btnUp = document.createElement('button');
-    btnUp.type = 'button';
-    btnUp.className = 'blk-ctrl-btn';
-    btnUp.textContent = '▲';
-    btnUp.title = 'ひとつ上へ';
-    btnUp.addEventListener('pointerdown', (e) => e.stopPropagation());
-    btnUp.addEventListener('click', () => options.onMove(block.id, -1));
-
-    const btnDown = document.createElement('button');
-    btnDown.type = 'button';
-    btnDown.className = 'blk-ctrl-btn';
-    btnDown.textContent = '▼';
-    btnDown.title = 'ひとつ下へ';
-    btnDown.addEventListener('pointerdown', (e) => e.stopPropagation());
-    btnDown.addEventListener('click', () => options.onMove(block.id, 1));
-
-    const btnDel = document.createElement('button');
-    btnDel.type = 'button';
-    btnDel.className = 'blk-ctrl-btn';
-    btnDel.textContent = '✕';
-    btnDel.title = 'このブロックを消す';
-    btnDel.addEventListener('pointerdown', (e) => e.stopPropagation());
-    btnDel.addEventListener('click', () => options.onDelete(block.id));
-
-    controls.appendChild(btnUp);
-    controls.appendChild(btnDown);
-    controls.appendChild(btnDel);
-
     head.appendChild(labelWrap);
-    head.appendChild(controls);
+
+    if (!readOnly) {
+      const controls = document.createElement('div');
+      controls.className = 'blk-controls';
+
+      const btnUp = document.createElement('button');
+      btnUp.type = 'button';
+      btnUp.className = 'blk-ctrl-btn';
+      btnUp.textContent = '▲';
+      btnUp.addEventListener('pointerdown', (e) => e.stopPropagation());
+      btnUp.addEventListener('click', () => opts.onMove && opts.onMove(block.id, -1));
+
+      const btnDown = document.createElement('button');
+      btnDown.type = 'button';
+      btnDown.className = 'blk-ctrl-btn';
+      btnDown.textContent = '▼';
+      btnDown.addEventListener('pointerdown', (e) => e.stopPropagation());
+      btnDown.addEventListener('click', () => opts.onMove && opts.onMove(block.id, 1));
+
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'blk-ctrl-btn';
+      btnDel.textContent = '✕';
+      btnDel.addEventListener('pointerdown', (e) => e.stopPropagation());
+      btnDel.addEventListener('click', () => opts.onDelete && opts.onDelete(block.id));
+
+      controls.appendChild(btnUp);
+      controls.appendChild(btnDown);
+      controls.appendChild(btnDel);
+      head.appendChild(controls);
+
+      if (opts.attachDragStart) {
+        opts.attachDragStart(head, { mode: 'move', blockId: block.id, label: labelWrap.textContent });
+      }
+    }
+
     el.appendChild(head);
 
-    // ドラッグ開始イベント（移動ハンドルまたはブロックヘッダー）
-    options.attachDragStart(head, { mode: 'move', blockId: block.id, label: labelWrap.textContent });
-
-    // ネスト領域
     if (block.type === 'repeat' || block.type === 'if_mod' || block.type === 'if_else_mod') {
-      const nest = renderNestArea(block, 'children', 'このなかに ブロックを入れる', options);
+      const nest = renderNestArea(block, 'children', 'このなかに ブロックを入れる', opts);
       el.appendChild(nest);
 
       if (block.type === 'if_else_mod') {
@@ -402,40 +411,34 @@
         elseLabel.className = 'prog-nest-footer';
         elseLabel.textContent = 'でなければ';
         el.appendChild(elseLabel);
-        const elseNest = renderNestArea(block, 'else', 'ちがうときの ブロックを入れる', options);
+        const elseNest = renderNestArea(block, 'else', 'ちがうときの ブロックを入れる', opts);
         el.appendChild(elseNest);
       }
-
-      const endFoot = document.createElement('div');
-      endFoot.className = 'prog-nest-footer';
-      endFoot.textContent = block.type === 'repeat' ? 'ここまで くり返す' : 'ここまで もし';
-      el.appendChild(endFoot);
     }
 
     return el;
   }
 
-  function renderNestArea(block, slot, titleText, options) {
+  function renderNestArea(block, slot, titleText, opts) {
     const nest = document.createElement('div');
     nest.className = 'prog-nest';
 
-    const hdr = document.createElement('div');
-    hdr.className = 'prog-nest-header';
-    const span = document.createElement('span');
-    span.textContent = titleText;
-    hdr.appendChild(span);
+    if (!opts.readOnly) {
+      const hdr = document.createElement('div');
+      hdr.className = 'prog-nest-header';
+      const span = document.createElement('span');
+      span.textContent = titleText;
+      hdr.appendChild(span);
 
-    // タップ派の児童用：クイック追加ボタン
-    const quickBtn = document.createElement('button');
-    quickBtn.type = 'button';
-    quickBtn.className = 'blk-ctrl-btn';
-    quickBtn.textContent = '+ なかに追加';
-    quickBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
-    quickBtn.addEventListener('click', () => {
-      options.onQuickAddInside(block.id, slot);
-    });
-    hdr.appendChild(quickBtn);
-    nest.appendChild(hdr);
+      const quickBtn = document.createElement('button');
+      quickBtn.type = 'button';
+      quickBtn.className = 'blk-ctrl-btn';
+      quickBtn.textContent = '+ なかに追加';
+      quickBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+      quickBtn.addEventListener('click', () => opts.onQuickAddInside && opts.onQuickAddInside(block.id, slot));
+      hdr.appendChild(quickBtn);
+      nest.appendChild(hdr);
+    }
 
     const dropList = document.createElement('div');
     dropList.className = 'nest-drop-list';
@@ -444,7 +447,7 @@
 
     const listArr = slot === 'else' ? (block.elseChildren || []) : (block.children || []);
     listArr.forEach((child) => {
-      dropList.appendChild(createBlockElement(child, options));
+      dropList.appendChild(createBlockElement(child, opts));
     });
 
     nest.appendChild(dropList);
