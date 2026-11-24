@@ -232,8 +232,11 @@
 
   function isNumExpr(expr, expectedVal) {
     if (!expr || expr.kind !== 'num') return false;
-    if (expectedVal === undefined) return expr.value !== '' && expr.value !== null && !isNaN(Number(expr.value));
-    return Number(expr.value) === Number(expectedVal);
+    const norm = String(expr.value || '').replace(/[０-９．－]/g, (c) =>
+      c === '．' ? '.' : (c === '－' ? '-' : String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    ).trim();
+    if (expectedVal === undefined) return norm !== '' && !isNaN(Number(norm));
+    return Number(norm) === Number(expectedVal);
   }
 
   function isAddOfNameAndDate(expr) {

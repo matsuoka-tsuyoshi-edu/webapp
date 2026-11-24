@@ -5,7 +5,7 @@
   'use strict';
 
   const STORAGE_KEY = 'uranai_app_v2_state';
-  const BUILD_VER = '20261124-12';
+  const BUILD_VER = '20261124-13';
 
   const NgFilter = global.UranaiNgFilter;
   const Sound = global.UranaiSound;

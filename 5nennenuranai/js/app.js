@@ -24,8 +24,8 @@
           type: 'field_dropdown',
           name: 'DIRECTION',
           options: [
-            ['右（とけい回り）', 'RIGHT'],
-            ['左（はんとけい回り）', 'LEFT']
+            ['右 ↻', 'RIGHT'],
+            ['左 ↺', 'LEFT']
           ]
         },
         { type: 'input_value', name: 'DEGREES', check: 'Number' }
@@ -36,7 +36,7 @@
     },
     {
       type: 'custom_repeat',
-      message0: 'くりかえす %1 回 %2 おこなうこと %3',
+      message0: '%1 回くりかえす %2 %3',
       args0: [
         { type: 'input_value', name: 'TIMES', check: 'Number' },
         { type: 'input_dummy' },
@@ -195,17 +195,27 @@
     return App.STEPS.find((s) => s.id === id) || App.STEPS[0];
   }
 
-  // --- 5. Blockly 初期化 ---
+  // --- 5. Blockly 初期化（子どもがつまみやすい大きめサイズ・テーマ） ---
+  const kidsLargeTheme = Blockly.Theme.defineTheme('kidsLargeTheme', {
+    base: Blockly.Themes.Classic,
+    fontStyle: {
+      family: '"Hiragino Maru Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif',
+      weight: 'bold',
+      size: 14
+    }
+  });
+
   const workspace = Blockly.inject('blocklyDiv', {
     toolbox: App.getToolboxXml('step1', false),
     media: './vendor/blockly/media/',
+    theme: kidsLargeTheme,
     scrollbars: true,
     trashcan: true,
     zoom: {
       controls: true,
       wheel: false,
-      startScale: 0.85,
-      maxScale: 1.6,
+      startScale: 1.25,
+      maxScale: 2.2,
       minScale: 0.6,
       scaleSpeed: 1.15
     }

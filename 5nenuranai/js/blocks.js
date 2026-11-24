@@ -183,11 +183,19 @@
   // =========================================================================
   // 式評価＆プログラム実行
   // =========================================================================
+  function toHalfWidthNumbers(str) {
+    return String(str || '').replace(/[０-９．－]/g, (ch) => {
+      if (ch === '．') return '.';
+      if (ch === '－') return '-';
+      return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+    });
+  }
+
   function evalExpr(expr, vars) {
     if (!expr) return null;
     if (expr.kind === 'num') {
       if (expr.value === '' || expr.value === null || expr.value === undefined) return null;
-      const str = String(expr.value).trim();
+      const str = toHalfWidthNumbers(String(expr.value)).trim();
       if (!str) return null;
       if (/^-?\d+(\.\d+)?$/.test(str)) {
         return Number(str);
@@ -377,13 +385,31 @@
       const len = Math.max(3, (inp.value || '').length + 1);
       inp.style.width = Math.min(18, len * 1.1) + 'ch';
     };
-    syncWidth();
-    inp.addEventListener('pointerdown', (e) => e.stopPropagation());
-    inp.addEventListener('focus', () => opts.onSelectSlot(slotPath, slotMode, true));
-    inp.addEventListener('input', () => {
+    const commitHalfWidth = () => {
+      const converted = toHalfWidthNumbers(inp.value);
+      if (inp.value !== converted) {
+        inp.value = converted;
+      }
       syncWidth();
       opts.onUpdateNumSlot(slotPath, inp.value);
+    };
+    syncWidth();
+    let isComposing = false;
+    inp.addEventListener('pointerdown', (e) => e.stopPropagation());
+    inp.addEventListener('focus', () => opts.onSelectSlot(slotPath, slotMode, true));
+    inp.addEventListener('compositionstart', () => { isComposing = true; });
+    inp.addEventListener('compositionend', () => {
+      isComposing = false;
+      commitHalfWidth();
     });
+    inp.addEventListener('input', (e) => {
+      if (isComposing || (e && e.isComposing)) {
+        syncWidth();
+        return;
+      }
+      commitHalfWidth();
+    });
+    inp.addEventListener('blur', commitHalfWidth);
     hole.addEventListener('click', (e) => {
       if (e.target !== inp) {
         opts.onSelectSlot(slotPath, slotMode);
@@ -427,18 +453,21 @@
         labelWrap.appendChild(p);
       } else {
         const inp = document.createElement('input');
-        inp.type = 'number';
+        inp.type = 'text';
+        inp.inputMode = 'numeric';
         inp.className = 'scratch-hole-input is-inline-num';
-        inp.min = 1;
-        inp.max = 20;
         inp.value = String(block.count);
         inp.addEventListener('pointerdown', (e) => e.stopPropagation());
-        inp.addEventListener('change', () => {
-          let v = Math.max(1, Math.min(20, Math.round(Number(inp.value) || 5)));
+        const normalizeRepeat = () => {
+          const half = toHalfWidthNumbers(inp.value).replace(/[^0-9]/g, '');
+          let v = Math.max(1, Math.min(20, Math.round(Number(half) || 5)));
           inp.value = String(v);
           block.count = v;
           if (opts.onChange) opts.onChange();
-        });
+        };
+        inp.addEventListener('compositionend', normalizeRepeat);
+        inp.addEventListener('change', normalizeRepeat);
+        inp.addEventListener('blur', normalizeRepeat);
         labelWrap.appendChild(inp);
       }
       addTxt('回くり返す');

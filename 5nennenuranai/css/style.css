@@ -241,7 +241,7 @@ header {
 
 /* 左ペイン（ミッション + Blockly） */
 #workspace-pane {
-  flex: 62;
+  flex: 64;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -328,8 +328,8 @@ header {
 
 /* 右ペイン（ステージ） */
 #stage-pane {
-  flex: 38;
-  min-width: 270px;
+  flex: 36;
+  min-width: 260px;
   background-color: #f8fafc;
   border-left: 3px solid #cbd5e1;
   display: flex;
