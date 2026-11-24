@@ -218,8 +218,8 @@
       lastTouchEnd = now;
     }, { passive: false });
 
-    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.5.1)
-    const APP_VERSION = "3.5.1";
+    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.6.0)
+    const APP_VERSION = "3.6.0";
 
     async function clearAllAppCaches() {
       try {
@@ -308,7 +308,7 @@
 
   <!-- Floating Controls (Version Badge, Force Cache Reload & Sound) -->
   <div class="fixed top-3 right-3 z-40 flex items-center space-x-2">
-    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.5.1</span>
+    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.6.0</span>
     <button onclick="forceReloadLatestHost()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-yellow text-base neo-button hover:bg-slate-800" title="キャッシュを削除して最新版に更新">
       <i class="fa-solid fa-rotate"></i>
     </button>
@@ -1005,6 +1005,9 @@
     </div>
   </div>
 
+  <!-- サンプルライブラリ オフライン/ローカル用フォールバックバンドル -->
+  <script src="sample/sample_bundle.js?v=3.6.0"></script>
+
   <!-- JAVASCRIPT APP LOGIC -->
   <script>
     // ==========================================
@@ -1049,1146 +1052,11 @@
 
 
     // =========================================================================
-    // ★ サンプル問題ライブラリ（校種・教科・単元から選べる豊富な公式セット）
+    // ★ サンプル問題ライブラリ（外部 sample/ フォルダ JSON 動的ロード方式）
     // =========================================================================
-    const SAMPLE_QUESTION_LIBRARY = [
-  {
-    "id": "jh-health-set1",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "health",
-    "subjectName": "保健体育",
-    "topic": "心身の発達と心の健康",
-    "title": "セット1: 成長の急加速！「発育急進期」のひみつ",
-    "description": "身長や体重が急激に伸びる発育急進期、成長の個人差、脳や神経の発達についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "生まれてから大人になるまでに、身長や体重が急激に発育する時期は一生のうち何回あるでしょう？",
-        "options": [
-          "1回だけ",
-          "2回ある",
-          "3回ある",
-          "毎年ずっと一定"
-        ],
-        "correct": 2,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "人間には身長や体重が急激に伸びる「発育急進期」が2回あります。1回目は乳児期（生後1年）、2回目は中学生前後の「思春期（第2発育急進期）」です！"
-      },
-      {
-        "id": 2,
-        "type": "2choice",
-        "question": "思春期（第2発育急進期）が始まる時期や成長のスピードには、一人ひとり「個人差」がある。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "正解！思春期の成長が早く始まる人もいればゆっくり進む人もいます。背の伸び方や体の変化には大きな個人差があるため、人と比べすぎないことが大切です。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "脳や脊髄などの「神経系」は、思春期にはすでに大人とほぼ同じレベルまで発育が進んでいる。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "正解！脳や脊髄などの神経系は幼児期から急速に発達し、思春期の頃には大人とほぼ同じ（約100%）まで発達が完了しています。"
-      }
-    ]
-  },
-  {
-    "id": "jh-health-set2",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "health",
-    "subjectName": "保健体育",
-    "topic": "心身の発達と心の健康",
-    "title": "セット2: 肺と心臓のパワーアップ！「呼吸器と循環器」",
-    "description": "肺活量の増大、心臓の働き、脈拍数の変化など呼吸器・循環器の発達についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "呼吸器（鼻・のど・気管・肺など）の発達によって起こる体の変化として、正しいものはどれ？",
-        "options": [
-          "1回の呼吸で吸える肺活量が増大する",
-          "安静時の呼吸数が大幅に増える",
-          "少し歩いただけで息切れする",
-          "肺の容積が小さくなる"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "呼吸器が発達すると、肺活量（1回に吸い込める空気の量）がグンと増大し、安静時の呼吸数はかえって減少して効率の良い呼吸ができるようになります。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "血液を全身の血管へ力強く送り出す「循環器」の中心となる臓器は次のうちどれ？",
-        "options": [
-          "心臓（しんぞう）",
-          "胃（い）",
-          "肝臓（かんぞう）",
-          "腎臓（じんぞう）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "循環器は心臓と血管（動脈・静脈・毛細血管）から成ります。心臓が力強いポンプとして収縮することで、酸素や栄養を乗せた血液が全身へ循環します。"
-      },
-      {
-        "id": 3,
-        "type": "4choice",
-        "question": "思春期に心臓や血管などの循環器が発達すると、安静時の「脈拍数」はどう変化するでしょう？",
-        "options": [
-          "脈拍数が少なくなる",
-          "脈拍数が多くなる",
-          "脈拍数がゼロになる",
-          "一生まったく変わらない"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "心臓が大きく強く育ち、1回の拍動で送り出せる血液量（拍出量）が増えるため、安静時の脈拍数（1分間の心拍数）は少なくなっていきます。"
-      }
-    ]
-  },
-  {
-    "id": "jh-health-set3",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "health",
-    "subjectName": "保健体育",
-    "topic": "心身の発達と心の健康",
-    "title": "セット3: 体力を高める！「思春期の運動と持久力」",
-    "description": "持久力を伸ばす最適期、運動強度の目安、「少しきつい」運動の継続についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "思春期は、呼吸器や循環器の機能を高めるある体力を伸ばすのに最も適した時期です。その体力とは？",
-        "options": [
-          "持久力（スタミナ）",
-          "握力（あくりょく）",
-          "体の柔軟性",
-          "瞬間的な視力"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "思春期は肺や心臓が著しく成長するため、長く運動を続ける「持久力（全身持久力）」を高めるのに一生の中で最も適したゴールデンエイジです！"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "思春期に持久力を効果的に高める運動の強さ（強度）の目安として、最も適切なものはどれ？",
-        "options": [
-          "「少しきつい」と感じる程度",
-          "まったく疲れない散歩程度",
-          "息が完全に止まる限界の運動",
-          "1秒で倒れる全速力"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "脈拍が適度に上がり、「少しきついな」と感じる程度の有酸素運動（ジョギング、水泳、球技など）を続けることが、心肺機能の向上に最も効果的です。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "運動の効果を高めるためには、たまに激しい運動をするよりも「継続的」に行うことが大切である。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "正解！たまに無理な運動をするよりも、週に数回など継続して運動習慣をつけることで、呼吸器や循環器の機能が着実に高まります。"
-      }
-    ]
-  },
-  {
-    "id": "jh-health-set4",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "health",
-    "subjectName": "保健体育",
-    "topic": "心身の発達と心の健康",
-    "title": "セット4: 体の変化の司令塔！「ホルモンと生殖器官」",
-    "description": "下垂体からの性腺刺激ホルモン、精巣と卵巣の発達についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "思春期になると、脳の底にあるどこから「性腺刺激ホルモン」が分泌され始めるでしょう？",
-        "options": [
-          "下垂体（かすいたい）",
-          "小脳（しょうのう）",
-          "延髄（えんずい）",
-          "眼球（がんきゅう）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "脳の「下垂体」から性腺刺激ホルモンが血液中へ分泌され、それが精巣や卵巣を刺激して大人の体への成熟をスタートさせます。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "男子の生殖器官で、精子をつくり男性ホルモンを活発に分泌する器官はどこ？",
-        "options": [
-          "精巣（せいそう）",
-          "前立腺（ぜんりつせん）",
-          "膀胱（ぼうこう）",
-          "胆のう（たんのう）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "下垂体の刺激によって「精巣」が発達し、精子がつくられ始めるとともに、男性ホルモンの働きで声変わりや筋肉の発達など男性らしい体つきになります。"
-      },
-      {
-        "id": 3,
-        "type": "4choice",
-        "question": "女子の生殖器官で、卵子を成熟させ女性ホルモンを活発に分泌する器官はどこ？",
-        "options": [
-          "卵巣（らんそう）",
-          "子宮（しきゅう）",
-          "胃（い）",
-          "気管支（きかんし）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "「卵巣」が発達して卵子が成熟するようになり、女性ホルモンの働きによって乳房の発達や皮下脂肪の増加など女性らしい丸みのある体つきになります。"
-      }
-    ]
-  },
-  {
-    "id": "jh-health-set5",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "health",
-    "subjectName": "保健体育",
-    "topic": "心身の発達と心の健康",
-    "title": "セット5: 生命をつなぐリズム！「排卵と月経」",
-    "description": "成熟した卵子の排卵、子宮内膜と月経の仕組み、成熟の個人差についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "卵巣の中で成熟した卵子が、周期的に卵巣の外（卵管）へ押し出される現象を何という？",
-        "options": [
-          "排卵（はいらん）",
-          "着床（ちゃくしょう）",
-          "射精（しゃせい）",
-          "消化（しょうか）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "約1か月に1回、成熟した卵子が卵巣の壁を破って卵管へと飛び出す現象を「排卵」と呼びます。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "受精しなかったとき、充血して厚くなった子宮内膜がはがれ落ちて血液とともに体外へ出る現象は？",
-        "options": [
-          "月経（げっけい）",
-          "排卵（はいらん）",
-          "着床（ちゃくしょう）",
-          "授乳（じゅにゅう）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "受精卵を迎えるために厚く準備された子宮内膜が、妊娠しなかった場合に不要となり剥がれて体外へ排出されるのが「月経（生理）」です。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "思春期の前半はホルモンの分泌がまだ不安定なため、月経の周期や射精の時期が不規則でも心配しすぎる必要はない。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "正解！思春期の生殖機能は完成へと向かう途中のため、周期が乱れるのはごく自然なことです。体が成長するにつれて次第にリズムが安定していきます。"
-      }
-    ]
-  },
-  {
-    "id": "jh-health-set6",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "health",
-    "subjectName": "保健体育",
-    "topic": "心身の発達と心の健康",
-    "title": "セット6: 命の誕生の奇跡！「受精から妊娠へ」",
-    "description": "精子と卵子の受精、受精卵の着床、母体内での妊娠についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "射精された精子が子宮を通って卵管へ進み、卵子と1つに結びつくことを何という？",
-        "options": [
-          "受精（じゅせい）",
-          "排卵（はいらん）",
-          "着床（ちゃくしょう）",
-          "分娩（ぶんべん）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "数億個の精子の中からたった1つの精子が卵子と結合することを「受精」といい、ここから新しい生命の設計図が動き出します。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "細胞分裂を繰り返しながら移動した受精卵が、子宮内膜の中に潜り込んで定着することを何という？",
-        "options": [
-          "着床（ちゃくしょう）",
-          "受精（じゅせい）",
-          "射精（しゃせい）",
-          "排卵（はいらん）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "受精卵が子宮の内側にしっかりと根を下ろすように定着することを「着床」といい、着床が完了した時点で「妊娠」が成立します。"
-      },
-      {
-        "id": 3,
-        "type": "4choice",
-        "question": "着床が完了してから赤ちゃんが生まれるまでの、母体内に胎児が宿って育っている状態を何という？",
-        "options": [
-          "妊娠（にんしん）",
-          "受胎（じゅたい）",
-          "着床（ちゃくしょう）",
-          "思春期（ししゅんき）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "母体の中で胎児を育てる状態を「妊娠」と呼びます。胎児は約38週（約9〜10か月）かけて母体から酸素や栄養をもらいながら成長します。"
-      }
-    ]
-  },
-  {
-    "id": "jh-health-set7",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "health",
-    "subjectName": "保健体育",
-    "topic": "心身の発達と心の健康",
-    "title": "セット7: こころの成長！「性意識と人間関係」",
-    "description": "性意識の芽生え、性的欲求の自然な理解、適切な情報の選択と相談についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "思春期になると、身体の発達に伴って異性への関心や好意を持つなど、心にある変化が現れます。これを何という？",
-        "options": [
-          "性意識（せいいしき）",
-          "運動能力",
-          "基礎代謝",
-          "知能指数"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "異性を意識したり特別な好意を抱くようになる心の働きを「性意識」と呼びます。これも思春期を迎えた誰にでも起こる自然な成長の表れです。"
-      },
-      {
-        "id": 2,
-        "type": "2choice",
-        "question": "思春期に性的な関心や性的欲求が高まることは、人間として恥ずかしい異常なことである。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 2,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "誤り（×）です！性的な関心や欲求が生じるのは、ホルモンの働きによる成熟の証拠であり、ごく自然なことです。大切なのは相手を尊重し適切な行動をとることです。"
-      },
-      {
-        "id": 3,
-        "type": "4choice",
-        "question": "ネットやSNSなどの性情報に対処するとき、最も適切な態度は次のうちどれ？",
-        "options": [
-          "正しい情報を選択し、信頼できる大人に相談する",
-          "ネットや友達の噂話をすべて信じる",
-          "誰にも言えない秘密として一人で抱え込む",
-          "興味本位であやしい広告やリンクを開く"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "ネット上には誤った情報や危険な情報も混ざっています。科学的で正しい情報を選択し、不安や悩みがあれば保護者や先生、専門の相談窓口を頼りましょう。"
-      }
-    ]
-  },
-  {
-    "id": "jh-health-set8",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "health",
-    "subjectName": "保健体育",
-    "topic": "心身の発達と心の健康",
-    "title": "セット8: こころの司令塔！「脳の働きと心の健康」",
-    "description": "大脳の知的能力、経験による情意機能の発達、心の健康の調和についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "言葉を使う・記憶する・理解する・論理的に判断するなど、高度な「知的能力」を司る脳の器官はどこ？",
-        "options": [
-          "大脳（だいのう）",
-          "小脳（しょうのう）",
-          "延髄（えんずい）",
-          "脊髄（せきずい）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "大脳（大脳皮質）は、思考、学習、記憶、言葉、判断など、人間らしい高度な知的能力のすべてをコントロールしている中枢です。"
-      },
-      {
-        "id": 2,
-        "type": "2choice",
-        "question": "喜怒哀楽などの感情や意欲などの情意機能は、生まれつき決まっていて成長しても変化しない。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 2,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "誤り（×）です！感情や意欲などの情意機能は、読書や友達との関わり、成功や失敗といったさまざまな「経験」や「学習」を通して豊かに発達していきます。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "「心の健康」を保つためには、知的能力・情意機能・社会性の働きがバランスよく調和することが大切である。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "正解！正しい知識（知的能力）、思いやりや意欲（情意機能）、ルールを守り人と協調する力（社会性）がバランスよく働くことで、心が健康に保たれます。"
-      }
-    ]
-  },
-  {
-    "id": "jh-health-set9",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "health",
-    "subjectName": "保健体育",
-    "topic": "心身の発達と心の健康",
-    "title": "セット9: おとなへのステップ！「思春期の特徴と自己形成」",
-    "description": "精神的自立、親への反抗や葛藤、自立に向けた歩みについての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "大人の保護に依存していた状態から抜け出し、自分自身の考えや責任で行動しようとすることを何という？",
-        "options": [
-          "自立（じりつ）",
-          "孤立（こりつ）",
-          "退行（たいこう）",
-          "反動（はんどう）"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "思春期は「精神的自立」を始める大切な時期です。自分で考え、自分の責任で判断して行動できる大人へと少しずつ歩みを進めていきます。"
-      },
-      {
-        "id": 2,
-        "type": "2choice",
-        "question": "思春期に親や先生に対して口答えしたり反抗的な態度をとってしまうのは、自立に向けた自然な葛藤の表れである。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "正解！自立したいという気持ちと、まだ甘えたい依存心が心の中でぶつかり合い、口答えや反抗として表れやすくなります。これも大人の階段を登る自然な過程です。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "中学生になれば、何の努力や経験もなくても誰でも簡単に自動的に自立できる。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 2,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "誤り（×）です！自立は年齢が上がれば勝手にできるものではなく、日々の生活経験や失敗、友人や周囲の人との関わりを通して少しずつ身についていくものです。"
-      }
-    ]
-  },
-  {
-    "id": "jh-health-set10",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "health",
-    "subjectName": "保健体育",
-    "topic": "心身の発達と心の健康",
-    "title": "セット10: 総まとめ！「思春期マスター総合クイズ」",
-    "description": "成長の個人差の尊重、生活習慣の基本、相談の大切さについての総まとめ3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "2choice",
-        "question": "思春期の身体や心の発育スピードには大きな「個人差」があるため、他人と違っていても焦ったり劣等感を持つ必要はない。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "正解！成長の早い・遅いは一人ひとり違います。自分の個性を受け止め、お互いの成長の違いを認め合って尊重することが大切です。"
-      },
-      {
-        "id": 2,
-        "type": "2choice",
-        "question": "思春期の心身の健康を支える基本は、「バランスの良い食事」「適度な運動」「十分な睡眠・休養」の3つである。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "正解！急速に身体が大きくなり、勉強や部活でエネルギーを使う思春期だからこそ、食事・運動・睡眠の基本的生活習慣が健康な成長の土台になります。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "悩みや不安、希望などを何でも相談できる親友や、信頼できる大人を持つことは心の健康に役立つ。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学生の保健",
-        "explanation": "正解！思春期は心に悩みや不安を抱えやすい時期です。自分の思いを話せる友人や、家族・先生・相談員など信頼できる大人を持つことが大きな支えになります。"
-      }
-    ]
-  },
-  {
-    "id": "jh-history-set1",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "social",
-    "subjectName": "社会（歴史）",
-    "topic": "1. 古代（縄文〜平安）",
-    "title": "セット1: 縄文・弥生・古墳時代",
-    "description": "縄文土器と弥生土器の違い、稲作の始まり、大仙陵古墳などの古墳時代についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "約1万数千年前から始まった縄文時代の人々が、煮炊きや貯蔵に使った土器の特徴として正しいものはどれでしょう？",
-        "options": [
-          "表面になわの目などの文様があり、厚手で黒っぽい",
-          "うす手でかたく、赤褐色でなめらかな表面",
-          "ろくろを使って高温で焼いた青白い磁器",
-          "ガラスのうわぐすりを塗ったカラフルな陶器"
-        ],
-        "correct": 1,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "縄文土器は低い温度で焼かれたため厚手で黒っぽく、表面に縄目の文様（縄文）があるのが特徴です。弥生時代になると、うす手でかたい弥生土器が使われるようになります。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "弥生時代に大陸から伝わり、人々の定住や貧富の差・身分の違いを生む大きなきっかけとなったものは何でしょう？",
-        "options": [
-          "牛や馬を使った牧畜",
-          "水田での稲作（米づくり）",
-          "鉄砲を使った狩り",
-          "貨幣を使った商業"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "弥生時代に水田での稲作が広まると、収穫したお米を貯蔵できるようになりました。その結果、食料や土地をめぐる争いや貧富の差が生まれ、やがて小さな「クニ」ができていきました。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "古墳時代に造られた「前方後円墳」の代表例である大仙陵古墳（仁徳天皇陵古墳）は、大阪府堺市にある日本最大の古墳である。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学社会・歴史",
-        "explanation": "正解！鍵穴のような形をした前方後円墳は、大和政権（ヤマト王権）の強い権力を示すシンボルでした。中でも大阪府堺市の大仙陵古墳は、世界最大級の墳墓の一つです。"
-      }
-    ]
-  },
-  {
-    "id": "jh-history-set2",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "social",
-    "subjectName": "社会（歴史）",
-    "topic": "1. 古代（縄文〜平安）",
-    "title": "セット2: 飛鳥時代（聖徳太子と大化の改新）",
-    "description": "聖徳太子の政治（冠位十二階・十七条の憲法）、法隆寺、大化の改新についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "推古天皇の摂政として活躍した聖徳太子が、家柄にとらわれず能力のある人を役人に登用するために定めた制度は何でしょう？",
-        "options": [
-          "班田収授法",
-          "冠位十二階",
-          "武家諸法度",
-          "太閤検地"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "「冠位十二階」は、冠の色で12の位を表し、有力豪族だけでなく才能ある人物を取り立てる仕組みでした。同じころ「十七条の憲法」も定めて役人の心構えを示しました。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "645年、中大兄皇子と中臣鎌足らが蘇我氏を倒し、天皇中心の国づくりを目指して始めた政治改革を何というでしょう？",
-        "options": [
-          "大化の改新",
-          "建武の新政",
-          "享保の改革",
-          "明治維新"
-        ],
-        "correct": 1,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "645年に始まった「大化の改新」では、土地と人民をすべて国のものとする「公地公民」の原則が打ち出されました。日本で最初の年号「大化」が使われたことでも有名です。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "聖徳太子が建てたとされる奈良県の「法隆寺」は、現在残っている木造建築としては世界最古の建物である。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学社会・歴史",
-        "explanation": "正解！法隆寺の五重塔や金堂などは飛鳥時代の建築様式を今に伝える「世界最古の木造建築群」であり、1993年に日本で初めてユネスコの世界文化遺産に登録されました。"
-      }
-    ]
-  },
-  {
-    "id": "jh-history-set3",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "social",
-    "subjectName": "社会（歴史）",
-    "topic": "1. 古代（縄文〜平安）",
-    "title": "セット3: 奈良時代（平城京と天平文化）",
-    "description": "平城京の誕生、聖武天皇と東大寺の大仏、墾田永年私財法についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "710年、唐の長安をモデルにして現在の奈良県に造られた都を何というでしょう？",
-        "options": [
-          "藤原京",
-          "平城京",
-          "平安京",
-          "鎌倉"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "「なんと（710）立派な平城京」の語呂合わせで有名な平城京です！ちなみに794年に移された京都の都が「平安京（なくよ794うぐいす平安京）」です。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "奈良時代、飢きんや疫病から国を守るために「仏教の力」に頼ろうとした聖武天皇が、奈良の都に造らせたものは何でしょう？",
-        "options": [
-          "東大寺の大仏",
-          "平等院鳳凰堂",
-          "金閣寺",
-          "厳島神社"
-        ],
-        "correct": 1,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "聖武天皇は全国に国分寺・国分尼寺を建てさせ、その中心として奈良の東大寺に巨大な大仏（盧舎那仏）を造りました。行基などの協力もあり、752年に大仏開眼供養が行われました。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "743年に朝廷が出した「墾田永年私財法」により、自分で新しく開墾した土地は、一生だけでなく永久に自分の土地（私有地）にできるようになった。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学社会・歴史",
-        "explanation": "正解！口分田が不足したため、開墾を奨励する目的で「墾田永年私財法」が出されました。これにより貴族や寺社が広大な私有地（荘園）を持つようになり、公地公民の仕組みが崩れていきました。"
-      }
-    ]
-  },
-  {
-    "id": "jh-history-set4",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "social",
-    "subjectName": "社会（歴史）",
-    "topic": "1. 古代（縄文〜平安）",
-    "title": "セット4: 平安時代（国風文化と武士の台頭）",
-    "description": "藤原氏の摂関政治、かな文字と国風文化、平清盛などの武士の台頭についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "平安時代の中ごろ、天皇が幼いときは「摂政」、成人してからは「関白」となって政治の実権をにぎり、全盛期を築いた一族はどれでしょう？",
-        "options": [
-          "蘇我氏",
-          "藤原氏",
-          "平氏",
-          "源氏"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "藤原道長・頼通の父子の時代に摂関政治は絶頂期を迎えました。道長が詠んだ「この世をば わが世とぞ思ふ 望月の…」の歌はとても有名ですね。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "平安時代に日本独自の「かな文字」が広まり、紫式部の『源氏物語』や清少納言の『枕草子』などが生まれた文化を何というでしょう？",
-        "options": [
-          "天平文化",
-          "国風文化",
-          "北山文化",
-          "元禄文化"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "遣唐使の廃止（894年）後、唐の文化をそのまま真似るのではなく、日本の風土や生活に合った優雅な「国風文化」が花開きました。十二単や寝殿造もこの時代の特徴です。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "平安時代の終わりごろ、武士として初めて太政大臣にまで出世し、日宋貿易で大きな利益を上げたのは「源頼朝」である。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 2,
-        "timeLimit": 10,
-        "category": "中学社会・歴史",
-        "explanation": "ひっかけ問題！武士として初めて太政大臣になり日宋貿易を進めたのは「平清盛（たいらのきよもり）」です。その後、壇ノ浦の戦いで平氏を滅ぼして鎌倉幕府を開いたのが源頼朝です。"
-      }
-    ]
-  },
-  {
-    "id": "jh-history-set5",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "social",
-    "subjectName": "社会（歴史）",
-    "topic": "2. 中世（鎌倉〜室町）",
-    "title": "セット5: 鎌倉時代（幕府の成立と元寇）",
-    "description": "源頼朝の鎌倉幕府、守護と地頭、御成敗式目、2度の元寇についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "鎌倉幕府を開いた源頼朝が、国ごとに置いて治安維持にあたらせた役職と、荘園・公領ごとに置いて税の取り立てをさせた役職の組み合わせはどれでしょう？",
-        "options": [
-          "国司と郡司",
-          "守護と地頭",
-          "大老と老中",
-          "摂政と関白"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "頼朝は全国の国に「守護」、荘園や公領に「地頭」を配置し、御家人との間に「ご恩と奉公」という主従関係を結びました。これが武家政治の本格的な始まりです。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "1232年、第3代執権の北条泰時が、裁判の公平さを保つために定めた武家社会で最初の成文法（ルールブック）を何というでしょう？",
-        "options": [
-          "十七条の憲法",
-          "大宝律令",
-          "御成敗式目（貞永式目）",
-          "武家諸法度"
-        ],
-        "correct": 3,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "それまでの朝廷の法律ではなく、武士の間の道徳や慣習をまとめた全51か条の「御成敗式目」が制定されました。このルールは後の江戸時代まで長く手本とされました。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "13世紀後半にモンゴル帝国（元）が2度にわたって日本に攻めてきた「元寇（文永の役・弘安の役）」では、御家人たちの防戦や暴風雨により撃退することができた。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学社会・歴史",
-        "explanation": "正解！石塁（防塁）を築いた武士たちの防戦と、暴風雨による元軍の撤退により日本を守り抜きました。しかし新しい領地が増えなかったため恩賞が不足し、幕府が衰退する原因となりました。"
-      }
-    ]
-  },
-  {
-    "id": "jh-history-set6",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "social",
-    "subjectName": "社会（歴史）",
-    "topic": "2. 中世（鎌倉〜室町）",
-    "title": "セット6: 室町時代（金閣・銀閣と下剋上）",
-    "description": "足利義満の勘合貿易・北山文化、応仁の乱、東山文化（銀閣）についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "第3代将軍の足利義満が、倭寇（海賊）と区別するための「勘合（合い札）」を使って行った中国（明）との貿易を何というでしょう？",
-        "options": [
-          "日宋貿易",
-          "勘合貿易（日明貿易）",
-          "南蛮貿易",
-          "朱印船貿易"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "明との正式な貿易船であることを証明する「勘合」を持たせたことから「勘合貿易」と呼ばれます。これにより莫大な利益を得た義満は、京都に金閣（鹿苑寺）を建てました。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "1467年、将軍の後継ぎ争いなどをきっかけに京都で始まり、約11年間も続いて京都を焼け野原にした大きな戦乱は何でしょう？",
-        "options": [
-          "承久の乱",
-          "応仁の乱",
-          "島原・天草一揆",
-          "壬申の乱"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "「人の世むな（1467）しい応仁の乱」で覚えやすい大乱です。この戦乱によって幕府の権威は大きく下がり、実力のある者が上の者を倒す「下剋上」の戦国時代へと突入していきました。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "第8代将軍の足利義政が建てた「銀閣」を中心とする東山文化からは、今日の茶道や生け花（華道）、書院造などにつながる日本の伝統文化が多く生まれた。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学社会・歴史",
-        "explanation": "正解！金閣の豪華な「北山文化」に対し、銀閣の「東山文化」はわび・さびを大切にする落ち着いた文化で、現在の和室（畳・障子・床の間がある書院造）の原型が完成しました。"
-      }
-    ]
-  },
-  {
-    "id": "jh-history-set7",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "social",
-    "subjectName": "社会（歴史）",
-    "topic": "3. 近世（安土桃山〜江戸）",
-    "title": "セット7: 安土桃山時代（信長・秀吉の天下統一）",
-    "description": "織田信長の楽市・楽座、豊臣秀吉の太閤検地・刀狩、鉄砲・キリスト教伝来についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "織田信長が安土城の城下町などで、商工業者の組合である「座」の独占権をなくし、自由な商売を認めた政策を何というでしょう？",
-        "options": [
-          "楽市・楽座",
-          "株仲間の解散",
-          "版籍奉還",
-          "殖産興業"
-        ],
-        "correct": 1,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "信長は「楽市・楽座」によって市場の税や関所をなくし、商業を活発にして経済力を大きく伸ばしました。また鉄砲を組織的に活用して長篠の戦いに勝利したことも有名です。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "豊臣秀吉が全国の田畑の広さや土地のよしあしを統一の基準（京枡など）で調べ、年貢の基準となる収穫高を「石高」で表した政策は何でしょう？",
-        "options": [
-          "地租改正",
-          "太閤検地",
-          "班田収授法",
-          "田沼の政治"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "「太閤検地」によって耕作者が検地帳に登録され、同時に実施した「刀狩」と合わせて、武士と農民の身分を厳しく分ける「兵農分離」が完成しました。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "1543年にポルトガル人が種子島に「鉄砲」を伝えた後、1549年にはフランシスコ・ザビエルによって日本にキリスト教が伝えられた。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学社会・歴史",
-        "explanation": "正解！「いごよ（1543）く伝わる鉄砲」「いごよ（1549）く広まるキリスト教」の順です。これらをきっかけにヨーロッパの人々（南蛮人）との「南蛮貿易」が盛んになりました。"
-      }
-    ]
-  },
-  {
-    "id": "jh-history-set8",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "social",
-    "subjectName": "社会（歴史）",
-    "topic": "3. 近世（安土桃山〜江戸）",
-    "title": "セット8: 江戸時代（幕藩体制・鎖国・開国）",
-    "description": "参勤交代、鎖国と長崎出島の貿易、ペリー来航による開国についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "江戸幕府の第3代将軍・徳川家光が大名たちを従わせるために義務づけた、1年おきに江戸と自分の領地を行き来させる制度を何というでしょう？",
-        "options": [
-          "武家諸法度の廃止",
-          "参勤交代",
-          "廃藩置県",
-          "五街道の閉鎖"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "大名に妻子を江戸に住まわせ、莫大な費用がかかる行列で往復させる「参勤交代」により、大名が幕府に反抗する力を弱めました。一方で街道や宿場町が発達するきっかけにもなりました。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "鎖国中も、幕府が長崎の出島に貿易を許したヨーロッパの国はどこでしょう？（中国と合わせて2か国のみ貿易）",
-        "options": [
-          "ポルトガル",
-          "スペイン",
-          "オランダ",
-          "イギリス"
-        ],
-        "correct": 3,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "キリスト教を広めずに貿易だけを行うと約束した「オランダ」と「中国（清）」の船だけが長崎での貿易を許されました。その他、朝鮮・琉球王国・アイヌの人々とも交流を続けていました。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "1853年、アメリカ合衆国のペリーが黒船を率いて浦賀に現れ、日本に開国を求めた結果、翌年に日米和親条約が結ばれて鎖国が終わった。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学社会・歴史",
-        "explanation": "正解！1854年の「日米和親条約」で下田と函館の2港を開き、さらに1858年の「日米修好通商条約」で自由貿易が始まりましたが、関税自主権がないなどの不平等条約でした。"
-      }
-    ]
-  },
-  {
-    "id": "jh-history-set9",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "social",
-    "subjectName": "社会（歴史）",
-    "topic": "4. 近代・現代（明治〜現代）",
-    "title": "セット9: 明治〜大正時代（近代国家とデモクラシー）",
-    "description": "大日本帝国憲法、大正デモクラシーと普通選挙法、明治維新の大改革についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "1889年、アジアで最初の近代憲法として発布され、翌年の第1回帝国議会開設へとつながった憲法は何でしょう？",
-        "options": [
-          "日本国憲法",
-          "大日本帝国憲法",
-          "五箇条の御誓文",
-          "憲法十七条"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "伊藤博文らが中心となってプロイセン（ドイツ）の憲法を参考に作成した「大日本帝国憲法」が発布され、日本は立憲主義の国となりました。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "大正時代、国民が自由や権利を求めて盛り上がった「大正デモクラシー」の流れの中で、1925年に成立した選挙に関する法律はどれでしょう？",
-        "options": [
-          "男女雇用機会均等法",
-          "農地改革法",
-          "普通選挙法（満25歳以上の男子に選挙権）",
-          "学制"
-        ],
-        "correct": 3,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "納税額による制限をなくし、満25歳以上のすべての男子に選挙権を与えた「普通選挙法」が1925年に成立しました。（※同じ年に社会主義運動などを取り締まる治安維持法も作られました）"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "明治時代、新政府が近代化を進めるために「廃藩置県」「学制」「徴兵令」「地租改正」などの大改革を行い、富国強兵と殖産興業を目指した。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学社会・歴史",
-        "explanation": "正解！これらの「明治維新」の改革と、官営模範工場の代表である富岡製糸場の設立などにより、日本は急速に近代産業国家へと発展していきました。"
-      }
-    ]
-  },
-  {
-    "id": "jh-history-set10",
-    "school": "jh",
-    "schoolName": "中学校",
-    "subject": "social",
-    "subjectName": "社会（歴史）",
-    "topic": "4. 近代・現代（明治〜現代）",
-    "title": "セット10: 昭和〜現代（戦後復興と現代の日本）",
-    "description": "日本国憲法の三大原則、国際連合への加盟と高度経済成長、沖縄本土復帰についての3問。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "1946年に公布され、翌年5月3日に施行された「日本国憲法」の三大原則の組み合わせとして正しいものはどれでしょう？",
-        "options": [
-          "国民主権・基本的人権の尊重・平和主義",
-          "公地公民・富国強兵・殖産興業",
-          "三権分立・鎖国・武家政治",
-          "自由放任・重商主義・保護貿易"
-        ],
-        "correct": 1,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "「国民主権」「基本的人権の尊重」「平和主義」が日本国憲法の三大原則です！ちなみに公布日の11月3日は「文化の日」、施行日の5月3日は「憲法記念日」になっています。"
-      },
-      {
-        "id": 2,
-        "type": "4choice",
-        "question": "日本が国際社会への復帰を果たした1956年（昭和31年）に、日本が加盟を認められた世界最大の国際組織は何でしょう？",
-        "options": [
-          "国際連盟",
-          "国際連合（国連）",
-          "欧州連合（EU）",
-          "東南アジア諸国連合（ASEAN）"
-        ],
-        "correct": 2,
-        "timeLimit": 12,
-        "category": "中学社会・歴史",
-        "explanation": "1956年に日ソ共同宣言によってソ連と国交を回復したことで、日本は国際連合（UN）への加盟が認められました。その後、1964年には東京オリンピックや新幹線開通とともに高度経済成長が進みました。"
-      },
-      {
-        "id": 3,
-        "type": "2choice",
-        "question": "1972年5月15日、第二次世界大戦後からアメリカの統治下にあった沖縄が日本に返還（本土復帰）された。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "中学社会・歴史",
-        "explanation": "正解！佐藤栄作首相らの交渉により、1972年に沖縄の施政権が日本へ返還されました。同じ1972年には日中共同声明が出され、中国との国交も正常化されました。"
-      }
-    ]
-  },
-  {
-    "id": "demo-space-science",
-    "school": "general",
-    "schoolName": "共通・お試し",
-    "subject": "general",
-    "subjectName": "理科・宇宙",
-    "topic": "基本操作お試し",
-    "title": "基本お試しサンプル（宇宙と科学 2問）",
-    "description": "4択問題と2択（〇×）問題の動作確認ができる定番のお手本ミニセット。",
-    "questions": [
-      {
-        "id": 1,
-        "type": "4choice",
-        "question": "太陽系の中で、最も大きくて質量が重い惑星は次のうちどれでしょう？",
-        "options": [
-          "火星 (Mars)",
-          "木星 (Jupiter)",
-          "土星 (Saturn)",
-          "金星 (Venus)"
-        ],
-        "correct": 2,
-        "timeLimit": 10,
-        "category": "宇宙・天文",
-        "explanation": "木星は地球の約1300倍もの体積があり、太陽系最大のガス惑星です！"
-      },
-      {
-        "id": 2,
-        "type": "2choice",
-        "question": "地球から見て、太陽が東からのぼって西へ沈むように見えるのは、地球が「自転」しているからである。",
-        "options": [
-          "〇 (正しい)",
-          "× (誤り)"
-        ],
-        "correct": 1,
-        "timeLimit": 10,
-        "category": "理科・天文",
-        "explanation": "大正解！地球が西から東へと1日1回自転しているため、太陽や星が東から西へ動いて見えます。"
-      }
-    ]
-  }
-];
+    let SAMPLE_CATALOG_SETS = [];
+    let sampleCatalogLoaded = false;
+    const SAMPLE_DATA_FILE_CACHE = new Map();
 
     let sampleLibraryTarget = 'host'; // 'host' or 'studio'
     let sampleSelectedNode = { school: 'all', subject: 'all', topic: 'all' };
@@ -2204,6 +1072,12 @@
 
     const SAMPLE_SUBJECT_ICONS = {
       health: '🏃',
+      social_history: '🏯',
+      social_geo: '🗺️',
+      social_civics: '⚖️',
+      science_bio: '🧬',
+      science_astro: '🔭',
+      science_chem: '⚗️',
       science: '🔬',
       math: '📐',
       japanese: '📖',
@@ -2212,17 +1086,102 @@
       general: '🚀'
     };
 
-    function openSampleLibraryModal(target = 'host') {
+    async function ensureSampleCatalogLoaded() {
+      if (sampleCatalogLoaded && SAMPLE_CATALOG_SETS.length > 0) {
+        return SAMPLE_CATALOG_SETS;
+      }
+
+      // 1. Web公開環境 (HTTP/HTTPS) の場合は最新の sample/catalog.json を最優先でフェッチ
+      if (location.protocol.startsWith('http')) {
+        try {
+          const res = await fetch(`./sample/catalog.json?v=${APP_VERSION}&t=${Date.now()}`, { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Array.isArray(data.sets)) {
+              SAMPLE_CATALOG_SETS = data.sets;
+              sampleCatalogLoaded = true;
+              return SAMPLE_CATALOG_SETS;
+            }
+          }
+        } catch (e) {
+          console.warn('External catalog.json fetch failed, falling back to bundle:', e);
+        }
+      }
+
+      // 2. ローカル直接起動 (file://) またはオフライン時は sample_bundle.js に安全フォールバック
+      if (window.POPQUIZ_SAMPLE_BUNDLE && window.POPQUIZ_SAMPLE_BUNDLE.catalog && Array.isArray(window.POPQUIZ_SAMPLE_BUNDLE.catalog.sets)) {
+        SAMPLE_CATALOG_SETS = window.POPQUIZ_SAMPLE_BUNDLE.catalog.sets;
+        sampleCatalogLoaded = true;
+        return SAMPLE_CATALOG_SETS;
+      }
+
+      return [];
+    }
+
+    async function fetchSampleSetQuestions(setId) {
+      await ensureSampleCatalogLoaded();
+      const meta = SAMPLE_CATALOG_SETS.find(s => s.id === setId);
+      if (!meta) return null;
+
+      const dataFile = meta.dataFile;
+      let fileSets = SAMPLE_DATA_FILE_CACHE.get(dataFile);
+
+      if (!fileSets) {
+        if (location.protocol.startsWith('http') && dataFile) {
+          try {
+            const res = await fetch(`./${dataFile}?v=${APP_VERSION}&t=${Date.now()}`, { cache: 'no-store' });
+            if (res.ok) {
+              const parsed = await res.json();
+              fileSets = Array.isArray(parsed) ? parsed : [parsed];
+              SAMPLE_DATA_FILE_CACHE.set(dataFile, fileSets);
+            }
+          } catch (e) {
+            console.warn(`External dataFile fetch failed (${dataFile}), falling back to bundle:`, e);
+          }
+        }
+
+        if (!fileSets && window.POPQUIZ_SAMPLE_BUNDLE && window.POPQUIZ_SAMPLE_BUNDLE.files && window.POPQUIZ_SAMPLE_BUNDLE.files[dataFile]) {
+          fileSets = window.POPQUIZ_SAMPLE_BUNDLE.files[dataFile];
+          SAMPLE_DATA_FILE_CACHE.set(dataFile, fileSets);
+        }
+      }
+
+      if (!fileSets) return null;
+      const foundSet = fileSets.find(s => s.id === setId);
+      return foundSet ? { meta, questions: foundSet.questions || [] } : null;
+    }
+
+    // 起動後にバックグラウンドでカタログをプリフェッチしておく
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => { ensureSampleCatalogLoaded().catch(() => {}); }, 300);
+    });
+
+    async function openSampleLibraryModal(target = 'host') {
       initAudio();
       sampleLibraryTarget = target;
-      renderSampleTree();
-      renderSampleLibraryList();
+
       const modal = document.getElementById('sample-library-modal');
       if (modal) {
         modal.style.zIndex = '70';
         modal.classList.remove('hidden');
       }
       playBeep(600, 'triangle', 0.1);
+
+      if (!sampleCatalogLoaded) {
+        const listEl = document.getElementById('sample-library-list');
+        if (listEl) {
+          listEl.innerHTML = `
+            <div class="py-16 text-center text-gray-300 flex flex-col items-center justify-center gap-3">
+              <i class="fa-solid fa-spinner fa-spin text-3xl text-pop-yellow"></i>
+              <p class="font-black text-sm">サンプル問題ライブラリを読み込み中...</p>
+            </div>
+          `;
+        }
+        await ensureSampleCatalogLoaded();
+      }
+
+      renderSampleTree();
+      renderSampleLibraryList();
     }
 
     function closeSampleLibraryModal() {
@@ -2250,7 +1209,7 @@
     function buildSampleTreeData() {
       const treeMap = new Map();
 
-      SAMPLE_QUESTION_LIBRARY.forEach(item => {
+      SAMPLE_CATALOG_SETS.forEach(item => {
         const sKey = item.school || 'general';
         if (!treeMap.has(sKey)) {
           treeMap.set(sKey, {
@@ -2285,7 +1244,7 @@
         subObj.topics.get(tKey).count += 1;
       });
 
-      // 将来追加予定の「小学校」枠を常に整理用ノードとして表示（0件時は準備中表示）
+      // 将来追加予定の「小学校」枠を整理用ノードとして表示（0件時は準備中表示）
       if (!treeMap.has('elem')) {
         const elemSubjects = new Map();
         elemSubjects.set('japanese', { key: 'japanese', name: '国語 (予定)', icon: '📖', count: 0, topics: new Map() });
@@ -2359,7 +1318,7 @@
       if (!container) return;
 
       const tree = buildSampleTreeData();
-      const totalCount = SAMPLE_QUESTION_LIBRARY.length;
+      const totalCount = SAMPLE_CATALOG_SETS.length;
       const isAllSelected = (sampleSelectedNode.school === 'all');
 
       let html = `
@@ -2485,21 +1444,14 @@
 
       const kw = sampleSearchQuery.trim().toLowerCase();
 
-      const filtered = SAMPLE_QUESTION_LIBRARY.filter(item => {
+      const filtered = SAMPLE_CATALOG_SETS.filter(item => {
         const matchSchool = (sampleSelectedNode.school === 'all') || (item.school === sampleSelectedNode.school);
         const matchSubj = (sampleSelectedNode.subject === 'all') || (item.subject === sampleSelectedNode.subject);
         const matchTopic = (sampleSelectedNode.topic === 'all') || (item.topic === sampleSelectedNode.topic);
         if (!matchSchool || !matchSubj || !matchTopic) return false;
 
         if (kw !== '') {
-          const haystack = [
-            item.title,
-            item.description,
-            item.schoolName,
-            item.subjectName,
-            item.topic,
-            ...(item.questions || []).map(q => q.question + ' ' + (q.explanation || ''))
-          ].join(' ').toLowerCase();
+          const haystack = (item.searchText || `${item.title} ${item.description} ${item.topic}`).toLowerCase();
           if (!haystack.includes(kw)) return false;
         }
         return true;
@@ -2547,14 +1499,15 @@
           `;
         }
 
-        const qCount = item.questions.length;
-        const qTypes = Array.from(new Set(item.questions.map(q => q.type === '2choice' ? '〇×' : '4択'))).join('・');
+        const qCount = item.questionCount || 0;
+        const qTypes = item.questionTypes || '4択';
         const isExpanded = sampleExpandedSetPreviews.has(item.id) || (kw !== '');
+        const previews = item.previewQuestions || [];
 
         let qPreviewHtml = '';
-        if (isExpanded) {
+        if (isExpanded && previews.length > 0) {
           let rows = '';
-          item.questions.forEach((q, idx) => {
+          previews.forEach((q, idx) => {
             const typeBadge = q.type === '2choice'
               ? '<span class="bg-pop-pink/20 text-pop-pink px-1.5 py-0.5 rounded text-[10px] font-black shrink-0">〇×</span>'
               : '<span class="bg-pop-blue/20 text-pop-blue px-1.5 py-0.5 rounded text-[10px] font-black shrink-0">4択</span>';
@@ -2622,12 +1575,16 @@
       }, 3200);
     }
 
-    function applySampleSet(setId) {
+    async function applySampleSet(setId) {
       initAudio();
-      const targetItem = SAMPLE_QUESTION_LIBRARY.find(s => s.id === setId);
-      if (!targetItem) return;
+      const loaded = await fetchSampleSetQuestions(setId);
+      if (!loaded) {
+        alert('問題データの読み込みに失敗しました。再読み込みしてからお試しください。');
+        return;
+      }
 
-      const qList = JSON.parse(JSON.stringify(targetItem.questions));
+      const targetItem = loaded.meta;
+      const qList = JSON.parse(JSON.stringify(loaded.questions));
       qList.forEach(q => sanitizeQuestionOptions(q));
 
       if (sampleLibraryTarget === 'host') {

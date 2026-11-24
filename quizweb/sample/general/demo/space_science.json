@@ -1,0 +1,42 @@
+[
+  {
+    "id": "demo-space-science",
+    "school": "general",
+    "schoolName": "共通・お試し",
+    "subject": "general",
+    "subjectName": "理科・宇宙",
+    "topic": "基本操作お試し",
+    "title": "基本お試しサンプル（宇宙と科学 2問）",
+    "description": "4択問題と2択（〇×）問題の動作確認ができる定番のお手本ミニセット。",
+    "questions": [
+      {
+        "id": 1,
+        "type": "4choice",
+        "question": "太陽系の中で、最も大きくて質量が重い惑星は次のうちどれでしょう？",
+        "options": [
+          "火星 (Mars)",
+          "木星 (Jupiter)",
+          "土星 (Saturn)",
+          "金星 (Venus)"
+        ],
+        "correct": 2,
+        "timeLimit": 10,
+        "category": "宇宙・天文",
+        "explanation": "木星は地球の約1300倍もの体積があり、太陽系最大のガス惑星です！"
+      },
+      {
+        "id": 2,
+        "type": "2choice",
+        "question": "地球から見て、太陽が東からのぼって西へ沈むように見えるのは、地球が「自転」しているからである。",
+        "options": [
+          "〇 (正しい)",
+          "× (誤り)"
+        ],
+        "correct": 1,
+        "timeLimit": 10,
+        "category": "理科・天文",
+        "explanation": "大正解！地球が西から東へと1日1回自転しているため、太陽や星が東から西へ動いて見えます。"
+      }
+    ]
+  }
+]
