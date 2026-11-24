@@ -832,9 +832,9 @@ button, a {
   white-space: nowrap;
 }
 .scratch-var-oval {
-  background: #ff8c1a;
+  background: #c82333;
   color: #fff;
-  border: 2px solid #d96b00;
+  border: 2px solid #8f1420;
 }
 .scratch-color-oval {
   background: #8b5cf6;
@@ -876,9 +876,9 @@ button, a {
 }
 .scratch-hole.is-var-hole {
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 2px dashed #ff8c1a;
-  color: #b45309;
+  background: rgba(255, 255, 255, 0.94);
+  border: 2px dashed #c82333;
+  color: #9f1220;
   min-width: 68px;
 }
 .scratch-hole.is-slot-active, .scratch-oval.is-slot-active {
@@ -891,7 +891,7 @@ button, a {
 }
 
 .scratch-hole-input {
-  width: 86px;
+  width: 74px;
   min-height: 26px;
   border: none;
   background: transparent;
@@ -901,6 +901,12 @@ button, a {
   outline: none;
   padding: 0;
 }
+.scratch-op-oval .scratch-hole {
+  min-width: 36px;
+}
+.scratch-op-oval .scratch-hole-input {
+  width: 44px;
+}
 .scratch-hole-input.is-inline-num {
   width: 46px;
   height: 30px;
@@ -909,17 +915,24 @@ button, a {
   border: 1.5px solid rgba(0, 0, 0, 0.25);
 }
 
-.block-palette { display: flex; flex-direction: column; gap: 7px; }
-.palette-item {
+.block-palette {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+}
+.palette-item {
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  min-height: 42px;
-  padding: 6px 10px;
-  border-radius: 12px;
+  width: fit-content;
+  max-width: 100%;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 11px;
+  border-radius: 10px;
   font-size: 0.79rem;
-  font-weight: 700;
+  font-weight: 800;
   color: #fff;
   border: 2px solid transparent;
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
@@ -936,10 +949,11 @@ button, a {
   background: rgba(0, 0, 0, 0.25);
   font-size: 0.68rem;
 }
-.cat-var { background: var(--blk-var); border-color: var(--blk-var-border); }
-.cat-op { background: var(--blk-op); border-color: var(--blk-op-border); }
-.cat-ctrl { background: var(--blk-ctrl); border-color: var(--blk-ctrl-border); color: #241300; }
-.cat-color { background: var(--blk-color); border-color: var(--blk-color-border); }
+/* Scratch配色：命令＝オレンジ、演算＝緑 */
+.cat-var { background: #ff8c1a; border-color: #c96200; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25); }
+.cat-op { background: #46b958; border-color: #2e8d3e; color: #fff; }
+.cat-ctrl { background: #ff9f1a; border-color: #cc7300; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25); }
+.cat-color { background: #8b5cf6; border-color: #6d38e8; color: #fff; }
 
 .program-workspace {
   flex: 1 1 auto;
@@ -973,6 +987,7 @@ button, a {
 .program-list {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
   min-height: 48px;
   padding-bottom: 12px;
@@ -994,6 +1009,8 @@ button, a {
 }
 
 .prog-block {
+  width: fit-content;
+  max-width: 100%;
   border-radius: 10px;
   border: 2px solid transparent;
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.28);
@@ -1039,6 +1056,7 @@ button, a {
 }
 .prog-nest {
   margin: 0 5px 5px 18px;
+  min-width: 210px;
   padding: 5px 5px 5px 8px;
   border-left: 4px solid rgba(0, 0, 0, 0.25);
   border-radius: 0 0 8px 8px;
@@ -1047,6 +1065,7 @@ button, a {
 .nest-drop-list {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
   min-height: 36px;
   padding: 4px;
