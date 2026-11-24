@@ -12,15 +12,15 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="魔法の占いの館">
+  <meta name="apple-mobile-web-app-title" content="占いの館">
 
-  <title>魔法の占いの館 〜今日のラッキーカラーをきめよう！〜</title>
+  <title>占いの館 〜今日のラッキーカラーをきめよう！〜</title>
 
-  <link rel="manifest" href="./manifest.webmanifest?v=20261124-06">
-  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg?v=20261124-06">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=20261124-06">
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=20261124-06">
-  <link rel="stylesheet" href="./styles/app.css?v=20261124-06">
+  <link rel="manifest" href="./manifest.webmanifest?v=20261124-07">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg?v=20261124-07">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=20261124-07">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=20261124-07">
+  <link rel="stylesheet" href="./styles/app.css?v=20261124-07">
 </head>
 <body>
   <!-- 縦向き時の案内オーバーレイ（Landscape Lock） -->
@@ -38,7 +38,7 @@
       </div>
       <h2>iPadやスマホを <span class="hl">よこむき</span> にしてね！</h2>
       <p>
-        「<ruby>魔法<rt>まほう</rt></ruby>の<ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>」は<br>
+        「<ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>」は<br>
         <strong>よこ<ruby>長<rt>なが</rt></ruby>の<ruby>画面<rt>がめん</rt></ruby></strong>で あそぶアプリだよ。<br>
         くるっと よこに まわしてね！
       </p>
@@ -53,7 +53,7 @@
       <div class="brand-area" id="brand-secret-trigger" title="5回タップで先生・開発用メニュー">
         <span class="brand-orb" aria-hidden="true">🔮</span>
         <div class="brand-titles">
-          <h1><ruby>魔法<rt>まほう</rt></ruby>の<ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby></h1>
+          <h1><ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby></h1>
         </div>
         <span id="teacher-badge" class="teacher-badge" hidden>先生モード</span>
       </div>
@@ -88,7 +88,7 @@
       <div class="title-stage">
         <div class="title-sparkles" aria-hidden="true">✦ ✧ ★ ✧ ✦</div>
         <h2 class="mega-title">
-          <ruby>魔法<rt>まほう</rt></ruby>の<ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>
+          <ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>
         </h2>
         <p class="mega-subtitle">〜 <ruby>今日<rt>きょう</rt></ruby>のラッキーカラーを きめよう！ 〜</p>
 
@@ -308,6 +308,7 @@
               <span id="prog-stage-badge" class="rt-badge">ステップ 1/3</span>
             </div>
             <div id="rt-vars-row" class="rt-vars-row" hidden>
+              <div id="rt-box-rawname" class="rt-var" hidden><span>名前</span><strong id="rt-rawname">-</strong></div>
               <div id="rt-box-name" class="rt-var" hidden><span>置きかえた数字</span><strong id="rt-name">-</strong></div>
               <div id="rt-box-date" class="rt-var" hidden><span>今日の日</span><strong id="rt-date">-</strong></div>
               <div id="rt-box-sum" class="rt-var" hidden><span>和</span><strong id="rt-sum">-</strong></div>
@@ -331,7 +332,7 @@
          ==================================================================== -->
     <main id="scene-5" class="scene scene-simulator" hidden>
       <div class="sim-top-bar">
-        <span class="sim-banner-title">🏛️ <ruby>魔法<rt>まほう</rt></ruby>の<ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>（シミュレータ）</span>
+        <span class="sim-banner-title">🏛️ <ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>（シミュレータ）</span>
         <div class="sim-top-controls">
           <label id="auto-mode-toggle-wrap" class="auto-mode-pill" hidden>
             <input id="chk-auto-mode" type="checkbox">
@@ -474,7 +475,7 @@
   <!-- サーバー上の最新版チェック（古いindex.htmlキャッシュ時の自動更新） -->
   <script>
     (function () {
-      var CURRENT_VER = '20261124-06';
+      var CURRENT_VER = '20261124-07';
       window.__APP_BUILD_VER__ = CURRENT_VER;
       if (location.protocol === 'http:' || location.protocol === 'https:') {
         fetch('./version.json?_=' + Date.now(), { cache: 'no-store' })
@@ -492,10 +493,10 @@
       }
     })();
   </script>
-  <script defer src="./js/ng-filter.js?v=20261124-06"></script>
-  <script defer src="./js/sound.js?v=20261124-06"></script>
-  <script defer src="./js/curriculum.js?v=20261124-06"></script>
-  <script defer src="./js/blocks.js?v=20261124-06"></script>
-  <script defer src="./js/app.js?v=20261124-06"></script>
+  <script defer src="./js/ng-filter.js?v=20261124-07"></script>
+  <script defer src="./js/sound.js?v=20261124-07"></script>
+  <script defer src="./js/curriculum.js?v=20261124-07"></script>
+  <script defer src="./js/blocks.js?v=20261124-07"></script>
+  <script defer src="./js/app.js?v=20261124-07"></script>
 </body>
 </html>

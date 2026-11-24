@@ -179,6 +179,7 @@
   // Scene 4 段階別パレット定義（フローチャートの光っている部分で使うブロックのみ）
   // =========================================================================
   const VAR_NAMES = {
+    RAW_NAME: '名前',
     NAME: '置きかえた数字',
     DATE: '今日の日',
     SUM: '置き換えた数字と今日の日の和',
@@ -190,10 +191,10 @@
     const map = {
       A: {
         id: 'A',
-        owlMsg: 'まずは光っている部分じゃ！「変わる数」の入れ物を用意して、名前と今日の日をセットし、2つをたした「和」をつくるのじゃ！',
+        owlMsg: 'まずは光っている部分じゃ！「名前」にひらがなを入れて数字に置きかえ、「今日の日」とたした「和」をつくるのじゃ！（置きかえた数字に直接数字を入れてもOKじゃよ）',
         highlightSlots: ['ア', 'イ'],
-        vars: [VAR_NAMES.NAME, VAR_NAMES.DATE, VAR_NAMES.SUM],
-        commands: ['cmd_set', 'op_add'],
+        vars: [VAR_NAMES.RAW_NAME, VAR_NAMES.NAME, VAR_NAMES.DATE, VAR_NAMES.SUM],
+        commands: ['cmd_set', 'op_name_to_num', 'op_add'],
         colors: []
       },
       B: {
@@ -216,8 +217,8 @@
         id: 'DONE',
         owlMsg: '完璧な魔法のプログラムが完成したぞ！いよいよ「占いの館（シミュレータ）」へ進もう！',
         highlightSlots: ['ア', 'イ', 'ウ', 'エ', 'オ', 'カ'],
-        vars: [VAR_NAMES.NAME, VAR_NAMES.DATE, VAR_NAMES.SUM, VAR_NAMES.MOD, VAR_NAMES.COLOR],
-        commands: ['cmd_set', 'op_add', 'cmd_repeat', 'op_div', 'op_round', 'cmd_if', 'op_mod'],
+        vars: [VAR_NAMES.RAW_NAME, VAR_NAMES.NAME, VAR_NAMES.DATE, VAR_NAMES.SUM, VAR_NAMES.MOD, VAR_NAMES.COLOR],
+        commands: ['cmd_set', 'op_name_to_num', 'op_add', 'cmd_repeat', 'op_div', 'op_round', 'cmd_if', 'op_mod'],
         colors: FORTUNE_COLORS.map((c) => c.name)
       }
     };
@@ -253,9 +254,25 @@
     return !!(expr && expr.kind === 'op_mod' && isVarExpr(expr.left, VAR_NAMES.SUM) && isNumExpr(expr.right, 7));
   }
 
-  function evaluateProgramProgress(blocks) {
+  function isValidReplacedNumExpr(expr) {
+    if (isNumExpr(expr)) return true;
+    if (expr && expr.kind === 'op_name_to_num' && expr.arg) {
+      return isVarExpr(expr.arg, VAR_NAMES.RAW_NAME) || (expr.arg.kind === 'num' && String(expr.arg.value || '').trim().length > 0);
+    }
+    return false;
+  }
+
+  function evaluateProgramProgress(blocks, execVars) {
     const list = blocks || [];
-    const idxName = list.findIndex((b) => b.type === 'cmd_set' && b.targetVar === VAR_NAMES.NAME && isNumExpr(b.valueExpr));
+    const v = execVars || {};
+    const hasRawName = v[VAR_NAMES.RAW_NAME] !== undefined && String(v[VAR_NAMES.RAW_NAME]).trim() !== '';
+    const idxName = list.findIndex((b) =>
+      b.type === 'cmd_set' &&
+      b.targetVar === VAR_NAMES.NAME &&
+      isValidReplacedNumExpr(b.valueExpr) &&
+      typeof v[VAR_NAMES.NAME] === 'number' &&
+      !isNaN(v[VAR_NAMES.NAME])
+    );
     const idxDate = list.findIndex((b) => b.type === 'cmd_set' && b.targetVar === VAR_NAMES.DATE && isNumExpr(b.valueExpr));
     const idxAdd = list.findIndex((b) => b.type === 'cmd_set' && b.targetVar === VAR_NAMES.SUM && isAddOfNameAndDate(b.valueExpr));
 
@@ -309,6 +326,7 @@
 
     return {
       stage: stage,
+      hasRawName: hasRawName,
       okA: okA,
       okB: okB,
       okMod: okMod,
@@ -318,9 +336,14 @@
     };
   }
 
-  function getCompletePreset(nameNum, todayDate) {
+  function getCompletePreset(nameText, todayDate) {
     return [
-      { type: 'cmd_set', targetVar: VAR_NAMES.NAME, valueExpr: { kind: 'num', value: Number(nameNum) || 10332331 } },
+      { type: 'cmd_set', targetVar: VAR_NAMES.RAW_NAME, valueExpr: { kind: 'num', value: nameText || 'さんすうしゅうた' } },
+      {
+        type: 'cmd_set',
+        targetVar: VAR_NAMES.NAME,
+        valueExpr: { kind: 'op_name_to_num', arg: { kind: 'var', name: VAR_NAMES.RAW_NAME } }
+      },
       { type: 'cmd_set', targetVar: VAR_NAMES.DATE, valueExpr: { kind: 'num', value: Number(todayDate) || getTodayDayOfMonth() } },
       {
         type: 'cmd_set',

@@ -32,6 +32,13 @@
       label: 'もし < ( 〇〇 ) = ( 0 ) > なら { ... }',
       create: () => ({ id: nextId(), type: 'cmd_if', leftExpr: null, rightVal: 0, children: [] })
     },
+    op_name_to_num: {
+      kind: 'expr',
+      type: 'op_name_to_num',
+      category: 'cat-op',
+      label: '( 〇〇 ) を数字に置きかえる',
+      create: () => ({ kind: 'op_name_to_num', arg: null })
+    },
     op_add: {
       kind: 'expr',
       type: 'op_add',
@@ -180,36 +187,46 @@
     if (!expr) return null;
     if (expr.kind === 'num') {
       if (expr.value === '' || expr.value === null || expr.value === undefined) return null;
-      const n = Number(expr.value);
-      return isNaN(n) ? null : n;
+      const str = String(expr.value).trim();
+      if (!str) return null;
+      if (/^-?\d+(\.\d+)?$/.test(str)) {
+        return Number(str);
+      }
+      return str;
     }
     if (expr.kind === 'color') return expr.value || null;
     if (expr.kind === 'var') {
       return Object.prototype.hasOwnProperty.call(vars, expr.name) ? vars[expr.name] : null;
     }
+    if (expr.kind === 'op_name_to_num') {
+      const a = evalExpr(expr.arg, vars);
+      if (a === null || a === '') return null;
+      if (typeof a === 'number') return a;
+      const conv = global.UranaiCurriculum.convertNameToNumbers(String(a));
+      return conv.items.length > 0 ? conv.numberValue : null;
+    }
     if (expr.kind === 'op_add') {
       const l = evalExpr(expr.left, vars);
       const r = evalExpr(expr.right, vars);
-      if (l === null || r === null) return null;
-      return Number(l) + Number(r);
+      if (typeof l !== 'number' || typeof r !== 'number') return null;
+      return l + r;
     }
     if (expr.kind === 'op_div') {
       const l = evalExpr(expr.left, vars);
       const r = evalExpr(expr.right, vars);
-      if (l === null || r === null || Number(r) === 0) return null;
-      return Number(l) / Number(r);
+      if (typeof l !== 'number' || typeof r !== 'number' || r === 0) return null;
+      return l / r;
     }
     if (expr.kind === 'op_round') {
       const a = evalExpr(expr.arg, vars);
-      if (a === null) return null;
-      return Math.round(Number(a));
+      if (typeof a !== 'number') return null;
+      return Math.round(a);
     }
     if (expr.kind === 'op_mod') {
       const l = evalExpr(expr.left, vars);
       const r = evalExpr(expr.right, vars);
-      if (l === null || r === null || Number(r) === 0) return null;
-      const d = Number(r);
-      return ((Number(l) % d) + d) % d;
+      if (typeof l !== 'number' || typeof r !== 'number' || r === 0) return null;
+      return ((l % r) + r) % r;
     }
     return null;
   }
@@ -297,7 +314,10 @@
         opEl.appendChild(s);
       };
 
-      if (expr.kind === 'op_add') {
+      if (expr.kind === 'op_name_to_num') {
+        opEl.appendChild(createExprSlotElement(expr.arg, slotPath + '.arg', 'any', opts));
+        addTxt('を数字に置きかえる');
+      } else if (expr.kind === 'op_add') {
         opEl.appendChild(createExprSlotElement(expr.left, slotPath + '.left', 'any', opts));
         addTxt('＋');
         opEl.appendChild(createExprSlotElement(expr.right, slotPath + '.right', 'any', opts));
@@ -341,17 +361,18 @@
       return hole;
     }
 
-    // 数値入力とオーバルはめ込みの両対応穴
+    // 数値・文字入力とオーバルはめ込みの両対応穴
     const inp = document.createElement('input');
-    inp.type = 'number';
+    inp.type = 'text';
     inp.className = 'scratch-hole-input';
     inp.placeholder = '〇〇';
+    inp.autocomplete = 'off';
+    inp.spellcheck = false;
     inp.value = expr && expr.kind === 'num' && expr.value !== '' && expr.value !== null ? String(expr.value) : '';
     inp.addEventListener('pointerdown', (e) => e.stopPropagation());
     inp.addEventListener('focus', () => opts.onSelectSlot(slotPath, slotMode, true));
     inp.addEventListener('input', () => {
-      const val = inp.value === '' ? '' : Number(inp.value);
-      opts.onUpdateNumSlot(slotPath, val);
+      opts.onUpdateNumSlot(slotPath, inp.value);
     });
     hole.addEventListener('click', (e) => {
       if (e.target !== inp) {

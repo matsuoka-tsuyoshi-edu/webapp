@@ -1,11 +1,11 @@
 /**
- * 魔法の占いの館 - メインアプリケーション (v2.1 Scratch本格ブロック版)
+ * 占いの館 - メインアプリケーション (v2.2 名前変数・タイトル統一版)
  */
 (function (global) {
   'use strict';
 
   const STORAGE_KEY = 'uranai_app_v2_state';
-  const BUILD_VER = '20261124-06';
+  const BUILD_VER = '20261124-07';
 
   const NgFilter = global.UranaiNgFilter;
   const Sound = global.UranaiSound;
@@ -499,7 +499,8 @@
   }
 
   function renderScene4Programming() {
-    const evalRes = Curriculum.evaluateProgramProgress(state.programBlocks);
+    const exec = Blocks.executeProgram(state.programBlocks);
+    const evalRes = Curriculum.evaluateProgramProgress(state.programBlocks, exec.vars);
     const meta = Curriculum.getProgStageMeta(evalRes.stage);
 
     // 左：フローチャート（今組む部分のみ光る）
@@ -663,6 +664,14 @@
         if (!keepFocus) renderScene4Programming();
       },
       onUpdateNumSlot: (slotPath, val) => {
+        const check = NgFilter.validateText(val);
+        if (!check.ok) {
+          showNgWarningModal();
+          Blocks.setExprByPath(state.programBlocks, slotPath, { kind: 'num', value: '' });
+          saveState();
+          renderScene4Programming();
+          return;
+        }
         Blocks.setExprByPath(state.programBlocks, slotPath, { kind: 'num', value: val });
         saveState();
         renderScene4RealtimeMonitor();
@@ -795,8 +804,8 @@
 
   // 右下：正しいときにだけ変数結果ボックスを表示！
   function renderScene4RealtimeMonitor() {
-    const evalRes = Curriculum.evaluateProgramProgress(state.programBlocks);
     const exec = Blocks.executeProgram(state.programBlocks);
+    const evalRes = Curriculum.evaluateProgramProgress(state.programBlocks, exec.vars);
     const v = exec.vars;
     const V = Curriculum.VAR_NAMES;
 
@@ -806,6 +815,7 @@
     const varsRow = $('rt-vars-row');
     varsRow.hidden = !evalRes.okA;
 
+    $('rt-box-rawname').hidden = !(evalRes.okA && evalRes.hasRawName);
     $('rt-box-name').hidden = !evalRes.okA;
     $('rt-box-date').hidden = !evalRes.okA;
     $('rt-box-sum').hidden = !evalRes.okA;
@@ -814,9 +824,11 @@
     $('rt-box-color').hidden = !evalRes.okC;
 
     if (evalRes.okA) {
+      if (evalRes.hasRawName) {
+        $('rt-rawname').textContent = String(v[V.RAW_NAME]);
+      }
       $('rt-name').textContent = String(v[V.NAME]);
       $('rt-date').textContent = String(v[V.DATE]);
-      // 注意：Stage B も完成していると v[V.SUM] はくり返し後の値になっているため、和は計算表示
       const initialSum = Number(v[V.NAME]) + Number(v[V.DATE]);
       $('rt-sum').textContent = String(initialSum);
     }
@@ -846,7 +858,7 @@
       if (evalRes.wrongColorMsg) {
         fb.textContent = '💡 ' + evalRes.wrongColorMsg;
       } else if (evalRes.stage === 'A') {
-        fb.textContent = '「置きかえた数字」と「今日の日」に数を入れ、「和」を＋で計算してみよう！';
+        fb.textContent = '「名前」と「置きかえた数字」と「今日の日」を決め、「和」を＋で計算してみよう！';
       } else if (evalRes.stage === 'B') {
         fb.textContent = '和ができた！つぎは「5回くり返す」の中で「和 ÷ 2 を四捨五入」しよう！';
       } else if (!evalRes.okMod) {
@@ -860,14 +872,22 @@
 
   // お助け（中途半端に1歩だけヒントを追加する）
   function applyOneStepAssist() {
-    const evalRes = Curriculum.evaluateProgramProgress(state.programBlocks);
+    const exec = Blocks.executeProgram(state.programBlocks);
+    const evalRes = Curriculum.evaluateProgramProgress(state.programBlocks, exec.vars);
     const V = Curriculum.VAR_NAMES;
 
     if (evalRes.stage === 'A') {
+      const hasRaw = state.programBlocks.some((b) => b.type === 'cmd_set' && b.targetVar === V.RAW_NAME);
       const hasName = state.programBlocks.some((b) => b.type === 'cmd_set' && b.targetVar === V.NAME);
       const hasDate = state.programBlocks.some((b) => b.type === 'cmd_set' && b.targetVar === V.DATE);
-      if (!hasName) {
-        state.programBlocks.push(Blocks.hydrateBlocks([{ type: 'cmd_set', targetVar: V.NAME, valueExpr: { kind: 'num', value: 10332331 } }])[0]);
+      if (!hasRaw) {
+        state.programBlocks.push(Blocks.hydrateBlocks([{ type: 'cmd_set', targetVar: V.RAW_NAME, valueExpr: { kind: 'num', value: 'さんすうしゅうた' } }])[0]);
+      } else if (!hasName) {
+        state.programBlocks.push(Blocks.hydrateBlocks([{
+          type: 'cmd_set',
+          targetVar: V.NAME,
+          valueExpr: { kind: 'op_name_to_num', arg: { kind: 'var', name: V.RAW_NAME } }
+        }])[0]);
       } else if (!hasDate) {
         state.programBlocks.push(Blocks.hydrateBlocks([{ type: 'cmd_set', targetVar: V.DATE, valueExpr: { kind: 'num', value: Curriculum.getTodayDayOfMonth() } }])[0]);
       } else {
@@ -933,7 +953,7 @@
     $('today-day-chip').textContent = String(dayNum);
 
     if (!state.programBlocks || state.programBlocks.length === 0) {
-      state.programBlocks = Blocks.hydrateBlocks(Curriculum.getCompletePreset(10332331, dayNum));
+      state.programBlocks = Blocks.hydrateBlocks(Curriculum.getCompletePreset('さんすうしゅうた', dayNum));
       saveState();
     }
 
@@ -1444,7 +1464,7 @@
       state.maxUnlockedScene = 5;
       Curriculum.FLOWCHART_SLOTS.forEach((s) => { state.fcSlots[s.key] = s.answerId; });
       state.fcCompleted = true;
-      state.programBlocks = Blocks.hydrateBlocks(Curriculum.getCompletePreset(10332331, Curriculum.getTodayDayOfMonth()));
+      state.programBlocks = Blocks.hydrateBlocks(Curriculum.getCompletePreset('さんすうしゅうた', Curriculum.getTodayDayOfMonth()));
       state.progCompleted = true;
       saveState();
       $('teacher-modal-backdrop').hidden = true;
