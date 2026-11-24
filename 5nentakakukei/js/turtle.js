@@ -21,11 +21,13 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
   let startPos = { x: 210, y: 260, angle: -90 };
   let currentGoalType = 'line';
   let showGuide = true;
+  let showTurnAngles = true;
   let alwaysPenDown = false;
   let runToken = 0;
 
-  // 回転中の外角可視化用オーバーレイ
+  // 回転中の外角可視化用オーバーレイ＆表示しっぱなし用履歴
   let activeTurnArc = null; // { x, y, fromAngle, currentAngle }
+  let recordedTurnArcs = [];
 
   // 判定用ログ
   let segments = [];
@@ -36,6 +38,7 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     if (opts.startPos) startPos = { ...opts.startPos };
     if (opts.goalType !== undefined) currentGoalType = opts.goalType;
     if (opts.showGuide !== undefined) showGuide = opts.showGuide;
+    if (opts.showTurnAngles !== undefined) showTurnAngles = opts.showTurnAngles;
     if (opts.alwaysPenDown !== undefined) alwaysPenDown = opts.alwaysPenDown;
   }
 
@@ -52,6 +55,7 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
   function reset(initialPenDown) {
     runToken++;
     activeTurnArc = null;
+    recordedTurnArcs = [];
     segments = [];
     turns = [];
     actionLog = [];
@@ -141,21 +145,25 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     targetCtx.restore();
   }
 
-  function drawTurnArcOverlay(targetCtx) {
-    if (!activeTurnArc) return;
-    const { x, y, fromAngle, currentAngle } = activeTurnArc;
+  function drawTurnArc(targetCtx, arc, isActive) {
+    if (!arc) return;
+    const { x, y, fromAngle, currentAngle } = arc;
     const delta = currentAngle - fromAngle;
     if (Math.abs(delta) < 1) return;
+
+    const radius = isActive ? 32 : 25;
+    const extLen = isActive ? 56 : 44;
+    const labelDist = isActive ? 48 : 39;
 
     targetCtx.save();
     // 元の直進方向の点線
     const fromRad = (fromAngle * Math.PI) / 180;
     targetCtx.beginPath();
     targetCtx.setLineDash([4, 4]);
-    targetCtx.strokeStyle = '#475569';
-    targetCtx.lineWidth = 2.2;
+    targetCtx.strokeStyle = isActive ? '#475569' : 'rgba(100, 116, 139, 0.75)';
+    targetCtx.lineWidth = isActive ? 2.2 : 1.8;
     targetCtx.moveTo(x, y);
-    targetCtx.lineTo(x + 56 * Math.cos(fromRad), y + 56 * Math.sin(fromRad));
+    targetCtx.lineTo(x + extLen * Math.cos(fromRad), y + extLen * Math.sin(fromRad));
     targetCtx.stroke();
 
     // 回転扇形
@@ -163,23 +171,23 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     const toRad = (currentAngle * Math.PI) / 180;
     targetCtx.beginPath();
     targetCtx.moveTo(x, y);
-    targetCtx.arc(x, y, 32, fromRad, toRad, delta < 0);
+    targetCtx.arc(x, y, radius, fromRad, toRad, delta < 0);
     targetCtx.closePath();
-    targetCtx.fillStyle = 'rgba(245, 158, 11, 0.38)';
+    targetCtx.fillStyle = isActive ? 'rgba(245, 158, 11, 0.38)' : 'rgba(245, 158, 11, 0.24)';
     targetCtx.fill();
 
     targetCtx.beginPath();
-    targetCtx.arc(x, y, 32, fromRad, toRad, delta < 0);
-    targetCtx.strokeStyle = '#d97706';
-    targetCtx.lineWidth = 2.5;
+    targetCtx.arc(x, y, radius, fromRad, toRad, delta < 0);
+    targetCtx.strokeStyle = isActive ? '#d97706' : 'rgba(217, 119, 6, 0.85)';
+    targetCtx.lineWidth = isActive ? 2.5 : 2;
     targetCtx.stroke();
 
-    // 角度テキスト（白い縁取り付きで見やすく）
+    // 角度テキスト（白い縁取り付き・画面端クランプ）
     const midRad = ((fromAngle + currentAngle) / 2) * (Math.PI / 180);
-    const tx = x + 48 * Math.cos(midRad);
-    const ty = y + 48 * Math.sin(midRad);
+    const tx = Math.max(18, Math.min(LOGICAL_SIZE - 18, x + labelDist * Math.cos(midRad)));
+    const ty = Math.max(14, Math.min(LOGICAL_SIZE - 14, y + labelDist * Math.sin(midRad)));
     const label = `${Math.round(Math.abs(delta))}°`;
-    targetCtx.font = 'bold 14px sans-serif';
+    targetCtx.font = isActive ? 'bold 14px sans-serif' : 'bold 13px sans-serif';
     targetCtx.textAlign = 'center';
     targetCtx.textBaseline = 'middle';
     targetCtx.lineWidth = 4;
@@ -188,6 +196,16 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     targetCtx.fillStyle = '#b45309';
     targetCtx.fillText(label, tx, ty);
     targetCtx.restore();
+  }
+
+  function drawTurnArcsOverlay(targetCtx) {
+    if (!showTurnAngles) return;
+    for (let i = 0; i < recordedTurnArcs.length; i++) {
+      drawTurnArc(targetCtx, recordedTurnArcs[i], false);
+    }
+    if (activeTurnArc) {
+      drawTurnArc(targetCtx, activeTurnArc, true);
+    }
   }
 
   function drawTurtle() {
@@ -231,7 +249,7 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     drawGrid(ctx);
     drawGuideShape(ctx);
     ctx.drawImage(trackCanvas, 0, 0, LOGICAL_SIZE, LOGICAL_SIZE);
-    drawTurnArcOverlay(ctx);
+    drawTurnArcsOverlay(ctx);
     drawTurtle();
     ctx.restore();
   }
@@ -381,6 +399,12 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     const kept = await sleepWithToken(600, token);
     activeTurnArc = null;
     if (kept) {
+      recordedTurnArcs.push({
+        x: turtle.x,
+        y: turtle.y,
+        fromAngle,
+        currentAngle: targetAngle
+      });
       redrawAll();
     }
   }

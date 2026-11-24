@@ -125,6 +125,7 @@
   const penCheckbox = document.getElementById('alwaysPenDown');
   const penCard = document.getElementById('penOptionCard');
   const guideCheckbox = document.getElementById('showGuideCheck');
+  const angleCheckbox = document.getElementById('showAngleCheck');
   const feedbackEl = document.getElementById('stageFeedback');
   const penDotEl = document.getElementById('penStatusDot');
   const penStatusTextEl = document.getElementById('penStatusText');
@@ -338,6 +339,7 @@
       startPos: step.startPos,
       goalType: step.goalType,
       showGuide: guideCheckbox.checked,
+      showTurnAngles: angleCheckbox.checked,
       alwaysPenDown: penCheckbox.checked
     });
     turtle.reset(!step.forcePenOffStart && penCheckbox.checked);
@@ -385,6 +387,11 @@
 
   guideCheckbox.addEventListener('change', () => {
     turtle.setConfig({ showGuide: guideCheckbox.checked });
+    turtle.redrawAll();
+  });
+
+  angleCheckbox.addEventListener('change', () => {
+    turtle.setConfig({ showTurnAngles: angleCheckbox.checked });
     turtle.redrawAll();
   });
 
@@ -443,6 +450,7 @@
       startPos: step.startPos,
       goalType: step.goalType,
       showGuide: guideCheckbox.checked,
+      showTurnAngles: angleCheckbox.checked,
       alwaysPenDown: penCheckbox.checked
     });
     turtle.reset(!step.forcePenOffStart && penCheckbox.checked);
