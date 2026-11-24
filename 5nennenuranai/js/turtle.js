@@ -152,10 +152,10 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     const fromRad = (fromAngle * Math.PI) / 180;
     targetCtx.beginPath();
     targetCtx.setLineDash([4, 4]);
-    targetCtx.strokeStyle = '#64748b';
-    targetCtx.lineWidth = 2;
+    targetCtx.strokeStyle = '#475569';
+    targetCtx.lineWidth = 2.2;
     targetCtx.moveTo(x, y);
-    targetCtx.lineTo(x + 48 * Math.cos(fromRad), y + 48 * Math.sin(fromRad));
+    targetCtx.lineTo(x + 56 * Math.cos(fromRad), y + 56 * Math.sin(fromRad));
     targetCtx.stroke();
 
     // 回転扇形
@@ -163,26 +163,30 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     const toRad = (currentAngle * Math.PI) / 180;
     targetCtx.beginPath();
     targetCtx.moveTo(x, y);
-    targetCtx.arc(x, y, 28, fromRad, toRad, delta < 0);
+    targetCtx.arc(x, y, 32, fromRad, toRad, delta < 0);
     targetCtx.closePath();
-    targetCtx.fillStyle = 'rgba(245, 158, 11, 0.35)';
+    targetCtx.fillStyle = 'rgba(245, 158, 11, 0.38)';
     targetCtx.fill();
 
     targetCtx.beginPath();
-    targetCtx.arc(x, y, 28, fromRad, toRad, delta < 0);
+    targetCtx.arc(x, y, 32, fromRad, toRad, delta < 0);
     targetCtx.strokeStyle = '#d97706';
     targetCtx.lineWidth = 2.5;
     targetCtx.stroke();
 
-    // 角度テキスト
+    // 角度テキスト（白い縁取り付きで見やすく）
     const midRad = ((fromAngle + currentAngle) / 2) * (Math.PI / 180);
-    const tx = x + 42 * Math.cos(midRad);
-    const ty = y + 42 * Math.sin(midRad);
-    targetCtx.fillStyle = '#b45309';
-    targetCtx.font = 'bold 12px sans-serif';
+    const tx = x + 48 * Math.cos(midRad);
+    const ty = y + 48 * Math.sin(midRad);
+    const label = `${Math.round(Math.abs(delta))}°`;
+    targetCtx.font = 'bold 14px sans-serif';
     targetCtx.textAlign = 'center';
     targetCtx.textBaseline = 'middle';
-    targetCtx.fillText(`${Math.round(Math.abs(delta))}°`, tx, ty);
+    targetCtx.lineWidth = 4;
+    targetCtx.strokeStyle = '#ffffff';
+    targetCtx.strokeText(label, tx, ty);
+    targetCtx.fillStyle = '#b45309';
+    targetCtx.fillText(label, tx, ty);
     targetCtx.restore();
   }
 
@@ -285,7 +289,7 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     let prevX = startX;
     let prevY = startY;
 
-    const ok = await animateFrames(220, token, (t) => {
+    const ok = await animateFrames(300, token, (t) => {
       const curX = startX + (targetX - startX) * t;
       const curY = startY + (targetY - startY) * t;
       if (drawing) {
@@ -318,6 +322,24 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     }
   }
 
+  function sleepWithToken(ms, token) {
+    return new Promise((resolve) => {
+      const start = performance.now();
+      function check(now) {
+        if (token !== runToken) {
+          resolve(false);
+          return;
+        }
+        if (now - start >= ms) {
+          resolve(true);
+        } else {
+          requestAnimationFrame(check);
+        }
+      }
+      requestAnimationFrame(check);
+    });
+  }
+
   async function turnDegrees(deg, token) {
     if (token !== runToken) return;
     const numDeg = Number(deg);
@@ -328,7 +350,8 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     actionLog.push({ type: 'turn', deg: numDeg });
     turns.push(numDeg);
 
-    const ok = await animateFrames(240, token, (t) => {
+    // 1. 回転アニメーション（360ms）
+    const ok = await animateFrames(360, token, (t) => {
       const curAngle = fromAngle + numDeg * t;
       turtle.angle = curAngle;
       activeTurnArc = {
@@ -340,9 +363,24 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
       redrawAll();
     });
 
+    if (!ok) {
+      activeTurnArc = null;
+      return;
+    }
+
+    // 2. 曲がった角度を視認できるよう、扇形と角度を表示したまま一時停止（600ms）
+    turtle.angle = targetAngle;
+    activeTurnArc = {
+      x: turtle.x,
+      y: turtle.y,
+      fromAngle,
+      currentAngle: targetAngle
+    };
+    redrawAll();
+
+    const kept = await sleepWithToken(600, token);
     activeTurnArc = null;
-    if (ok) {
-      turtle.angle = targetAngle;
+    if (kept) {
       redrawAll();
     }
   }

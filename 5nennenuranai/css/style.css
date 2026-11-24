@@ -502,6 +502,35 @@ header {
   display: flex;
 }
 
+/* クリアお祝いダイアログは背景を暗転せず左下に配置し、右側の図形を見せる */
+.modal-backdrop.clear-corner {
+  background: transparent;
+  pointer-events: none;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 14px 18px;
+}
+
+.modal-backdrop.clear-corner .modal-card {
+  pointer-events: auto;
+  max-width: 440px;
+  border: 3px solid #f59e0b;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.28);
+}
+
+.modal-backdrop.clear-corner .clear-emoji {
+  font-size: 2.2rem;
+  margin-bottom: 2px;
+}
+
+.modal-backdrop.clear-corner .modal-body {
+  padding: 12px 16px;
+}
+
+.modal-backdrop.clear-corner .modal-footer {
+  padding: 10px 16px;
+}
+
 .modal-card {
   background: #ffffff;
   border-radius: 20px;
