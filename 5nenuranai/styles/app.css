@@ -992,10 +992,10 @@ button, a {
   background: rgba(0, 0, 0, 0.25);
   font-size: 0.68rem;
 }
-/* Scratch配色：命令＝オレンジ、演算＝緑 */
-.cat-var { background: #ff8c1a; border-color: #c96200; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25); }
+/* Scratch配色：命令＝オレンジ、制御(くり返す/もし)＝黄色、演算＝緑 */
+.cat-var { background: #ff8c1a; border-color: #c96200; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28); }
 .cat-op { background: #46b958; border-color: #2e8d3e; color: #fff; }
-.cat-ctrl { background: #ff9f1a; border-color: #cc7300; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25); }
+.cat-ctrl { background: #ffd426; border-color: #c49600; color: #2b1900; text-shadow: none; }
 .cat-color { background: #8b5cf6; border-color: #6d38e8; color: #fff; }
 
 .program-workspace {
@@ -1032,9 +1032,9 @@ button, a {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0;
+  gap: 2px;
   min-height: 48px;
-  padding-bottom: 12px;
+  padding-bottom: 42vh;
 }
 .program-list.is-drop-over {
   outline: 2.5px dashed var(--gold);
@@ -1056,8 +1056,8 @@ button, a {
   width: fit-content;
   max-width: 100%;
   border-radius: 7px;
-  border: 1.5px solid transparent;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  border: 1.5px solid rgba(0, 0, 0, 0.22);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.32);
   margin: 0;
 }
 .prog-block.is-running {
@@ -1111,9 +1111,9 @@ button, a {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0;
-  min-height: 32px;
-  padding: 0;
+  gap: 2px;
+  min-height: 34px;
+  padding: 2px 0;
   border-radius: 0;
   border: none;
 }

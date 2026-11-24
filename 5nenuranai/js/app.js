@@ -5,7 +5,7 @@
   'use strict';
 
   const STORAGE_KEY = 'uranai_app_v2_state';
-  const BUILD_VER = '20261124-10';
+  const BUILD_VER = '20261124-11';
 
   const NgFilter = global.UranaiNgFilter;
   const Sound = global.UranaiSound;
@@ -647,7 +647,9 @@
       colorsSec.hidden = true;
     }
 
-    // 右上：組み立て済みブロックの描画
+    // 右上：組み立て済みブロックの描画（スクロール位置を維持して下端作業しやすくする）
+    const wsEl = $('prog-workspace');
+    const prevScrollTop = wsEl ? wsEl.scrollTop : 0;
     const listEl = $('prog-list');
     listEl.innerHTML = '';
     const blockOpts = {
@@ -752,6 +754,7 @@
       listEl.appendChild(Blocks.createBlockElement(b, blockOpts));
     });
     $('prog-empty-hint').hidden = state.programBlocks.length > 0;
+    if (wsEl) wsEl.scrollTop = prevScrollTop;
 
     renderScene4RealtimeMonitor();
   }
