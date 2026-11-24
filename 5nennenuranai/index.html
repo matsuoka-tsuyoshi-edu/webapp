@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <!-- PWA / Chrome / Android / iOS Safari 全画面・インストール対応 -->
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="正多角形プロ">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+
+  <title>正多角形をかくプログラミング（小学5年算数）</title>
+  <link rel="stylesheet" href="./css/style.css?v=20261124-2">
+  <script src="./vendor/blockly/blockly.min.js?v=20261124-2"></script>
+</head>
+<body>
+  <div id="app-shell">
+    <header>
+      <div class="header-left">
+        <h1 class="app-title">📐 <span class="title-sub">正多角形</span></h1>
+        <nav class="step-nav" id="stepNav" aria-label="学習ステップ"></nav>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-explain" id="explainBtn" style="display:none;">📖 かいせつ</button>
+        <button type="button" class="btn btn-run" id="runBtn">▶ じっこう</button>
+        <button type="button" class="btn btn-clear" id="resetBtn">↺ やりなおす</button>
+        <button type="button" class="btn btn-icon" id="fullscreenBtn" title="全画面表示">⛶</button>
+        <button type="button" class="btn btn-icon" id="settingsBtn" title="メニュー・マニュアル・キャッシュ管理">⚙</button>
+      </div>
+    </header>
+
+    <div id="main-container">
+      <!-- 左：ミッション＆Blockly -->
+      <section id="workspace-pane">
+        <div class="mission-bar">
+          <div class="mission-text-wrap">
+            <div class="mission-title">
+              <span class="mission-badge" id="missionBadge">ステップ 1</span>
+              <span id="missionTitle">ステップ1：ペンを下ろして、線をかこう</span>
+            </div>
+            <p class="mission-desc" id="missionDesc"></p>
+          </div>
+          <div class="mission-actions">
+            <button type="button" class="btn btn-hint" id="hintBtn">💡 ヒント</button>
+          </div>
+        </div>
+        <div id="blocklyDiv"></div>
+      </section>
+
+      <!-- 右：ステージキャンバス -->
+      <section id="stage-pane">
+        <div class="canvas-wrapper">
+          <canvas id="turtleCanvas"></canvas>
+          <div class="stage-feedback" id="stageFeedback"></div>
+        </div>
+
+        <div class="stage-controls">
+          <div class="status-strip">
+            <div class="status-item">
+              <span class="pen-dot down" id="penStatusDot"></span>
+              <span id="penStatusText">ペン：上がっている</span>
+            </div>
+            <div class="status-item" id="angleStatusText">向き：0°</div>
+          </div>
+
+          <div class="pen-option-card" id="penOptionCard">
+            <div class="pen-option-left">
+              <input type="checkbox" id="alwaysPenDown">
+              <label for="alwaysPenDown">ペンを下ろしっぱなしモード</label>
+            </div>
+            <label class="guide-toggle-label">
+              <input type="checkbox" id="showGuideCheck" checked>
+              おてほん線
+            </label>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- 紙吹雪オーバーレイ -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- 縦向き警告オーバーレイ -->
+  <div id="orientation-overlay">
+    <div class="rotate-icon">📱</div>
+    <h2>よこむき にして つかってね！</h2>
+    <p>このアプリは タブレットや スマホを <strong>よこむき（横画面）</strong> にすると きれいに つかえるよ。</p>
+  </div>
+
+  <!-- 外回り（外角）アニメーション解説モーダル -->
+  <div class="modal-backdrop" id="explainModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="explainModalTitle">📖 かいせつ</h2>
+        <button type="button" class="modal-close" id="closeExplainBtn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="explain-layout">
+          <div class="explain-canvas-box">
+            <canvas id="explainCanvas"></canvas>
+            <div class="explain-controls" id="explainTabs"></div>
+          </div>
+          <div class="explain-text-box" id="explainTextBox"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="okExplainBtn">わかった！</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- クリアお祝いモーダル -->
+  <div class="modal-backdrop" id="clearModal">
+    <div class="modal-card compact">
+      <div class="modal-header celebrate">
+        <h2 id="clearModalTitle">🎉 クリア！</h2>
+        <button type="button" class="modal-close" id="closeClearBtn">✕</button>
+      </div>
+      <div class="modal-body clear-center">
+        <div class="clear-emoji">🏆✨</div>
+        <div class="clear-title">よくできたね！</div>
+        <p class="clear-message" id="clearModalMessage"></p>
+        <div class="unlock-banner" id="unlockBanner" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-run" id="nextStepBtn">つぎのステップへ ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- メニュー・設定モーダル -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal-card compact">
+      <div class="modal-header">
+        <h2>⚙ メニュー・おたすけ</h2>
+        <button type="button" class="modal-close" id="closeSettingsBtn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-list">
+          <div class="setting-card">
+            <div class="setting-info">
+              <h3>📖 オンラインマニュアル</h3>
+              <p>つかいかたや 先生むけの ガイドを 見ます。</p>
+            </div>
+            <a href="./manual/index.html" target="_blank" rel="noopener" class="btn btn-primary" style="text-decoration:none;">ひらく</a>
+          </div>
+
+          <div class="setting-card" id="installAppRow" style="display:none;">
+            <div class="setting-info">
+              <h3>📲 アプリをインストール</h3>
+              <p>ホーム画面や デスクトップに 追加して 全画面でつかえます。</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="installAppBtn">インストール</button>
+          </div>
+
+          <div class="setting-card">
+            <div class="setting-info">
+              <h3>🔄 キャッシュを削除して最新にする</h3>
+              <p id="netStatusLabel">状態を確認中...</p>
+            </div>
+            <button type="button" class="btn btn-secondary" id="clearCacheBtn">キャッシュ削除</button>
+          </div>
+
+          <div class="setting-card">
+            <div class="setting-info">
+              <h3>👩‍🏫 先生用：全ステージ解放</h3>
+              <p>ひみつステージを すぐに 開いて確認できます。</p>
+            </div>
+            <button type="button" class="btn btn-secondary" id="teacherUnlockBtn">🔓 全ステージを解放</button>
+          </div>
+
+          <div class="setting-card">
+            <div class="setting-info">
+              <h3>🗑 進捗をさいしょから</h3>
+              <p>クリア記録を リセットして ステップ1にもどします。</p>
+            </div>
+            <button type="button" class="btn btn-danger" id="resetProgressBtn">リセット</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 汎用情報・ヒントモーダル -->
+  <div class="modal-backdrop" id="infoModal">
+    <div class="modal-card compact">
+      <div class="modal-header">
+        <h2 id="infoModalTitle">おしらせ</h2>
+        <button type="button" class="modal-close" id="closeInfoBtn">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="infoModalBody" style="margin:0;font-size:0.98rem;"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="okInfoBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="./js/steps.js?v=20261124-2"></script>
+  <script defer src="./js/turtle.js?v=20261124-2"></script>
+  <script defer src="./js/judge.js?v=20261124-2"></script>
+  <script defer src="./js/explain.js?v=20261124-2"></script>
+  <script defer src="./js/confetti.js?v=20261124-2"></script>
+  <script defer src="./js/pwa.js?v=20261124-2"></script>
+  <script defer src="./js/app.js?v=20261124-2"></script>
+</body>
+</html>

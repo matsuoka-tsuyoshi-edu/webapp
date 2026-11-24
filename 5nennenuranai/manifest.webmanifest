@@ -1,0 +1,26 @@
+{
+  "name": "正多角形をかくプログラミング（小学5年算数）",
+  "short_name": "正多角形プロ",
+  "description": "小学5年算数「正多角形」をスモールステップと外回りアニメーションで学ぶプログラミングWebアプリ",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#f0f7ff",
+  "theme_color": "#2563eb",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

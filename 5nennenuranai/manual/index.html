@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>つかいかたマニュアル｜正多角形をかくプログラミング（小学5年算数）</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #475569;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Hiragino Maru Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    header {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: #fff;
+      padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    header h1 { margin: 0 0 6px 0; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.92; font-size: 0.95rem; }
+    .back-link {
+      display: inline-block;
+      margin-top: 10px;
+      background: #fff;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+    }
+    main {
+      max-width: 920px;
+      margin: 24px auto;
+      padding: 0 16px 48px;
+    }
+    .toc {
+      background: #eff6ff;
+      border: 2px solid #bfdbfe;
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+    }
+    .toc h2 { margin: 0 0 8px 0; font-size: 1.05rem; color: #1e3a8a; }
+    .toc ul { margin: 0; padding-left: 20px; display: flex; flex-wrap: wrap; gap: 6px 24px; }
+    .toc a { color: #1d4ed8; font-weight: 700; text-decoration: none; }
+    section {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px 22px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+      border: 1px solid #e2e8f0;
+    }
+    h2 {
+      margin-top: 0;
+      color: #1e3a8a;
+      border-bottom: 2px solid #dbeafe;
+      padding-bottom: 6px;
+      font-size: 1.2rem;
+    }
+    h3 { color: #0f172a; font-size: 1.02rem; margin-bottom: 6px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 0.92rem;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 10px;
+      text-align: left;
+    }
+    th { background: #eff6ff; color: #1e3a8a; }
+    .badge {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+    .badge.secret { background: #ea580c; }
+    .tip {
+      background: #fef9c3;
+      border-left: 5px solid #eab308;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    .teacher-box {
+      background: #f0fdf4;
+      border-left: 5px solid #16a34a;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    kbd {
+      background: #e2e8f0;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-weight: 700;
+      font-size: 0.88em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📖 正多角形プログラミング オンラインマニュアル</h1>
+    <p>小学5年算数「正多角形と円」単元対応 ／ 児童・指導者向けガイド</p>
+    <a href="../index.html" class="back-link">◀ アプリにもどる</a>
+  </header>
+
+  <main>
+    <div class="toc">
+      <h2>もくじ</h2>
+      <ul>
+        <li><a href="#kids">1. 基本のつかいかた（児童向け）</a></li>
+        <li><a href="#steps">2. 6つのステップと答えのめやす</a></li>
+        <li><a href="#outer">3. 「外回りの角度」ってなに？</a></li>
+        <li><a href="#devices">4. タブレット・PCでの使い方（全画面・オフライン）</a></li>
+        <li><a href="#teacher">5. 先生向け：授業での活用・トラブル対策</a></li>
+      </ul>
+    </div>
+
+    <section id="kids">
+      <h2>1. 基本のつかいかた（児童のみなさんへ）</h2>
+      <ol>
+        <li>画面は<strong>「よこむき（横画面）」</strong>にしてつかいます。</li>
+        <li>上の数字ボタン（<strong>1.線 〜 6.星型</strong>）で、ちょうせんするステップをえらびます。</li>
+        <li>左側のブロックをドラッグして、パズルのようにくっつけます。</li>
+        <li>できたら緑色の<strong>「▶ じっこう」</strong>ボタンをおして、右の画面でうごきを見てみよう！</li>
+        <li>クリアすると<strong>紙吹雪（かみふぶき）</strong>がまって、つぎのステップにすすめるよ！</li>
+      </ol>
+      <div class="tip">
+        <strong>⚠ 数字をいれるときのちゅうい：</strong><br>
+        キーボードが「あ（全角）」になっていると、数字がうまくうごきません。<kbd>英数</kbd> や <kbd>半角/全角</kbd> をおして、半角の数字（<code>100</code> や <code>90</code>）で入力してね！
+      </div>
+    </section>
+
+    <section id="steps">
+      <h2>2. 6つのステップと学習の流れ</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ステップ</th>
+            <th>めあて</th>
+            <th>ポイント・正解のプログラム例</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge">ステップ 1</span><br><strong>ペンを下ろして、線をかく</strong></td>
+            <td>「ペンを下ろす」をいれると線がかけることを知る</td>
+            <td>「ペンを下ろす」→「100 歩うごかす」</td>
+          </tr>
+          <tr>
+            <td><span class="badge">ステップ 2</span><br><strong>角（かど）</strong></td>
+            <td>向きをかえて まがる体験をする</td>
+            <td>「100 歩うごかす」→「右に 90 度まわす」→「100 歩うごかす」</td>
+          </tr>
+          <tr>
+            <td><span class="badge">ステップ 3</span><br><strong>四角形（正方形）</strong></td>
+            <td>1辺100の正方形をかく。同じくりかえしに気づく（教科書p.179）</td>
+            <td>「4 回くりかえす」の中に「100 歩うごかす」「右に 90 度まわす」（4回ならべてもクリア！）</td>
+          </tr>
+          <tr>
+            <td><span class="badge">ステップ 4</span><br><strong>三角形（正三角形）</strong></td>
+            <td>60度バグをデバッグして「外回りに120度」に気づく（教科書p.180）</td>
+            <td>最初から「60度」のまちがったプログラムが入っています。「📖 かいせつ」を見て<strong>「120 度」</strong>になおそう！</td>
+          </tr>
+          <tr>
+            <td><span class="badge secret">ひみつ 1</span><br><strong>ステップ 5：五角形</strong></td>
+            <td>ステップ4クリアで解放！きまり「360 ÷ 辺の数」を使う（教科書p.181）</td>
+            <td>「5 回くりかえす」→「100 歩うごかす」＋「右に <strong>72</strong> 度まわす」（360 ÷ 5 ＝ 72）</td>
+          </tr>
+          <tr>
+            <td><span class="badge secret">ひみつ 2</span><br><strong>ステップ 6：星型（★）</strong></td>
+            <td>ステップ5クリアで解放！発展問題に挑戦</td>
+            <td>「5 回くりかえす」→「120 歩うごかす」＋「右に <strong>144</strong> 度まわす」（180 − 36 ＝ 144）</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>さらに<strong>「🎨 じゆう」</strong>モードでは、正六角形（60度）・正八角形（45度）・正二十角形（18度）などを自由に試せます。</p>
+    </section>
+
+    <section id="outer">
+      <h2>3. 「外回りの角度」ってなに？（📖 かいせつ機能）</h2>
+      <p>小学校5年生ではまだ「外角」という言葉を習いません。そのため本アプリでは、ステップ3以降に<strong>「📖 かいせつ」ボタン</strong>を用意しています。</p>
+      <ul>
+        <li>キャラクターはいつも<strong>「まっすぐ進もうとしている向き（点線）」</strong>から、外回りにどれだけ向きを変えるかを考えます。</li>
+        <li><strong>正三角形の例</strong>：図形の内側は 60° ですが、まっすぐの一直線（180°）から内側の 60° を引いた <strong>180 − 60 ＝ 120°</strong> を外回りに回ると、次の辺にピタッと重なります。</li>
+        <li>解説画面のアニメーションで、<strong>「❌ 60°だと外にひらいてしまう様子」</strong>と<strong>「⭕ 120°で正しく回る様子」</strong>を見比べることができます。</li>
+      </ul>
+    </section>
+
+    <section id="devices">
+      <h2>4. タブレット・PCでの使い方（全画面・オフライン・キャッシュ）</h2>
+      <h3>PC / Android の Chrome ブラウザ</h3>
+      <ul>
+        <li>ヘッダー右の <strong>「⛶」ボタン</strong> で全画面表示になります。</li>
+        <li>アドレスバー右端のインストールアイコン、または <strong>「⚙ メニュー ＞ アプリをインストール」</strong> から、アプリとしてインストール（スタンドアロン全画面表示）ができます。</li>
+      </ul>
+      <h3>iPad の Safari ブラウザ</h3>
+      <ul>
+        <li>共有ボタン（□に↑）から<strong>「ホーム画面に追加」</strong>を選ぶと、ホーム画面のアイコンからアドレスバーのない<strong>全画面モード</strong>で起動できます。</li>
+      </ul>
+      <h3>オフライン動作とキャッシュ削除</h3>
+      <ul>
+        <li>一度ページを開くと必要なファイルが自動保存され、<strong>インターネットが切れてもそのまま動作</strong>します。</li>
+        <li>もし動作がおかしい・古い表示のままになっているときは、右上の <strong>「⚙ メニュー ＞ キャッシュ削除」</strong> を押すと、古いキャッシュを消去して最新版を再読み込みします（クリア記録は残ります）。</li>
+      </ul>
+    </section>
+
+    <section id="teacher">
+      <h2>5. 先生向け：授業での活用ポイント</h2>
+      <div class="teacher-box">
+        <p><strong>👩‍🏫 先生用：全ステージ解放モード</strong><br>
+        右上の <strong>「⚙ メニュー ＞ 🔓 全ステージを解放」</strong> を押すと、隠しステージ（5. 五角形・6. 星型）をすぐに表示して電子黒板などで解説できます。</p>
+        <p><strong>📏 おてほん線の表示／非表示</strong><br>
+        ステージ下部の<strong>「おてほん線」</strong>チェックを外すと、ガイド点線を隠して自力で考えさせることもできます。</p>
+        <p><strong>🔁 進捗リセット</strong><br>
+        共有タブレットで次のクラスが使う場合は、<strong>「⚙ メニュー ＞ リセット」</strong> でクリア記録を消去できます。</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
