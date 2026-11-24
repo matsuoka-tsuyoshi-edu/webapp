@@ -199,7 +199,7 @@
       },
       B: {
         id: 'B',
-        owlMsg: 'おみごと！つぎは光っている「くり返し」の部分じゃ！「置き換えた数字と今日の日の和」を2でわって四捨五入する計算を、5回くり返すのじゃ！',
+        owlMsg: 'おみごと！つぎは光っている「くり返し」の部分じゃ！5回くり返す中で「2でわって、四捨五入」するのじゃ！（1つにまとめても、2つに分けて並べてもOKじゃよ）',
         highlightSlots: ['ウ', 'エ', 'オ'],
         vars: [VAR_NAMES.SUM],
         commands: ['cmd_repeat', 'cmd_set', 'op_div', 'op_round'],
@@ -244,10 +244,29 @@
     );
   }
 
+  function isDiv2OfSum(expr) {
+    return !!(expr && expr.kind === 'op_div' && isVarExpr(expr.left, VAR_NAMES.SUM) && isNumExpr(expr.right, 2));
+  }
+
+  function isRoundOfSum(expr) {
+    return !!(expr && expr.kind === 'op_round' && isVarExpr(expr.arg, VAR_NAMES.SUM));
+  }
+
   function isHalveRoundOfSum(expr) {
     if (!expr || expr.kind !== 'op_round') return false;
-    const inner = expr.arg;
-    return !!(inner && inner.kind === 'op_div' && isVarExpr(inner.left, VAR_NAMES.SUM) && isNumExpr(inner.right, 2));
+    return isDiv2OfSum(expr.arg);
+  }
+
+  function isRepeatChildrenValid(children) {
+    const ch = children || [];
+    // パターン1：1ブロックにネスト（(和 ÷ 2) を四捨五入）
+    if (ch.some((c) => c.type === 'cmd_set' && c.targetVar === VAR_NAMES.SUM && isHalveRoundOfSum(c.valueExpr))) {
+      return true;
+    }
+    // パターン2：先に「2でわる」→ 次に「四捨五入する」の2ブロック順
+    const idxDiv = ch.findIndex((c) => c.type === 'cmd_set' && c.targetVar === VAR_NAMES.SUM && isDiv2OfSum(c.valueExpr));
+    const idxRnd = ch.findIndex((c, idx) => idx > idxDiv && c.type === 'cmd_set' && c.targetVar === VAR_NAMES.SUM && isRoundOfSum(c.valueExpr));
+    return idxDiv !== -1 && idxRnd !== -1;
   }
 
   function isMod7OfSum(expr) {
@@ -283,7 +302,7 @@
     if (okA) {
       idxRep = list.findIndex((b, idx) => {
         if (idx <= idxAdd || b.type !== 'cmd_repeat' || Number(b.count) !== 5) return false;
-        return (b.children || []).some((ch) => ch.type === 'cmd_set' && ch.targetVar === VAR_NAMES.SUM && isHalveRoundOfSum(ch.valueExpr));
+        return isRepeatChildrenValid(b.children);
       });
       okB = idxRep !== -1;
     }

@@ -369,9 +369,15 @@
     inp.autocomplete = 'off';
     inp.spellcheck = false;
     inp.value = expr && expr.kind === 'num' && expr.value !== '' && expr.value !== null ? String(expr.value) : '';
+    const syncWidth = () => {
+      const len = Math.max(3, (inp.value || '').length + 1);
+      inp.style.width = Math.min(18, len * 1.1) + 'ch';
+    };
+    syncWidth();
     inp.addEventListener('pointerdown', (e) => e.stopPropagation());
     inp.addEventListener('focus', () => opts.onSelectSlot(slotPath, slotMode, true));
     inp.addEventListener('input', () => {
+      syncWidth();
       opts.onUpdateNumSlot(slotPath, inp.value);
     });
     hole.addEventListener('click', (e) => {
