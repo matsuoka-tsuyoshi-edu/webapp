@@ -1,9 +1,5 @@
 /**
- * 教科書（小5算数 P.258〜259）準拠カリキュラム定義
- * ・ひらがな＆カタカナ→母音数字連結変換（「さんすうしゅうた」→「10332331」）
- * ・フローチャート6スロット（ア〜カ）
- * ・7色マッピング（0:赤〜6:むらさき）
- * ・段階的ブロックプログラミング評価（ステージA/B/C）
+ * 教科書（小5算数 P.258〜259）準拠カリキュラム定義 (v2.1 Scratch本格ブロック版)
  */
 (function (global) {
   'use strict';
@@ -82,7 +78,6 @@
   ];
 
   // 教科書P.258「名前の置きかえルール」準拠
-  // 「小さい文字は、大きい文字と同じ段。」→ ぁゃゎ=1, ぃ=2, ぅゅっ=3, ぇ=4, ぉょ=5, ん=0
   const VOWEL_GROUPS = {
     1: 'あかさたなはまやらわがざだばぱぁゃゎ',
     2: 'いきしちにひみりぎじぢびぴぃゐ',
@@ -92,14 +87,7 @@
     0: 'ん'
   };
 
-  const VOWEL_LABELS = {
-    1: 'あ段',
-    2: 'い段',
-    3: 'う段',
-    4: 'え段',
-    5: 'お段',
-    0: 'ん'
-  };
+  const VOWEL_LABELS = { 1: 'あ段', 2: 'い段', 3: 'う段', 4: 'え段', 5: 'お段', 0: 'ん' };
 
   const CHAR_TO_NUM = {};
   Object.keys(VOWEL_GROUPS).forEach((numStr) => {
@@ -113,16 +101,11 @@
   function toHiragana(raw) {
     return String(raw || '')
       .normalize('NFKC')
-      // カタカナ（ァ-ヶ、ヴ）をひらがなへ変換
       .replace(/[\u30a1-\u30f6]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60))
       .replace(/\s+/g, '')
       .trim();
   }
 
-  /**
-   * 名前を1文字ずつ分解し、教科書通りに数字を「連結」したひとつの数にする
-   * 例：「さんすうしゅうた」→「10332331」
-   */
   function convertNameToNumbers(rawInput) {
     const normalized = toHiragana(rawInput);
     const items = [];
@@ -130,7 +113,7 @@
     let prevNum = 0;
 
     for (let i = 0; i < normalized.length; i++) {
-      if (items.length >= 14) break; // JS安全整数範囲（15桁以内）
+      if (items.length >= 14) break;
       const ch = normalized[i];
       if (ch === 'ー') {
         const n = prevNum;
@@ -165,12 +148,12 @@
   ];
 
   const FLOWCHART_SLOTS = [
-    { key: 'ア', answerId: 'name_to_num', kind: 'process', stage: 'A' },
-    { key: 'イ', answerId: 'add_date', kind: 'process', stage: 'A' },
-    { key: 'ウ', answerId: 'repeat_5', kind: 'loop', stage: 'B' },
-    { key: 'エ', answerId: 'div_2', kind: 'process', stage: 'B' },
-    { key: 'オ', answerId: 'round_1', kind: 'process', stage: 'B' },
-    { key: 'カ', answerId: 'mod_7', kind: 'decision', stage: 'C' }
+    { key: 'ア', answerId: 'name_to_num', kind: 'process' },
+    { key: 'イ', answerId: 'add_date', kind: 'process' },
+    { key: 'ウ', answerId: 'repeat_5', kind: 'loop' },
+    { key: 'エ', answerId: 'div_2', kind: 'process' },
+    { key: 'オ', answerId: 'round_1', kind: 'process' },
+    { key: 'カ', answerId: 'mod_7', kind: 'decision' }
   ];
 
   function getTodayDayOfMonth() {
@@ -192,101 +175,197 @@
     return null;
   }
 
-  // プログラミング画面（Scene 4）のステージ定義（フローチャート連動ステップ解放方式）
+  // =========================================================================
+  // Scene 4 段階別パレット定義（フローチャートの光っている部分で使うブロックのみ）
+  // =========================================================================
+  const VAR_NAMES = {
+    NAME: '置きかえた数字',
+    DATE: '今日の日',
+    SUM: '置き換えた数字と今日の日の和',
+    MOD: '7でわったあまり',
+    COLOR: '今日のラッキーカラー'
+  };
+
   function getProgStageMeta(stageId) {
     const map = {
       A: {
         id: 'A',
-        title: 'ミッション1：名前と日付をたそう！（手順①②）',
-        owlMsg: 'まずは光っている「ア」「イ」の部分じゃ！[名前]・[日付]をセットして、[名前と日付の和]を計算するブロックを並べるのじゃ。',
-        allowedBlocks: ['set_name', 'set_date', 'add_sum'],
-        highlightSlots: ['ア', 'イ']
+        owlMsg: 'まずは光っている部分じゃ！「変わる数」の入れ物を用意して、名前と今日の日をセットし、2つをたした「和」をつくるのじゃ！',
+        highlightSlots: ['ア', 'イ'],
+        vars: [VAR_NAMES.NAME, VAR_NAMES.DATE, VAR_NAMES.SUM],
+        commands: ['cmd_set', 'op_add'],
+        colors: []
       },
       B: {
         id: 'B',
-        title: 'ミッション2：5回くり返そう！（手順③）',
-        owlMsg: 'すばらしい！つぎは光っている「ウ・エ・オ」の部分じゃ！[5回くり返す]の中に[2でわって四捨五入]を入れるのじゃ。',
-        allowedBlocks: ['set_name', 'set_date', 'add_sum', 'repeat', 'halve_round'],
-        highlightSlots: ['ウ', 'エ', 'オ']
+        owlMsg: 'おみごと！つぎは光っている「くり返し」の部分じゃ！「置き換えた数字と今日の日の和」を2でわって四捨五入する計算を、5回くり返すのじゃ！',
+        highlightSlots: ['ウ', 'エ', 'オ'],
+        vars: [VAR_NAMES.SUM],
+        commands: ['cmd_repeat', 'cmd_set', 'op_div', 'op_round'],
+        colors: []
       },
       C: {
         id: 'C',
-        title: 'ミッション3：7でわったあまりで色をきめよう！（手順④⑤）',
-        owlMsg: 'あと少しじゃ！[7でわったあまり]を求めて、0〜6のすべてに合う[もし〜なら]で7つのラッキーカラーをきめるのじゃ！',
-        allowedBlocks: ['mod7', 'if_mod', 'if_else_mod', 'set_color', 'set_name', 'set_date', 'add_sum', 'repeat', 'halve_round'],
-        highlightSlots: ['カ']
+        owlMsg: 'いよいよ最後、光っている「7でわったあまり」と色の分岐じゃ！あまり（0〜6）によって7色の「今日のラッキーカラー」を決めるのじゃ！',
+        highlightSlots: ['カ'],
+        vars: [VAR_NAMES.SUM, VAR_NAMES.MOD, VAR_NAMES.COLOR],
+        commands: ['cmd_set', 'op_mod', 'cmd_if'],
+        colors: FORTUNE_COLORS.map((c) => c.name)
       },
       DONE: {
         id: 'DONE',
-        title: 'プログラムかんせい！',
-        owlMsg: 'おみごと！完璧な魔法のプログラムができたぞ！下の「占いの館（シミュレータ）へ！」ボタンを押すのじゃ！',
-        allowedBlocks: ['set_name', 'set_date', 'add_sum', 'repeat', 'halve_round', 'mod7', 'if_mod', 'if_else_mod', 'set_color'],
-        highlightSlots: ['ア', 'イ', 'ウ', 'エ', 'オ', 'カ']
+        owlMsg: '完璧な魔法のプログラムが完成したぞ！いよいよ「占いの館（シミュレータ）」へ進もう！',
+        highlightSlots: ['ア', 'イ', 'ウ', 'エ', 'オ', 'カ'],
+        vars: [VAR_NAMES.NAME, VAR_NAMES.DATE, VAR_NAMES.SUM, VAR_NAMES.MOD, VAR_NAMES.COLOR],
+        commands: ['cmd_set', 'op_add', 'cmd_repeat', 'op_div', 'op_round', 'cmd_if', 'op_mod'],
+        colors: FORTUNE_COLORS.map((c) => c.name)
       }
     };
     return map[stageId] || map.A;
   }
 
-  function flattenBlocks(blocks) {
-    const out = [];
-    (blocks || []).forEach((b) => {
-      out.push(b);
-      if (b.children) out.push.apply(out, flattenBlocks(b.children));
-      if (b.elseChildren) out.push.apply(out, flattenBlocks(b.elseChildren));
-    });
-    return out;
+  // 式検査ヘルパー
+  function isVarExpr(expr, expectedName) {
+    return !!(expr && expr.kind === 'var' && expr.name === expectedName);
   }
 
-  function checkStageA(blocks) {
-    const flat = flattenBlocks(blocks);
-    const iName = flat.findIndex((b) => b.type === 'set_name');
-    const iDate = flat.findIndex((b) => b.type === 'set_date');
-    const iAdd = flat.findIndex((b) => b.type === 'add_sum');
-    return iName !== -1 && iDate !== -1 && iAdd !== -1 && iAdd > iName && iAdd > iDate;
+  function isNumExpr(expr, expectedVal) {
+    if (!expr || expr.kind !== 'num') return false;
+    if (expectedVal === undefined) return expr.value !== '' && expr.value !== null && !isNaN(Number(expr.value));
+    return Number(expr.value) === Number(expectedVal);
   }
 
-  function checkStageB(blocks) {
-    if (!checkStageA(blocks)) return false;
-    const flat = flattenBlocks(blocks);
-    const rep = flat.find((b) => b.type === 'repeat' && Number(b.count) === 5);
-    return !!(rep && (rep.children || []).some((c) => c.type === 'halve_round'));
+  function isAddOfNameAndDate(expr) {
+    if (!expr || expr.kind !== 'op_add') return false;
+    return (
+      (isVarExpr(expr.left, VAR_NAMES.NAME) && isVarExpr(expr.right, VAR_NAMES.DATE)) ||
+      (isVarExpr(expr.left, VAR_NAMES.DATE) && isVarExpr(expr.right, VAR_NAMES.NAME))
+    );
   }
 
-  function checkStageC(blocks) {
-    if (!checkStageB(blocks)) return false;
-    const flat = flattenBlocks(blocks);
-    const hasMod7 = flat.some((b) => b.type === 'mod7');
-    if (!hasMod7) return false;
+  function isHalveRoundOfSum(expr) {
+    if (!expr || expr.kind !== 'op_round') return false;
+    const inner = expr.arg;
+    return !!(inner && inner.kind === 'op_div' && isVarExpr(inner.left, VAR_NAMES.SUM) && isNumExpr(inner.right, 2));
+  }
 
-    // 0〜6 の7色すべての分岐が揃っているか確認（if_mod / if_else_mod）
-    const coveredMods = {};
-    flat.forEach((b) => {
-      if ((b.type === 'if_mod' || b.type === 'if_else_mod') && (b.children || []).some((c) => c.type === 'set_color')) {
-        coveredMods[String(b.modValue)] = true;
-      }
-    });
-    for (let m = 0; m <= 6; m++) {
-      if (!coveredMods[String(m)]) return false;
+  function isMod7OfSum(expr) {
+    return !!(expr && expr.kind === 'op_mod' && isVarExpr(expr.left, VAR_NAMES.SUM) && isNumExpr(expr.right, 7));
+  }
+
+  function evaluateProgramProgress(blocks) {
+    const list = blocks || [];
+    const idxName = list.findIndex((b) => b.type === 'cmd_set' && b.targetVar === VAR_NAMES.NAME && isNumExpr(b.valueExpr));
+    const idxDate = list.findIndex((b) => b.type === 'cmd_set' && b.targetVar === VAR_NAMES.DATE && isNumExpr(b.valueExpr));
+    const idxAdd = list.findIndex((b) => b.type === 'cmd_set' && b.targetVar === VAR_NAMES.SUM && isAddOfNameAndDate(b.valueExpr));
+
+    const okA = idxName !== -1 && idxDate !== -1 && idxAdd !== -1 && idxAdd > idxName && idxAdd > idxDate;
+
+    let okB = false;
+    let idxRep = -1;
+    if (okA) {
+      idxRep = list.findIndex((b, idx) => {
+        if (idx <= idxAdd || b.type !== 'cmd_repeat' || Number(b.count) !== 5) return false;
+        return (b.children || []).some((ch) => ch.type === 'cmd_set' && ch.targetVar === VAR_NAMES.SUM && isHalveRoundOfSum(ch.valueExpr));
+      });
+      okB = idxRep !== -1;
     }
-    return true;
+
+    let okMod = false;
+    let missingColors = [];
+    let wrongColorMsg = '';
+    if (okB) {
+      const idxMod = list.findIndex((b, idx) => idx > idxRep && b.type === 'cmd_set' && b.targetVar === VAR_NAMES.MOD && isMod7OfSum(b.valueExpr));
+      okMod = idxMod !== -1;
+
+      if (okMod) {
+        const covered = {};
+        list.forEach((b, idx) => {
+          if (idx <= idxMod || b.type !== 'cmd_if') return;
+          if (isVarExpr(b.leftExpr, VAR_NAMES.MOD) && b.rightVal !== '' && b.rightVal !== null) {
+            const m = Number(b.rightVal);
+            const expectedColor = getColorByMod(m);
+            const setColorBlk = (b.children || []).find((ch) => ch.type === 'cmd_set' && ch.targetVar === VAR_NAMES.COLOR);
+            if (expectedColor && setColorBlk && setColorBlk.valueExpr && setColorBlk.valueExpr.kind === 'color') {
+              if (setColorBlk.valueExpr.value === expectedColor.name) {
+                covered[String(m)] = true;
+              } else {
+                wrongColorMsg = m + ' のときのラッキーカラーは「' + expectedColor.name + '」だよ！';
+              }
+            }
+          }
+        });
+        for (let m = 0; m <= 6; m++) {
+          if (!covered[String(m)]) missingColors.push(m);
+        }
+      }
+    }
+
+    const okC = okB && okMod && missingColors.length === 0 && !wrongColorMsg;
+    let stage = 'A';
+    if (okA) stage = 'B';
+    if (okB) stage = 'C';
+    if (okC) stage = 'DONE';
+
+    return {
+      stage: stage,
+      okA: okA,
+      okB: okB,
+      okMod: okMod,
+      okC: okC,
+      missingColors: missingColors,
+      wrongColorMsg: wrongColorMsg
+    };
   }
 
   function getCompletePreset(nameNum, todayDate) {
     return [
-      { type: 'set_name', value: Number(nameNum) || 10332331 },
-      { type: 'set_date', value: Number(todayDate) || getTodayDayOfMonth() },
-      { type: 'add_sum' },
+      { type: 'cmd_set', targetVar: VAR_NAMES.NAME, valueExpr: { kind: 'num', value: Number(nameNum) || 10332331 } },
+      { type: 'cmd_set', targetVar: VAR_NAMES.DATE, valueExpr: { kind: 'num', value: Number(todayDate) || getTodayDayOfMonth() } },
       {
-        type: 'repeat',
-        count: 5,
-        children: [{ type: 'halve_round' }]
+        type: 'cmd_set',
+        targetVar: VAR_NAMES.SUM,
+        valueExpr: {
+          kind: 'op_add',
+          left: { kind: 'var', name: VAR_NAMES.NAME },
+          right: { kind: 'var', name: VAR_NAMES.DATE }
+        }
       },
-      { type: 'mod7' }
+      {
+        type: 'cmd_repeat',
+        count: 5,
+        children: [
+          {
+            type: 'cmd_set',
+            targetVar: VAR_NAMES.SUM,
+            valueExpr: {
+              kind: 'op_round',
+              arg: {
+                kind: 'op_div',
+                left: { kind: 'var', name: VAR_NAMES.SUM },
+                right: { kind: 'num', value: 2 }
+              }
+            }
+          }
+        ]
+      },
+      {
+        type: 'cmd_set',
+        targetVar: VAR_NAMES.MOD,
+        valueExpr: {
+          kind: 'op_mod',
+          left: { kind: 'var', name: VAR_NAMES.SUM },
+          right: { kind: 'num', value: 7 }
+        }
+      }
     ].concat(
       FORTUNE_COLORS.map((c) => ({
-        type: 'if_mod',
-        modValue: c.mod,
-        children: [{ type: 'set_color', color: c.name }]
+        type: 'cmd_if',
+        leftExpr: { kind: 'var', name: VAR_NAMES.MOD },
+        rightVal: c.mod,
+        children: [
+          { type: 'cmd_set', targetVar: VAR_NAMES.COLOR, valueExpr: { kind: 'color', value: c.name } }
+        ]
       }))
     );
   }
@@ -295,15 +374,14 @@
     FORTUNE_COLORS: FORTUNE_COLORS,
     FLOWCHART_ITEMS: FLOWCHART_ITEMS,
     FLOWCHART_SLOTS: FLOWCHART_SLOTS,
+    VAR_NAMES: VAR_NAMES,
     toHiragana: toHiragana,
     convertNameToNumbers: convertNameToNumbers,
     getTodayDayOfMonth: getTodayDayOfMonth,
     getColorByName: getColorByName,
     getColorByMod: getColorByMod,
     getProgStageMeta: getProgStageMeta,
-    checkStageA: checkStageA,
-    checkStageB: checkStageB,
-    checkStageC: checkStageC,
+    evaluateProgramProgress: evaluateProgramProgress,
     getCompletePreset: getCompletePreset
   };
 })(window);

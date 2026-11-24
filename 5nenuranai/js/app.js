@@ -1,11 +1,11 @@
 /**
- * 魔法の占いの館 - メインアプリケーション (v2.0 5シーンウィザード＆魔法シミュレータ)
+ * 魔法の占いの館 - メインアプリケーション (v2.1 Scratch本格ブロック版)
  */
 (function (global) {
   'use strict';
 
   const STORAGE_KEY = 'uranai_app_v2_state';
-  const BUILD_VER = '20261124-05';
+  const BUILD_VER = '20261124-06';
 
   const NgFilter = global.UranaiNgFilter;
   const Sound = global.UranaiSound;
@@ -14,9 +14,6 @@
 
   const $ = (id) => document.getElementById(id);
 
-  // =========================================================================
-  // アプリ状態（localStorage 保存対象）
-  // =========================================================================
   function createInitialState() {
     return {
       scene: 1,
@@ -34,11 +31,11 @@
   }
 
   let state = createInitialState();
-
-  // シーン内の一時状態
   let selectedFcItemId = null;
+  let activeSlotPath = null; // Scene 4 タップ選択中の穴
+  let activeSlotMode = null;
   let dragPayload = null;
-  let simRun = null; // { phase, nameText, origNum, currentNum, dateDay, loopCount, timer }
+  let simRun = null;
 
   function shuffleArray(arr) {
     const copy = arr.slice();
@@ -78,12 +75,14 @@
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {}
     state = createInitialState();
+    activeSlotPath = null;
+    activeSlotMode = null;
     saveState();
     goToScene(1);
   }
 
   // =========================================================================
-  // Service Worker（キャッシュ無効化）＆ ピンチ・ダブルタップ完全抑止
+  // Service Worker ＆ ピンチ・ダブルタップ完全抑止
   // =========================================================================
   function initServiceWorker() {
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
@@ -143,7 +142,7 @@
       'touchend',
       (e) => {
         const now = Date.now();
-        const isInteractive = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, .fc-card, .fc-slot, .palette-item, .magic-number-card, .ancient-gem-btn, .brand-area');
+        const isInteractive = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, .fc-card, .fc-slot, .palette-item, .scratch-oval, .scratch-hole, .scratch-op-oval, .magic-number-card, .ancient-gem-btn, .brand-area');
         if (!isInteractive && now - lastTouchEnd <= 450) {
           e.preventDefault();
         }
@@ -211,7 +210,6 @@
       $('scene-' + s).hidden = s !== sceneNum;
     }
 
-    // 「きめ方をみる」ボタンは Scene 3〜5 で常設表示
     $('btn-open-rules').hidden = sceneNum < 3;
     $('teacher-badge').hidden = !state.teacherMode;
 
@@ -320,7 +318,6 @@
       }
     });
 
-    // 0〜6 の分岐ラベル
     const branches = document.createElement('div');
     branches.className = 'fc-branches-mini';
     Curriculum.FORTUNE_COLORS.forEach((c) => {
@@ -337,7 +334,6 @@
   }
 
   function placeFcItemInSlot(itemId, slotKey) {
-    // すでに別のスロットにあれば外す
     Object.keys(state.fcSlots).forEach((k) => {
       if (state.fcSlots[k] === itemId) state.fcSlots[k] = null;
     });
@@ -429,144 +425,25 @@
   }
 
   // =========================================================================
-  // SCENE 4：ブロックプログラミング（1画面・フローチャート連動ステップ解放方式）
+  // SCENE 4：Scratch風ブロックプログラミング（段階別パレット＆枠外削除）
   // =========================================================================
-  function getCurrentProgStage() {
-    const b = state.programBlocks;
-    if (!Curriculum.checkStageA(b)) return 'A';
-    if (!Curriculum.checkStageB(b)) return 'B';
-    if (!Curriculum.checkStageC(b)) return 'C';
-    return 'DONE';
+  function isOutsideProgWorkspace(x, y) {
+    const ws = $('prog-workspace');
+    if (!ws) return false;
+    const r = ws.getBoundingClientRect();
+    return x < r.left || x > r.right || y < r.top || y > r.bottom;
   }
 
-  function renderScene4Programming() {
-    const stageId = getCurrentProgStage();
-    const meta = Curriculum.getProgStageMeta(stageId);
-
-    // 左：フローチャート（今組む部分をハイライト）
-    renderFlowchartDiagram($('prog-flowchart-view'), 'prog', {
-      highlightSlots: meta.highlightSlots
-    });
-
-    // 中央：水晶玉メッセージ＆パレット
-    $('prog-crystal-msg').textContent = '「' + meta.owlMsg + '」';
-    const paletteEl = $('prog-palette');
-    paletteEl.innerHTML = '';
-
-    meta.allowedBlocks.forEach((type) => {
-      const cat = Blocks.BLOCK_CATALOG[type];
-      if (!cat) return;
-      const item = document.createElement('div');
-      item.className = 'palette-item ' + cat.category;
-      item.innerHTML =
-        '<span>' + escapeHtml(cat.paletteLabel) + '</span>' +
-        '<span class="palette-add-badge">+ 追加</span>';
-
-      attachPointerDrag(item, {
-        label: cat.paletteLabel,
-        onTap: () => addBlockToProgContainer(type, 'root'),
-        onDrop: (x, y) => dropBlockAt(x, y, { mode: 'create', blockType: type }),
-        highlightFinder: (x, y) => findProgDropTarget(x, y)
-      });
-
-      paletteEl.appendChild(item);
-    });
-
-    $('prog-helper-area').hidden = stageId !== 'C';
-
-    // 右上：組み立て済みブロックリスト
-    const listEl = $('prog-list');
-    listEl.innerHTML = '';
-    const options = {
-      onChange: () => {
-        saveState();
-        renderScene4RealtimeMonitor();
-      },
-      onMove: (blockId, dir) => {
-        Sound.playSnap();
-        const info = Blocks.findContainerInfo(state.programBlocks, blockId);
-        if (!info) return;
-        const nextIdx = info.index + dir;
-        if (nextIdx < 0 || nextIdx >= info.list.length) return;
-        const removed = info.list.splice(info.index, 1)[0];
-        info.list.splice(nextIdx, 0, removed);
-        saveState();
-        renderScene4Programming();
-      },
-      onDelete: (blockId) => {
-        Sound.playSnap();
-        const info = Blocks.findContainerInfo(state.programBlocks, blockId);
-        if (!info) return;
-        info.list.splice(info.index, 1);
-        saveState();
-        renderScene4Programming();
-      },
-      onQuickAddInside: (blockId, slot) => {
-        openQuickAddInsideModal(blockId, slot);
-      },
-      attachDragStart: (el, payload) => {
-        attachPointerDrag(el, {
-          label: payload.label,
-          onTap: null,
-          onDrop: (x, y) => dropBlockAt(x, y, payload),
-          highlightFinder: (x, y) => findProgDropTarget(x, y)
-        });
-      }
-    };
-
-    state.programBlocks.forEach((b) => {
-      listEl.appendChild(Blocks.createBlockElement(b, options));
-    });
-    $('prog-empty-hint').hidden = state.programBlocks.length > 0;
-
-    renderScene4RealtimeMonitor();
-  }
-
-  function renderScene4RealtimeMonitor() {
-    const stageId = getCurrentProgStage();
-    const stageNumMap = { A: 'ミッション 1/3', B: 'ミッション 2/3', C: 'ミッション 3/3', DONE: 'かんせい！' };
-    $('prog-stage-badge').textContent = stageNumMap[stageId] || '';
-
-    // サンプル入力「さんすうしゅうた」= 10332331 ＋ 今日の日付でリアルタイム解釈
-    const exec = Blocks.buildExecutionTrace(state.programBlocks, {
-      nameNum: 10332331,
-      dateNum: Curriculum.getTodayDayOfMonth()
-    });
-    const v = exec.finalVars;
-
-    $('rt-name').textContent = state.programBlocks.some((b) => b.type === 'set_name') ? String(v['名前']) : '-';
-    $('rt-date').textContent = state.programBlocks.some((b) => b.type === 'set_date') ? String(v['日付']) : '-';
-    $('rt-sum').textContent = v['名前と日付の和'] ? String(v['名前と日付の和']) : '-';
-    $('rt-mod').textContent = v['7でわったあまり'] !== '?' ? String(v['7でわったあまり']) : '-';
-    $('rt-color').textContent = v['今日のラッキーカラー'] !== 'まだきまっていない' ? v['今日のラッキーカラー'] : '-';
-
-    const nextBtn = $('btn-scene4-next');
-    const fb = $('rt-feedback');
-
-    state.progCompleted = stageId === 'DONE';
-    if (state.progCompleted) {
-      if (state.maxUnlockedScene < 5) {
-        state.maxUnlockedScene = 5;
-        Sound.playClear();
-      }
-      nextBtn.disabled = false;
-      nextBtn.textContent = '🔮 占いの館（シミュレータ）へ！ ▶';
-      fb.textContent = '✨ すべての手順がつながりました！占いの館へ進もう！';
-    } else {
-      nextBtn.disabled = true;
-      nextBtn.textContent = '🔒 ぜんぶ組めたら 占いの館へ ▶';
-      if (stageId === 'A') {
-        fb.textContent = 'まずは [名前]・[日付]・[名前と日付の和] を組んでみよう！';
-      } else if (stageId === 'B') {
-        fb.textContent = '和が計算できた！つぎは [5回くり返す] の中に [÷2して四捨五入] を入れよう！';
-      } else {
-        fb.textContent = 'くり返し完了！つぎは [7でわったあまり] と 0〜6 の [もし〜なら] を並べよう！';
-      }
+  function findExprSlotAt(x, y) {
+    const els = document.elementsFromPoint(x, y);
+    for (let i = 0; i < els.length; i++) {
+      const slotEl = els[i].closest ? els[i].closest('[data-slot-path]') : null;
+      if (slotEl && slotEl.closest('#scene-4')) return slotEl;
     }
-    saveState();
+    return null;
   }
 
-  function findProgDropTarget(x, y) {
+  function findStmtContainerAt(x, y) {
     const els = document.elementsFromPoint(x, y);
     for (let i = 0; i < els.length; i++) {
       const container = els[i].closest ? els[i].closest('[data-container-id]') : null;
@@ -580,94 +457,466 @@
     return null;
   }
 
-  function addBlockToProgContainer(blockType, containerKey, insertIdx) {
-    const cat = Blocks.BLOCK_CATALOG[blockType];
-    if (!cat) return;
-    const targetList = Blocks.findListByKey(state.programBlocks, containerKey || 'root');
-    if (!targetList) return;
-    const newBlk = cat.createDefault({
-      nameNum: 10332331,
-      todayDate: Curriculum.getTodayDayOfMonth()
-    });
-    if (typeof insertIdx === 'number' && insertIdx >= 0 && insertIdx <= targetList.length) {
-      targetList.splice(insertIdx, 0, newBlk);
+  // タップ時はめ込み用の、最初の空スロットを探す
+  function findFirstCompatibleSlot(exprKind) {
+    const allSlots = document.querySelectorAll('#prog-list [data-slot-path]');
+    for (let i = 0; i < allSlots.length; i++) {
+      const s = allSlots[i];
+      const mode = s.dataset.slotMode;
+      const isEmptyHole = s.classList.contains('scratch-hole');
+      if (!isEmptyHole) continue;
+      if (exprKind === 'var' && mode === 'var-only') return s.dataset.slotPath;
+      if (exprKind !== 'var' && mode !== 'var-only') {
+        // 入力欄が空ならそこへ
+        const inp = s.querySelector('input');
+        if (!inp || inp.value === '') return s.dataset.slotPath;
+      }
+    }
+    // 変数なら var-only が空でなくても空の 'any' 穴を探す
+    if (exprKind === 'var') {
+      for (let j = 0; j < allSlots.length; j++) {
+        const s2 = allSlots[j];
+        if (s2.classList.contains('scratch-hole') && s2.dataset.slotMode === 'any') {
+          const inp2 = s2.querySelector('input');
+          if (!inp2 || inp2.value === '') return s2.dataset.slotPath;
+        }
+      }
+    }
+    return null;
+  }
+
+  function insertExprIntoSlot(slotPath, exprObj) {
+    const ok = Blocks.setExprByPath(state.programBlocks, slotPath, Blocks.cloneExpr(exprObj));
+    if (ok) {
+      Sound.playSnap();
+      activeSlotPath = null;
+      activeSlotMode = null;
+      saveState();
+      renderScene4Programming();
     } else {
-      targetList.push(newBlk);
+      Sound.playWarn();
+    }
+  }
+
+  function renderScene4Programming() {
+    const evalRes = Curriculum.evaluateProgramProgress(state.programBlocks);
+    const meta = Curriculum.getProgStageMeta(evalRes.stage);
+
+    // 左：フローチャート（今組む部分のみ光る）
+    renderFlowchartDiagram($('prog-flowchart-view'), 'prog', {
+      highlightSlots: meta.highlightSlots
+    });
+
+    // 中央：水晶玉メッセージ（ア〜カは使わない！）
+    $('prog-crystal-msg').textContent = '「' + meta.owlMsg + '」';
+
+    // カテゴリ1：変わる数（数を入れる入れ物）
+    const varsEl = $('prog-vars-palette');
+    varsEl.innerHTML = '';
+    meta.vars.forEach((vName) => {
+      const chip = document.createElement('span');
+      chip.className = 'scratch-oval scratch-var-oval';
+      chip.textContent = vName;
+      const exprObj = { kind: 'var', name: vName };
+
+      attachPointerDrag(chip, {
+        label: vName,
+        onTap: () => {
+          const targetPath = activeSlotPath || findFirstCompatibleSlot('var');
+          if (targetPath) {
+            insertExprIntoSlot(targetPath, exprObj);
+          } else {
+            Sound.playWarn();
+          }
+        },
+        highlightFinder: (x, y) => findExprSlotAt(x, y),
+        onDrop: (x, y) => {
+          const slotEl = findExprSlotAt(x, y);
+          if (slotEl) {
+            insertExprIntoSlot(slotEl.dataset.slotPath, exprObj);
+          }
+        }
+      });
+
+      varsEl.appendChild(chip);
+    });
+
+    // カテゴリ2：命令・けいさんブロック
+    const palEl = $('prog-palette');
+    palEl.innerHTML = '';
+    meta.commands.forEach((cmdType) => {
+      const def = Blocks.PALETTE_DEFS[cmdType];
+      if (!def) return;
+      const item = document.createElement('div');
+      item.className = 'palette-item ' + def.category + (def.kind === 'expr' ? ' is-expr-item' : '');
+      item.innerHTML =
+        '<span>' + escapeHtml(def.label) + '</span>' +
+        '<span class="palette-add-badge">' + (def.kind === 'expr' ? 'はめる' : '+ 追加') + '</span>';
+
+      if (def.kind === 'stmt') {
+        attachPointerDrag(item, {
+          label: def.label,
+          onTap: () => {
+            state.programBlocks.push(def.create());
+            Sound.playSnap();
+            saveState();
+            renderScene4Programming();
+          },
+          highlightFinder: (x, y) => findStmtContainerAt(x, y),
+          onDrop: (x, y) => {
+            const containerEl = findStmtContainerAt(x, y);
+            if (!containerEl) return;
+            insertStmtAt(def.create(), containerEl, y);
+          }
+        });
+      } else {
+        // 緑の計算ブロック（丸穴にはめる）
+        attachPointerDrag(item, {
+          label: def.label,
+          onTap: () => {
+            const targetPath = (activeSlotPath && activeSlotMode !== 'var-only')
+              ? activeSlotPath
+              : findFirstCompatibleSlot('expr');
+            if (targetPath) {
+              insertExprIntoSlot(targetPath, def.create());
+            } else {
+              Sound.playWarn();
+            }
+          },
+          highlightFinder: (x, y) => {
+            const s = findExprSlotAt(x, y);
+            return s && s.dataset.slotMode !== 'var-only' ? s : null;
+          },
+          onDrop: (x, y) => {
+            const s = findExprSlotAt(x, y);
+            if (s && s.dataset.slotMode !== 'var-only') {
+              insertExprIntoSlot(s.dataset.slotPath, def.create());
+            }
+          }
+        });
+      }
+
+      palEl.appendChild(item);
+    });
+
+    // カテゴリ3：ラッキーカラー（ステージC以降）
+    const colorsSec = $('prog-colors-section');
+    const colorsEl = $('prog-colors-palette');
+    colorsEl.innerHTML = '';
+    if (meta.colors.length > 0) {
+      colorsSec.hidden = false;
+      meta.colors.forEach((cName) => {
+        const cInfo = Curriculum.getColorByName(cName);
+        const chip = document.createElement('span');
+        chip.className = 'scratch-oval scratch-color-oval';
+        if (cInfo) {
+          chip.style.background = cInfo.hex;
+          chip.style.color = cInfo.textColor;
+        }
+        chip.textContent = cName;
+        const exprObj = { kind: 'color', value: cName };
+
+        attachPointerDrag(chip, {
+          label: cName,
+          onTap: () => {
+            const targetPath = (activeSlotPath && activeSlotMode !== 'var-only')
+              ? activeSlotPath
+              : findFirstCompatibleSlot('color');
+            if (targetPath) {
+              insertExprIntoSlot(targetPath, exprObj);
+            } else {
+              Sound.playWarn();
+            }
+          },
+          highlightFinder: (x, y) => {
+            const s = findExprSlotAt(x, y);
+            return s && s.dataset.slotMode !== 'var-only' ? s : null;
+          },
+          onDrop: (x, y) => {
+            const s = findExprSlotAt(x, y);
+            if (s && s.dataset.slotMode !== 'var-only') {
+              insertExprIntoSlot(s.dataset.slotPath, exprObj);
+            }
+          }
+        });
+
+        colorsEl.appendChild(chip);
+      });
+    } else {
+      colorsSec.hidden = true;
+    }
+
+    // 右上：組み立て済みブロックの描画
+    const listEl = $('prog-list');
+    listEl.innerHTML = '';
+    const blockOpts = {
+      readOnly: false,
+      activeSlotPath: activeSlotPath,
+      onChange: () => {
+        saveState();
+        renderScene4RealtimeMonitor();
+      },
+      onSelectSlot: (slotPath, slotMode, keepFocus) => {
+        if (!keepFocus) Sound.playSnap();
+        activeSlotPath = activeSlotPath === slotPath && !keepFocus ? null : slotPath;
+        activeSlotMode = activeSlotPath ? slotMode : null;
+        if (!keepFocus) renderScene4Programming();
+      },
+      onUpdateNumSlot: (slotPath, val) => {
+        Blocks.setExprByPath(state.programBlocks, slotPath, { kind: 'num', value: val });
+        saveState();
+        renderScene4RealtimeMonitor();
+      },
+      attachStmtDrag: (headEl, blockId, blockType) => {
+        const def = Blocks.PALETTE_DEFS[blockType];
+        attachPointerDrag(headEl, {
+          label: def ? def.label : 'ブロック',
+          checkDeleteZone: (x, y) => isOutsideProgWorkspace(x, y),
+          highlightFinder: (x, y) => (isOutsideProgWorkspace(x, y) ? null : findStmtContainerAt(x, y)),
+          onTap: null,
+          onDrop: (x, y) => {
+            if (isOutsideProgWorkspace(x, y)) {
+              const info = Blocks.findContainerInfo(state.programBlocks, blockId);
+              if (info) {
+                info.list.splice(info.index, 1);
+                Sound.playSnap();
+                saveState();
+                renderScene4Programming();
+              }
+              return;
+            }
+            const containerEl = findStmtContainerAt(x, y);
+            if (containerEl) {
+              moveStmtToContainer(blockId, containerEl, y);
+            }
+          }
+        });
+      },
+      attachExprDrag: (exprEl, slotPath, label, exprObj) => {
+        attachPointerDrag(exprEl, {
+          label: label,
+          checkDeleteZone: (x, y) => isOutsideProgWorkspace(x, y),
+          highlightFinder: (x, y) => (isOutsideProgWorkspace(x, y) ? null : findExprSlotAt(x, y)),
+          onTap: () => {
+            Sound.playSnap();
+            const mode = exprEl.dataset.slotMode || 'any';
+            activeSlotPath = activeSlotPath === slotPath ? null : slotPath;
+            activeSlotMode = activeSlotPath ? mode : null;
+            renderScene4Programming();
+          },
+          onDrop: (x, y) => {
+            if (isOutsideProgWorkspace(x, y)) {
+              const mode = exprEl.dataset.slotMode || 'any';
+              Blocks.setExprByPath(
+                state.programBlocks,
+                slotPath,
+                mode === 'var-only' ? null : { kind: 'num', value: '' }
+              );
+              Sound.playSnap();
+              saveState();
+              renderScene4Programming();
+              return;
+            }
+            const targetSlot = findExprSlotAt(x, y);
+            if (targetSlot && targetSlot.dataset.slotPath !== slotPath) {
+              const targetPath = targetSlot.dataset.slotPath;
+              if (targetPath.indexOf(slotPath + '.') === 0) return; // 自身の子孫へは移動不可
+              const ok = Blocks.setExprByPath(state.programBlocks, targetPath, Blocks.cloneExpr(exprObj));
+              if (ok) {
+                const srcMode = exprEl.dataset.slotMode || 'any';
+                Blocks.setExprByPath(
+                  state.programBlocks,
+                  slotPath,
+                  srcMode === 'var-only' ? null : { kind: 'num', value: '' }
+                );
+                Sound.playSnap();
+                saveState();
+                renderScene4Programming();
+              }
+            }
+          }
+        });
+      }
+    };
+
+    state.programBlocks.forEach((b) => {
+      listEl.appendChild(Blocks.createBlockElement(b, blockOpts));
+    });
+    $('prog-empty-hint').hidden = state.programBlocks.length > 0;
+
+    renderScene4RealtimeMonitor();
+  }
+
+  function insertStmtAt(newBlk, containerEl, y) {
+    const containerKey = containerEl.dataset.containerId || 'root';
+    const targetList = Blocks.findListByKey(state.programBlocks, containerKey);
+    if (!targetList) return;
+
+    let insertIdx = targetList.length;
+    const directChildren = Array.from(containerEl.children).filter((c) => c.dataset && c.dataset.blockId);
+    for (let i = 0; i < directChildren.length; i++) {
+      const r = directChildren[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) {
+        insertIdx = i;
+        break;
+      }
+    }
+    targetList.splice(insertIdx, 0, newBlk);
+    Sound.playSnap();
+    saveState();
+    renderScene4Programming();
+  }
+
+  function moveStmtToContainer(blockId, containerEl, y) {
+    const info = Blocks.findContainerInfo(state.programBlocks, blockId);
+    if (!info) return;
+    const containerKey = containerEl.dataset.containerId || 'root';
+    if (containerKey !== 'root' && Blocks.isDescendant(info.block, containerKey)) return;
+
+    const targetList = Blocks.findListByKey(state.programBlocks, containerKey);
+    if (!targetList) return;
+
+    let insertIdx = targetList.length;
+    const directChildren = Array.from(containerEl.children).filter((c) => c.dataset && c.dataset.blockId);
+    for (let i = 0; i < directChildren.length; i++) {
+      const r = directChildren[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) {
+        insertIdx = i;
+        break;
+      }
+    }
+    if (info.list === targetList && info.index < insertIdx) insertIdx -= 1;
+    const moved = info.list.splice(info.index, 1)[0];
+    targetList.splice(Math.max(0, Math.min(targetList.length, insertIdx)), 0, moved);
+    Sound.playSnap();
+    saveState();
+    renderScene4Programming();
+  }
+
+  // 右下：正しいときにだけ変数結果ボックスを表示！
+  function renderScene4RealtimeMonitor() {
+    const evalRes = Curriculum.evaluateProgramProgress(state.programBlocks);
+    const exec = Blocks.executeProgram(state.programBlocks);
+    const v = exec.vars;
+    const V = Curriculum.VAR_NAMES;
+
+    const badgeMap = { A: 'ステップ 1/3', B: 'ステップ 2/3', C: 'ステップ 3/3', DONE: 'かんせい！' };
+    $('prog-stage-badge').textContent = badgeMap[evalRes.stage] || '';
+
+    const varsRow = $('rt-vars-row');
+    varsRow.hidden = !evalRes.okA;
+
+    $('rt-box-name').hidden = !evalRes.okA;
+    $('rt-box-date').hidden = !evalRes.okA;
+    $('rt-box-sum').hidden = !evalRes.okA;
+    $('rt-box-rep').hidden = !evalRes.okB;
+    $('rt-box-mod').hidden = !evalRes.okC;
+    $('rt-box-color').hidden = !evalRes.okC;
+
+    if (evalRes.okA) {
+      $('rt-name').textContent = String(v[V.NAME]);
+      $('rt-date').textContent = String(v[V.DATE]);
+      // 注意：Stage B も完成していると v[V.SUM] はくり返し後の値になっているため、和は計算表示
+      const initialSum = Number(v[V.NAME]) + Number(v[V.DATE]);
+      $('rt-sum').textContent = String(initialSum);
+    }
+    if (evalRes.okB) {
+      $('rt-rep').textContent = String(exec.afterRepeatVal !== null ? exec.afterRepeatVal : v[V.SUM]);
+    }
+    if (evalRes.okC) {
+      $('rt-mod').textContent = String(v[V.MOD]);
+      $('rt-color').textContent = String(v[V.COLOR] || '-');
+    }
+
+    const nextBtn = $('btn-scene4-next');
+    const fb = $('rt-feedback');
+    state.progCompleted = evalRes.stage === 'DONE';
+
+    if (state.progCompleted) {
+      if (state.maxUnlockedScene < 5) {
+        state.maxUnlockedScene = 5;
+        Sound.playClear();
+      }
+      nextBtn.disabled = false;
+      nextBtn.textContent = '🔮 占いの館（シミュレータ）へ！ ▶';
+      fb.textContent = '✨ すべてのプログラムが正しく動いたよ！占いの館へ進もう！';
+    } else {
+      nextBtn.disabled = true;
+      nextBtn.textContent = '🔒 ぜんぶ組めたら 占いの館へ ▶';
+      if (evalRes.wrongColorMsg) {
+        fb.textContent = '💡 ' + evalRes.wrongColorMsg;
+      } else if (evalRes.stage === 'A') {
+        fb.textContent = '「置きかえた数字」と「今日の日」に数を入れ、「和」を＋で計算してみよう！';
+      } else if (evalRes.stage === 'B') {
+        fb.textContent = '和ができた！つぎは「5回くり返す」の中で「和 ÷ 2 を四捨五入」しよう！';
+      } else if (!evalRes.okMod) {
+        fb.textContent = 'くり返しOK！つぎは「7でわったあまり」を計算しよう！';
+      } else {
+        fb.textContent = 'あまりの分岐あと ' + evalRes.missingColors.length + '色（数字：' + evalRes.missingColors.join('・') + '）！';
+      }
+    }
+    saveState();
+  }
+
+  // お助け（中途半端に1歩だけヒントを追加する）
+  function applyOneStepAssist() {
+    const evalRes = Curriculum.evaluateProgramProgress(state.programBlocks);
+    const V = Curriculum.VAR_NAMES;
+
+    if (evalRes.stage === 'A') {
+      const hasName = state.programBlocks.some((b) => b.type === 'cmd_set' && b.targetVar === V.NAME);
+      const hasDate = state.programBlocks.some((b) => b.type === 'cmd_set' && b.targetVar === V.DATE);
+      if (!hasName) {
+        state.programBlocks.push(Blocks.hydrateBlocks([{ type: 'cmd_set', targetVar: V.NAME, valueExpr: { kind: 'num', value: 10332331 } }])[0]);
+      } else if (!hasDate) {
+        state.programBlocks.push(Blocks.hydrateBlocks([{ type: 'cmd_set', targetVar: V.DATE, valueExpr: { kind: 'num', value: Curriculum.getTodayDayOfMonth() } }])[0]);
+      } else {
+        state.programBlocks.push(Blocks.hydrateBlocks([{
+          type: 'cmd_set',
+          targetVar: V.SUM,
+          valueExpr: { kind: 'op_add', left: { kind: 'var', name: V.NAME }, right: null }
+        }])[0]);
+      }
+    } else if (evalRes.stage === 'B') {
+      const rep = state.programBlocks.find((b) => b.type === 'cmd_repeat');
+      if (!rep) {
+        state.programBlocks.push(Blocks.hydrateBlocks([{ type: 'cmd_repeat', count: 5, children: [] }])[0]);
+      } else {
+        rep.children.push(Blocks.hydrateBlocks([{
+          type: 'cmd_set',
+          targetVar: V.SUM,
+          valueExpr: {
+            kind: 'op_round',
+            arg: { kind: 'op_div', left: null, right: { kind: 'num', value: 2 } }
+          }
+        }])[0]);
+      }
+    } else if (evalRes.stage === 'C') {
+      if (!evalRes.okMod) {
+        state.programBlocks.push(Blocks.hydrateBlocks([{
+          type: 'cmd_set',
+          targetVar: V.MOD,
+          valueExpr: { kind: 'op_mod', left: { kind: 'var', name: V.SUM }, right: { kind: 'num', value: 7 } }
+        }])[0]);
+      } else if (evalRes.missingColors.length > 0) {
+        // 1つだけ（あるいは残り2つ以下なら全部）ではなく、まず1つだけお助け
+        const m = evalRes.missingColors[0];
+        const col = Curriculum.getColorByMod(m);
+        state.programBlocks.push(Blocks.hydrateBlocks([{
+          type: 'cmd_if',
+          leftExpr: { kind: 'var', name: V.MOD },
+          rightVal: m,
+          children: [{ type: 'cmd_set', targetVar: V.COLOR, valueExpr: { kind: 'color', value: col.name } }]
+        }])[0]);
+      }
     }
     Sound.playSnap();
     saveState();
     renderScene4Programming();
   }
 
-  function dropBlockAt(x, y, payload) {
-    const containerEl = findProgDropTarget(x, y);
-    if (!containerEl) return;
-    const containerKey = containerEl.dataset.containerId || 'root';
-
-    let insertIdx = containerEl.children.length;
-    const directChildren = Array.from(containerEl.children).filter((c) => c.dataset && c.dataset.blockId);
-    for (let i = 0; i < directChildren.length; i++) {
-      const rect = directChildren[i].getBoundingClientRect();
-      if (y < rect.top + rect.height / 2) {
-        insertIdx = i;
-        break;
-      }
-    }
-
-    if (payload.mode === 'create') {
-      addBlockToProgContainer(payload.blockType, containerKey, insertIdx);
-      return;
-    }
-
-    if (payload.mode === 'move') {
-      const info = Blocks.findContainerInfo(state.programBlocks, payload.blockId);
-      if (!info) return;
-      const targetBlockId = containerKey === 'root' ? null : containerKey.split(':')[0];
-      if (targetBlockId && Blocks.isDescendant(info.block, targetBlockId)) return;
-      const targetList = Blocks.findListByKey(state.programBlocks, containerKey);
-      if (!targetList) return;
-      if (info.list === targetList && info.index < insertIdx) insertIdx -= 1;
-      const moved = info.list.splice(info.index, 1)[0];
-      targetList.splice(Math.max(0, Math.min(targetList.length, insertIdx)), 0, moved);
-      Sound.playSnap();
-      saveState();
-      renderScene4Programming();
-    }
-  }
-
-  function openQuickAddInsideModal(blockId, slot) {
-    const meta = Curriculum.getProgStageMeta(getCurrentProgStage());
-    const allowed = meta.allowedBlocks.filter((t) => {
-      const c = Blocks.BLOCK_CATALOG[t];
-      return c && !c.isContainer;
-    });
-
-    const html = allowed
-      .map((t) => {
-        const cat = Blocks.BLOCK_CATALOG[t];
-        return (
-          '<button type="button" class="palette-item ' + cat.category + '" data-quick-type="' + t + '" style="width:100%; margin-bottom:8px;">' +
-          '<span>' + escapeHtml(cat.paletteLabel) + '</span>' +
-          '<span class="palette-add-badge">えらぶ</span>' +
-          '</button>'
-        );
-      })
-      .join('');
-
-    showModal('🧩', 'なかに 入れるブロックを えらぼう！', '<div style="text-align:left;">' + html + '</div>', [
-      { text: 'やめる', className: 'mini-btn' }
-    ]);
-
-    $('modal-body').querySelectorAll('[data-quick-type]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        addBlockToProgContainer(btn.dataset.quickType, blockId + ':' + slot);
-        closeModal();
-      });
-    });
-  }
-
   // =========================================================================
-  // SCENE 5：魔法の占いの館シミュレータ（ハリー・ポッター／ドクター・ストレンジ風）
+  // SCENE 5：魔法の占いの館シミュレータ
   // =========================================================================
   function stopSimTimers() {
     if (simRun && simRun.timer) {
@@ -683,20 +932,14 @@
     $('today-full-text').textContent = today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + dayNum + '日';
     $('today-day-chip').textContent = String(dayNum);
 
-    // プログラムが未完成（先生スキップ等で直接来た場合）は完成プリセットを補完
     if (!state.programBlocks || state.programBlocks.length === 0) {
       state.programBlocks = Blocks.hydrateBlocks(Curriculum.getCompletePreset(10332331, dayNum));
       saveState();
     }
 
-    // 自動モードUI表示制御（初回完了後に解放）
     $('auto-mode-toggle-wrap').hidden = !state.simFirstDone;
     $('chk-auto-mode').checked = !!state.simAutoMode;
-
-    // 7つのリアル魔法の玉を描画
     renderAncientGems();
-
-    // 初期状態リセット
     resetSimSession();
   }
 
@@ -720,7 +963,7 @@
     stopSimTimers();
     const dayNum = Curriculum.getTodayDayOfMonth();
     simRun = {
-      phase: 'WAIT_NAME', // WAIT_NAME -> WAIT_DROP -> ADD_DATE -> LOOP_1..5 -> MOD_7 -> PICK_COLOR -> FINISHED
+      phase: 'WAIT_NAME',
       nameText: '',
       origNum: 0,
       currentNum: 0,
@@ -756,23 +999,14 @@
 
   function renderSimFlowchartAndBlocks() {
     const p = simRun ? simRun.phase : 'WAIT_NAME';
+    const V = Curriculum.VAR_NAMES;
     let tapSlots = [];
     let flashSlots = [];
-    let flashBlockTypes = [];
 
-    if (p === 'ADD_DATE') {
-      tapSlots = ['イ'];
-      flashBlockTypes = ['set_name', 'set_date', 'add_sum'];
-    } else if (p.indexOf('LOOP_') === 0) {
-      tapSlots = ['ウ', 'エ', 'オ'];
-      flashBlockTypes = ['repeat', 'halve_round'];
-    } else if (p === 'MOD_7') {
-      tapSlots = ['カ'];
-      flashBlockTypes = ['mod7'];
-    } else if (p === 'PICK_COLOR') {
-      flashSlots = ['カ'];
-      flashBlockTypes = ['if_mod', 'if_else_mod', 'set_color'];
-    }
+    if (p === 'ADD_DATE') tapSlots = ['イ'];
+    else if (p.indexOf('LOOP_') === 0) tapSlots = ['ウ', 'エ', 'オ'];
+    else if (p === 'MOD_7') tapSlots = ['カ'];
+    else if (p === 'PICK_COLOR') flashSlots = ['カ'];
 
     const isAuto = !!(state.simFirstDone && state.simAutoMode);
     renderFlowchartDiagram($('sim-flowchart-view'), 'sim', {
@@ -787,23 +1021,22 @@
       progEl.appendChild(Blocks.createBlockElement(b, { readOnly: true }));
     });
 
-    // 該当ブロックをフラッシュ
-    if (flashBlockTypes.length > 0) {
-      progEl.querySelectorAll('.prog-block').forEach((blkEl) => {
-        const bType = blkEl.dataset.blockType;
-        if (flashBlockTypes.indexOf(bType) !== -1) {
-          if (p === 'PICK_COLOR' && (bType === 'if_mod' || bType === 'if_else_mod')) {
-            // 該当する余りの分岐ブロックを強く光らせる
-            const pill = blkEl.querySelector('.blk-readonly-pill');
-            if (pill && Number(pill.textContent) === simRun.currentNum) {
-              blkEl.classList.add('is-running');
-            }
-          } else {
-            blkEl.classList.add('is-running');
-          }
+    // 該当するScratchブロックを連動フラッシュ
+    progEl.querySelectorAll('.prog-block').forEach((blkEl, idx) => {
+      const bType = blkEl.dataset.blockType;
+      if (p === 'ADD_DATE' && bType === 'cmd_set' && idx <= 2) {
+        blkEl.classList.add('is-running');
+      } else if (p.indexOf('LOOP_') === 0 && (bType === 'cmd_repeat' || blkEl.closest('[data-block-type="cmd_repeat"]'))) {
+        blkEl.classList.add('is-running');
+      } else if (p === 'MOD_7' && bType === 'cmd_set' && blkEl.textContent.indexOf(V.MOD) !== -1) {
+        blkEl.classList.add('is-running');
+      } else if (p === 'PICK_COLOR' && bType === 'cmd_if') {
+        const pill = blkEl.querySelector('.blk-readonly-pill');
+        if (pill && Number(pill.textContent) === simRun.currentNum) {
+          blkEl.classList.add('is-running');
         }
-      });
-    }
+      }
+    });
   }
 
   function handleSimNameInput(rawText) {
@@ -853,8 +1086,7 @@
     if (!simRun || simRun.phase !== 'WAIT_DROP') return;
 
     $('sim-name-input').disabled = true;
-    const card = $('magic-number-card');
-    card.classList.add('is-shaking');
+    $('magic-number-card').classList.add('is-shaking');
     $('sim-crystal-ball').classList.add('is-pulsing');
     Sound.playSnap();
 
@@ -870,7 +1102,6 @@
     }
   }
 
-  // 飛んでいく演算ブロック演出 → 数字カードにガシャンと合体＆変化
   function animateFlyingOp(sourceEl, opLabel, nextValue, callback) {
     const chip = $('flying-op-chip');
     const card = $('magic-number-card');
@@ -940,7 +1171,7 @@
       const rem = ((simRun.currentNum % 7) + 7) % 7;
       const srcEl = document.querySelector('#sim-flowchart-view [data-fc-slot="カ"]') || $('sim-flowchart-view');
       animateFlyingOp(srcEl, '÷7 のあまり', rem, () => {
-        enterPickColorPhase();
+        enterPickColorPhase(false);
       });
     }
   }
@@ -1076,12 +1307,13 @@
   }
 
   // =========================================================================
-  // 共通 Pointer Events ドラッグ＆ドロップヘルパー
+  // 共通 Pointer Events ドラッグ＆ドロップ（枠外削除表示対応）
   // =========================================================================
   function attachPointerDrag(el, cfg) {
     el.addEventListener('pointerdown', (e) => {
       if (e.button && e.button !== 0) return;
       if (e.target && e.target.closest && e.target.closest('input, select, button')) return;
+      e.stopPropagation();
       dragPayload = {
         cfg: cfg,
         startX: e.clientX,
@@ -1101,6 +1333,7 @@
         dragPayload.active = true;
         const ghost = $('drag-ghost');
         ghost.textContent = dragPayload.cfg.label;
+        ghost.classList.remove('is-delete-zone');
         ghost.hidden = false;
       }
       if (dragPayload.active) {
@@ -1108,7 +1341,12 @@
         ghost.style.left = e.clientX + 'px';
         ghost.style.top = e.clientY + 'px';
         document.querySelectorAll('.is-drop-over').forEach((n) => n.classList.remove('is-drop-over'));
-        if (dragPayload.cfg.highlightFinder) {
+
+        const inDelete = dragPayload.cfg.checkDeleteZone && dragPayload.cfg.checkDeleteZone(e.clientX, e.clientY);
+        ghost.classList.toggle('is-delete-zone', !!inDelete);
+        ghost.textContent = inDelete ? '🗑️ はなすと消えるよ' : dragPayload.cfg.label;
+
+        if (!inDelete && dragPayload.cfg.highlightFinder) {
           const target = dragPayload.cfg.highlightFinder(e.clientX, e.clientY);
           if (target) target.classList.add('is-drop-over');
         }
@@ -1120,7 +1358,9 @@
       const wasActive = dragPayload.active;
       const cfgCopy = dragPayload.cfg;
       document.querySelectorAll('.is-drop-over').forEach((n) => n.classList.remove('is-drop-over'));
-      $('drag-ghost').hidden = true;
+      const ghost = $('drag-ghost');
+      ghost.hidden = true;
+      ghost.classList.remove('is-delete-zone');
       dragPayload = null;
 
       if (!wasActive) {
@@ -1140,7 +1380,6 @@
       label: '🔮 数字カード',
       onTap: () => {
         if (!simRun || simRun.phase !== 'WAIT_DROP') return;
-        // タップ時は水晶玉ドロップゾーンを強調して誘導
         const dz = $('sim-crystal-dropzone');
         dz.classList.add('is-drop-ready');
         setTimeout(() => dz.classList.remove('is-drop-ready'), 700);
@@ -1217,7 +1456,6 @@
       hardResetAll();
     });
 
-    // ヘッダー常設「↺ リセット」ボタン
     $('btn-dev-reset').addEventListener('click', () => {
       Sound.playSnap();
       showModal(
@@ -1231,7 +1469,6 @@
       );
     });
 
-    // 常設「📜 きめ方をみる」モーダル
     $('btn-open-rules').addEventListener('click', () => {
       Sound.playSnap();
       $('rules-modal-backdrop').hidden = false;
@@ -1240,7 +1477,6 @@
       $('rules-modal-backdrop').hidden = true;
     });
 
-    // サウンド
     function updateSoundIcon() {
       $('sound-icon').textContent = Sound.getMuted() ? '🔇' : '🔊';
     }
@@ -1267,7 +1503,6 @@
     initTeacherAndSystemControls();
     initSimCardDrag();
 
-    // シーン進行バー
     document.querySelectorAll('.scene-pill').forEach((pill) => {
       pill.addEventListener('click', () => {
         const target = Number(pill.dataset.scene);
@@ -1277,21 +1512,18 @@
       });
     });
 
-    // Scene 1 -> 2
     $('btn-scene1-next').addEventListener('click', () => {
       Sound.playSnap();
       if (state.maxUnlockedScene < 2) state.maxUnlockedScene = 2;
       goToScene(2);
     });
 
-    // Scene 2 -> 3
     $('btn-scene2-next').addEventListener('click', () => {
       Sound.playSnap();
       if (state.maxUnlockedScene < 3) state.maxUnlockedScene = 3;
       goToScene(3);
     });
 
-    // Scene 3 フローチャートリセット & 次へ
     $('btn-fc-reset-slots').addEventListener('click', () => {
       Sound.playSnap();
       state.fcSlots = { 'ア': null, 'イ': null, 'ウ': null, 'エ': null, 'オ': null, 'カ': null };
@@ -1306,36 +1538,13 @@
       goToScene(4);
     });
 
-    // Scene 4 プログラミング操作
-    $('btn-prog-example').addEventListener('click', () => {
-      Sound.playSnap();
-      state.programBlocks = Blocks.hydrateBlocks(Curriculum.getCompletePreset(10332331, Curriculum.getTodayDayOfMonth()));
-      saveState();
-      renderScene4Programming();
-    });
+    $('btn-prog-assist').addEventListener('click', applyOneStepAssist);
 
     $('btn-prog-clear').addEventListener('click', () => {
       Sound.playSnap();
       state.programBlocks = [];
-      saveState();
-      renderScene4Programming();
-    });
-
-    $('btn-add-remaining-colors').addEventListener('click', () => {
-      Sound.playSnap();
-      const existingMods = {};
-      state.programBlocks.forEach((b) => {
-        if (b.type === 'if_mod' || b.type === 'if_else_mod') existingMods[String(b.modValue)] = true;
-      });
-      Curriculum.FORTUNE_COLORS.forEach((c) => {
-        if (!existingMods[String(c.mod)]) {
-          state.programBlocks.push(Blocks.hydrateBlocks([{
-            type: 'if_mod',
-            modValue: c.mod,
-            children: [{ type: 'set_color', color: c.name }]
-          }])[0]);
-        }
-      });
+      activeSlotPath = null;
+      activeSlotMode = null;
       saveState();
       renderScene4Programming();
     });
@@ -1346,7 +1555,6 @@
       goToScene(5);
     });
 
-    // Scene 5 シミュレータ入力・リセット・自動モード
     $('sim-name-input').addEventListener('input', (e) => {
       handleSimNameInput(e.target.value);
     });

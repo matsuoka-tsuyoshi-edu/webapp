@@ -16,11 +16,11 @@
 
   <title>魔法の占いの館 〜今日のラッキーカラーをきめよう！〜</title>
 
-  <link rel="manifest" href="./manifest.webmanifest?v=20261124-05">
-  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg?v=20261124-05">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=20261124-05">
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=20261124-05">
-  <link rel="stylesheet" href="./styles/app.css?v=20261124-05">
+  <link rel="manifest" href="./manifest.webmanifest?v=20261124-06">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg?v=20261124-06">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=20261124-06">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=20261124-06">
+  <link rel="stylesheet" href="./styles/app.css?v=20261124-06">
 </head>
 <body>
   <!-- 縦向き時の案内オーバーレイ（Landscape Lock） -->
@@ -174,7 +174,7 @@
             <div class="orb-pedestal"></div>
           </div>
           <div class="crystal-speech">
-            <p>「ラッキーカラーの きめ方は 上のとおり。でも、一回一回 計算するのは 大変じゃ。<strong>実際に プログラミングを してみよう！</strong>」</p>
+            <p>「上のようなしくみで、ラッキーカラーを <strong><ruby>自動<rt>じどう</rt></ruby>で<ruby>決<rt>き</rt></ruby>められないかのぉ？</strong>」</p>
           </div>
           <button id="btn-scene2-next" class="mega-next-btn" type="button">
             つぎへ ▶
@@ -239,7 +239,7 @@
     </main>
 
     <!-- ====================================================================
-         SCENE 4：ブロックプログラミング画面（フローチャート連動ステップ解放方式）
+         SCENE 4：ブロックプログラミング画面（Scratch風・フローチャート連動段階別）
          ==================================================================== -->
     <main id="scene-4" class="scene scene-programming" hidden>
       <div class="three-col-grid prog-grid">
@@ -251,7 +251,7 @@
           </div>
         </section>
 
-        <!-- 中央：使うブロックパレット -->
+        <!-- 中央：今のフローチャートで使うブロックだけを表示 -->
         <section class="pane">
           <div class="pane-head">🧩 つかうブロック</div>
           <div class="pane-body scrollable-y">
@@ -261,11 +261,20 @@
               </div>
               <div id="prog-crystal-msg" class="crystal-speech compact"></div>
             </div>
-            <div id="prog-palette" class="block-palette"></div>
-            <div id="prog-helper-area" class="prog-helper-area" hidden>
-              <button id="btn-add-remaining-colors" class="mini-btn" type="button">
-                ✨ お助け：のこりの色分岐(0〜6)をならべる
-              </button>
+
+            <div class="palette-section">
+              <div class="palette-cat-title">📦 <ruby>変<rt>か</rt></ruby>わる<ruby>数<rt>かず</rt></ruby>（数を入れる入れ物）</div>
+              <div id="prog-vars-palette" class="vars-oval-palette"></div>
+            </div>
+
+            <div class="palette-section">
+              <div class="palette-cat-title">🧱 命令・けいさんブロック</div>
+              <div id="prog-palette" class="block-palette"></div>
+            </div>
+
+            <div id="prog-colors-section" class="palette-section" hidden>
+              <div class="palette-cat-title">🎨 ラッキーカラー（色チップ）</div>
+              <div id="prog-colors-palette" class="colors-oval-palette"></div>
             </div>
           </div>
         </section>
@@ -275,34 +284,39 @@
           <div class="pane-head">
             <span>📜 プログラムの組み立て</span>
             <div class="head-mini-btns">
-              <button id="btn-prog-example" class="mini-btn" type="button">✨ おてほん</button>
-              <button id="btn-prog-clear" class="mini-btn danger-mini" type="button">🗑️ 消す</button>
+              <button id="btn-prog-assist" class="mini-btn" type="button" title="1歩だけヒントを追加する">✨ お助け</button>
+              <button id="btn-prog-clear" class="mini-btn danger-mini" type="button" title="組み立てたブロックをすべて消す">🗑️ 全部消す</button>
             </div>
           </div>
 
           <div id="prog-workspace" class="program-workspace scrollable-y">
-            <div class="start-hat">🚩 占いがはじまったとき</div>
+            <div class="workspace-top-row">
+              <div class="start-hat">🚩 占いがはじまったとき</div>
+              <span class="trash-tip">※ わくの外へドラッグで消せるよ</span>
+            </div>
             <div id="prog-list" class="program-list" data-container-id="root"></div>
             <div id="prog-empty-hint" class="empty-drop-hint">
-              真ん中のブロックを タップまたはドラッグして 組み立てよう！
+              真ん中の「命令ブロック」をここにドラッグ（またはタップ）し、<br>
+              白い穴「〇〇」に「変わる数」や計算をはめこもう！
             </div>
           </div>
 
-          <!-- 右下：リアルタイム解釈結果モニター -->
+          <!-- 右下：正しいときだけ出てくるリアルタイム実行結果 -->
           <div class="realtime-monitor">
             <div class="rt-header">
-              <span>⚡ リアルタイム じっこう結果（例：「さんすうしゅうた」＝10332331 ＋ 今日の日付）</span>
-              <span id="prog-stage-badge" class="rt-badge">ミッション 1/3</span>
+              <span>⚡ リアルタイム じっこう結果</span>
+              <span id="prog-stage-badge" class="rt-badge">ステップ 1/3</span>
             </div>
-            <div class="rt-vars-row">
-              <div class="rt-var"><span>名前</span><strong id="rt-name">-</strong></div>
-              <div class="rt-var"><span>日付</span><strong id="rt-date">-</strong></div>
-              <div class="rt-var"><span>和</span><strong id="rt-sum">-</strong></div>
-              <div class="rt-var"><span>あまり</span><strong id="rt-mod">-</strong></div>
-              <div class="rt-var"><span>カラー</span><strong id="rt-color">-</strong></div>
+            <div id="rt-vars-row" class="rt-vars-row" hidden>
+              <div id="rt-box-name" class="rt-var" hidden><span>置きかえた数字</span><strong id="rt-name">-</strong></div>
+              <div id="rt-box-date" class="rt-var" hidden><span>今日の日</span><strong id="rt-date">-</strong></div>
+              <div id="rt-box-sum" class="rt-var" hidden><span>和</span><strong id="rt-sum">-</strong></div>
+              <div id="rt-box-rep" class="rt-var" hidden><span>5回くり返し後</span><strong id="rt-rep">-</strong></div>
+              <div id="rt-box-mod" class="rt-var" hidden><span>7のあまり</span><strong id="rt-mod">-</strong></div>
+              <div id="rt-box-color" class="rt-var" hidden><span>カラー</span><strong id="rt-color">-</strong></div>
             </div>
             <div class="rt-foot">
-              <span id="rt-feedback" class="rt-feedback">ブロックを並べると すぐに結果が出るよ！</span>
+              <span id="rt-feedback" class="rt-feedback">正しく組み立てると 結果がここにあらわれるよ！</span>
               <button id="btn-scene4-next" class="primary-magic-btn" type="button" disabled>
                 🔒 ぜんぶ組めたら 占いの館へ ▶
               </button>
@@ -460,7 +474,7 @@
   <!-- サーバー上の最新版チェック（古いindex.htmlキャッシュ時の自動更新） -->
   <script>
     (function () {
-      var CURRENT_VER = '20261124-05';
+      var CURRENT_VER = '20261124-06';
       window.__APP_BUILD_VER__ = CURRENT_VER;
       if (location.protocol === 'http:' || location.protocol === 'https:') {
         fetch('./version.json?_=' + Date.now(), { cache: 'no-store' })
@@ -478,10 +492,10 @@
       }
     })();
   </script>
-  <script defer src="./js/ng-filter.js?v=20261124-05"></script>
-  <script defer src="./js/sound.js?v=20261124-05"></script>
-  <script defer src="./js/curriculum.js?v=20261124-05"></script>
-  <script defer src="./js/blocks.js?v=20261124-05"></script>
-  <script defer src="./js/app.js?v=20261124-05"></script>
+  <script defer src="./js/ng-filter.js?v=20261124-06"></script>
+  <script defer src="./js/sound.js?v=20261124-06"></script>
+  <script defer src="./js/curriculum.js?v=20261124-06"></script>
+  <script defer src="./js/blocks.js?v=20261124-06"></script>
+  <script defer src="./js/app.js?v=20261124-06"></script>
 </body>
 </html>

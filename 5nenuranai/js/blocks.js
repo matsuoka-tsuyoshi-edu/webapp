@@ -1,5 +1,5 @@
 /**
- * ブロックエンジン＆インタプリタ（ドラッグ＆ドロップ＋タップ操作＋フラッシュ表示対応）
+ * Scratch風 ネスト式ブロック＆式エンジン（命令ブロック＋丸い変数・演算はめ込み対応）
  */
 (function (global) {
   'use strict';
@@ -10,182 +10,85 @@
     return 'blk_' + Date.now().toString(36) + '_' + idSeq;
   }
 
-  const BLOCK_CATALOG = {
-    set_name: {
-      type: 'set_name',
+  const PALETTE_DEFS = {
+    cmd_set: {
+      kind: 'stmt',
+      type: 'cmd_set',
       category: 'cat-var',
-      paletteLabel: '[名前] を (数字) にする',
-      isContainer: false,
-      createDefault: (ctx) => ({ id: nextId(), type: 'set_name', value: Number(ctx.nameNum) || 10332331 })
+      label: '[ 〇〇 ] を ( 〇〇 ) にする',
+      create: () => ({ id: nextId(), type: 'cmd_set', targetVar: null, valueExpr: { kind: 'num', value: '' } })
     },
-    set_date: {
-      type: 'set_date',
-      category: 'cat-var',
-      paletteLabel: '[日付] を (今日の日) にする',
-      isContainer: false,
-      createDefault: (ctx) => ({ id: nextId(), type: 'set_date', value: Number(ctx.todayDate) || 24 })
-    },
-    add_sum: {
-      type: 'add_sum',
-      category: 'cat-op',
-      paletteLabel: '[名前と日付の和] を ([名前] + [日付]) にする',
-      isContainer: false,
-      createDefault: () => ({ id: nextId(), type: 'add_sum' })
-    },
-    repeat: {
-      type: 'repeat',
+    cmd_repeat: {
+      kind: 'stmt',
+      type: 'cmd_repeat',
       category: 'cat-ctrl',
-      paletteLabel: '(5) 回くり返す { ... }',
-      isContainer: true,
-      createDefault: () => ({ id: nextId(), type: 'repeat', count: 5, children: [] })
+      label: '( 5 ) 回くり返す { ... }',
+      create: () => ({ id: nextId(), type: 'cmd_repeat', count: 5, children: [] })
     },
-    halve_round: {
-      type: 'halve_round',
-      category: 'cat-op',
-      paletteLabel: '[名前と日付の和] を (÷2して四捨五入) にする',
-      isContainer: false,
-      createDefault: () => ({ id: nextId(), type: 'halve_round' })
-    },
-    mod7: {
-      type: 'mod7',
-      category: 'cat-op',
-      paletteLabel: '[7でわったあまり] を (和 ÷ 7 の余り) にする',
-      isContainer: false,
-      createDefault: () => ({ id: nextId(), type: 'mod7' })
-    },
-    if_mod: {
-      type: 'if_mod',
+    cmd_if: {
+      kind: 'stmt',
+      type: 'cmd_if',
       category: 'cat-ctrl',
-      paletteLabel: 'もし <[7でわったあまり] = 0> なら { ... }',
-      isContainer: true,
-      createDefault: () => ({ id: nextId(), type: 'if_mod', modValue: 0, children: [] })
+      label: 'もし < ( 〇〇 ) = ( 0 ) > なら { ... }',
+      create: () => ({ id: nextId(), type: 'cmd_if', leftExpr: null, rightVal: 0, children: [] })
     },
-    if_else_mod: {
-      type: 'if_else_mod',
-      category: 'cat-ctrl',
-      paletteLabel: 'もし <[7でわったあまり] = 0> なら〜でなければ',
-      isContainer: true,
-      hasElse: true,
-      createDefault: () => ({ id: nextId(), type: 'if_else_mod', modValue: 0, children: [], elseChildren: [] })
+    op_add: {
+      kind: 'expr',
+      type: 'op_add',
+      category: 'cat-op',
+      label: '( 〇〇 ) ＋ ( 〇〇 )',
+      create: () => ({ kind: 'op_add', left: null, right: null })
     },
-    set_color: {
-      type: 'set_color',
-      category: 'cat-color',
-      paletteLabel: '[今日のラッキーカラー] を (赤) にする',
-      isContainer: false,
-      createDefault: () => ({ id: nextId(), type: 'set_color', color: '赤' })
+    op_div: {
+      kind: 'expr',
+      type: 'op_div',
+      category: 'cat-op',
+      label: '( 〇〇 ) ÷ ( 2 )',
+      create: () => ({ kind: 'op_div', left: null, right: { kind: 'num', value: 2 } })
+    },
+    op_round: {
+      kind: 'expr',
+      type: 'op_round',
+      category: 'cat-op',
+      label: '( 〇〇 ) を四捨五入',
+      create: () => ({ kind: 'op_round', arg: null })
+    },
+    op_mod: {
+      kind: 'expr',
+      type: 'op_mod',
+      category: 'cat-op',
+      label: '( 〇〇 ) を ( 7 ) でわったあまり',
+      create: () => ({ kind: 'op_mod', left: null, right: { kind: 'num', value: 7 } })
     }
   };
 
+  function cloneExpr(expr) {
+    if (!expr) return null;
+    const out = { kind: expr.kind };
+    if (expr.name !== undefined) out.name = expr.name;
+    if (expr.value !== undefined) out.value = expr.value;
+    if (expr.left !== undefined) out.left = cloneExpr(expr.left);
+    if (expr.right !== undefined) out.right = cloneExpr(expr.right);
+    if (expr.arg !== undefined) out.arg = cloneExpr(expr.arg);
+    return out;
+  }
+
   function hydrateBlocks(rawList) {
-    return (rawList || []).map((item) => {
-      const cloned = {
-        id: item.id || nextId(),
-        type: item.type
-      };
-      if (item.value !== undefined) cloned.value = Number(item.value) || 0;
-      if (item.count !== undefined) cloned.count = Number(item.count) || 1;
-      if (item.modValue !== undefined) cloned.modValue = Number(item.modValue) || 0;
-      if (item.color !== undefined) cloned.color = String(item.color);
-      if (item.type === 'repeat' || item.type === 'if_mod' || item.type === 'if_else_mod') {
-        cloned.children = hydrateBlocks(item.children || []);
-      }
-      if (item.type === 'if_else_mod') {
-        cloned.elseChildren = hydrateBlocks(item.elseChildren || []);
+    return (rawList || []).map((b) => {
+      const cloned = { id: b.id || nextId(), type: b.type };
+      if (b.type === 'cmd_set') {
+        cloned.targetVar = b.targetVar || null;
+        cloned.valueExpr = cloneExpr(b.valueExpr);
+      } else if (b.type === 'cmd_repeat') {
+        cloned.count = b.count !== undefined ? Number(b.count) : 5;
+        cloned.children = hydrateBlocks(b.children || []);
+      } else if (b.type === 'cmd_if') {
+        cloned.leftExpr = cloneExpr(b.leftExpr);
+        cloned.rightVal = b.rightVal !== undefined ? Number(b.rightVal) : 0;
+        cloned.children = hydrateBlocks(b.children || []);
       }
       return cloned;
     });
-  }
-
-  function createDefaultVars() {
-    return {
-      '名前': 0,
-      '日付': 0,
-      '名前と日付の和': 0,
-      '7でわったあまり': '?',
-      '今日のラッキーカラー': 'まだきまっていない'
-    };
-  }
-
-  function buildExecutionTrace(blocks, overrideInput) {
-    const vars = createDefaultVars();
-    const trace = [];
-    let guard = 0;
-    const MAX_STEPS = 200;
-
-    function pushStep(blockId, blockType, changedVar, log) {
-      guard += 1;
-      if (guard > MAX_STEPS) return;
-      trace.push({
-        blockId: blockId,
-        blockType: blockType,
-        changedVar: changedVar,
-        log: log,
-        vars: Object.assign({}, vars)
-      });
-    }
-
-    function runList(list) {
-      for (let i = 0; i < (list || []).length; i++) {
-        if (guard >= MAX_STEPS) break;
-        const b = list[i];
-
-        if (b.type === 'set_name') {
-          const val = overrideInput && overrideInput.nameNum !== undefined
-            ? Number(overrideInput.nameNum)
-            : Number(b.value) || 0;
-          vars['名前'] = val;
-          pushStep(b.id, b.type, '名前', '名前を「' + val + '」にしました。');
-        } else if (b.type === 'set_date') {
-          const val = overrideInput && overrideInput.dateNum !== undefined
-            ? Number(overrideInput.dateNum)
-            : Number(b.value) || 0;
-          vars['日付'] = val;
-          pushStep(b.id, b.type, '日付', '日付を「' + val + '」にしました。');
-        } else if (b.type === 'add_sum') {
-          const sum = Number(vars['名前']) + Number(vars['日付']);
-          vars['名前と日付の和'] = sum;
-          pushStep(b.id, b.type, '名前と日付の和', vars['名前'] + ' + ' + vars['日付'] + ' = ' + sum);
-        } else if (b.type === 'repeat') {
-          const cnt = Math.max(1, Math.min(20, Number(b.count) || 1));
-          pushStep(b.id, b.type, null, cnt + '回くり返しを開始！');
-          for (let r = 1; r <= cnt; r++) {
-            if (guard >= MAX_STEPS) break;
-            pushStep(b.id, b.type, null, r + '回目のくり返し');
-            runList(b.children || []);
-          }
-        } else if (b.type === 'halve_round') {
-          const prev = Number(vars['名前と日付の和']) || 0;
-          const next = Math.round(prev / 2);
-          vars['名前と日付の和'] = next;
-          pushStep(b.id, b.type, '名前と日付の和', prev + ' ÷ 2 (四捨五入) → ' + next);
-        } else if (b.type === 'mod7') {
-          const cur = Number(vars['名前と日付の和']) || 0;
-          const rem = ((cur % 7) + 7) % 7;
-          vars['7でわったあまり'] = rem;
-          pushStep(b.id, b.type, '7でわったあまり', cur + ' を 7 でわったあまり → ' + rem);
-        } else if (b.type === 'if_mod') {
-          const target = Number(b.modValue) || 0;
-          const actual = vars['7でわったあまり'];
-          const matched = actual !== '?' && Number(actual) === target;
-          pushStep(b.id, b.type, null, 'あまり(' + actual + ') = ' + target + ' ？ → ' + (matched ? 'あたり！' : 'ちがう'));
-          if (matched) runList(b.children || []);
-        } else if (b.type === 'if_else_mod') {
-          const target = Number(b.modValue) || 0;
-          const actual = vars['7でわったあまり'];
-          const matched = actual !== '?' && Number(actual) === target;
-          pushStep(b.id, b.type, null, 'あまり(' + actual + ') = ' + target + ' ？');
-          if (matched) runList(b.children || []);
-          else runList(b.elseChildren || []);
-        } else if (b.type === 'set_color') {
-          vars['今日のラッキーカラー'] = b.color || '赤';
-          pushStep(b.id, b.type, '今日のラッキーカラー', 'ラッキーカラー → ' + vars['今日のラッキーカラー']);
-        }
-      }
-    }
-
-    runList(blocks);
-    return { trace: trace, finalVars: vars };
   }
 
   function findContainerInfo(rootList, targetId, parentList) {
@@ -197,25 +100,14 @@
         const res = findContainerInfo(rootList, targetId, b.children);
         if (res) return res;
       }
-      if (b.elseChildren) {
-        const res = findContainerInfo(rootList, targetId, b.elseChildren);
-        if (res) return res;
-      }
     }
     return null;
   }
 
   function findListByKey(rootList, containerKey) {
     if (!containerKey || containerKey === 'root') return rootList;
-    const parts = containerKey.split(':');
-    const blockId = parts[0];
-    const slot = parts[1] || 'children';
-    const info = findContainerInfo(rootList, blockId);
+    const info = findContainerInfo(rootList, containerKey);
     if (!info) return null;
-    if (slot === 'else') {
-      info.block.elseChildren = info.block.elseChildren || [];
-      return info.block.elseChildren;
-    }
     info.block.children = info.block.children || [];
     return info.block.children;
   }
@@ -223,21 +115,258 @@
   function isDescendant(block, candidateId) {
     if (!block) return false;
     if (block.id === candidateId) return true;
-    const lists = [block.children || [], block.elseChildren || []];
-    for (let l = 0; l < lists.length; l++) {
-      for (let i = 0; i < lists[l].length; i++) {
-        if (isDescendant(lists[l][i], candidateId)) return true;
-      }
+    const ch = block.children || [];
+    for (let i = 0; i < ch.length; i++) {
+      if (isDescendant(ch[i], candidateId)) return true;
     }
     return false;
   }
 
-  function createBlockElement(block, options) {
-    const opts = options || {};
+  // スロットパス操作 (例: "blk_1|val.left")
+  function getExprByPath(rootList, slotPath) {
+    const [blockId, propPath] = slotPath.split('|');
+    const info = findContainerInfo(rootList, blockId);
+    if (!info) return null;
+    const blk = info.block;
+    const parts = propPath.split('.');
+    if (parts[0] === 'target') return blk.targetVar ? { kind: 'var', name: blk.targetVar } : null;
+    let cur = parts[0] === 'val' ? blk.valueExpr : (parts[0] === 'left' ? blk.leftExpr : null);
+    for (let i = 1; i < parts.length; i++) {
+      if (!cur) return null;
+      cur = cur[parts[i]];
+    }
+    return cur || null;
+  }
+
+  function setExprByPath(rootList, slotPath, newExpr) {
+    const [blockId, propPath] = slotPath.split('|');
+    const info = findContainerInfo(rootList, blockId);
+    if (!info) return false;
+    const blk = info.block;
+    const parts = propPath.split('.');
+
+    if (parts[0] === 'target') {
+      if (newExpr === null) {
+        blk.targetVar = null;
+        return true;
+      }
+      if (newExpr.kind === 'var') {
+        blk.targetVar = newExpr.name;
+        return true;
+      }
+      return false;
+    }
+
+    if (parts.length === 1) {
+      if (parts[0] === 'val') blk.valueExpr = newExpr;
+      else if (parts[0] === 'left') blk.leftExpr = newExpr;
+      return true;
+    }
+
+    let cur = parts[0] === 'val' ? blk.valueExpr : (parts[0] === 'left' ? blk.leftExpr : null);
+    for (let i = 1; i < parts.length - 1; i++) {
+      if (!cur) return false;
+      cur = cur[parts[i]];
+    }
+    if (!cur) return false;
+    cur[parts[parts.length - 1]] = newExpr;
+    return true;
+  }
+
+  // =========================================================================
+  // 式評価＆プログラム実行
+  // =========================================================================
+  function evalExpr(expr, vars) {
+    if (!expr) return null;
+    if (expr.kind === 'num') {
+      if (expr.value === '' || expr.value === null || expr.value === undefined) return null;
+      const n = Number(expr.value);
+      return isNaN(n) ? null : n;
+    }
+    if (expr.kind === 'color') return expr.value || null;
+    if (expr.kind === 'var') {
+      return Object.prototype.hasOwnProperty.call(vars, expr.name) ? vars[expr.name] : null;
+    }
+    if (expr.kind === 'op_add') {
+      const l = evalExpr(expr.left, vars);
+      const r = evalExpr(expr.right, vars);
+      if (l === null || r === null) return null;
+      return Number(l) + Number(r);
+    }
+    if (expr.kind === 'op_div') {
+      const l = evalExpr(expr.left, vars);
+      const r = evalExpr(expr.right, vars);
+      if (l === null || r === null || Number(r) === 0) return null;
+      return Number(l) / Number(r);
+    }
+    if (expr.kind === 'op_round') {
+      const a = evalExpr(expr.arg, vars);
+      if (a === null) return null;
+      return Math.round(Number(a));
+    }
+    if (expr.kind === 'op_mod') {
+      const l = evalExpr(expr.left, vars);
+      const r = evalExpr(expr.right, vars);
+      if (l === null || r === null || Number(r) === 0) return null;
+      const d = Number(r);
+      return ((Number(l) % d) + d) % d;
+    }
+    return null;
+  }
+
+  function executeProgram(blocks) {
+    const vars = {};
+    let afterRepeatVal = null;
+    let guard = 0;
+
+    function runList(list) {
+      for (let i = 0; i < (list || []).length; i++) {
+        if (guard > 300) break;
+        guard += 1;
+        const b = list[i];
+        if (b.type === 'cmd_set' && b.targetVar) {
+          const val = evalExpr(b.valueExpr, vars);
+          if (val !== null) {
+            vars[b.targetVar] = val;
+          }
+        } else if (b.type === 'cmd_repeat') {
+          const cnt = Math.max(1, Math.min(20, Number(b.count) || 1));
+          for (let r = 0; r < cnt; r++) {
+            runList(b.children || []);
+          }
+          if (vars['置き換えた数字と今日の日の和'] !== undefined) {
+            afterRepeatVal = vars['置き換えた数字と今日の日の和'];
+          }
+        } else if (b.type === 'cmd_if') {
+          const lv = evalExpr(b.leftExpr, vars);
+          if (lv !== null && Number(lv) === Number(b.rightVal)) {
+            runList(b.children || []);
+          }
+        }
+      }
+    }
+
+    runList(blocks);
+    return { vars: vars, afterRepeatVal: afterRepeatVal };
+  }
+
+  // =========================================================================
+  // Scratch風 DOM レンダリング
+  // =========================================================================
+  function createExprSlotElement(expr, slotPath, slotMode, opts) {
+    // slotMode: 'var-only' | 'any' | 'expr-only'
     const readOnly = !!opts.readOnly;
-    const meta = BLOCK_CATALOG[block.type];
+    const isActive = !readOnly && opts.activeSlotPath === slotPath;
+
+    // 変数オーバルが入っていて、それがドラッグ可能な場合
+    if (expr && expr.kind === 'var') {
+      const chip = document.createElement('span');
+      chip.className = 'scratch-oval scratch-var-oval' + (isActive ? ' is-slot-active' : '');
+      chip.textContent = expr.name;
+      chip.dataset.slotPath = slotPath;
+      chip.dataset.slotMode = slotMode;
+      if (!readOnly) {
+        chip.title = '枠の外へドラッグで外す／タップで別の変数に入替';
+        opts.attachExprDrag(chip, slotPath, expr.name, expr);
+      }
+      return chip;
+    }
+
+    if (expr && expr.kind === 'color') {
+      const chip = document.createElement('span');
+      chip.className = 'scratch-oval scratch-color-oval' + (isActive ? ' is-slot-active' : '');
+      chip.textContent = expr.value;
+      chip.dataset.slotPath = slotPath;
+      chip.dataset.slotMode = slotMode;
+      if (!readOnly) {
+        opts.attachExprDrag(chip, slotPath, expr.value, expr);
+      }
+      return chip;
+    }
+
+    // 緑の演算ブロックが入っている場合
+    if (expr && expr.kind && expr.kind.indexOf('op_') === 0) {
+      const opEl = document.createElement('span');
+      opEl.className = 'scratch-op-oval';
+      opEl.dataset.slotPath = slotPath;
+      opEl.dataset.slotMode = slotMode;
+
+      const addTxt = (t) => {
+        const s = document.createElement('span');
+        s.textContent = t;
+        opEl.appendChild(s);
+      };
+
+      if (expr.kind === 'op_add') {
+        opEl.appendChild(createExprSlotElement(expr.left, slotPath + '.left', 'any', opts));
+        addTxt('＋');
+        opEl.appendChild(createExprSlotElement(expr.right, slotPath + '.right', 'any', opts));
+      } else if (expr.kind === 'op_div') {
+        opEl.appendChild(createExprSlotElement(expr.left, slotPath + '.left', 'any', opts));
+        addTxt('÷');
+        opEl.appendChild(createExprSlotElement(expr.right, slotPath + '.right', 'any', opts));
+      } else if (expr.kind === 'op_round') {
+        opEl.appendChild(createExprSlotElement(expr.arg, slotPath + '.arg', 'any', opts));
+        addTxt('を四捨五入');
+      } else if (expr.kind === 'op_mod') {
+        opEl.appendChild(createExprSlotElement(expr.left, slotPath + '.left', 'any', opts));
+        addTxt('を');
+        opEl.appendChild(createExprSlotElement(expr.right, slotPath + '.right', 'any', opts));
+        addTxt('でわったあまり');
+      }
+
+      if (!readOnly) {
+        opts.attachExprDrag(opEl, slotPath, '計算ブロック', expr);
+      }
+      return opEl;
+    }
+
+    // 空スロット または 数値入力スロット
+    const hole = document.createElement('span');
+    hole.className = 'scratch-hole' + (slotMode === 'var-only' ? ' is-var-hole' : '') + (isActive ? ' is-slot-active' : '');
+    hole.dataset.slotPath = slotPath;
+    hole.dataset.slotMode = slotMode;
+
+    if (readOnly) {
+      hole.textContent = expr && expr.kind === 'num' && expr.value !== '' ? String(expr.value) : '〇〇';
+      return hole;
+    }
+
+    if (slotMode === 'var-only') {
+      hole.textContent = '〇〇';
+      hole.addEventListener('click', (e) => {
+        e.stopPropagation();
+        opts.onSelectSlot(slotPath, slotMode);
+      });
+      return hole;
+    }
+
+    // 数値入力とオーバルはめ込みの両対応穴
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.className = 'scratch-hole-input';
+    inp.placeholder = '〇〇';
+    inp.value = expr && expr.kind === 'num' && expr.value !== '' && expr.value !== null ? String(expr.value) : '';
+    inp.addEventListener('pointerdown', (e) => e.stopPropagation());
+    inp.addEventListener('focus', () => opts.onSelectSlot(slotPath, slotMode, true));
+    inp.addEventListener('input', () => {
+      const val = inp.value === '' ? '' : Number(inp.value);
+      opts.onUpdateNumSlot(slotPath, val);
+    });
+    hole.addEventListener('click', (e) => {
+      if (e.target !== inp) {
+        opts.onSelectSlot(slotPath, slotMode);
+      }
+    });
+    hole.appendChild(inp);
+    return hole;
+  }
+
+  function createBlockElement(block, opts) {
+    const readOnly = !!opts.readOnly;
+    const def = PALETTE_DEFS[block.type];
     const el = document.createElement('div');
-    el.className = 'prog-block ' + (meta ? meta.category : 'cat-var');
+    el.className = 'prog-block scratch-stmt ' + (def ? def.category : 'cat-var');
     el.dataset.blockId = block.id;
     el.dataset.blockType = block.type;
 
@@ -247,77 +376,50 @@
     const labelWrap = document.createElement('div');
     labelWrap.className = 'prog-block-label';
 
-    if (!readOnly) {
-      const dragHandle = document.createElement('span');
-      dragHandle.className = 'blk-drag-handle';
-      dragHandle.textContent = '⠿';
-      labelWrap.appendChild(dragHandle);
-    }
-
-    function addText(txt) {
+    const addTxt = (t) => {
       const s = document.createElement('span');
-      s.textContent = txt;
+      s.textContent = t;
       labelWrap.appendChild(s);
-    }
+    };
 
-    function addNumberInput(val, min, max, wide, onChange) {
+    if (block.type === 'cmd_set') {
+      const targetExpr = block.targetVar ? { kind: 'var', name: block.targetVar } : null;
+      labelWrap.appendChild(createExprSlotElement(targetExpr, block.id + '|target', 'var-only', opts));
+      addTxt('を');
+      labelWrap.appendChild(createExprSlotElement(block.valueExpr, block.id + '|val', 'any', opts));
+      addTxt('にする');
+    } else if (block.type === 'cmd_repeat') {
       if (readOnly) {
-        const pill = document.createElement('span');
-        pill.className = 'blk-readonly-pill';
-        pill.textContent = String(val);
-        labelWrap.appendChild(pill);
-        return;
+        const p = document.createElement('span');
+        p.className = 'blk-readonly-pill';
+        p.textContent = String(block.count);
+        labelWrap.appendChild(p);
+      } else {
+        const inp = document.createElement('input');
+        inp.type = 'number';
+        inp.className = 'scratch-hole-input is-inline-num';
+        inp.min = 1;
+        inp.max = 20;
+        inp.value = String(block.count);
+        inp.addEventListener('pointerdown', (e) => e.stopPropagation());
+        inp.addEventListener('change', () => {
+          let v = Math.max(1, Math.min(20, Math.round(Number(inp.value) || 5)));
+          inp.value = String(v);
+          block.count = v;
+          if (opts.onChange) opts.onChange();
+        });
+        labelWrap.appendChild(inp);
       }
-      const inp = document.createElement('input');
-      inp.type = 'number';
-      inp.className = 'blk-input' + (wide ? ' blk-input-wide' : '');
-      inp.value = val;
-      inp.min = min;
-      inp.max = max;
-      inp.addEventListener('pointerdown', (e) => e.stopPropagation());
-      inp.addEventListener('change', () => {
-        let v = Number(inp.value);
-        if (isNaN(v)) v = min;
-        v = Math.max(min, Math.min(max, Math.round(v)));
-        inp.value = v;
-        onChange(v);
-      });
-      labelWrap.appendChild(inp);
-    }
-
-    if (block.type === 'set_name') {
-      addText('[名前] を');
-      addNumberInput(block.value, 0, 99999999999999, true, (v) => {
-        block.value = v;
-        if (opts.onChange) opts.onChange();
-      });
-      addText('にする');
-    } else if (block.type === 'set_date') {
-      addText('[日付] を');
-      addNumberInput(block.value, 1, 31, false, (v) => {
-        block.value = v;
-        if (opts.onChange) opts.onChange();
-      });
-      addText('にする');
-    } else if (block.type === 'add_sum') {
-      addText('[名前と日付の和] を ([名前] + [日付]) にする');
-    } else if (block.type === 'repeat') {
-      addNumberInput(block.count, 1, 20, false, (v) => {
-        block.count = v;
-        if (opts.onChange) opts.onChange();
-      });
-      addText('回くり返す');
-    } else if (block.type === 'halve_round') {
-      addText('[名前と日付の和] を (([名前と日付の和] ÷ 2) を四捨五入) にする');
-    } else if (block.type === 'mod7') {
-      addText('[7でわったあまり] を ([名前と日付の和] を 7 でわった余り) にする');
-    } else if (block.type === 'if_mod' || block.type === 'if_else_mod') {
-      addText('もし <[7でわったあまり] =');
+      addTxt('回くり返す');
+    } else if (block.type === 'cmd_if') {
+      addTxt('もし 〈');
+      labelWrap.appendChild(createExprSlotElement(block.leftExpr, block.id + '|left', 'any', opts));
+      addTxt('=');
       if (readOnly) {
-        const pill = document.createElement('span');
-        pill.className = 'blk-readonly-pill';
-        pill.textContent = String(block.modValue);
-        labelWrap.appendChild(pill);
+        const p = document.createElement('span');
+        p.className = 'blk-readonly-pill';
+        p.textContent = String(block.rightVal);
+        labelWrap.appendChild(p);
       } else {
         const sel = document.createElement('select');
         sel.className = 'blk-select';
@@ -325,143 +427,68 @@
           const opt = document.createElement('option');
           opt.value = String(m);
           opt.textContent = String(m);
-          if (Number(block.modValue) === m) opt.selected = true;
+          if (Number(block.rightVal) === m) opt.selected = true;
           sel.appendChild(opt);
         }
         sel.addEventListener('pointerdown', (e) => e.stopPropagation());
         sel.addEventListener('change', () => {
-          block.modValue = Number(sel.value);
+          block.rightVal = Number(sel.value);
           if (opts.onChange) opts.onChange();
         });
         labelWrap.appendChild(sel);
       }
-      addText('> なら');
-    } else if (block.type === 'set_color') {
-      addText('[今日のラッキーカラー] を');
-      if (readOnly) {
-        const pill = document.createElement('span');
-        pill.className = 'blk-readonly-pill';
-        pill.textContent = block.color;
-        labelWrap.appendChild(pill);
-      } else {
-        const sel = document.createElement('select');
-        sel.className = 'blk-select';
-        global.UranaiCurriculum.FORTUNE_COLORS.forEach((c) => {
-          const opt = document.createElement('option');
-          opt.value = c.name;
-          opt.textContent = c.emoji + ' ' + c.name;
-          if (block.color === c.name) opt.selected = true;
-          sel.appendChild(opt);
-        });
-        sel.addEventListener('pointerdown', (e) => e.stopPropagation());
-        sel.addEventListener('change', () => {
-          block.color = sel.value;
-          if (opts.onChange) opts.onChange();
-        });
-        labelWrap.appendChild(sel);
-      }
-      addText('にする');
+      addTxt('〉なら');
     }
 
     head.appendChild(labelWrap);
 
-    if (!readOnly) {
-      const controls = document.createElement('div');
-      controls.className = 'blk-controls';
-
-      const btnUp = document.createElement('button');
-      btnUp.type = 'button';
-      btnUp.className = 'blk-ctrl-btn';
-      btnUp.textContent = '▲';
-      btnUp.addEventListener('pointerdown', (e) => e.stopPropagation());
-      btnUp.addEventListener('click', () => opts.onMove && opts.onMove(block.id, -1));
-
-      const btnDown = document.createElement('button');
-      btnDown.type = 'button';
-      btnDown.className = 'blk-ctrl-btn';
-      btnDown.textContent = '▼';
-      btnDown.addEventListener('pointerdown', (e) => e.stopPropagation());
-      btnDown.addEventListener('click', () => opts.onMove && opts.onMove(block.id, 1));
-
-      const btnDel = document.createElement('button');
-      btnDel.type = 'button';
-      btnDel.className = 'blk-ctrl-btn';
-      btnDel.textContent = '✕';
-      btnDel.addEventListener('pointerdown', (e) => e.stopPropagation());
-      btnDel.addEventListener('click', () => opts.onDelete && opts.onDelete(block.id));
-
-      controls.appendChild(btnUp);
-      controls.appendChild(btnDown);
-      controls.appendChild(btnDel);
-      head.appendChild(controls);
-
-      if (opts.attachDragStart) {
-        opts.attachDragStart(head, { mode: 'move', blockId: block.id, label: labelWrap.textContent });
-      }
+    if (!readOnly && opts.attachStmtDrag) {
+      opts.attachStmtDrag(head, block.id, block.type);
     }
 
     el.appendChild(head);
 
-    if (block.type === 'repeat' || block.type === 'if_mod' || block.type === 'if_else_mod') {
-      const nest = renderNestArea(block, 'children', 'このなかに ブロックを入れる', opts);
+    if (block.type === 'cmd_repeat' || block.type === 'cmd_if') {
+      const nest = document.createElement('div');
+      nest.className = 'prog-nest';
+
+      const dropList = document.createElement('div');
+      dropList.className = 'nest-drop-list';
+      dropList.dataset.containerId = block.id;
+
+      (block.children || []).forEach((child) => {
+        dropList.appendChild(createBlockElement(child, opts));
+      });
+
+      if (!readOnly && (block.children || []).length === 0) {
+        const hint = document.createElement('div');
+        hint.className = 'nest-empty-hint';
+        hint.textContent = 'ここにブロックを入れる';
+        dropList.appendChild(hint);
+      }
+
+      nest.appendChild(dropList);
       el.appendChild(nest);
 
-      if (block.type === 'if_else_mod') {
-        const elseLabel = document.createElement('div');
-        elseLabel.className = 'prog-nest-footer';
-        elseLabel.textContent = 'でなければ';
-        el.appendChild(elseLabel);
-        const elseNest = renderNestArea(block, 'else', 'ちがうときの ブロックを入れる', opts);
-        el.appendChild(elseNest);
-      }
+      const foot = document.createElement('div');
+      foot.className = 'prog-nest-footer';
+      foot.textContent = block.type === 'cmd_repeat' ? 'ここまで くり返す' : 'ここまで もし';
+      el.appendChild(foot);
     }
 
     return el;
   }
 
-  function renderNestArea(block, slot, titleText, opts) {
-    const nest = document.createElement('div');
-    nest.className = 'prog-nest';
-
-    if (!opts.readOnly) {
-      const hdr = document.createElement('div');
-      hdr.className = 'prog-nest-header';
-      const span = document.createElement('span');
-      span.textContent = titleText;
-      hdr.appendChild(span);
-
-      const quickBtn = document.createElement('button');
-      quickBtn.type = 'button';
-      quickBtn.className = 'blk-ctrl-btn';
-      quickBtn.textContent = '+ なかに追加';
-      quickBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
-      quickBtn.addEventListener('click', () => opts.onQuickAddInside && opts.onQuickAddInside(block.id, slot));
-      hdr.appendChild(quickBtn);
-      nest.appendChild(hdr);
-    }
-
-    const dropList = document.createElement('div');
-    dropList.className = 'nest-drop-list';
-    const containerKey = block.id + ':' + slot;
-    dropList.dataset.containerId = containerKey;
-
-    const listArr = slot === 'else' ? (block.elseChildren || []) : (block.children || []);
-    listArr.forEach((child) => {
-      dropList.appendChild(createBlockElement(child, opts));
-    });
-
-    nest.appendChild(dropList);
-    return nest;
-  }
-
   global.UranaiBlocks = {
-    BLOCK_CATALOG: BLOCK_CATALOG,
+    PALETTE_DEFS: PALETTE_DEFS,
+    cloneExpr: cloneExpr,
     hydrateBlocks: hydrateBlocks,
-    createDefaultVars: createDefaultVars,
-    buildExecutionTrace: buildExecutionTrace,
     findContainerInfo: findContainerInfo,
     findListByKey: findListByKey,
     isDescendant: isDescendant,
+    getExprByPath: getExprByPath,
+    setExprByPath: setExprByPath,
+    executeProgram: executeProgram,
     createBlockElement: createBlockElement
   };
 })(window);
