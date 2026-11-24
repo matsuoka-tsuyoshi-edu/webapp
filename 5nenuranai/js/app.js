@@ -5,7 +5,7 @@
   'use strict';
 
   const STORAGE_KEY = 'uranai_app_v2_state';
-  const BUILD_VER = '20261124-03';
+  const BUILD_VER = '20261124-04';
 
   const NgFilter = global.UranaiNgFilter;
   const Sound = global.UranaiSound;
@@ -1280,12 +1280,14 @@
     // Scene 1 -> 2
     $('btn-scene1-next').addEventListener('click', () => {
       Sound.playSnap();
+      if (state.maxUnlockedScene < 2) state.maxUnlockedScene = 2;
       goToScene(2);
     });
 
     // Scene 2 -> 3
     $('btn-scene2-next').addEventListener('click', () => {
       Sound.playSnap();
+      if (state.maxUnlockedScene < 3) state.maxUnlockedScene = 3;
       goToScene(3);
     });
 
