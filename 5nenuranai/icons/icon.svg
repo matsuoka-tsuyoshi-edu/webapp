@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#3a1c71"/>
+      <stop offset="55%" stop-color="#241152"/>
+      <stop offset="100%" stop-color="#130930"/>
+    </radialGradient>
+    <radialGradient id="orbGrad" cx="38%" cy="32%" r="65%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="25%" stop-color="#b8f3ff"/>
+      <stop offset="65%" stop-color="#6b4cff"/>
+      <stop offset="100%" stop-color="#2c1269"/>
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe787"/>
+      <stop offset="50%" stop-color="#ffb830"/>
+      <stop offset="100%" stop-color="#d98200"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#bgGrad)"/>
+  <!-- Sparkles -->
+  <path d="M104 128 L114 152 L138 162 L114 172 L104 196 L94 172 L70 162 L94 152 Z" fill="#ffe787"/>
+  <path d="M408 106 L416 124 L434 132 L416 140 L408 158 L400 140 L382 132 L400 124 Z" fill="#b8f3ff"/>
+  <circle cx="130" cy="340" r="8" fill="#ffe787" opacity="0.8"/>
+  <circle cx="395" cy="310" r="10" fill="#ffb8f3" opacity="0.8"/>
+  <!-- Pedestal -->
+  <path d="M172 372 L340 372 L362 426 L150 426 Z" fill="url(#goldGrad)" stroke="#fff4b8" stroke-width="4"/>
+  <rect x="132" y="420" width="248" height="28" rx="14" fill="url(#goldGrad)" stroke="#fff4b8" stroke-width="4"/>
+  <!-- Crystal Ball -->
+  <circle cx="256" cy="242" r="144" fill="url(#orbGrad)" stroke="#e4d9ff" stroke-width="6"/>
+  <!-- Highlight & Inner Magic -->
+  <ellipse cx="206" cy="182" rx="36" ry="20" transform="rotate(-28 206 182)" fill="#ffffff" opacity="0.65"/>
+  <path d="M256 178 L272 222 L318 222 L281 249 L295 294 L256 267 L217 294 L231 249 L194 222 L240 222 Z" fill="#ffe787" opacity="0.92"/>
+</svg>

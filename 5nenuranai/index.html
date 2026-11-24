@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <!-- PWA / Fullscreen (Chrome & Android & iOS Safari) -->
+  <meta name="theme-color" content="#23104c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="まほうの占い">
+
+  <title>魔法のプログラミング占いの館 〜今日のラッキーカラーをきめよう！〜</title>
+
+  <link rel="manifest" href="./manifest.webmanifest?v=20261124-01">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg?v=20261124-01">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=20261124-01">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=20261124-01">
+  <link rel="stylesheet" href="./styles/app.css?v=20261124-01">
+</head>
+<body>
+  <!-- 縦向き時の案内オーバーレイ（Landscape Lock） -->
+  <div id="portrait-lock-overlay" class="portrait-overlay" aria-live="polite" hidden>
+    <div class="portrait-card">
+      <div class="rotate-illustration" aria-hidden="true">
+        <svg viewBox="0 0 220 140" width="220" height="140">
+          <rect x="35" y="18" width="54" height="90" rx="10" fill="#2e1966" stroke="#b9a4ff" stroke-width="4" opacity="0.45"/>
+          <path d="M98 44 C122 24, 148 34, 152 58" fill="none" stroke="#ffe787" stroke-width="5" stroke-linecap="round"/>
+          <polygon points="152,66 140,50 163,50" fill="#ffe787"/>
+          <rect x="96" y="66" width="100" height="58" rx="10" fill="#3b2082" stroke="#ffe787" stroke-width="4"/>
+          <circle cx="146" cy="95" r="14" fill="#89e8ff"/>
+          <circle cx="190" cy="95" r="3" fill="#ffe787"/>
+        </svg>
+      </div>
+      <h2>iPadやスマホを <span class="hl">よこむき</span> にしてね！</h2>
+      <p>
+        「<ruby>魔法<rt>まほう</rt></ruby>のプログラミング<ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>」は<br>
+        <strong>よこ<ruby>長<rt>なが</rt></ruby>の<ruby>画面<rt>がめん</rt></ruby></strong>で あそぶアプリだよ。<br>
+        くるっと よこに まわしてね！
+      </p>
+      <p class="portrait-sub">（PCの場合は ウィンドウを よこに ひろげてね）</p>
+    </div>
+  </div>
+
+  <!-- アプリ全体コンテナ -->
+  <div id="app-shell" class="app-shell">
+    <!-- ヘッダーバー -->
+    <header class="app-header">
+      <div class="brand-area" id="brand-secret-trigger" title="5回タップで先生用メニュー">
+        <span class="brand-orb" aria-hidden="true">🔮</span>
+        <div class="brand-titles">
+          <h1>
+            <ruby>魔法<rt>まほう</rt></ruby>のプログラミング<ruby>占<rt>うらな</rt></ruby>いの<ruby>館<rt>やかた</rt></ruby>
+          </h1>
+          <span class="brand-sub">〜<ruby>今日<rt>きょう</rt></ruby>のラッキーカラーをきめよう！〜</span>
+        </div>
+        <span id="teacher-badge" class="teacher-badge" hidden>先生モードON</span>
+      </div>
+
+      <!-- ステップナビゲーション -->
+      <nav class="step-nav" aria-label="学習ステップ">
+        <button class="step-tab is-active" data-step="0" type="button">
+          <span class="step-num">0</span>
+          <span class="step-label"><ruby>名前<rt>なまえ</rt></ruby>の数字</span>
+        </button>
+        <button class="step-tab" data-step="1" type="button">
+          <span class="step-num">1</span>
+          <span class="step-label">たし算</span>
+        </button>
+        <button class="step-tab" data-step="2" type="button">
+          <span class="step-num">2</span>
+          <span class="step-label">くり<ruby>返<rt>かえ</rt></ruby>し</span>
+        </button>
+        <button class="step-tab" data-step="3" type="button">
+          <span class="step-num">3</span>
+          <span class="step-label">もし〜なら</span>
+        </button>
+        <button class="step-tab" data-step="4" type="button">
+          <span class="step-num">4</span>
+          <span class="step-label"><ruby>館<rt>やかた</rt></ruby>オープン</span>
+        </button>
+      </nav>
+
+      <!-- ユーティリティボタン群 -->
+      <div class="header-actions">
+        <button id="btn-sound" class="icon-btn" type="button" aria-label="音のおん・おふ" title="音のON/OFF">
+          <span id="sound-icon">🔊</span>
+        </button>
+        <button id="btn-install" class="pill-btn install-btn" type="button" hidden>
+          📲 アプリを入れる
+        </button>
+        <button id="btn-fullscreen" class="pill-btn" type="button" title="全画面表示にする">
+          ⛶ <span id="fullscreen-label">全画面</span>
+        </button>
+        <a id="btn-manual" class="pill-btn manual-link" href="./manual/index.html" target="_blank" rel="noopener">
+          📖 マニュアル
+        </a>
+      </div>
+    </header>
+
+    <!-- メインコンテンツ（3ペイン） -->
+    <main class="workspace-grid" id="main-workspace">
+      <!-- 左ペイン：ガイド＆ブロックパレット -->
+      <section class="pane pane-left" aria-label="ミッションとブロック">
+        <!-- フクロウ先生ガイド -->
+        <div class="guide-box">
+          <div class="guide-avatar" aria-hidden="true">🦉</div>
+          <div class="guide-bubble">
+            <div class="guide-header">
+              <span class="guide-title" id="mission-title">ステップ0：名前の数字変換マシン</span>
+              <button id="btn-hint" class="mini-btn hint-btn" type="button">💡 ヒント</button>
+            </div>
+            <p class="guide-text" id="mission-desc"></p>
+          </div>
+        </div>
+
+        <!-- ステップ0専用：左ペインは「五十音と数字のルール表」 -->
+        <div id="step0-left-panel" class="palette-panel scrollable-y">
+          <h3 class="panel-heading">🔢 ひらがな → 数字のルール</h3>
+          <p class="rule-note">ひらがなの「<ruby>母音<rt>ぼいん</rt></ruby>（あ・い・う・え・お）」で数字がきまるよ！</p>
+          <div class="vowel-table">
+            <div class="vowel-row"><span class="v-badge v1">1</span><strong>あ<ruby>段<rt>だん</rt></ruby></strong><span>あ か さ た な は ま や ら わ (が ざ だ ば ぱ ゃ)</span></div>
+            <div class="vowel-row"><span class="v-badge v2">2</span><strong>い<ruby>段<rt>だん</rt></ruby></strong><span>い き し ち に ひ み り (ぎ じ ぢ び ぴ)</span></div>
+            <div class="vowel-row"><span class="v-badge v3">3</span><strong>う<ruby>段<rt>だん</rt></ruby></strong><span>う く す つ ぬ ふ む ゆ る (ぐ ず づ ぶ ぷ ゅ)</span></div>
+            <div class="vowel-row"><span class="v-badge v4">4</span><strong>え<ruby>段<rt>だん</rt></ruby></strong><span>え け せ て ね へ め れ (げ ぜ で べ ぺ)</span></div>
+            <div class="vowel-row"><span class="v-badge v5">5</span><strong>お<ruby>段<rt>だん</rt></ruby></strong><span>お こ そ と の ほ も よ ろ を (ご ぞ ど ぼ ぽ ょ)</span></div>
+            <div class="vowel-row"><span class="v-badge v0">0</span><strong>そのほか</strong><span>ん・っ</span></div>
+          </div>
+          <p class="rule-tip">※ のばす音「ー」は、すぐまえの文字と同じ数字になるよ。</p>
+        </div>
+
+        <!-- ステップ1〜4：ブロックパレット -->
+        <div id="block-palette-panel" class="palette-panel scrollable-y" hidden>
+          <div class="palette-header-row">
+            <h3 class="panel-heading">🧩 つかえるブロック</h3>
+            <span class="palette-tip">タップ or ドラッグで追加！</span>
+          </div>
+          <div id="block-palette" class="block-palette"></div>
+        </div>
+      </section>
+
+      <!-- 中央ペイン：ステップ0変換マシン OR プログラム組み立てエリア -->
+      <section class="pane pane-center" aria-label="プログラムを組み立てる場所">
+        <!-- ステップ0 中央画面 -->
+        <div id="step0-center-panel" class="step0-center scrollable-y">
+          <div class="step0-card">
+            <h3>✨ なまえの数字<ruby>変換<rt>へんかん</rt></ruby>マシン</h3>
+            <p class="step0-lead">きみの名前を<strong>ひらがな</strong>で入れてみよう！（例：たろう、さくら）</p>
+            <div class="name-input-row">
+              <input id="step0-name-input" class="magic-input" type="text" maxlength="14" placeholder="ひらがなで なまえを入力" autocomplete="off" spellcheck="false">
+              <button id="btn-step0-sample" class="mini-btn" type="button">れい：たろう</button>
+            </div>
+
+            <div id="step0-cards" class="char-cards" aria-live="polite"></div>
+
+            <div class="step0-total-box">
+              <span class="total-label">名前の数字の<ruby>合計<rt>ごうけい</rt></ruby>：</span>
+              <span id="step0-total-value" class="total-value">0</span>
+            </div>
+
+            <div class="step0-quiz-box">
+              <h4>🎯 クリアチャレンジ！</h4>
+              <p>じぶんの名前（または「たろう」）を変換して、合計をたしかめて「この数字を つかう！」をおそう。</p>
+              <button id="btn-step0-complete" class="primary-magic-btn" type="button">
+                🌟 この数字（<span id="step0-btn-val">0</span>）をつかって ステップ1へ！
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ステップ1〜4 中央画面：ブロック組み立てエリア -->
+        <div id="program-editor-panel" class="program-editor" hidden>
+          <div class="editor-toolbar">
+            <div class="editor-title">
+              <span>📜 <ruby>魔法<rt>まほう</rt></ruby>のレシピ</span>
+              <span id="block-count-badge" class="count-badge">0こ</span>
+            </div>
+            <div class="editor-tools">
+              <button id="btn-load-example" class="mini-btn" type="button" title="組み立てのヒントを並べる">✨ おてほん</button>
+              <button id="btn-clear-program" class="mini-btn danger-mini" type="button" title="レシピをからにする">🗑️ ぜんぶ消す</button>
+            </div>
+          </div>
+
+          <div id="program-workspace" class="program-workspace scrollable-y">
+            <div class="start-hat">🚩 占いがはじまったとき</div>
+            <div id="program-list" class="program-list" data-container-id="root"></div>
+            <div id="empty-drop-hint" class="empty-drop-hint">
+              左の「つかえるブロック」をタップするか、<br>ここにドラッグして つなげてね！
+            </div>
+          </div>
+
+          <!-- ステップ4限定：オリジナルメッセージ設定タブボタン -->
+          <div id="step4-custom-bar" class="step4-custom-bar" hidden>
+            <button id="btn-open-custom-messages" class="secondary-magic-btn" type="button">
+              ✏️ 7色のラッキーメッセージをじぶんで書く！
+            </button>
+            <button id="btn-open-guest-mode" class="secondary-magic-btn guest-btn" type="button">
+              🧑‍🤝‍🧑 友だちをうらなう（おきゃくさんモード）
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右ペイン：占いの館ステージ＆水晶玉（変数モニター） -->
+      <section class="pane pane-right" aria-label="占いの結果と水晶玉モニター">
+        <!-- 実行コントロール -->
+        <div class="run-controls">
+          <button id="btn-run" class="run-btn" type="button">
+            🔮 うらないを<ruby>実行<rt>じっこう</rt></ruby>！
+          </button>
+          <button id="btn-step-run" class="step-run-btn" type="button" title="1ブロックずつ動きをみる">
+            👣 1つずつ
+          </button>
+          <button id="btn-reset-vars" class="reset-btn" type="button" title="変数を0にもどす">
+            ↺
+          </button>
+        </div>
+
+        <!-- 水晶玉ステージ -->
+        <div class="stage-card" id="crystal-stage">
+          <canvas id="confetti-canvas" class="confetti-canvas" aria-hidden="true"></canvas>
+          <div class="crystal-wrap">
+            <div id="crystal-ball" class="crystal-ball">
+              <div class="crystal-shine"></div>
+              <div id="crystal-inner-text" class="crystal-inner">
+                <span class="crystal-emoji">✨</span>
+                <span class="crystal-status">じゅんびOK</span>
+              </div>
+            </div>
+            <div class="crystal-stand"></div>
+          </div>
+
+          <!-- 結果表示エリア -->
+          <div id="fortune-result-box" class="fortune-result-box" hidden>
+            <div class="result-color-pill" id="result-color-pill">赤</div>
+            <div class="result-message" id="result-message"></div>
+            <div class="result-item" id="result-item"></div>
+          </div>
+        </div>
+
+        <!-- 水晶玉のなかみ（変数モニター） -->
+        <div class="vars-card">
+          <div class="vars-header">
+            <h3>🔍 <ruby>水晶玉<rt>すいしょうだま</rt></ruby>のなかみ（<ruby>変数<rt>へんすう</rt></ruby>モニター）</h3>
+            <span id="exec-step-label" class="exec-step-label">待機中</span>
+          </div>
+          <div class="vars-grid" id="vars-monitor">
+            <div class="var-item" data-var="名前">
+              <span class="var-name">名前</span>
+              <span class="var-val" id="var-val-name">0</span>
+            </div>
+            <div class="var-item" data-var="日付">
+              <span class="var-name">日付</span>
+              <span class="var-val" id="var-val-date">0</span>
+            </div>
+            <div class="var-item" data-var="名前と日付の和">
+              <span class="var-name">名前と日付の和</span>
+              <span class="var-val" id="var-val-sum">0</span>
+            </div>
+            <div class="var-item" data-var="7でわったあまり">
+              <span class="var-name">7でわったあまり</span>
+              <span class="var-val" id="var-val-mod">?</span>
+            </div>
+            <div class="var-item var-item-wide" data-var="今日のラッキーカラー">
+              <span class="var-name">今日のラッキーカラー</span>
+              <span class="var-val" id="var-val-color">まだきまっていない</span>
+            </div>
+          </div>
+          <div id="exec-log" class="exec-log" aria-live="polite">
+            プログラムをつくって「うらないを実行！」をおしてね。
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- モーダル群 -->
+  <!-- 汎用情報 / クリア / NGワード / ヒント モーダル -->
+  <div id="modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-icon" id="modal-icon">🦉</div>
+      <h2 id="modal-title">お知らせ</h2>
+      <div id="modal-body" class="modal-body scrollable-y"></div>
+      <div id="modal-actions" class="modal-actions">
+        <button id="modal-close-btn" class="primary-magic-btn" type="button">OK！</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ステップ4：7色メッセージカスタマイズ モーダル -->
+  <div id="custom-msg-backdrop" class="modal-backdrop" hidden>
+    <div class="modal-card modal-wide" role="dialog" aria-modal="true">
+      <h2>✏️ 7色のラッキーメッセージをきめよう！</h2>
+      <p class="modal-sub">それぞれのカラーが出たときの「アドバイス」と「ラッキーアイテム」をじぶんで決められるよ。</p>
+      <div id="custom-msg-list" class="custom-msg-list scrollable-y"></div>
+      <div class="modal-actions">
+        <button id="btn-reset-custom-msg" class="mini-btn" type="button">もとの文にもどす</button>
+        <button id="btn-save-custom-msg" class="primary-magic-btn" type="button">💾 ほぞんする！</button>
+        <button id="btn-close-custom-msg" class="mini-btn" type="button">とじる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ステップ4：おきゃくさん占いモーダル -->
+  <div id="guest-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="modal-icon">🔮</div>
+      <h2>🧑‍🤝‍🧑 友だちを うらなおう！</h2>
+      <p class="modal-sub">友だちの「なまえ（ひらがな）」と「うらなう日付」を入れてね。</p>
+      <div class="guest-form">
+        <label>
+          <span>友だちの なまえ（ひらがな）</span>
+          <input id="guest-name-input" class="magic-input" type="text" maxlength="14" placeholder="例：はなこ" autocomplete="off">
+        </label>
+        <label>
+          <span>日付（1〜31 または きょうの日付）</span>
+          <input id="guest-date-input" class="magic-input" type="number" min="1" max="31" value="24">
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-run-guest" class="primary-magic-btn" type="button">✨ この友だちを うらなう！</button>
+        <button id="btn-close-guest" class="mini-btn" type="button">やめる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 先生用メニューモーダル -->
+  <div id="teacher-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="modal-icon">👩‍🏫</div>
+      <h2>先生用管理メニュー</h2>
+      <p class="modal-sub">授業の進行やデモに合わせてステージの解放状態などを切り替えられます。</p>
+      <div class="teacher-actions-grid">
+        <button id="btn-unlock-all" class="primary-magic-btn" type="button">🔓 全ステージ（0〜4）を解放する</button>
+        <button id="btn-lock-reset" class="secondary-magic-btn" type="button">🔒 順番どおり（ステップ0から）に戻す</button>
+        <button id="btn-fill-step-demo" class="secondary-magic-btn" type="button">✨ 現在のステップにお手本プログラムをセット</button>
+        <button id="btn-hard-reset" class="mini-btn danger-mini" type="button">🗑️ 保存データをすべて初期化</button>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-close-teacher" class="mini-btn" type="button">とじる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ドラッグ中ゴースト要素 -->
+  <div id="drag-ghost" class="drag-ghost" hidden></div>
+
+  <!-- スクリプト（file:// でも動作するよう標準scriptで順番読み込み） -->
+  <script defer src="./js/ng-filter.js?v=20261124-01"></script>
+  <script defer src="./js/sound.js?v=20261124-01"></script>
+  <script defer src="./js/curriculum.js?v=20261124-01"></script>
+  <script defer src="./js/blocks.js?v=20261124-01"></script>
+  <script defer src="./js/app.js?v=20261124-01"></script>
+</body>
+</html>

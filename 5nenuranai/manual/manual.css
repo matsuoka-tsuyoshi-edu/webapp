@@ -1,0 +1,166 @@
+:root {
+  --bg: #170a36;
+  --card: #24134d;
+  --border: rgba(196, 173, 255, 0.3);
+  --gold: #ffe270;
+  --cyan: #8ceeff;
+  --text: #f7f4ff;
+  --sub: #cfc2f7;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Hiragino Maru Gothic ProN", "BIZ UDPGothic", "Yu Gothic UI", sans-serif;
+  background: radial-gradient(circle at top left, #341770, #13072b 65%);
+  color: var(--text);
+  line-height: 1.75;
+}
+
+ruby rt {
+  font-size: 0.6em;
+  color: var(--gold);
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  background: rgba(18, 8, 42, 0.94);
+  border-bottom: 1.5px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.12rem;
+  color: var(--gold);
+}
+
+.topbar-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nav-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(65, 36, 130, 0.85);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.nav-pill.primary {
+  background: linear-gradient(135deg, #ffe270, #ff9900);
+  color: #241046;
+  border-color: #fff2a6;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+
+.section-card {
+  margin-bottom: 22px;
+  padding: 20px 22px;
+  border-radius: 18px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+}
+
+.section-card h2 {
+  margin-top: 0;
+  color: var(--gold);
+  font-size: 1.25rem;
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 8px;
+}
+
+.section-card h3 {
+  color: var(--cyan);
+  font-size: 1.04rem;
+  margin: 18px 0 6px;
+}
+
+.step-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.step-box {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+}
+
+.step-box strong {
+  display: block;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 0.92rem;
+}
+
+th, td {
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+th {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--gold);
+}
+
+.tip-callout {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(140, 238, 255, 0.12);
+  border-left: 4px solid var(--cyan);
+  margin: 12px 0;
+}
+
+.teacher-callout {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 93, 143, 0.14);
+  border-left: 4px solid #ff5d8f;
+  margin: 12px 0;
+}
+
+code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--gold);
+  font-family: Consolas, monospace;
+}
