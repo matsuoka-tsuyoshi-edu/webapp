@@ -345,6 +345,10 @@ button, a {
   font-size: 0.78rem;
   line-height: 1.42;
 }
+.crystal-speech.is-hint-flash {
+  box-shadow: 0 0 0 3px #ffffff, 0 0 22px #ffe270;
+  transition: box-shadow 0.25s;
+}
 
 .mega-next-btn {
   min-height: 54px;

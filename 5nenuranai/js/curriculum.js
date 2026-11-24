@@ -308,17 +308,26 @@
     }
 
     let okMod = false;
+    let modTargetVar = null;
     let missingColors = [];
     let wrongColorMsg = '';
     if (okB) {
-      const idxMod = list.findIndex((b, idx) => idx > idxRep && b.type === 'cmd_set' && b.targetVar === VAR_NAMES.MOD && isMod7OfSum(b.valueExpr));
+      // 「7でわったあまり」でも「置き換えた数字と今日の日の和」の使い回しでもOK
+      const idxMod = list.findIndex((b, idx) =>
+        idx > idxRep &&
+        b.type === 'cmd_set' &&
+        (b.targetVar === VAR_NAMES.MOD || b.targetVar === VAR_NAMES.SUM) &&
+        isMod7OfSum(b.valueExpr)
+      );
       okMod = idxMod !== -1;
 
       if (okMod) {
+        modTargetVar = list[idxMod].targetVar;
         const covered = {};
         list.forEach((b, idx) => {
           if (idx <= idxMod || b.type !== 'cmd_if') return;
-          if (isVarExpr(b.leftExpr, VAR_NAMES.MOD) && b.rightVal !== '' && b.rightVal !== null) {
+          const matchesVar = isVarExpr(b.leftExpr, modTargetVar) || isVarExpr(b.leftExpr, VAR_NAMES.MOD);
+          if (matchesVar && b.rightVal !== '' && b.rightVal !== null) {
             const m = Number(b.rightVal);
             const expectedColor = getColorByMod(m);
             const setColorBlk = (b.children || []).find((ch) => ch.type === 'cmd_set' && ch.targetVar === VAR_NAMES.COLOR);
@@ -349,6 +358,7 @@
       okA: okA,
       okB: okB,
       okMod: okMod,
+      modTargetVar: modTargetVar,
       okC: okC,
       missingColors: missingColors,
       wrongColorMsg: wrongColorMsg

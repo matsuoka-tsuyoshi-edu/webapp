@@ -234,6 +234,7 @@
   function executeProgram(blocks) {
     const vars = {};
     let afterRepeatVal = null;
+    let modVal = null;
     let guard = 0;
 
     function runList(list) {
@@ -245,6 +246,9 @@
           const val = evalExpr(b.valueExpr, vars);
           if (val !== null) {
             vars[b.targetVar] = val;
+            if (b.valueExpr && b.valueExpr.kind === 'op_mod') {
+              modVal = val;
+            }
           }
         } else if (b.type === 'cmd_repeat') {
           const cnt = Math.max(1, Math.min(20, Number(b.count) || 1));
@@ -264,7 +268,7 @@
     }
 
     runList(blocks);
-    return { vars: vars, afterRepeatVal: afterRepeatVal };
+    return { vars: vars, afterRepeatVal: afterRepeatVal, modVal: modVal };
   }
 
   // =========================================================================

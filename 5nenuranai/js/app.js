@@ -5,7 +5,7 @@
   'use strict';
 
   const STORAGE_KEY = 'uranai_app_v2_state';
-  const BUILD_VER = '20261124-11';
+  const BUILD_VER = '20261124-12';
 
   const NgFilter = global.UranaiNgFilter;
   const Sound = global.UranaiSound;
@@ -839,7 +839,8 @@
       $('rt-rep').textContent = String(exec.afterRepeatVal !== null ? exec.afterRepeatVal : v[V.SUM]);
     }
     if (evalRes.okC) {
-      $('rt-mod').textContent = String(v[V.MOD]);
+      const dispMod = v[V.MOD] !== undefined ? v[V.MOD] : exec.modVal;
+      $('rt-mod').textContent = dispMod !== null && dispMod !== undefined ? String(dispMod) : '-';
       $('rt-color').textContent = String(v[V.COLOR] || '-');
     }
 
@@ -873,69 +874,51 @@
     saveState();
   }
 
-  // お助け（中途半端に1歩だけヒントを追加する）
-  function applyOneStepAssist() {
+  // 吹き出し文章のみのヒント表示（ブロックは自動追加しない）
+  function showProgSpeechHint() {
     const exec = Blocks.executeProgram(state.programBlocks);
     const evalRes = Curriculum.evaluateProgramProgress(state.programBlocks, exec.vars);
     const V = Curriculum.VAR_NAMES;
+    let hintText = '';
 
     if (evalRes.stage === 'A') {
       const hasRaw = state.programBlocks.some((b) => b.type === 'cmd_set' && b.targetVar === V.RAW_NAME);
       const hasName = state.programBlocks.some((b) => b.type === 'cmd_set' && b.targetVar === V.NAME);
       const hasDate = state.programBlocks.some((b) => b.type === 'cmd_set' && b.targetVar === V.DATE);
-      if (!hasRaw) {
-        state.programBlocks.push(Blocks.hydrateBlocks([{ type: 'cmd_set', targetVar: V.RAW_NAME, valueExpr: { kind: 'num', value: 'さんすうしゅうた' } }])[0]);
+      if (!hasRaw && !hasName) {
+        hintText = 'まずは『[〇〇] を (〇〇) にする』を置いて、赤い「名前」をはめて自分の名前を入力しよう！';
       } else if (!hasName) {
-        state.programBlocks.push(Blocks.hydrateBlocks([{
-          type: 'cmd_set',
-          targetVar: V.NAME,
-          valueExpr: { kind: 'op_name_to_num', arg: { kind: 'var', name: V.RAW_NAME } }
-        }])[0]);
+        hintText = 'つぎは『[置きかえた数字]』に、緑の「(〇〇) を数字に置きかえる」を使って「名前」を数字に変えよう！';
       } else if (!hasDate) {
-        state.programBlocks.push(Blocks.hydrateBlocks([{ type: 'cmd_set', targetVar: V.DATE, valueExpr: { kind: 'num', value: Curriculum.getTodayDayOfMonth() } }])[0]);
+        hintText = 'つぎは『[今日の日]』に、今日の日付の数字を入れよう！';
       } else {
-        state.programBlocks.push(Blocks.hydrateBlocks([{
-          type: 'cmd_set',
-          targetVar: V.SUM,
-          valueExpr: { kind: 'op_add', left: { kind: 'var', name: V.NAME }, right: null }
-        }])[0]);
+        hintText = 'さいごに『[置き換えた数字と今日の日の和]』に、緑の「(〇〇)＋(〇〇)」で「置きかえた数字」と「今日の日」をたそう！';
       }
     } else if (evalRes.stage === 'B') {
-      const rep = state.programBlocks.find((b) => b.type === 'cmd_repeat');
+      const rep = state.programBlocks.find((b) => b.type === 'cmd_repeat' && Number(b.count) === 5);
       if (!rep) {
-        state.programBlocks.push(Blocks.hydrateBlocks([{ type: 'cmd_repeat', count: 5, children: [] }])[0]);
+        hintText = 'まずは黄色の『( 5 ) 回くり返す』ブロックを下に置こう！';
       } else {
-        rep.children.push(Blocks.hydrateBlocks([{
-          type: 'cmd_set',
-          targetVar: V.SUM,
-          valueExpr: {
-            kind: 'op_round',
-            arg: { kind: 'op_div', left: null, right: { kind: 'num', value: 2 } }
-          }
-        }])[0]);
+        hintText = '『5回くり返す』の中に、「置き換えた数字と今日の日の和」を2でわって四捨五入する計算を入れよう！（1つにまとめても、2つに分けてもOKじゃ）';
       }
     } else if (evalRes.stage === 'C') {
       if (!evalRes.okMod) {
-        state.programBlocks.push(Blocks.hydrateBlocks([{
-          type: 'cmd_set',
-          targetVar: V.MOD,
-          valueExpr: { kind: 'op_mod', left: { kind: 'var', name: V.SUM }, right: { kind: 'num', value: 7 } }
-        }])[0]);
-      } else if (evalRes.missingColors.length > 0) {
-        // 1つだけ（あるいは残り2つ以下なら全部）ではなく、まず1つだけお助け
-        const m = evalRes.missingColors[0];
-        const col = Curriculum.getColorByMod(m);
-        state.programBlocks.push(Blocks.hydrateBlocks([{
-          type: 'cmd_if',
-          leftExpr: { kind: 'var', name: V.MOD },
-          rightVal: m,
-          children: [{ type: 'cmd_set', targetVar: V.COLOR, valueExpr: { kind: 'color', value: col.name } }]
-        }])[0]);
+        hintText = '『7でわったあまり』（または「置き換えた数字と今日の日の和」を使い回してもOK）を、緑の「(〇〇) を 7 でわったあまり」で計算しよう！';
+      } else if (evalRes.wrongColorMsg) {
+        hintText = evalRes.wrongColorMsg;
+      } else {
+        hintText = '黄色の『もし 〈(〇〇) = (数字)〉 なら』を使って、のこりの数字（' + evalRes.missingColors.join('・') + '）の「今日のラッキーカラー」をきめよう！';
       }
+    } else {
+      hintText = 'すべてのプログラムが完成しておるぞ！右下の「占いの館（シミュレータ）へ！」を押すのじゃ！';
     }
+
     Sound.playSnap();
-    saveState();
-    renderScene4Programming();
+    const bubble = $('prog-crystal-msg');
+    bubble.textContent = '「💡 ヒント：' + hintText + '」';
+    bubble.classList.remove('is-hint-flash');
+    void bubble.offsetWidth;
+    bubble.classList.add('is-hint-flash');
   }
 
   // =========================================================================
@@ -1051,7 +1034,7 @@
         blkEl.classList.add('is-running');
       } else if (p.indexOf('LOOP_') === 0 && (bType === 'cmd_repeat' || blkEl.closest('[data-block-type="cmd_repeat"]'))) {
         blkEl.classList.add('is-running');
-      } else if (p === 'MOD_7' && bType === 'cmd_set' && blkEl.textContent.indexOf(V.MOD) !== -1) {
+      } else if (p === 'MOD_7' && bType === 'cmd_set' && blkEl.textContent.indexOf('でわったあまり') !== -1) {
         blkEl.classList.add('is-running');
       } else if (p === 'PICK_COLOR' && bType === 'cmd_if') {
         const pill = blkEl.querySelector('.blk-readonly-pill');
@@ -1561,7 +1544,7 @@
       goToScene(4);
     });
 
-    $('btn-prog-assist').addEventListener('click', applyOneStepAssist);
+    $('btn-prog-assist').addEventListener('click', showProgSpeechHint);
 
     $('btn-prog-clear').addEventListener('click', () => {
       Sound.playSnap();
