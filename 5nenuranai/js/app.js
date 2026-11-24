@@ -5,7 +5,7 @@
   'use strict';
 
   const STORAGE_KEY = 'uranai_app_v2_state';
-  const BUILD_VER = '20261124-13';
+  const BUILD_VER = '20261124-14';
 
   const NgFilter = global.UranaiNgFilter;
   const Sound = global.UranaiSound;
@@ -1003,13 +1003,38 @@
     $('sim-orb-inner').innerHTML = '<div class="orb-eyes"><span>✦</span><span>✦</span></div>';
   }
 
+  function getSimDisplayBlocks() {
+    const V = Curriculum.VAR_NAMES;
+    const cloned = Blocks.hydrateBlocks(state.programBlocks);
+    if (!simRun) return cloned;
+
+    function applyLiveValues(list) {
+      for (let i = 0; i < (list || []).length; i++) {
+        const b = list[i];
+        if (b.type === 'cmd_set') {
+          if (b.targetVar === V.RAW_NAME && simRun.nameText) {
+            b.valueExpr = { kind: 'num', value: simRun.nameText };
+          } else if (b.targetVar === V.NAME && simRun.nameText && b.valueExpr && b.valueExpr.kind === 'num') {
+            b.valueExpr = { kind: 'num', value: simRun.origNum };
+          } else if (b.targetVar === V.DATE) {
+            b.valueExpr = { kind: 'num', value: simRun.dateDay };
+          }
+        }
+        if (b.children) applyLiveValues(b.children);
+      }
+    }
+    applyLiveValues(cloned);
+    return cloned;
+  }
+
   function renderSimFlowchartAndBlocks() {
     const p = simRun ? simRun.phase : 'WAIT_NAME';
     const V = Curriculum.VAR_NAMES;
     let tapSlots = [];
     let flashSlots = [];
 
-    if (p === 'ADD_DATE') tapSlots = ['イ'];
+    if (p === 'NAME_TO_NUM') flashSlots = ['ア'];
+    else if (p === 'ADD_DATE') tapSlots = ['イ'];
     else if (p.indexOf('LOOP_') === 0) tapSlots = ['ウ', 'エ', 'オ'];
     else if (p === 'MOD_7') tapSlots = ['カ'];
     else if (p === 'PICK_COLOR') flashSlots = ['カ'];
@@ -1023,26 +1048,42 @@
 
     const progEl = $('sim-program-view');
     progEl.innerHTML = '';
-    state.programBlocks.forEach((b) => {
+    const displayBlocks = getSimDisplayBlocks();
+    displayBlocks.forEach((b) => {
       progEl.appendChild(Blocks.createBlockElement(b, { readOnly: true }));
     });
 
-    // 該当するScratchブロックを連動フラッシュ
-    progEl.querySelectorAll('.prog-block').forEach((blkEl, idx) => {
+    // 該当するScratchブロックをドゥームズデイ風蛍光グリーンで連動フラッシュ
+    let firstRunningEl = null;
+    progEl.querySelectorAll('.prog-block').forEach((blkEl) => {
       const bType = blkEl.dataset.blockType;
-      if (p === 'ADD_DATE' && bType === 'cmd_set' && idx <= 2) {
-        blkEl.classList.add('is-running');
+      const txt = blkEl.textContent || '';
+      let active = false;
+
+      if (p === 'NAME_TO_NUM' && bType === 'cmd_set' && (txt.indexOf(V.RAW_NAME) !== -1 || txt.indexOf(V.NAME) !== -1) && txt.indexOf('＋') === -1) {
+        active = true;
+      } else if (p === 'ADD_DATE' && bType === 'cmd_set' && (txt.indexOf(V.DATE) !== -1 || txt.indexOf('＋') !== -1)) {
+        active = true;
       } else if (p.indexOf('LOOP_') === 0 && (bType === 'cmd_repeat' || blkEl.closest('[data-block-type="cmd_repeat"]'))) {
-        blkEl.classList.add('is-running');
-      } else if (p === 'MOD_7' && bType === 'cmd_set' && blkEl.textContent.indexOf('でわったあまり') !== -1) {
-        blkEl.classList.add('is-running');
+        active = true;
+      } else if (p === 'MOD_7' && bType === 'cmd_set' && txt.indexOf('でわったあまり') !== -1) {
+        active = true;
       } else if (p === 'PICK_COLOR' && bType === 'cmd_if') {
         const pill = blkEl.querySelector('.blk-readonly-pill');
         if (pill && Number(pill.textContent) === simRun.currentNum) {
-          blkEl.classList.add('is-running');
+          active = true;
         }
       }
+
+      if (active) {
+        blkEl.classList.add('is-running');
+        if (!firstRunningEl) firstRunningEl = blkEl;
+      }
     });
+
+    if (firstRunningEl) {
+      firstRunningEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
 
   function handleSimNameInput(rawText) {
@@ -1061,11 +1102,13 @@
 
     if (res.items.length === 0) {
       simRun.phase = 'WAIT_NAME';
+      simRun.nameText = '';
       simRun.origNum = 0;
       cardsEl.innerHTML = '<span style="font-size:0.78rem; color:#cfc2f7;">ひらがな・カタカナを入れると 1文字ずつ数字にかわるよ</span>';
       card.classList.add('is-empty');
       $('mnc-value').textContent = '----';
       $('sim-crystal-speech').innerHTML = '「<ruby>名前<rt>なまえ</rt></ruby>を ひらがな（カタカナもOK）で 入力するのじゃ！」';
+      renderSimFlowchartAndBlocks();
       return;
     }
 
@@ -1086,6 +1129,7 @@
     $('mnc-value').textContent = res.digitString;
     $('sim-crystal-speech').innerHTML =
       '「数字に変換したカード（<strong>' + escapeHtml(res.digitString) + '</strong>）を <strong>わたし（水晶玉）に 重ねるのじゃ！</strong>」';
+    renderSimFlowchartAndBlocks();
   }
 
   function startSimRitualFromDrop() {
@@ -1094,18 +1138,31 @@
     $('sim-name-input').disabled = true;
     $('magic-number-card').classList.add('is-shaking');
     $('sim-crystal-ball').classList.add('is-pulsing');
-    Sound.playSnap();
+    Sound.playThump();
 
-    simRun.phase = 'ADD_DATE';
+    // まず1ステップ目「名前を数字に置きかえる」を約1秒間 蛍光グリーンでどんっ！と実行表示
+    simRun.phase = 'NAME_TO_NUM';
     renderSimFlowchartAndBlocks();
 
-    if (state.simFirstDone && state.simAutoMode) {
-      $('sim-crystal-speech').innerHTML = '「⚡ 自動モード発動！魔力が流れはじめたぞ…！」';
-      simRun.timer = setTimeout(runAutoSimSequence, 550);
-    } else {
-      $('sim-crystal-speech').innerHTML =
-        '「カードが震えだしたぞ！さぁ、色が変わった フローチャート（<strong>名前の数に日付をたす</strong>）を タップするのじゃ！」';
-    }
+    const isAuto = !!(state.simFirstDone && state.simAutoMode);
+    $('sim-crystal-speech').innerHTML = isAuto
+      ? '「⚡ 自動モード発動！名前が数字になったぞ…！」'
+      : '「魔力が入ったぞ！名前が数字になって、つぎの計算へ進むのじゃ！」';
+
+    simRun.timer = setTimeout(() => {
+      if (!simRun) return;
+      Sound.playThump();
+      simRun.phase = 'ADD_DATE';
+      renderSimFlowchartAndBlocks();
+
+      if (isAuto) {
+        $('sim-crystal-speech').innerHTML = '「⚡ 名前の数に 今日の日付を たすぞ！」';
+        simRun.timer = setTimeout(runAutoSimSequence, 320);
+      } else {
+        $('sim-crystal-speech').innerHTML =
+          '「さぁ、蛍光グリーンに光った フローチャート（<strong>名前の数に日付をたす</strong>）を タップするのじゃ！」';
+      }
+    }, 950);
   }
 
   function animateFlyingOp(sourceEl, opLabel, nextValue, callback) {
@@ -1148,32 +1205,38 @@
   function handleSimFlowchartTap(slotKey) {
     if (!simRun) return;
     if (simRun.phase === 'ADD_DATE' && slotKey === 'イ') {
+      Sound.playThump();
       const nextVal = simRun.currentNum + simRun.dateDay;
       animateFlyingOp($('today-day-chip'), '＋' + simRun.dateDay, nextVal, () => {
         simRun.phase = 'LOOP_1';
         simRun.loopIdx = 1;
+        Sound.playThump();
         renderSimFlowchartAndBlocks();
         $('sim-crystal-speech').innerHTML =
           '「日付が合体したぞ！つぎは『<strong>5回くり返す（÷2して四捨五入）</strong>』をタップするのじゃ！（<strong>1 / 5回目</strong>）」';
       });
     } else if (simRun.phase.indexOf('LOOP_') === 0 && (slotKey === 'ウ' || slotKey === 'エ' || slotKey === 'オ')) {
+      Sound.playThump();
       const nextVal = Math.round(simRun.currentNum / 2);
       const srcEl = document.querySelector('#sim-flowchart-view [data-fc-slot="' + slotKey + '"]') || $('sim-flowchart-view');
       animateFlyingOp(srcEl, '÷2 四捨五入', nextVal, () => {
         if (simRun.loopIdx < 5) {
           simRun.loopIdx += 1;
           simRun.phase = 'LOOP_' + simRun.loopIdx;
+          Sound.playThump();
           renderSimFlowchartAndBlocks();
           $('sim-crystal-speech').innerHTML =
             '「数字が半分になったぞ！もういちど『くり返し』をタップじゃ！（<strong>' + simRun.loopIdx + ' / 5回目</strong>）」';
         } else {
           simRun.phase = 'MOD_7';
+          Sound.playThump();
           renderSimFlowchartAndBlocks();
           $('sim-crystal-speech').innerHTML =
             '「5回くり返し 完了じゃ！最後は『<strong>7でわったあまりがいくらか</strong>』をタップするのじゃ！」';
         }
       });
     } else if (simRun.phase === 'MOD_7' && slotKey === 'カ') {
+      Sound.playThump();
       const rem = ((simRun.currentNum % 7) + 7) % 7;
       const srcEl = document.querySelector('#sim-flowchart-view [data-fc-slot="カ"]') || $('sim-flowchart-view');
       animateFlyingOp(srcEl, '÷7 のあまり', rem, () => {
@@ -1189,8 +1252,10 @@
       animateFlyingOp($('today-day-chip'), '＋' + simRun.dateDay, nextVal, () => {
         simRun.phase = 'LOOP_1';
         simRun.loopIdx = 1;
+        Sound.playThump();
         renderSimFlowchartAndBlocks();
-        simRun.timer = setTimeout(runAutoSimSequence, 220);
+        $('sim-crystal-speech').innerHTML = '「⚡ 5回くり返すぞ！（1 / 5回目）」';
+        simRun.timer = setTimeout(runAutoSimSequence, 320);
       });
     } else if (simRun.phase.indexOf('LOOP_') === 0) {
       const nextVal = Math.round(simRun.currentNum / 2);
@@ -1199,12 +1264,16 @@
         if (simRun.loopIdx < 5) {
           simRun.loopIdx += 1;
           simRun.phase = 'LOOP_' + simRun.loopIdx;
+          Sound.playThump();
           renderSimFlowchartAndBlocks();
-          simRun.timer = setTimeout(runAutoSimSequence, 180);
+          $('sim-crystal-speech').innerHTML = '「⚡ くり返し中…！（' + simRun.loopIdx + ' / 5回目）」';
+          simRun.timer = setTimeout(runAutoSimSequence, 320);
         } else {
           simRun.phase = 'MOD_7';
+          Sound.playThump();
           renderSimFlowchartAndBlocks();
-          simRun.timer = setTimeout(runAutoSimSequence, 220);
+          $('sim-crystal-speech').innerHTML = '「⚡ 7でわった あまりを もとめるぞ！」';
+          simRun.timer = setTimeout(runAutoSimSequence, 320);
         }
       });
     } else if (simRun.phase === 'MOD_7') {

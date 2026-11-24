@@ -57,6 +57,12 @@
     playTone(660, 0.09, 'sine', 0.1, 0);
   }
 
+  function playThump() {
+    // 魔力が「どんっ」と響く低音＋輝き
+    playTone(110, 0.18, 'sine', 0.18, 0);
+    playTone(580, 0.11, 'triangle', 0.08, 0.02);
+  }
+
   function playMagicFinish() {
     const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((n, idx) => playTone(n, 0.24, 'triangle', 0.13, idx * 0.07));
@@ -87,6 +93,7 @@
   global.UranaiSound = {
     playSnap: playSnap,
     playStep: playStep,
+    playThump: playThump,
     playMagicFinish: playMagicFinish,
     playClear: playClear,
     playWarn: playWarn,
