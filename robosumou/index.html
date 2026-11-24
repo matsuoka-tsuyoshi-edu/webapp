@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>ロボ相撲 v2.2 - CYBER STAGE</title>
+<title>ロボ相撲 v2.3 - CYBER STAGE</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@500;700;900&family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
 <!-- PeerJS (WebRTC P2P通信ライブラリ) -->
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -701,18 +701,149 @@
 
     #hud-timer-container {
         position: absolute;
-        top: 20px;
+        top: 14px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(6, 9, 19, 0.85);
-        padding: 10px 24px;
+        background: rgba(6, 9, 19, 0.88);
+        padding: 8px 22px;
         border-radius: 24px;
         border: 1px solid var(--accent-magenta);
         color: var(--accent-magenta);
-        font-size: 1.4rem;
+        font-size: 1.35rem;
         font-weight: 900;
         z-index: 10;
         text-shadow: 0 0 10px rgba(255,0,127,0.5);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+    }
+    #hud-bout-badge {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--accent-cyan);
+        letter-spacing: 0.8px;
+        white-space: nowrap;
+    }
+    #hud-bout-badge.sudden-death {
+        color: var(--accent-yellow);
+        text-shadow: 0 0 8px rgba(255, 255, 0, 0.7);
+        animation: pulseGlow 0.8s infinite alternate;
+    }
+    @keyframes pulseGlow {
+        from { opacity: 0.7; transform: scale(0.98); }
+        to { opacity: 1; transform: scale(1.04); }
+    }
+
+    /* 3本勝負・時間ルール切り替えバー */
+    .rule-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.38);
+        padding: 4px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 243, 255, 0.25);
+    }
+    .rule-pill-group {
+        display: flex;
+        gap: 4px;
+    }
+    .rule-pill-btn {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        color: var(--text-muted);
+        padding: 4px 10px;
+        font-size: 0.76rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: var(--font-sf);
+        font-weight: 800;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .rule-pill-btn.active {
+        background: rgba(0, 243, 255, 0.22);
+        border-color: var(--accent-cyan);
+        color: #ffffff;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.35);
+    }
+    .rule-time-select {
+        background: rgba(6, 9, 19, 0.85);
+        border: 1px solid rgba(0, 243, 255, 0.35);
+        color: var(--accent-cyan);
+        border-radius: 8px;
+        padding: 4px 8px;
+        font-family: var(--font-sf);
+        font-size: 0.76rem;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    /* 星取りランプ (○ / ★) */
+    .hud-score-pips {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 3px;
+    }
+    .score-pip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.28);
+        background: rgba(0, 0, 0, 0.45);
+        font-size: 0.65rem;
+        color: transparent;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .score-pip.won {
+        border-color: #ffd700;
+        background: radial-gradient(circle, #fff799 0%, #ffaa00 100%);
+        color: #2b1d00;
+        box-shadow: 0 0 12px rgba(255, 215, 0, 0.85);
+        transform: scale(1.15);
+    }
+
+    /* カットイン効果オーバーレイ */
+    #match-cutin-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.85);
+        z-index: 25;
+        pointer-events: none;
+        background: linear-gradient(90deg, rgba(6, 9, 19, 0.05) 0%, rgba(6, 9, 19, 0.92) 18%, rgba(6, 9, 19, 0.92) 82%, rgba(6, 9, 19, 0.05) 100%);
+        border-top: 2px solid var(--accent-cyan);
+        border-bottom: 2px solid var(--accent-magenta);
+        padding: 14px 48px;
+        min-width: 78%;
+        text-align: center;
+        opacity: 0;
+        transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 0 35px rgba(0, 243, 255, 0.35);
+    }
+    #match-cutin-overlay.show {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    .cutin-main {
+        font-size: 2.1rem;
+        font-weight: 900;
+        letter-spacing: 3px;
+        color: #ffffff;
+        text-shadow: 0 0 18px currentColor;
+        white-space: nowrap;
+    }
+    .cutin-sub {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--accent-cyan);
+        margin-top: 4px;
+        letter-spacing: 1.5px;
     }
 
     /* アリーナ設定パネル（右側） */
@@ -902,7 +1033,7 @@
             <button id="btn-open-send-modal" class="btn" style="border-color: var(--accent-magenta); color: var(--accent-magenta); background: rgba(255, 0, 127, 0.12); padding: 7px 14px; font-size: 0.82rem; font-weight: 800;" data-tooltip="先生のiPadへエントリー">📡 先生にエントリー</button>
             <button id="sound-toggle-btn" class="icon-btn" style="width: 38px; height: 38px; font-size: 1.1rem;" data-tooltip="サウンド ON/OFF">🔊</button>
             <div style="font-size: 0.8rem; color: var(--text-muted); text-align: right;">
-                <div>機体タイプ: <span id="header-robot-type" style="color: var(--accent-green)">NORMAL</span> <span style="display: inline-block; background: rgba(0,243,255,0.15); color: var(--accent-cyan); font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--accent-cyan); font-weight: bold; margin-left: 4px; letter-spacing: 0.5px;">v2.2</span></div>
+                <div>機体タイプ: <span id="header-robot-type" style="color: var(--accent-green)">NORMAL</span> <span style="display: inline-block; background: rgba(0,243,255,0.15); color: var(--accent-cyan); font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--accent-cyan); font-weight: bold; margin-left: 4px; letter-spacing: 0.5px;">v2.3</span></div>
                 <div>ロボ名: <span id="header-robot-name" style="color: var(--accent-cyan)">マイロボ1</span></div>
             </div>
         </div>
@@ -1117,6 +1248,21 @@
                 <div class="panel">
                     <div class="panel-header">
                         <div class="panel-title">🏟️ STEP 3. 試合会場</div>
+
+                        <!-- 3本勝負・時間ルール切り替え -->
+                        <div class="rule-bar" title="勝負方式と1本あたりの時間を選べます">
+                            <div class="rule-pill-group">
+                                <button id="btn-mode-bo3" class="rule-pill-btn active" type="button">🏆 3本勝負</button>
+                                <button id="btn-mode-bo1" class="rule-pill-btn" type="button">⚔️ 1本勝負</button>
+                            </div>
+                            <select id="battle-time-select" class="rule-time-select" title="1本あたりの制限時間">
+                                <option value="10">⏱️ 10秒</option>
+                                <option value="15">⏱️ 15秒</option>
+                                <option value="20">⏱️ 20秒</option>
+                                <option value="25">⏱️ 25秒</option>
+                                <option value="30" selected>⏱️ 30秒</option>
+                            </select>
+                        </div>
                         
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <!-- 試合会場用のセーブ・ロードツールバー -->
@@ -1145,11 +1291,22 @@
                     <div class="step3-layout">
                         <!-- Canvas 土俵 -->
                         <div id="canvas-outer-container">
-                            <div id="hud-timer-container">30.0s</div>
+                            <div id="hud-timer-container">
+                                <div id="hud-bout-badge">第1本目（2本先取）</div>
+                                <div id="hud-timer-val">30.0s</div>
+                            </div>
+                            <div id="match-cutin-overlay">
+                                <div id="cutin-main-text" class="cutin-main">はっけよい…</div>
+                                <div id="cutin-sub-text" class="cutin-sub">第1本目</div>
+                            </div>
                             <div class="hud-overlay">
                                 <div id="hud-my-status" class="hud-box">
                                     <span class="hud-name">自分</span>
                                     <span class="hud-sub">NORMAL</span>
+                                    <div id="hud-my-pips" class="hud-score-pips">
+                                        <span class="score-pip">★</span>
+                                        <span class="score-pip">★</span>
+                                    </div>
                                     <div class="hud-energy-container">
                                         <div class="hud-energy-label">
                                             <span>ENERGY</span>
@@ -1164,6 +1321,10 @@
                                 <div id="hud-opp-status" class="hud-box opponent">
                                     <span class="hud-name">相手</span>
                                     <span class="hud-sub">NORMAL</span>
+                                    <div id="hud-opp-pips" class="hud-score-pips">
+                                        <span class="score-pip">★</span>
+                                        <span class="score-pip">★</span>
+                                    </div>
                                     <div class="hud-energy-container">
                                         <div class="hud-energy-label">
                                             <span>ENERGY</span>
@@ -2270,6 +2431,92 @@
 
     const CANVAS_CENTER = { x: 400, y: 400 };
     const DOHYO_RADIUS = 340;
+    const PACE_SCALE = 0.62; // 子どもたちが動きを目で追いやすい適正ペース
+
+    // 3本勝負・時間設定・演出ステート
+    const matchConfig = {
+        bestOf: 3,      // デフォルト: 3本勝負 (2本先取)
+        timeLimit: 30   // デフォルト: 30秒 (10〜30秒可変)
+    };
+    const seriesState = {
+        boutNum: 1,
+        p1Wins: 0,
+        p2Wins: 0,
+        isSuddenDeath: false,
+        effectiveDohyoRadius: DOHYO_RADIUS,
+        phase: 'idle', // 'idle' | 'intro' | 'active' | 'finishing' | 'series_over'
+        introElapsed: 0,
+        introGongPlayed: false,
+        finishElapsed: 0,
+        pendingBoutResult: null,
+        nextBoutTimeout: null,
+        slowMoAccumulator: 0
+    };
+
+    const hudTimerVal = document.getElementById('hud-timer-val');
+    const hudBoutBadge = document.getElementById('hud-bout-badge');
+    const hudMyPips = document.getElementById('hud-my-pips');
+    const hudOppPips = document.getElementById('hud-opp-pips');
+    const matchCutinOverlay = document.getElementById('match-cutin-overlay');
+    const cutinMainText = document.getElementById('cutin-main-text');
+    const cutinSubText = document.getElementById('cutin-sub-text');
+    const btnModeBo3 = document.getElementById('btn-mode-bo3');
+    const btnModeBo1 = document.getElementById('btn-mode-bo1');
+    const battleTimeSelect = document.getElementById('battle-time-select');
+
+    function updateSeriesUI() {
+        const reqWins = matchConfig.bestOf === 3 ? 2 : 1;
+        if (hudBoutBadge) {
+            if (seriesState.isSuddenDeath) {
+                hudBoutBadge.textContent = '⚡ サドンデス (延長決着戦)';
+                hudBoutBadge.classList.add('sudden-death');
+            } else if (matchConfig.bestOf === 1) {
+                hudBoutBadge.textContent = '1本勝負';
+                hudBoutBadge.classList.remove('sudden-death');
+            } else {
+                hudBoutBadge.textContent = `第${seriesState.boutNum}本目（2本先取）`;
+                hudBoutBadge.classList.remove('sudden-death');
+            }
+        }
+        const renderPips = (el, wins) => {
+            if (!el) return;
+            el.innerHTML = '';
+            for (let i = 0; i < reqWins; i++) {
+                const pip = document.createElement('span');
+                pip.className = 'score-pip' + (i < wins ? ' won' : '');
+                pip.textContent = '★';
+                el.appendChild(pip);
+            }
+        };
+        renderPips(hudMyPips, seriesState.p1Wins);
+        renderPips(hudOppPips, seriesState.p2Wins);
+    }
+
+    let cutinHideTimeout = null;
+    function showCutin(mainText, subText, color = '#00f3ff', autoHideMs = 0) {
+        if (!matchCutinOverlay) return;
+        if (cutinHideTimeout) {
+            clearTimeout(cutinHideTimeout);
+            cutinHideTimeout = null;
+        }
+        cutinMainText.textContent = mainText;
+        cutinMainText.style.color = color;
+        cutinSubText.textContent = subText || '';
+        matchCutinOverlay.classList.add('show');
+        if (autoHideMs > 0) {
+            cutinHideTimeout = setTimeout(() => {
+                matchCutinOverlay.classList.remove('show');
+            }, autoHideMs);
+        }
+    }
+
+    function hideCutin() {
+        if (cutinHideTimeout) {
+            clearTimeout(cutinHideTimeout);
+            cutinHideTimeout = null;
+        }
+        if (matchCutinOverlay) matchCutinOverlay.classList.remove('show');
+    }
 
     // AIのプリセットプログラム
     const AI_PROGRAMS = {
@@ -2419,11 +2666,32 @@
         });
     }
 
-    function resetSimulation() {
-        logDebug('シミュレーションをリセットします。');
+    function resetSimulation(resetSeries = true) {
+        if (resetSeries) {
+            logDebug('試合シリーズをリセットします。');
+        }
         stopSimulation();
+        if (seriesState.nextBoutTimeout) {
+            clearTimeout(seriesState.nextBoutTimeout);
+            seriesState.nextBoutTimeout = null;
+        }
+        hideCutin();
+
+        if (resetSeries) {
+            seriesState.boutNum = 1;
+            seriesState.p1Wins = 0;
+            seriesState.p2Wins = 0;
+            seriesState.isSuddenDeath = false;
+            seriesState.phase = 'idle';
+        }
+        seriesState.effectiveDohyoRadius = DOHYO_RADIUS;
+        seriesState.introElapsed = 0;
+        seriesState.introGongPlayed = false;
+        seriesState.finishElapsed = 0;
+        seriesState.pendingBoutResult = null;
+        seriesState.slowMoAccumulator = 0;
         
-        state.timer = 30.0;
+        state.timer = matchConfig.timeLimit;
         state.isRunning = false;
         state.lastEdgeWarningTime = 0;
         state.lastLowTimeWarning = false;
@@ -2441,9 +2709,10 @@
         if (hudMyAction) hudMyAction.textContent = '待機中';
         if (hudOppAction) hudOppAction.textContent = '待機中';
         
-        document.getElementById('hud-timer-container').textContent = '30.0s';
+        if (hudTimerVal) hudTimerVal.textContent = matchConfig.timeLimit.toFixed(1) + 's';
         document.getElementById('hud-timer-container').style.color = 'var(--accent-magenta)';
-        battleStatusMsg.textContent = '';
+        if (resetSeries) battleStatusMsg.textContent = '';
+        updateSeriesUI();
 
         // 自分
         let myTemplate = ROBOT_TEMPLATES[currentRobotType];
@@ -2659,8 +2928,8 @@
             }
             else if (cmd === 'shield') {
                 player.ip++;
-                player.isShielding = 90; // 90フレーム(約1.5秒)持続
-                player.currentAction = { command: 'shield', progress: 0, total: 25 };
+                player.isShielding = 110; // 110フレーム(約1.8秒)持続
+                player.currentAction = { command: 'shield', progress: 0, total: 28 };
                 sound.playShield();
                 createShockwave(player.x, player.y, '#00f3ff', 55);
                 updateHudAction(player, '🛡️ シールド展開');
@@ -2708,8 +2977,8 @@
                     player.currentAction = { command: 'turnLeft', progress: 0, total: value };
                     updateHudAction(player, `↩️ 左旋回 (${value}°)`);
                 } else if (cmd === 'dash') {
-                    player.isDashing = 60;
-                    player.currentAction = { command: 'dash', progress: 0, total: 20 };
+                    player.isDashing = 75;
+                    player.currentAction = { command: 'dash', progress: 0, total: 24 };
                     sound.playDash();
                     updateHudAction(player, '⚡ フルパワー突撃');
                 }
@@ -2725,7 +2994,7 @@
                     conditionMet = dist < 300 && Math.abs(angleToOpp) < 30;
                 } else if (cmd === 'ifNearEdge') {
                     const distFromCenter = getDistance(player.x, player.y, CANVAS_CENTER.x, CANVAS_CENTER.y);
-                    conditionMet = distFromCenter > 280;
+                    conditionMet = distFromCenter > (seriesState.effectiveDohyoRadius - 60);
                 } else if (cmd === 'ifLowEnergy') {
                     conditionMet = (player.energy / player.maxEnergy) <= 0.35;
                 } else if (cmd === 'ifEnemyLowEnergy') {
@@ -2758,8 +3027,8 @@
 
     function progressAction(player) {
         const act = player.currentAction;
-        let speedMultiplier = player.isDashing > 0 ? 1.6 : 1.0;
-        const currentSpeed = player.speed * speedMultiplier;
+        let speedMultiplier = player.isDashing > 0 ? 1.42 : 1.0;
+        const currentSpeed = player.speed * speedMultiplier * PACE_SCALE;
 
         if (act.command === 'wait') {
             act.progress += 1;
@@ -2782,12 +3051,12 @@
             act.progress += step;
             if (act.progress >= act.total) player.currentAction = null;
         } else if (act.command === 'turnRight') {
-            const step = Math.min(4, act.total - act.progress);
+            const step = Math.min(2.6, act.total - act.progress);
             player.angle = (player.angle + step) % 360;
             act.progress += step;
             if (act.progress >= act.total) player.currentAction = null;
         } else if (act.command === 'turnLeft') {
-            const step = Math.min(4, act.total - act.progress);
+            const step = Math.min(2.6, act.total - act.progress);
             player.angle = (player.angle - step + 360) % 360;
             act.progress += step;
             if (act.progress >= act.total) player.currentAction = null;
@@ -2810,16 +3079,16 @@
         projectiles.push({
             x: startX,
             y: startY,
-            vx: Math.cos(rad) * 11,
-            vy: Math.sin(rad) * 11,
-            radius: 6,
+            vx: Math.cos(rad) * 7.2,
+            vy: Math.sin(rad) * 7.2,
+            radius: 7,
             color: player.color,
             ownerId: player.id,
-            life: 80,
+            life: 115,
             history: []
         });
         
-        player.shootCooldown = 45;
+        player.shootCooldown = 52;
     }
 
     function getAngleToOpponent(player, opponent) {
@@ -2841,13 +3110,17 @@
     // ==========================================
     // 10. 試合会場ゲームループ＆物理判定
     // ==========================================
-    function startSimulation() {
-        logDebug('シミュレーション開始を要求します。');
-        if (state.isRunning) {
-            logDebug('シミュレーションはすでに実行中です。');
-            return;
+    function startSimulation(isNextBout = false) {
+        if (!isNextBout) {
+            logDebug('シミュレーション開始を要求します。');
+            if (state.isRunning) {
+                logDebug('シミュレーションはすでに実行中です。');
+                return;
+            }
+            resetSimulation(true);
+        } else {
+            resetSimulation(false);
         }
-        resetSimulation();
         
         if (state.players[0].program.length === 0) {
             logDebug('エラー: プログラムブロック数が0です。シミュレーションを開始できません。', true);
@@ -2857,34 +3130,68 @@
         }
 
         state.isRunning = true;
-        logDebug('シミュレーションを開始しました。');
-        logDebug('実況: 🟢 さぁ、はっけよい、のこった！！');
-        sound.playGong();
+        seriesState.phase = 'intro';
+        seriesState.introElapsed = 0;
+        seriesState.introGongPlayed = false;
+
+        if (seriesState.isSuddenDeath) {
+            logDebug('実況: ⚡ 運命のサドンデス戦！はっけよい…');
+            showCutin('⚡ サドンデス！！', 'この1本を取った方が勝者！', '#ffff00');
+        } else if (matchConfig.bestOf === 3) {
+            logDebug(`実況: 🟢 第${seriesState.boutNum}本目（2本先取）、はっけよい…`);
+            showCutin('はっけよい…', `第${seriesState.boutNum}本目（2本先取）`, '#00f3ff');
+        } else {
+            logDebug('実況: 🟢 1本勝負、はっけよい…');
+            showCutin('はっけよい…', '1本勝負', '#00f3ff');
+        }
+        drawArena();
+
         let lastTime = performance.now();
-        let loopFrameCount = 0;
 
         function loop(timestamp) {
             if (!state.isRunning) return;
-            const rawDt = (timestamp - lastTime) / 1000;
+            const rawDt = Math.min((timestamp - lastTime) / 1000, 0.1);
             lastTime = timestamp;
-            const dt = Math.min(rawDt, 0.1) * simSpeedMultiplier;
-            loopFrameCount++;
 
-            // 速度に応じた物理更新ステップ
-            if (simSpeedMultiplier === 0.5) {
-                if (loopFrameCount % 2 === 0) updatePhysics();
-            } else if (simSpeedMultiplier === 1.5) {
+            if (seriesState.phase === 'intro') {
+                seriesState.introElapsed += rawDt;
+                if (seriesState.introElapsed >= 0.45 && !seriesState.introGongPlayed) {
+                    seriesState.introGongPlayed = true;
+                    sound.playGong();
+                    logDebug('実況: 🔥 のこったーーー！！');
+                    showCutin('のこった！！', seriesState.isSuddenDeath ? '⚡ サドンデス開始！' : `第${seriesState.boutNum}本目 スタート！`, '#39ff14');
+                }
+                if (seriesState.introElapsed >= 0.90) {
+                    hideCutin();
+                    seriesState.phase = 'active';
+                    state.lastCollisionTime = Date.now();
+                    state.lastNiramiTime = Date.now();
+                }
+                drawArena();
+            } else if (seriesState.phase === 'active') {
                 updatePhysics();
-                if (loopFrameCount % 2 === 0) updatePhysics();
-            } else if (simSpeedMultiplier === 2.0) {
-                updatePhysics();
-                updatePhysics();
-            } else {
-                updatePhysics();
+                drawArena();
+                updateTimer(rawDt);
+            } else if (seriesState.phase === 'finishing') {
+                seriesState.finishElapsed += rawDt;
+                seriesState.slowMoAccumulator += 0.22;
+                if (seriesState.slowMoAccumulator >= 1.0) {
+                    seriesState.slowMoAccumulator -= 1.0;
+                    const [p1, p2] = state.players;
+                    if (p1 && p2) {
+                        p1.x += p1.vx; p1.y += p1.vy;
+                        p2.x += p2.vx; p2.y += p2.vy;
+                        p1.vx *= 0.88; p1.vy *= 0.88;
+                        p2.vx *= 0.88; p2.vy *= 0.88;
+                    }
+                    updateParticles();
+                }
+                drawArena();
+                if (seriesState.finishElapsed >= 0.85) {
+                    finalizeBout();
+                    return;
+                }
             }
-
-            drawArena();
-            updateTimer(dt);
 
             if (state.isRunning) {
                 simInterval = requestAnimationFrame(loop);
@@ -2904,15 +3211,126 @@
         }
     }
 
+    function triggerBoutFinish(winnerId, cutinTitle, cutinSub, logMsg, color = '#00f3ff') {
+        if (!state.isRunning || seriesState.phase !== 'active') return;
+        seriesState.phase = 'finishing';
+        seriesState.finishElapsed = 0;
+        seriesState.slowMoAccumulator = 0;
+        seriesState.pendingBoutResult = { winnerId, cutinTitle, cutinSub, logMsg, color };
+        if (logMsg) logDebug(logMsg);
+        showCutin(cutinTitle, cutinSub, color);
+    }
+
+    function finalizeBout() {
+        const res = seriesState.pendingBoutResult;
+        seriesState.pendingBoutResult = null;
+        hideCutin();
+        stopSimulation();
+
+        if (!res) return;
+        if (res.winnerId === 'player') {
+            seriesState.p1Wins++;
+        } else if (res.winnerId === 'opponent') {
+            seriesState.p2Wins++;
+        }
+        updateSeriesUI();
+
+        const reqWins = matchConfig.bestOf === 3 ? 2 : 1;
+        if (seriesState.p1Wins >= reqWins) {
+            seriesState.phase = 'series_over';
+            const scoreStr = matchConfig.bestOf === 3 ? ` (${seriesState.p1Wins}勝-${seriesState.p2Wins}敗)` : '';
+            endBattle(`🎉 あなたの かち！${scoreStr} 🎉`, 'var(--accent-green)');
+            return;
+        }
+        if (seriesState.p2Wins >= reqWins) {
+            seriesState.phase = 'series_over';
+            const scoreStr = matchConfig.bestOf === 3 ? ` (${seriesState.p1Wins}勝-${seriesState.p2Wins}敗)` : '';
+            endBattle(`😭 あなたの まけ…${scoreStr} 😭`, 'var(--accent-magenta)');
+            return;
+        }
+
+        // まだ決着がついていない場合
+        if (!seriesState.isSuddenDeath && seriesState.boutNum >= matchConfig.bestOf) {
+            seriesState.isSuddenDeath = true;
+            battleStatusMsg.textContent = '⚡ 同点！サドンデスへ突入！！';
+            battleStatusMsg.style.color = 'var(--accent-yellow)';
+            logDebug('実況: ⚡ 両者譲らず同点！運命の【サドンデス】へ突入だ！！');
+        } else {
+            if (!seriesState.isSuddenDeath) seriesState.boutNum++;
+            battleStatusMsg.textContent = `第${seriesState.boutNum}本目へ… (${seriesState.p1Wins} - ${seriesState.p2Wins})`;
+            battleStatusMsg.style.color = 'var(--accent-cyan)';
+        }
+        updateSeriesUI();
+
+        seriesState.nextBoutTimeout = setTimeout(() => {
+            seriesState.nextBoutTimeout = null;
+            startSimulation(true);
+        }, 1250);
+    }
+
     function updateTimer(dt) {
-        if (!state.isRunning) return;
+        if (!state.isRunning || seriesState.phase !== 'active') return;
         state.timer -= dt;
+
+        // サドンデス時は残り半分から土俵がじわじわ収縮して決着を促す
+        if (seriesState.isSuddenDeath && state.timer <= matchConfig.timeLimit * 0.5) {
+            seriesState.effectiveDohyoRadius = Math.max(155, seriesState.effectiveDohyoRadius - dt * 16);
+        }
+
         if (state.timer <= 0) {
             state.timer = 0;
-            logDebug('実況: ⌛ 30秒経過！時間切れ、引き分け！！');
-            endBattle('引き分け！ (時間切れ)', 'var(--accent-magenta)');
+            if (hudTimerVal) hudTimerVal.textContent = '0.0s';
+            const [p1, p2] = state.players;
+            const e1 = Math.round(p1.energy);
+            const e2 = Math.round(p2.energy);
+            if (e1 > e2) {
+                triggerBoutFinish(
+                    'player',
+                    '⚖️ エナジー判定勝ち！！',
+                    `${p1.name} (${e1}) VS ${p2.name} (${e2})`,
+                    `実況: ⌛ 時間切れ！残りエナジー(${e1} vs ${e2})で「${p1.name}」の判定勝ち！！`,
+                    '#39ff14'
+                );
+            } else if (e2 > e1) {
+                triggerBoutFinish(
+                    'opponent',
+                    '⚖️ エナジー判定負け…',
+                    `${p1.name} (${e1}) VS ${p2.name} (${e2})`,
+                    `実況: ⌛ 時間切れ！残りエナジー(${e1} vs ${e2})で「${p2.name}」の判定勝ち…`,
+                    '#ff007f'
+                );
+            } else if (seriesState.isSuddenDeath) {
+                const d1 = getDistance(p1.x, p1.y, CANVAS_CENTER.x, CANVAS_CENTER.y);
+                const d2 = getDistance(p2.x, p2.y, CANVAS_CENTER.x, CANVAS_CENTER.y);
+                if (d1 <= d2) {
+                    triggerBoutFinish(
+                        'player',
+                        '🎯 中央優勢勝ち！！',
+                        'サドンデス極限決着！',
+                        `実況: ⚡ サドンデス同点判定！土俵中央に近い「${p1.name}」の勝利！！`,
+                        '#39ff14'
+                    );
+                } else {
+                    triggerBoutFinish(
+                        'opponent',
+                        '🎯 中央優勢負け…',
+                        'サドンデス極限決着…',
+                        `実況: ⚡ サドンデス同点判定！土俵中央に近い「${p2.name}」の勝利…`,
+                        '#ff007f'
+                    );
+                }
+            } else {
+                triggerBoutFinish(
+                    null,
+                    '🤝 同点引き分け！',
+                    `残りエナジー ${e1} で完全互角！`,
+                    `実況: ⌛ 時間切れ＆エナジー同点(${e1})！この1本は引き分け！！`,
+                    '#ffff00'
+                );
+            }
+            return;
         }
-        document.getElementById('hud-timer-container').textContent = state.timer.toFixed(1) + 's';
+        if (hudTimerVal) hudTimerVal.textContent = state.timer.toFixed(1) + 's';
         if (state.timer < 5) {
             document.getElementById('hud-timer-container').style.color = '#ff0055';
             if (!state.lastLowTimeWarning) {
@@ -2923,7 +3341,7 @@
     }
 
     function checkKo(player) {
-        if (!state.isRunning) return;
+        if (!state.isRunning || seriesState.phase !== 'active') return;
         if (player.energy <= 0) {
             player.energy = 0;
             updateEnergyHud();
@@ -2936,9 +3354,9 @@
             logDebug(`実況: 🏆「${winner.name}」のK.O.勝利！！`);
             
             if (winner.id === 'player') {
-                endBattle('🎉 K.O.しょうり！！ (相手機能停止) 🎉', 'var(--accent-green)');
+                triggerBoutFinish('player', '⚡ K.O. 勝利！！', `「${player.name}」機能停止！`, null, '#39ff14');
             } else {
-                endBattle('💥 K.O.まけ... (機能停止) 💥', 'var(--accent-magenta)');
+                triggerBoutFinish('opponent', '💥 K.O. 負け…', `「${player.name}」機能停止…`, null, '#ff007f');
             }
         }
     }
@@ -3010,7 +3428,7 @@
             const bullet = projectiles[i];
             
             bullet.history.push({ x: bullet.x, y: bullet.y });
-            if (bullet.history.length > 5) bullet.history.shift();
+            if (bullet.history.length > 8) bullet.history.shift();
 
             bullet.x += bullet.vx;
             bullet.y += bullet.vy;
@@ -3037,7 +3455,7 @@
                     screenShake = 8;
                     updateEnergyHud();
 
-                    const impulse = 12.0 / target.weight;
+                    const impulse = 8.5 / target.weight;
                     const rad = Math.atan2(bullet.vy, bullet.vx);
                     target.vx += Math.cos(rad) * impulse;
                     target.vy += Math.sin(rad) * impulse;
@@ -3120,11 +3538,11 @@
             if (!state.lastEdgeWarningTime) state.lastEdgeWarningTime = 0;
             const nowTime = Date.now();
             if (nowTime - state.lastEdgeWarningTime > 2500) { // 2.5秒の間隔
-                if (dist1 > DOHYO_RADIUS - 60) {
+                if (dist1 > seriesState.effectiveDohyoRadius - 60) {
                     logDebug(`実況: ⚠️ あぶない！「${p1.name}」が土俵際まで追い詰められた！こらえられるか！？`);
                     sound.playEdgeWarning();
                     state.lastEdgeWarningTime = nowTime;
-                } else if (dist2 > DOHYO_RADIUS - 60) {
+                } else if (dist2 > seriesState.effectiveDohyoRadius - 60) {
                     logDebug(`実況: ⚠️ チャンス！「${p2.name}」が土俵際に押し出されそうだ！`);
                     sound.playEdgeWarning();
                     state.lastEdgeWarningTime = nowTime;
@@ -3142,11 +3560,11 @@
             p2.x += nx * overlap * 0.5;
             p2.y += ny * overlap * 0.5;
 
-            const p1Force = p1.force * (p1Dashing ? 1.8 : 1.0);
-            const p2Force = p2.force * (p2Dashing ? 1.8 : 1.0);
+            const p1Force = p1.force * (p1Dashing ? 1.55 : 1.0);
+            const p2Force = p2.force * (p2Dashing ? 1.55 : 1.0);
 
-            const force1to2 = (p1Force * 16) / p2.weight;
-            const force2to1 = (p2Force * 16) / p1.weight;
+            const force1to2 = (p1Force * 9.5) / p2.weight;
+            const force2to1 = (p2Force * 9.5) / p1.weight;
 
             p2.vx += nx * force1to2;
             p2.vy += ny * force1to2;
@@ -3258,17 +3676,29 @@
         const p2Static = p2.staticFrames >= 180;
 
         if (p1Static && p2Static) {
-            logDebug(`実況: 🟥 反則！両者ともに3秒以上動かなかったため、両者反則負け！！`);
-            logDebug(`実況: 🤝 両者失格による引き分けです！`);
-            endBattle('😭 両者反則負け！ (3秒停止) 😭', 'var(--accent-magenta)');
+            triggerBoutFinish(
+                null,
+                '🚫 両者反則！',
+                '3秒以上停止したため引き分け',
+                `実況: 🟥 反則！両者ともに3秒以上動かなかったため、両者反則引き分け！！`,
+                '#ffff00'
+            );
         } else if (p1Static) {
-            logDebug(`実況: 🟥 反則！「${p1.name}」が3秒以上動かなかったため、反則負け！！`);
-            logDebug(`実況: 🏆「${p2.name}」の不戦勝！！`);
-            endBattle('😭 反則まけ... (3秒停止) 😭', 'var(--accent-magenta)');
+            triggerBoutFinish(
+                'opponent',
+                '🚫 反則負け…',
+                `「${p1.name}」3秒以上停止`,
+                `実況: 🟥 反則！「${p1.name}」が3秒以上動かなかったため、相手の反則勝ち！！`,
+                '#ff007f'
+            );
         } else if (p2Static) {
-            logDebug(`実況: 🟥 反則！「${p2.name}」が3秒以上動かなかったため、反則負け！！`);
-            logDebug(`実況: 🏆「${p1.name}」の不戦勝！！`);
-            endBattle('🎉 反則勝ち！ (相手3秒停止) 🎉', 'var(--accent-green)');
+            triggerBoutFinish(
+                'player',
+                '🚫 反則勝ち！！',
+                `「${p2.name}」3秒以上停止`,
+                `実況: 🟥 反則！「${p2.name}」が3秒以上動かなかったため、あなたの反則勝ち！！`,
+                '#39ff14'
+            );
         }
 
         checkOutBounds(p1, '相手');
@@ -3276,33 +3706,43 @@
     }
 
     function checkOutBounds(player, winnerName) {
-        if (!state.isRunning) return;
+        if (!state.isRunning || seriesState.phase !== 'active') return;
         const distFromCenter = getDistance(player.x, player.y, CANVAS_CENTER.x, CANVAS_CENTER.y);
-        if (distFromCenter > DOHYO_RADIUS + player.radius - 8) {
+        if (distFromCenter > seriesState.effectiveDohyoRadius + player.radius - 8) {
             const winner = state.players.find(p => p.id !== player.id);
             const timeSinceLastCollision = Date.now() - (state.lastCollisionTime || 0);
+            const isSelfOut = timeSinceLastCollision > 1500;
             
-            if (timeSinceLastCollision > 1500) {
+            if (isSelfOut) {
                 logDebug(`実況: 🔴 あああっと！「${player.name}」が自ら土俵の外に出てしまった！！（自爆）`);
             } else {
                 logDebug(`実況: 🔴 そのまま土俵の外へ！「${player.name}」が押し出された！`);
             }
             logDebug(`実況: 🏆「${winner.name}」の勝ち！！`);
 
-            let winText = `${winnerName} のかち！`;
             if (winnerName === '自分') {
-                winText = '🎉 あなたの かち！ 🎉';
-                endBattle(winText, 'var(--accent-green)');
+                triggerBoutFinish(
+                    'player',
+                    isSelfOut ? '🎉 相手が自爆勝ち！！' : '💥 押し出し 勝利！！',
+                    `「${winner.name}」の1本！`,
+                    null,
+                    '#39ff14'
+                );
             } else {
-                winText = '😭 あなたの まけ... 😭';
-                endBattle(winText, 'var(--accent-magenta)');
+                triggerBoutFinish(
+                    'opponent',
+                    isSelfOut ? '😭 土俵際 自爆…' : '💥 押し出し 負け…',
+                    `「${winner.name}」の1本…`,
+                    null,
+                    '#ff007f'
+                );
             }
         }
     }
 
     function endBattle(message, color = '#ffffff') {
         state.isRunning = false;
-        logDebug(`シミュレーションが終了しました: ${message}`);
+        logDebug(`シリーズ結果: ${message}`);
         battleStatusMsg.textContent = message;
         battleStatusMsg.style.color = color;
 
@@ -3383,13 +3823,26 @@
 
         ctx.beginPath();
         ctx.arc(CANVAS_CENTER.x, CANVAS_CENTER.y, DOHYO_RADIUS, 0, Math.PI * 2);
-        ctx.strokeStyle = 'var(--accent-cyan)';
+        ctx.strokeStyle = seriesState.isSuddenDeath ? 'rgba(255, 255, 0, 0.35)' : 'var(--accent-cyan)';
         ctx.lineWidth = 5;
         ctx.fillStyle = '#0a0f1d';
         ctx.shadowColor = 'var(--accent-cyan)';
         ctx.shadowBlur = 15;
         ctx.fill();
         ctx.stroke();
+
+        // サドンデス収縮リング描画
+        if (seriesState.isSuddenDeath && seriesState.effectiveDohyoRadius < DOHYO_RADIUS) {
+            ctx.beginPath();
+            ctx.arc(CANVAS_CENTER.x, CANVAS_CENTER.y, seriesState.effectiveDohyoRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ff0055';
+            ctx.lineWidth = 6;
+            ctx.setLineDash([14, 8]);
+            ctx.shadowColor = '#ff0055';
+            ctx.shadowBlur = 18;
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
         ctx.restore();
 
         // 仕切り線
@@ -3666,22 +4119,43 @@
     // 12. 初期ロードと同期設定
     // ==========================================
     startBattleBtn.addEventListener('click', () => {
-        startSimulation();
+        startSimulation(false);
     });
 
     resetBattleBtn.addEventListener('click', () => {
-        resetSimulation();
+        resetSimulation(true);
     });
 
-    // 試合速度切り替えボタンのイベント登録
-    document.querySelectorAll('.speed-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            simSpeedMultiplier = parseFloat(btn.dataset.speed) || 1.0;
-            logDebug(`試合速度を ${simSpeedMultiplier}x に設定しました。`);
+    // 3本勝負 / 1本勝負 & 制限時間切り替えイベント
+    if (btnModeBo3 && btnModeBo1) {
+        btnModeBo3.addEventListener('click', () => {
+            if (state.isRunning) return;
+            matchConfig.bestOf = 3;
+            btnModeBo3.classList.add('active');
+            btnModeBo1.classList.remove('active');
+            resetSimulation(true);
+            logDebug('ルールを【3本勝負（2本先取）】に設定しました。');
         });
-    });
+        btnModeBo1.addEventListener('click', () => {
+            if (state.isRunning) return;
+            matchConfig.bestOf = 1;
+            btnModeBo1.classList.add('active');
+            btnModeBo3.classList.remove('active');
+            resetSimulation(true);
+            logDebug('ルールを【1本勝負】に設定しました。');
+        });
+    }
+
+    if (battleTimeSelect) {
+        battleTimeSelect.addEventListener('change', () => {
+            if (state.isRunning) return;
+            matchConfig.timeLimit = parseInt(battleTimeSelect.value, 10) || 30;
+            resetSimulation(true);
+            logDebug(`1本あたりの制限時間を ${matchConfig.timeLimit}秒 に設定しました。`);
+        });
+    }
+
+    updateSeriesUI();
 
     // キーボードショートカット
     window.addEventListener('keydown', (e) => {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>ロボ相撲アリーナ - 先生用トーナメントシステム</title>
+<title>ロボ相撲アリーナ v2.3 - 先生用トーナメントシステム</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
 <!-- PeerJS (WebRTC P2P通信ライブラリ) -->
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -629,6 +629,113 @@
         box-shadow: 0 0 35px rgba(0, 243, 255, 0.2);
     }
 
+    /* ルール設定バー（受付画面ツールバー内） */
+    .sensei-rule-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(0, 243, 255, 0.28);
+        border-radius: 10px;
+        padding: 4px 8px;
+    }
+    .sensei-rule-pill {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        color: var(--text-muted);
+        border-radius: 7px;
+        padding: 4px 10px;
+        font-family: var(--font-sf);
+        font-size: 0.76rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .sensei-rule-pill.active {
+        background: rgba(0, 243, 255, 0.22);
+        border-color: var(--accent-cyan);
+        color: #ffffff;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.35);
+    }
+    .sensei-time-select {
+        background: #081022;
+        border: 1px solid rgba(0, 243, 255, 0.38);
+        color: var(--accent-cyan);
+        border-radius: 7px;
+        padding: 4px 8px;
+        font-family: var(--font-sf);
+        font-size: 0.76rem;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    /* 星取りランプ（名前横配置で高さ増なし） */
+    .sensei-score-pips {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin: 0 4px;
+    }
+    .sensei-pip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.28);
+        background: rgba(0, 0, 0, 0.45);
+        font-size: 0.62rem;
+        color: transparent;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .sensei-pip.won {
+        border-color: #ffd700;
+        background: radial-gradient(circle, #fff799 0%, #ffaa00 100%);
+        color: #2b1d00;
+        box-shadow: 0 0 12px rgba(255, 215, 0, 0.9);
+        transform: scale(1.15);
+    }
+
+    /* 試合カットイン効果オーバーレイ */
+    #arena-cutin-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.85);
+        z-index: 30;
+        pointer-events: none;
+        background: linear-gradient(90deg, rgba(4, 7, 17, 0.05) 0%, rgba(4, 7, 17, 0.94) 16%, rgba(4, 7, 17, 0.94) 84%, rgba(4, 7, 17, 0.05) 100%);
+        border-top: 2px solid var(--accent-cyan);
+        border-bottom: 2px solid var(--accent-magenta);
+        padding: 12px 36px;
+        min-width: 88%;
+        text-align: center;
+        opacity: 0;
+        transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 0 35px rgba(0, 243, 255, 0.35);
+    }
+    #arena-cutin-overlay.show {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    .arena-cutin-main {
+        font-size: 1.85rem;
+        font-weight: 900;
+        letter-spacing: 3px;
+        color: #ffffff;
+        text-shadow: 0 0 18px currentColor;
+        white-space: nowrap;
+    }
+    .arena-cutin-sub {
+        font-size: 0.88rem;
+        font-weight: 800;
+        color: var(--accent-cyan);
+        margin-top: 3px;
+        letter-spacing: 1.5px;
+    }
+
     /* 試合コントロールバー（20px引き上げ・見切れ防止） */
     .battle-control-bar {
         width: 100%;
@@ -975,7 +1082,7 @@
 <header>
     <div class="brand-title">
         <h1>ROBO SUMO ARENA</h1>
-        <div class="brand-badge">SENSEI SYSTEM v2.2</div>
+        <div class="brand-badge">SENSEI SYSTEM v2.3</div>
     </div>
 
     <!-- 4桁ルームコード表示部 -->
@@ -1031,9 +1138,20 @@
                 <div class="bracket-toolbar">
                     <div class="bracket-title">
                         <span>🏆 トーナメント表</span>
-                        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">※名前をドラッグ＆ドロップして位置を自由に調整できます</span>
+                        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">※ドラッグで順番調整</span>
                     </div>
-                    <div style="display: flex; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="sensei-rule-controls" title="大会のルールと1本あたりの制限時間を設定できます">
+                            <button id="sensei-mode-bo3" class="sensei-rule-pill active" type="button">🏆 3本勝負</button>
+                            <button id="sensei-mode-bo1" class="sensei-rule-pill" type="button">⚔️ 1本勝負</button>
+                            <select id="sensei-time-select" class="sensei-time-select" title="1本あたりの制限時間">
+                                <option value="10">⏱️ 10秒</option>
+                                <option value="15">⏱️ 15秒</option>
+                                <option value="20">⏱️ 20秒</option>
+                                <option value="25">⏱️ 25秒</option>
+                                <option value="30" selected>⏱️ 30秒</option>
+                            </select>
+                        </div>
                         <button id="btn-clear-bracket" class="btn danger" style="font-size: 0.8rem; padding: 6px 12px;">クリア</button>
                     </div>
                 </div>
@@ -1075,6 +1193,7 @@
                         <div class="fighter-name-row">
                             <span id="p1-icon" style="font-size: 1.5rem;">🟢</span>
                             <span id="p1-name">プレイヤー1</span>
+                            <span id="p1-score-pips" class="sensei-score-pips"></span>
                         </div>
                         <div class="energy-bar-wrap">
                             <div id="p1-energy-bar" class="energy-bar-fill" style="width: 100%; background: var(--accent-green);"></div>
@@ -1085,6 +1204,7 @@
 
                     <div class="fighter-hud-card p2">
                         <div class="fighter-name-row">
+                            <span id="p2-score-pips" class="sensei-score-pips"></span>
                             <span id="p2-name">プレイヤー2</span>
                             <span id="p2-icon" style="font-size: 1.5rem;">🔴</span>
                         </div>
@@ -1097,6 +1217,10 @@
                 <!-- 土俵キャンバス -->
                 <div id="arena-canvas-container">
                     <canvas id="arena-canvas" width="540" height="540"></canvas>
+                    <div id="arena-cutin-overlay">
+                        <div id="arena-cutin-main" class="arena-cutin-main">はっけよい…</div>
+                        <div id="arena-cutin-sub" class="arena-cutin-sub">第1本目</div>
+                    </div>
                 </div>
 
                 <!-- 試合操作バー -->
@@ -1929,6 +2053,91 @@
     let isMatchFinished = false;
     let currentMatchObj = null;
 
+    // 先生用 3本勝負・時間設定・演出ステート
+    const senseiConfig = {
+        bestOf: 3,      // デフォルト: 3本勝負 (2本先取)
+        timeLimit: 30   // デフォルト: 30秒 (10〜30秒可変)
+    };
+    const arenaSeries = {
+        boutNum: 1,
+        p1Wins: 0,
+        p2Wins: 0,
+        isSuddenDeath: false,
+        effectiveDohyoRadius: DOHYO_RADIUS,
+        phase: 'idle', // 'idle' | 'intro' | 'active' | 'finishing' | 'finished'
+        introElapsed: 0,
+        introGongPlayed: false,
+        finishElapsed: 0,
+        pendingResult: null,
+        nextBoutTimeout: null
+    };
+
+    const p1ScorePipsEl = document.getElementById('p1-score-pips');
+    const p2ScorePipsEl = document.getElementById('p2-score-pips');
+    const arenaCutinOverlay = document.getElementById('arena-cutin-overlay');
+    const arenaCutinMain = document.getElementById('arena-cutin-main');
+    const arenaCutinSub = document.getElementById('arena-cutin-sub');
+    const senseiModeBo3 = document.getElementById('sensei-mode-bo3');
+    const senseiModeBo1 = document.getElementById('sensei-mode-bo1');
+    const senseiTimeSelect = document.getElementById('sensei-time-select');
+
+    if (senseiModeBo3 && senseiModeBo1) {
+        senseiModeBo3.addEventListener('click', () => {
+            senseiConfig.bestOf = 3;
+            senseiModeBo3.classList.add('active');
+            senseiModeBo1.classList.remove('active');
+        });
+        senseiModeBo1.addEventListener('click', () => {
+            senseiConfig.bestOf = 1;
+            senseiModeBo1.classList.add('active');
+            senseiModeBo3.classList.remove('active');
+        });
+    }
+    if (senseiTimeSelect) {
+        senseiTimeSelect.addEventListener('change', () => {
+            senseiConfig.timeLimit = parseInt(senseiTimeSelect.value, 10) || 30;
+        });
+    }
+
+    function updateArenaSeriesUI() {
+        const reqWins = senseiConfig.bestOf === 3 ? 2 : 1;
+        if (currentMatchObj) {
+            let suffix = '';
+            if (arenaSeries.isSuddenDeath) {
+                suffix = ' 【⚡サドンデス】';
+            } else if (senseiConfig.bestOf === 3) {
+                suffix = ` 【3本勝負 第${arenaSeries.boutNum}本目】`;
+            } else {
+                suffix = ' 【1本勝負】';
+            }
+            battleRoundTitle.textContent = `${currentMatchObj.roundName} (第${currentMatchObj.matchIndexInRound + 1}試合)${suffix}`;
+        }
+        const renderPips = (el, wins) => {
+            if (!el) return;
+            el.innerHTML = '';
+            for (let i = 0; i < reqWins; i++) {
+                const pip = document.createElement('span');
+                pip.className = 'sensei-pip' + (i < wins ? ' won' : '');
+                pip.textContent = '★';
+                el.appendChild(pip);
+            }
+        };
+        renderPips(p1ScorePipsEl, arenaSeries.p1Wins);
+        renderPips(p2ScorePipsEl, arenaSeries.p2Wins);
+    }
+
+    function showArenaCutin(mainText, subText, color = '#00f3ff') {
+        if (!arenaCutinOverlay) return;
+        arenaCutinMain.textContent = mainText;
+        arenaCutinMain.style.color = color;
+        arenaCutinSub.textContent = subText || '';
+        arenaCutinOverlay.classList.add('show');
+    }
+
+    function hideArenaCutin() {
+        if (arenaCutinOverlay) arenaCutinOverlay.classList.remove('show');
+    }
+
     let p1 = null;
     let p2 = null;
     let particles = [];
@@ -1947,19 +2156,39 @@
     });
 
     // 試合データをアリーナにセット
-    function loadMatchToArena(match) {
+    function loadMatchToArena(match, resetSeries = true) {
+        if (arenaSeries.nextBoutTimeout) {
+            clearTimeout(arenaSeries.nextBoutTimeout);
+            arenaSeries.nextBoutTimeout = null;
+        }
+        if (simInterval) cancelAnimationFrame(simInterval);
+        hideArenaCutin();
+
         currentMatchObj = match;
         isMatchFinished = false;
         isMatchRunning = false;
-        matchTimer = 30.0;
+
+        if (resetSeries) {
+            arenaSeries.boutNum = 1;
+            arenaSeries.p1Wins = 0;
+            arenaSeries.p2Wins = 0;
+            arenaSeries.isSuddenDeath = false;
+            arenaSeries.phase = 'idle';
+        }
+        arenaSeries.effectiveDohyoRadius = DOHYO_RADIUS;
+        arenaSeries.introElapsed = 0;
+        arenaSeries.introGongPlayed = false;
+        arenaSeries.finishElapsed = 0;
+        arenaSeries.pendingResult = null;
+
+        matchTimer = senseiConfig.timeLimit;
         particles = [];
         projectiles = [];
         damageTexts = [];
         shockwaves = [];
         screenShake = 0;
 
-        battleRoundTitle.textContent = `${match.roundName} (第${match.matchIndexInRound + 1}試合)`;
-        battleHudTimer.textContent = '30.0s';
+        battleHudTimer.textContent = senseiConfig.timeLimit.toFixed(1) + 's';
         battleHudTimer.style.color = 'var(--accent-cyan)';
 
         btnBattleStart.disabled = false;
@@ -1980,6 +2209,8 @@
 
         p1EnergyBar.style.width = '100%';
         p2EnergyBar.style.width = '100%';
+        p1EnergyBar.style.background = 'var(--accent-green)';
+        p2EnergyBar.style.background = 'var(--accent-magenta)';
 
         // プレイヤーオブジェクト初期化
         p1 = {
@@ -2032,15 +2263,18 @@
             isColliding: false
         };
 
+        updateArenaSeriesUI();
         drawArena();
         updateMiniBracketUI();
-        logCommentary(`次の対戦: [${p1.name}] VS [${p2.name}]！`);
+        if (resetSeries) {
+            logCommentary(`次の対戦: [${p1.name}] VS [${p2.name}]！（${senseiConfig.bestOf === 3 ? '3本勝負' : '1本勝負'} / ${senseiConfig.timeLimit}秒）`);
+        }
     }
 
     // 試合開始 / 一時停止
     btnBattleStart.addEventListener('click', () => {
         if (!isMatchRunning) {
-            startMatch();
+            startMatch(false);
         } else {
             pauseMatch();
         }
@@ -2049,8 +2283,8 @@
     // リプレイ
     btnBattleReplay.addEventListener('click', () => {
         if (currentMatchObj) {
-            loadMatchToArena(currentMatchObj);
-            startMatch();
+            loadMatchToArena(currentMatchObj, true);
+            startMatch(false);
         }
     });
 
@@ -2059,14 +2293,31 @@
         advanceToNextMatch();
     });
 
-    function startMatch() {
-        if (isMatchFinished) return;
+    function startMatch(isNextBout = false) {
+        if (isMatchFinished && !isNextBout) return;
+        if (isNextBout && currentMatchObj) {
+            loadMatchToArena(currentMatchObj, false);
+        }
         isMatchRunning = true;
         btnBattleStart.textContent = '⏸️ 一時停止';
         btnBattleReplay.disabled = true;
         btnBattleNext.disabled = true;
-        sound.playGong();
-        logCommentary('はっけよい、のこったーーー！！！');
+
+        if (arenaSeries.phase === 'idle' || isNextBout || arenaSeries.phase === 'finishing') {
+            arenaSeries.phase = 'intro';
+            arenaSeries.introElapsed = 0;
+            arenaSeries.introGongPlayed = false;
+            if (arenaSeries.isSuddenDeath) {
+                showArenaCutin('⚡ サドンデス！！', 'この1本を取った方が勝者！', '#ffff00');
+                logCommentary('⚡ サドンデス戦、はっけよい…');
+            } else if (senseiConfig.bestOf === 3) {
+                showArenaCutin('はっけよい…', `第${arenaSeries.boutNum}本目（2本先取）`, '#00f3ff');
+                logCommentary(`第${arenaSeries.boutNum}本目、はっけよい…`);
+            } else {
+                showArenaCutin('はっけよい…', '1本勝負', '#00f3ff');
+                logCommentary('はっけよい…');
+            }
+        }
 
         if (simInterval) cancelAnimationFrame(simInterval);
         lastFrameTime = performance.now();
@@ -2083,11 +2334,38 @@
     let lastFrameTime = performance.now();
     function gameLoop(now) {
         if (!isMatchRunning) return;
-        const dt = Math.min((now - lastFrameTime) / 1000, 0.1) * simSpeed;
+        const rawDt = Math.min((now - lastFrameTime) / 1000, 0.1);
         lastFrameTime = now;
 
-        updateSimulation(dt);
-        drawArena();
+        if (arenaSeries.phase === 'intro') {
+            arenaSeries.introElapsed += rawDt;
+            if (arenaSeries.introElapsed >= 0.45 && !arenaSeries.introGongPlayed) {
+                arenaSeries.introGongPlayed = true;
+                sound.playGong();
+                showArenaCutin('のこった！！', arenaSeries.isSuddenDeath ? '⚡ サドンデス開始！' : `第${arenaSeries.boutNum}本目 スタート！`, '#39ff14');
+                logCommentary('のこったーーー！！！');
+            }
+            if (arenaSeries.introElapsed >= 0.90) {
+                hideArenaCutin();
+                arenaSeries.phase = 'active';
+            }
+            drawArena();
+        } else if (arenaSeries.phase === 'active') {
+            const dt = rawDt * simSpeed;
+            updateSimulation(dt);
+            drawArena();
+        } else if (arenaSeries.phase === 'finishing') {
+            arenaSeries.finishElapsed += rawDt;
+            const slowDt = rawDt * 0.22;
+            updateMovement(p1, slowDt);
+            updateMovement(p2, slowDt);
+            updateVisualEffects(slowDt);
+            drawArena();
+            if (arenaSeries.finishElapsed >= 0.85) {
+                finalizeSenseiBout();
+                return;
+            }
+        }
 
         if (isMatchRunning) {
             simInterval = requestAnimationFrame(gameLoop);
@@ -2096,10 +2374,55 @@
 
     // 物理＆プログラム更新
     function updateSimulation(dt) {
+        if (arenaSeries.phase !== 'active') return;
         matchTimer -= dt;
+
+        // サドンデス時は残り半分から土俵リングがじわじわ収縮して決着を促す
+        if (arenaSeries.isSuddenDeath && matchTimer <= senseiConfig.timeLimit * 0.5) {
+            arenaSeries.effectiveDohyoRadius = Math.max(105, arenaSeries.effectiveDohyoRadius - dt * 12);
+        }
+
         if (matchTimer <= 0) {
             matchTimer = 0;
-            endMatch(null, '引き分け！ (時間切れ 30s)');
+            battleHudTimer.textContent = '0.0s';
+            const e1 = Math.round(p1.energy);
+            const e2 = Math.round(p2.energy);
+            if (e1 > e2) {
+                triggerSenseiBoutFinish(
+                    p1,
+                    '⚖️ エナジー判定勝ち！！',
+                    `${p1.name} (${e1}) VS ${p2.name} (${e2})`,
+                    `⌛ 時間切れ！残りエナジー(${e1} vs ${e2})で「${p1.name}」の判定勝ち！！`,
+                    '#39ff14'
+                );
+            } else if (e2 > e1) {
+                triggerSenseiBoutFinish(
+                    p2,
+                    '⚖️ エナジー判定勝ち！！',
+                    `${p1.name} (${e1}) VS ${p2.name} (${e2})`,
+                    `⌛ 時間切れ！残りエナジー(${e1} vs ${e2})で「${p2.name}」の判定勝ち！！`,
+                    '#ff007f'
+                );
+            } else if (arenaSeries.isSuddenDeath) {
+                const d1 = Math.hypot(p1.x - DOHYO_CENTER.x, p1.y - DOHYO_CENTER.y);
+                const d2 = Math.hypot(p2.x - DOHYO_CENTER.x, p2.y - DOHYO_CENTER.y);
+                const centerWinner = d1 <= d2 ? p1 : p2;
+                triggerSenseiBoutFinish(
+                    centerWinner,
+                    '🎯 中央優勢勝ち！！',
+                    'サドンデス極限決着！',
+                    `⚡ サドンデス同点判定！土俵中央に近い「${centerWinner.name}」の勝利！！`,
+                    '#ffff00'
+                );
+            } else {
+                triggerSenseiBoutFinish(
+                    null,
+                    '🤝 同点引き分け！',
+                    `残りエナジー ${e1} で完全互角！`,
+                    `⌛ 時間切れ＆エナジー完全同点(${e1})！この1本は引き分け！`,
+                    '#ffff00'
+                );
+            }
             return;
         }
         battleHudTimer.textContent = matchTimer.toFixed(1) + 's';
@@ -2167,33 +2490,33 @@
 
         switch(cmd) {
             case 'forward':
-                self.currentAction = { type: 'move', distRemaining: val || 60, speed: self.template.speed * 1.5, dir: 1 };
+                self.currentAction = { type: 'move', distRemaining: val || 60, speed: self.template.speed * 1.35, dir: 1 };
                 break;
             case 'backward':
-                self.currentAction = { type: 'move', distRemaining: val || 40, speed: self.template.speed * 1.1, dir: -1 };
+                self.currentAction = { type: 'move', distRemaining: val || 40, speed: self.template.speed * 1.0, dir: -1 };
                 break;
             case 'turnRight':
-                self.currentAction = { type: 'turn', angleRemaining: val || 90, speed: 180, dir: 1 };
+                self.currentAction = { type: 'turn', angleRemaining: val || 90, speed: 135, dir: 1 };
                 break;
             case 'turnLeft':
-                self.currentAction = { type: 'turn', angleRemaining: val || 90, speed: 180, dir: -1 };
+                self.currentAction = { type: 'turn', angleRemaining: val || 90, speed: 135, dir: -1 };
                 break;
             case 'turnToEnemy': {
                 const targetAngle = Math.atan2(enemy.y - self.y, enemy.x - self.x) * 180 / Math.PI;
                 let diff = (targetAngle - self.angle) % 360;
                 if (diff > 180) diff -= 360;
                 if (diff < -180) diff += 360;
-                self.currentAction = { type: 'turn', angleRemaining: Math.abs(diff), speed: 280, dir: diff >= 0 ? 1 : -1 };
+                self.currentAction = { type: 'turn', angleRemaining: Math.abs(diff), speed: 200, dir: diff >= 0 ? 1 : -1 };
                 break;
             }
             case 'turnRandom': {
                 const rndAngle = (Math.random() * 240) - 120;
-                self.currentAction = { type: 'turn', angleRemaining: Math.abs(rndAngle), speed: 200, dir: rndAngle >= 0 ? 1 : -1 };
+                self.currentAction = { type: 'turn', angleRemaining: Math.abs(rndAngle), speed: 150, dir: rndAngle >= 0 ? 1 : -1 };
                 break;
             }
             case 'dash':
-                self.isDashing = 1.0;
-                self.currentAction = { type: 'move', distRemaining: 150, speed: self.template.speed * 2.8, dir: 1 };
+                self.isDashing = 1.25;
+                self.currentAction = { type: 'move', distRemaining: 145, speed: self.template.speed * 2.2, dir: 1 };
                 sound.playDash();
                 createDashSparks(self.x, self.y);
                 break;
@@ -2201,12 +2524,12 @@
                 fireProjectile(self);
                 break;
             case 'shield':
-                self.isShielding = 1.5;
+                self.isShielding = 1.8;
                 sound.playShield();
                 createDamageText(self.x, self.y - 30, 'SHIELD!', '#00f3ff');
                 break;
             case 'wait':
-                self.currentAction = { type: 'wait', duration: val || 0.5 };
+                self.currentAction = { type: 'wait', duration: val ? (val / 60) : 0.5 };
                 break;
             case 'ifEnemyAhead': {
                 const targetAngle = Math.atan2(enemy.y - self.y, enemy.x - self.x) * 180 / Math.PI;
@@ -2230,7 +2553,7 @@
             }
             case 'ifNearEdge': {
                 const dist = Math.hypot(self.x - DOHYO_CENTER.x, self.y - DOHYO_CENTER.y);
-                const near = dist > DOHYO_RADIUS - 65;
+                const near = dist > (arenaSeries.effectiveDohyoRadius - 65);
                 const branch = near ? cmdObj.then : cmdObj.else;
                 if (branch && branch.length > 0) self.callStack.push({ blocks: branch, pc: 0 });
                 break;
@@ -2241,7 +2564,7 @@
     function progressAction(self, dt) {
         const act = self.currentAction;
         if (act.type === 'move') {
-            const step = act.speed * dt * 25;
+            const step = act.speed * dt * 16;
             const dist = Math.min(step, act.distRemaining);
             const rad = self.angle * Math.PI / 180;
             self.vx += Math.cos(rad) * dist * act.dir * 0.2;
@@ -2261,10 +2584,12 @@
     }
 
     function updateMovement(p, dt) {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vx *= 0.88;
-        p.vy *= 0.88;
+        const scale = dt * 60;
+        p.x += p.vx * scale;
+        p.y += p.vy * scale;
+        const damping = Math.pow(0.88, scale);
+        p.vx *= damping;
+        p.vy *= damping;
     }
 
     function fireProjectile(shooter) {
@@ -2274,18 +2599,19 @@
             shooterId: shooter.id,
             x: shooter.x + Math.cos(rad) * 30,
             y: shooter.y + Math.sin(rad) * 30,
-            vx: Math.cos(rad) * 11,
-            vy: Math.sin(rad) * 11,
-            life: 1.2
+            vx: Math.cos(rad) * 7.2,
+            vy: Math.sin(rad) * 7.2,
+            life: 1.8
         });
         logCommentary(`「${shooter.name}」がビーム弾を発射！`);
     }
 
     function updateProjectiles(dt) {
+        const scale = dt * 60;
         for (let i = projectiles.length - 1; i >= 0; i--) {
             const pr = projectiles[i];
-            pr.x += pr.vx;
-            pr.y += pr.vy;
+            pr.x += pr.vx * scale;
+            pr.y += pr.vy * scale;
             pr.life -= dt;
 
             const target = pr.shooterId === p1.id ? p2 : p1;
@@ -2301,8 +2627,8 @@
                     createHitSparks(pr.x, pr.y, '#00f3ff');
                 } else {
                     target.energy = Math.max(0, target.energy - 20);
-                    target.vx += pr.vx * 0.45;
-                    target.vy += pr.vy * 0.45;
+                    target.vx += pr.vx * 0.34;
+                    target.vy += pr.vy * 0.34;
                     createDamageText(target.x, target.y - 35, '-20', '#ff007f');
                     createHitSparks(pr.x, pr.y, '#ffff00');
                     screenShake = 6;
@@ -2342,7 +2668,7 @@
                 if (p1.isShielding > 0) {
                     createDamageText(p1.x, p1.y - 30, 'GUARD!', '#00f3ff');
                 } else {
-                    p1.energy = Math.max(0, p1.energy - dmg1to2);
+                    p1.energy = Math.max(0, p1.energy - dmg2to1);
                     createDamageText(p1.x, p1.y - 30, `-${dmg2to1}`, p2Dashing ? '#ff007f' : '#ffff00');
                 }
 
@@ -2367,13 +2693,13 @@
             p2.x += nx * overlap * 0.5;
             p2.y += ny * overlap * 0.5;
 
-            const p1Force = p1.template.force * (p1Dashing ? 2.0 : 1.0);
-            const p2Force = p2.template.force * (p2Dashing ? 2.0 : 1.0);
+            const p1Force = p1.template.force * (p1Dashing ? 1.65 : 1.0);
+            const p2Force = p2.template.force * (p2Dashing ? 1.65 : 1.0);
 
-            p2.vx += (nx * p1Force * 18) / p2.template.weight;
-            p2.vy += (ny * p1Force * 18) / p2.template.weight;
-            p1.vx -= (nx * p2Force * 18) / p1.template.weight;
-            p1.vy -= (ny * p2Force * 18) / p1.template.weight;
+            p2.vx += (nx * p1Force * 11) / p2.template.weight;
+            p2.vy += (ny * p1Force * 11) / p2.template.weight;
+            p1.vx -= (nx * p2Force * 11) / p1.template.weight;
+            p1.vy -= (ny * p2Force * 11) / p1.template.weight;
         } else {
             p1.isColliding = false;
             p2.isColliding = false;
@@ -2381,13 +2707,20 @@
     }
 
     function checkFouls(player, dt) {
+        if (arenaSeries.phase !== 'active') return;
         const moved = Math.hypot(player.x - player.lastX, player.y - player.lastY);
         const rot = Math.abs(player.angle - player.lastAngle);
-        if (moved < 0.6 && rot < 1.0) {
+        if (moved < 0.2 && rot < 0.5) {
             player.stoppedTime += dt;
             if (player.stoppedTime >= 3.0) {
                 const winner = player.id === p1.id ? p2 : p1;
-                endMatch(winner, `反則勝ち！ (「${player.name}」が3秒間停止)`);
+                triggerSenseiBoutFinish(
+                    winner,
+                    '🚫 反則勝ち！！',
+                    `「${player.name}」が3秒間停止`,
+                    `🟥 反則勝ち！ (「${player.name}」が3秒間停止) ➔ 「${winner.name}」の1本！`,
+                    winner.id === 'p1' ? '#39ff14' : '#ff007f'
+                );
             }
         } else {
             player.stoppedTime = 0;
@@ -2398,27 +2731,62 @@
     }
 
     function checkRingOut() {
+        if (arenaSeries.phase !== 'active') return;
         const d1 = Math.hypot(p1.x - DOHYO_CENTER.x, p1.y - DOHYO_CENTER.y);
         const d2 = Math.hypot(p2.x - DOHYO_CENTER.x, p2.y - DOHYO_CENTER.y);
 
-        if (d1 > DOHYO_RADIUS) {
-            endMatch(p2, `寄り切り勝ち！ (「${p1.name}」が土俵の外へ押し出された！)`);
-        } else if (d2 > DOHYO_RADIUS) {
-            endMatch(p1, `寄り切り勝ち！ (「${p2.name}」が土俵の外へ押し出された！)`);
+        if (d1 > arenaSeries.effectiveDohyoRadius) {
+            triggerSenseiBoutFinish(
+                p2,
+                '💥 押し出し！！',
+                `「${p2.name}」の1本！`,
+                `🔴 寄り切り勝ち！ (「${p1.name}」が土俵の外へ押し出された！)`,
+                '#ff007f'
+            );
+        } else if (d2 > arenaSeries.effectiveDohyoRadius) {
+            triggerSenseiBoutFinish(
+                p1,
+                '💥 押し出し！！',
+                `「${p1.name}」の1本！`,
+                `🟢 寄り切り勝ち！ (「${p2.name}」が土俵の外へ押し出された！)`,
+                '#39ff14'
+            );
         }
     }
 
     function checkKo() {
+        if (arenaSeries.phase !== 'active') return;
         if (p1.energy <= 0 && p2.energy <= 0) {
-            endMatch(null, '相打ちK.O.！両者エナジーゼロ！');
+            sound.playKoExplosion();
+            createKoExplosion(p1.x, p1.y);
+            createKoExplosion(p2.x, p2.y);
+            triggerSenseiBoutFinish(
+                null,
+                '💥 相打ち K.O.！！',
+                '両者エナジーゼロで引き分け！',
+                '相打ちK.O.！両者エナジーゼロ！',
+                '#ffff00'
+            );
         } else if (p1.energy <= 0) {
             sound.playKoExplosion();
             createKoExplosion(p1.x, p1.y);
-            endMatch(p2, `K.O.勝ち！！ (「${p1.name}」のエナジーゼロ！機能停止！)`);
+            triggerSenseiBoutFinish(
+                p2,
+                '⚡ K.O. 勝利！！',
+                `「${p1.name}」機能停止！`,
+                `💥 K.O.勝ち！！ (「${p1.name}」のエナジーゼロ！機能停止！)`,
+                '#ff007f'
+            );
         } else if (p2.energy <= 0) {
             sound.playKoExplosion();
             createKoExplosion(p2.x, p2.y);
-            endMatch(p1, `K.O.勝ち！！ (「${p2.name}」のエナジーゼロ！機能停止！)`);
+            triggerSenseiBoutFinish(
+                p1,
+                '⚡ K.O. 勝利！！',
+                `「${p2.name}」機能停止！`,
+                `💥 K.O.勝ち！！ (「${p2.name}」のエナジーゼロ！機能停止！)`,
+                '#39ff14'
+            );
         }
     }
 
@@ -2432,7 +2800,63 @@
         p2EnergyBar.style.background = e2Ratio <= 35 ? '#ff0055' : 'var(--accent-magenta)';
     }
 
-    // 試合決着
+    function triggerSenseiBoutFinish(winnerRobotState, cutinTitle, cutinSub, logMsg, color = '#00f3ff') {
+        if (!isMatchRunning || arenaSeries.phase !== 'active') return;
+        arenaSeries.phase = 'finishing';
+        arenaSeries.finishElapsed = 0;
+        arenaSeries.pendingResult = { winnerRobotState, cutinTitle, cutinSub, logMsg, color };
+        if (logMsg) logCommentary(logMsg);
+        showArenaCutin(cutinTitle, cutinSub, color);
+    }
+
+    function finalizeSenseiBout() {
+        const res = arenaSeries.pendingResult;
+        arenaSeries.pendingResult = null;
+        hideArenaCutin();
+        isMatchRunning = false;
+        if (simInterval) cancelAnimationFrame(simInterval);
+
+        if (!res) return;
+        if (res.winnerRobotState && res.winnerRobotState.id === 'p1') {
+            arenaSeries.p1Wins++;
+        } else if (res.winnerRobotState && res.winnerRobotState.id === 'p2') {
+            arenaSeries.p2Wins++;
+        }
+        updateArenaSeriesUI();
+
+        const reqWins = senseiConfig.bestOf === 3 ? 2 : 1;
+        if (arenaSeries.p1Wins >= reqWins) {
+            arenaSeries.phase = 'finished';
+            const scoreStr = senseiConfig.bestOf === 3 ? ` (${arenaSeries.p1Wins}勝 - ${arenaSeries.p2Wins}敗)` : '';
+            endMatch(p1, `${res.logMsg || '勝利！'}${scoreStr}`);
+            return;
+        }
+        if (arenaSeries.p2Wins >= reqWins) {
+            arenaSeries.phase = 'finished';
+            const scoreStr = senseiConfig.bestOf === 3 ? ` (${arenaSeries.p1Wins}勝 - ${arenaSeries.p2Wins}敗)` : '';
+            endMatch(p2, `${res.logMsg || '勝利！'}${scoreStr}`);
+            return;
+        }
+
+        // シリーズ継続（次の1本 or サドンデスへ）
+        if (!arenaSeries.isSuddenDeath && arenaSeries.boutNum >= senseiConfig.bestOf) {
+            arenaSeries.isSuddenDeath = true;
+            logCommentary(`⚡ 同点（${arenaSeries.p1Wins} - ${arenaSeries.p2Wins}）！運命の【サドンデス】突入！！`);
+        } else {
+            if (!arenaSeries.isSuddenDeath) arenaSeries.boutNum++;
+            logCommentary(`▶ 現在のスコア: [${p1.name}] ${arenaSeries.p1Wins} - ${arenaSeries.p2Wins} [${p2.name}]。次の1本へ進みます！`);
+        }
+        updateArenaSeriesUI();
+
+        btnBattleStart.disabled = true;
+        btnBattleStart.textContent = '次の1本を準備中...';
+        arenaSeries.nextBoutTimeout = setTimeout(() => {
+            arenaSeries.nextBoutTimeout = null;
+            startMatch(true);
+        }, 1250);
+    }
+
+    // 試合決着（シリーズ最終決着）
     function endMatch(winnerRobotState, reason) {
         if (isMatchFinished) return;
         isMatchFinished = true;
@@ -2454,7 +2878,6 @@
             loserBot = winnerRobotState.id === 'p1' ? currentMatchObj.p2 : currentMatchObj.p1;
             logCommentary(`🏆 勝者: 「${winnerBot.name}」！！ ${reason}`);
         } else {
-            // 引き分けの場合はコイントスで進行（大会継続のため）
             winnerBot = Math.random() > 0.5 ? currentMatchObj.p1 : currentMatchObj.p2;
             loserBot = winnerBot === currentMatchObj.p1 ? currentMatchObj.p2 : currentMatchObj.p1;
             logCommentary(`⌛ 引き分け判定！ 抽選により「${winnerBot.name}」の進出となります。`);
@@ -2598,10 +3021,23 @@
         ctx.fillStyle = '#060b19';
         ctx.fill();
         ctx.lineWidth = 14;
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = arenaSeries.isSuddenDeath ? 'rgba(255, 255, 0, 0.45)' : '#ffffff';
         ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
         ctx.shadowBlur = 20;
         ctx.stroke();
+
+        // サドンデス収縮リング描画
+        if (arenaSeries.isSuddenDeath && arenaSeries.effectiveDohyoRadius < DOHYO_RADIUS) {
+            ctx.beginPath();
+            ctx.arc(DOHYO_CENTER.x, DOHYO_CENTER.y, arenaSeries.effectiveDohyoRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ff0055';
+            ctx.lineWidth = 6;
+            ctx.setLineDash([12, 7]);
+            ctx.shadowColor = '#ff0055';
+            ctx.shadowBlur = 16;
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
 
         // 内側グリッド＆同心円
         ctx.shadowBlur = 0;
