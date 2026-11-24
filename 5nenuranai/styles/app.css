@@ -449,7 +449,47 @@ button, a {
   gap: 8px;
   font-size: 0.9rem;
 }
-.rule-steps-list.compact { font-size: 0.8rem; gap: 6px; }
+.rule-steps-list.compact { font-size: 0.78rem; gap: 5px; }
+.mini-rule-card {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(140, 238, 255, 0.1);
+  border: 1px solid rgba(140, 238, 255, 0.35);
+  font-size: 0.76rem;
+}
+.mini-rule-title {
+  font-weight: 800;
+  color: var(--gold);
+  margin-bottom: 5px;
+}
+.mini-vowel-pills {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 5px;
+}
+.mini-vowel-pills span {
+  padding: 2px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+.mini-vowel-pills b { color: var(--gold); }
+.mini-rule-note {
+  color: var(--text-sub);
+  font-size: 0.71rem;
+  line-height: 1.35;
+}
+.mini-rule-example {
+  margin-top: 4px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  text-align: center;
+}
+.mini-rule-example strong { color: var(--gold); letter-spacing: 1px; }
 .rule-steps-list li {
   display: flex;
   align-items: flex-start;

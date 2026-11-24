@@ -714,6 +714,7 @@ header {
   font-size: 0.96rem;
   color: #334155;
   margin: 8px 0 12px;
+  white-space: pre-line;
 }
 
 .unlock-banner {

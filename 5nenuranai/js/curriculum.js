@@ -12,7 +12,7 @@
       glow: 'rgba(255, 59, 92, 0.78)',
       textColor: '#ffffff',
       emoji: '🔴',
-      defaultMsg: 'パワーがみなぎる1日！むずかしい算数にも元気にチャレンジしてみよう！',
+      defaultMsg: 'パワーがみなぎる1日！楽しく算数が学べるかも♬',
       defaultItem: '赤いえんぴつ'
     },
     {

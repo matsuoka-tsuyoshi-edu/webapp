@@ -105,13 +105,29 @@ window.TakakukeiApp.judgeStep = function (step, state, workspaceStats) {
     };
   }
 
+  function getMatchExtraNote(segs, turns) {
+    const isLen100 = segs.every((s) => Math.abs(s.length - 100) <= 5);
+    const isRightTurn = turns.length > 0 && turns.every((t) => t > 0);
+    if (isLen100 && isRightTurn) {
+      return '🌟 おてほんに ピッタリ重なったね！';
+    }
+    if (!isLen100 && !isRightTurn) {
+      return '（※ おてほんとは 大きさと むきが ちがうけれど、正しい形で かけたね！おてほんに 重ねるには「100歩」「右回り」にしてみよう）';
+    }
+    if (!isLen100) {
+      return '（※ おてほんとは 大きさが ちがうけれど、正しい形で かけたね！おてほんに 重ねるには「100歩」にしてみよう）';
+    }
+    return '（※ おてほんとは むきが ちがうけれど、正しい形で かけたね！おてほんに 重ねるには「右回り」にしてみよう）';
+  }
+
   // ステップ3：正方形
   if (step.goalType === 'square') {
     if (segments.length === 4 && isClosed(segments) && allSameLength(segments, 40) && allTurnsNear(segments, 90, 3)) {
-      const tip = workspaceStats.hasRepeat
+      const matchNote = getMatchExtraNote(segments, state.turns);
+      const repeatTip = workspaceStats.hasRepeat
         ? ''
-        : '（※ 4回ならべて書けたね！つぎは「4回くりかえす」ブロックも つかってみると 短くなるよ！）';
-      return { cleared: true, extraMessage: tip, feedback: '' };
+        : '\n（※ 4回ならべて書けたね！つぎは「4回くりかえす」ブロックも つかってみると 短くなるよ！）';
+      return { cleared: true, extraMessage: matchNote + repeatTip, feedback: '' };
     }
     return {
       cleared: false,
@@ -123,7 +139,7 @@ window.TakakukeiApp.judgeStep = function (step, state, workspaceStats) {
   // ステップ4：正三角形
   if (step.goalType === 'triangle') {
     if (segments.length === 3 && isClosed(segments) && allSameLength(segments, 40) && allTurnsNear(segments, 120, 3)) {
-      return { cleared: true, feedback: '' };
+      return { cleared: true, extraMessage: getMatchExtraNote(segments, state.turns), feedback: '' };
     }
     // 60度バグの検出
     const has60Turn = state.turns.some((t) => Math.abs(Math.abs(t) - 60) <= 3);
@@ -146,7 +162,7 @@ window.TakakukeiApp.judgeStep = function (step, state, workspaceStats) {
   // ステップ5：正五角形（隠しステージ）
   if (step.goalType === 'pentagon') {
     if (segments.length === 5 && isClosed(segments) && allSameLength(segments, 35) && allTurnsNear(segments, 72, 3)) {
-      return { cleared: true, feedback: '' };
+      return { cleared: true, extraMessage: getMatchExtraNote(segments, state.turns), feedback: '' };
     }
     const has108Turn = state.turns.some((t) => Math.abs(Math.abs(t) - 108) <= 3);
     if (has108Turn) {
@@ -168,7 +184,7 @@ window.TakakukeiApp.judgeStep = function (step, state, workspaceStats) {
   // ステップ6：星型（隠しステージ）
   if (step.goalType === 'star') {
     if (segments.length === 5 && isClosed(segments) && allSameLength(segments, 40) && allTurnsNear(segments, 144, 3)) {
-      return { cleared: true, feedback: '' };
+      return { cleared: true, extraMessage: getMatchExtraNote(segments, state.turns), feedback: '' };
     }
     const has36Turn = state.turns.some((t) => Math.abs(Math.abs(t) - 36) <= 3);
     if (has36Turn) {

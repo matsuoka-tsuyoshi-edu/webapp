@@ -402,7 +402,7 @@
   async function runCode() {
     if (isRunning) return;
 
-    // 全角数字チェック
+    // 全角数字チェック＆角度スロット未入力チェック
     const allBlocks = workspace.getAllBlocks(false);
     for (const block of allBlocks) {
       if (block.type === 'math_number') {
@@ -414,6 +414,13 @@
           );
           return;
         }
+      }
+      if (block.type === 'turn_degrees' && !block.getInputTargetBlock('DEGREES')) {
+        showInfo(
+          '⚠️ 「度まわす」の 角度が からっぽだよ！',
+          '「〜度まわす」ブロックの あなに、左から「10」の数字ブロックを はめて、まわる角度を じぶんで 入力してみよう！'
+        );
+        return;
       }
     }
 

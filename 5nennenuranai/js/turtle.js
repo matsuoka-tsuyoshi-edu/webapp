@@ -132,7 +132,7 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
       }
     } else if (currentGoalType === 'star') {
       for (let i = 0; i < 5; i++) {
-        stepForward(120);
+        stepForward(100);
         ang += 144;
       }
     }

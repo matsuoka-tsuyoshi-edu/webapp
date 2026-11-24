@@ -16,11 +16,11 @@
 
   <title>占いの館 〜今日のラッキーカラーをきめよう！〜</title>
 
-  <link rel="manifest" href="./manifest.webmanifest?v=20261124-09">
-  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg?v=20261124-09">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=20261124-09">
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=20261124-09">
-  <link rel="stylesheet" href="./styles/app.css?v=20261124-09">
+  <link rel="manifest" href="./manifest.webmanifest?v=20261124-10">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg?v=20261124-10">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=20261124-10">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=20261124-10">
+  <link rel="stylesheet" href="./styles/app.css?v=20261124-10">
 </head>
 <body>
   <!-- 縦向き時の案内オーバーレイ（Landscape Lock） -->
@@ -193,12 +193,22 @@
           <div class="pane-head">📜 ラッキーカラーのきめ方</div>
           <div class="pane-body scrollable-y">
             <ol class="rule-steps-list compact">
-              <li><span class="step-badge">1</span>右のルールで、名前を<strong>数字に置きかえる</strong>。</li>
+              <li><span class="step-badge">1</span><strong>下のルール</strong>にしたがって、名前を<strong>数字に置きかえる</strong>。</li>
               <li><span class="step-badge">2</span>1の数に <strong>今日の日付をたす</strong>。</li>
               <li><span class="step-badge">3</span>2の数を <strong>2でわって 小数第一位を四捨五入</strong>することを、<strong>5回くり返す</strong>。</li>
               <li><span class="step-badge">4</span>3の結果を <strong>7でわり、あまり</strong>を求める。</li>
               <li><span class="step-badge">5</span>あまり（0〜6）を <strong>色</strong> に置きかえる。</li>
             </ol>
+
+            <div class="mini-rule-card">
+              <div class="mini-rule-title">🔢 名前を数字にするルール</div>
+              <div class="mini-vowel-pills">
+                <span>あ段→<b>1</b></span><span>い段→<b>2</b></span><span>う段→<b>3</b></span>
+                <span>え段→<b>4</b></span><span>お段→<b>5</b></span><span>ん→<b>0</b></span>
+              </div>
+              <div class="mini-rule-note">※ 小さい文字（ゃゅょっ等）は大きい文字と同じ段</div>
+              <div class="mini-rule-example">例：さんすうしゅうた → <strong>10332331</strong></div>
+            </div>
             <div class="mini-crystal-dialogue">
               <div class="crystal-entity crystal-xs">
                 <div class="orb-body"><div class="orb-eyes"><span>✦</span><span>✦</span></div></div>
@@ -427,12 +437,21 @@
       <h2>📜 ラッキーカラーのきめ方（教科書P.258）</h2>
       <div class="modal-body scrollable-y">
         <ol class="rule-steps-list compact">
-          <li><span class="step-badge">1</span>ルール（あ=1, い=2, う=3, え=4, お=5, ん=0）で名前を数字に置きかえる。（例：さんすうしゅうた → 10332331）</li>
+          <li><span class="step-badge">1</span>下のルールで名前を数字に置きかえる。</li>
           <li><span class="step-badge">2</span>1の数に <strong>今日の日付</strong> をたす。</li>
           <li><span class="step-badge">3</span>2の数を <strong>2でわって 小数第一位を四捨五入</strong> を <strong>5回くり返す</strong>。</li>
           <li><span class="step-badge">4</span>3の結果を <strong>7でわり、あまり</strong> を求める。</li>
           <li><span class="step-badge">5</span>あまりで色を決める（0:赤 / 1:オレンジ / 2:黄 / 3:緑 / 4:青 / 5:あい色 / 6:むらさき）。</li>
         </ol>
+        <div class="mini-rule-card" style="margin-top:10px;">
+          <div class="mini-rule-title">🔢 名前を数字にするルール</div>
+          <div class="mini-vowel-pills">
+            <span>あ段→<b>1</b></span><span>い段→<b>2</b></span><span>う段→<b>3</b></span>
+            <span>え段→<b>4</b></span><span>お段→<b>5</b></span><span>ん→<b>0</b></span>
+          </div>
+          <div class="mini-rule-note">※ 小さい文字（ゃゅょっ等）は大きい文字と同じ段 / カタカナ・のばす音「ー」もOK</div>
+          <div class="mini-rule-example">例：さんすうしゅうた → <strong>10332331</strong></div>
+        </div>
       </div>
       <div class="modal-actions">
         <button id="btn-close-rules" class="primary-magic-btn" type="button">とじる</button>
@@ -475,7 +494,7 @@
   <!-- サーバー上の最新版チェック（古いindex.htmlキャッシュ時の自動更新） -->
   <script>
     (function () {
-      var CURRENT_VER = '20261124-09';
+      var CURRENT_VER = '20261124-10';
       window.__APP_BUILD_VER__ = CURRENT_VER;
       if (location.protocol === 'http:' || location.protocol === 'https:') {
         fetch('./version.json?_=' + Date.now(), { cache: 'no-store' })
@@ -493,10 +512,10 @@
       }
     })();
   </script>
-  <script defer src="./js/ng-filter.js?v=20261124-09"></script>
-  <script defer src="./js/sound.js?v=20261124-09"></script>
-  <script defer src="./js/curriculum.js?v=20261124-09"></script>
-  <script defer src="./js/blocks.js?v=20261124-09"></script>
-  <script defer src="./js/app.js?v=20261124-09"></script>
+  <script defer src="./js/ng-filter.js?v=20261124-10"></script>
+  <script defer src="./js/sound.js?v=20261124-10"></script>
+  <script defer src="./js/curriculum.js?v=20261124-10"></script>
+  <script defer src="./js/blocks.js?v=20261124-10"></script>
+  <script defer src="./js/app.js?v=20261124-10"></script>
 </body>
 </html>

@@ -123,11 +123,11 @@ window.TakakukeiApp.STEPS = [
     forcePenOffStart: false,
     hasExplain: true,
     explainPromptOnEnter: false,
-    desc: 'さいごの チャレンジ！5回くりかえして、かっこいい 星型（★）を かこう！何回まわるかな？',
-    hint: '星のトゲの 内側の角は 36度。だから外回りに「180 − 36 ＝ 144度」ずつ、5回まわってみよう！（長さは120くらいがおすすめ）',
+    desc: 'さいごの チャレンジ！5回くりかえして、1辺が 100 の 星型（★）を かこう！何回まわるかな？',
+    hint: '星のトゲの 内側の角は 36度。だから外回りに「180 − 36 ＝ 144度」ずつ、5回まわってみよう！（長さは 100 がおてほん通りだよ）',
     clearMessage: 'パーフェクト！！全ステップ完全制覇おめでとう！きみは 正多角形プログラミングマスターだ！！',
     goalType: 'star',
-    startPos: { x: 150, y: 185, angle: 0 },
+    startPos: { x: 160, y: 190, angle: 0 },
     toolboxMode: 'full',
     defaultXml: ''
   },
@@ -182,12 +182,9 @@ window.TakakukeiApp.getToolboxXml = function (mode, alwaysPenDown) {
         </block>
         <block type="turn_degrees">
           <field name="DIRECTION">RIGHT</field>
-          <value name="DEGREES">
-            <shadow type="math_number"><field name="NUM">90</field></shadow>
-          </value>
         </block>
         ${penBlocks}
-        <block type="math_number"><field name="NUM">90</field></block>
+        <block type="math_number"><field name="NUM">10</field></block>
       </xml>
     `;
   }
@@ -201,9 +198,6 @@ window.TakakukeiApp.getToolboxXml = function (mode, alwaysPenDown) {
       </block>
       <block type="turn_degrees">
         <field name="DIRECTION">RIGHT</field>
-        <value name="DEGREES">
-          <shadow type="math_number"><field name="NUM">90</field></shadow>
-        </value>
       </block>
       ${penBlocks}
       <block type="custom_repeat">
