@@ -1,17 +1,15 @@
 /* ==========================================================================
    魔法のプログラミング占いの館 - メインスタイルシート
-   iPad Safari / Android Chrome / PC Chrome 横向き専用レスポンシブ設計
+   iPad Safari / Android Chrome / PC Chrome 横向き専用・ズーム完全抑止・ステップ別画面設計
    ========================================================================== */
 
 :root {
   --bg-deep: #150930;
-  --bg-panel: rgba(34, 18, 72, 0.88);
-  --bg-panel-solid: #24134d;
+  --bg-panel: rgba(34, 18, 72, 0.9);
   --border-magic: rgba(188, 160, 255, 0.28);
   --text-main: #f8f5ff;
   --text-sub: #cfc2f7;
   --gold: #ffe270;
-  --gold-dark: #f2a900;
   --cyan: #8ceeff;
 
   /* ブロックカテゴリ色 */
@@ -25,13 +23,14 @@
   --blk-color-border: #6d38e8;
 
   --radius-md: 14px;
-  --radius-sm: 10px;
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+  /* ブラウザ既定のダブルタップズームを全要素で無効化 */
+  touch-action: manipulation;
 }
 
 html, body {
@@ -59,11 +58,13 @@ ruby rt {
   font-weight: 500;
 }
 
-button, input, select {
+button, input, select, textarea {
   font-family: inherit;
 }
 
+/* iOS Safari のフォーカス時オートズームを防ぐため 16px 以上を強制 */
 input, textarea, select {
+  font-size: 16px !important;
   user-select: text;
   -webkit-user-select: text;
   touch-action: manipulation;
@@ -86,7 +87,7 @@ button, a {
   width: 7px;
 }
 .scrollable-y::-webkit-scrollbar-thumb {
-  background: rgba(207, 194, 247, 0.3);
+  background: rgba(207, 194, 247, 0.32);
   border-radius: 99px;
 }
 
@@ -103,6 +104,7 @@ button, a {
   padding: 24px;
   background: radial-gradient(circle at center, #2d1463 0%, #100524 100%);
   text-align: center;
+  touch-action: none;
 }
 
 .portrait-overlay[hidden] {
@@ -154,7 +156,7 @@ button, a {
 }
 
 /* ==========================================================================
-   アプリシェル＆ヘッダー
+   アプリシェル＆ステップごとの雰囲気切替
    ========================================================================== */
 .app-shell {
   display: flex;
@@ -162,7 +164,25 @@ button, a {
   width: 100%;
   height: 100%;
   height: 100dvh;
+  touch-action: none;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  transition: background 0.4s ease;
+}
+
+.app-shell[data-step="0"] {
+  background: radial-gradient(circle at 25% 25%, #37207a 0%, #1d0c42 50%, #12062a 100%);
+}
+.app-shell[data-step="1"] {
+  background: radial-gradient(circle at 25% 25%, #2b297a 0%, #171247 52%, #0e0828 100%);
+}
+.app-shell[data-step="2"] {
+  background: radial-gradient(circle at 25% 25%, #1c3a6e 0%, #151747 52%, #0c0826 100%);
+}
+.app-shell[data-step="3"] {
+  background: radial-gradient(circle at 25% 25%, #461c6e 0%, #210e47 52%, #110526 100%);
+}
+.app-shell[data-step="4"] {
+  background: radial-gradient(circle at 50% 30%, #521d82 0%, #240c4a 52%, #110524 100%);
 }
 
 .app-header {
@@ -175,6 +195,7 @@ button, a {
   background: rgba(18, 8, 42, 0.92);
   border-bottom: 1px solid var(--border-magic);
   min-height: 54px;
+  touch-action: none;
 }
 
 .brand-area {
@@ -192,7 +213,7 @@ button, a {
 
 .brand-titles h1 {
   margin: 0;
-  font-size: clamp(0.85rem, 1.35vw, 1.08rem);
+  font-size: clamp(0.85rem, 1.35vw, 1.06rem);
   line-height: 1.25;
   color: var(--gold);
   white-space: nowrap;
@@ -200,7 +221,7 @@ button, a {
 
 .brand-sub {
   display: block;
-  font-size: clamp(0.66rem, 0.9vw, 0.76rem);
+  font-size: clamp(0.66rem, 0.9vw, 0.75rem);
   color: var(--text-sub);
   white-space: nowrap;
 }
@@ -320,15 +341,48 @@ button, a {
 }
 
 /* ==========================================================================
-   3ペイン・メイングリッド
+   スモールステップ別メイングリッド切替
    ========================================================================== */
 .workspace-grid {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(245px, 29%) minmax(310px, 41%) minmax(250px, 30%);
+  grid-template-columns: minmax(250px, 29%) minmax(310px, 41%) minmax(250px, 30%);
   gap: 10px;
   padding: 10px;
+  touch-action: none;
+}
+
+.workspace-grid.is-scene-entering .pane {
+  animation: sceneFadeIn 0.28s ease-out;
+}
+
+@keyframes sceneFadeIn {
+  from { opacity: 0.35; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ステップ0：2カラム広々画面（名前の数字の部屋） */
+.app-shell[data-step="0"] .workspace-grid {
+  grid-template-columns: minmax(280px, 42%) 1fr;
+}
+.app-shell[data-step="0"] .pane-right {
+  display: none;
+}
+
+/* ステップ4「占いの館モード」：左に受付＆カスタム、右に大きな水晶玉ステージ */
+.app-shell[data-step="4"][data-step4-view="hall"] .workspace-grid {
+  grid-template-columns: minmax(320px, 43%) 1fr;
+}
+.app-shell[data-step="4"][data-step4-view="hall"] .pane-center {
+  display: none;
+}
+.app-shell[data-step="4"][data-step4-view="hall"] .crystal-ball {
+  width: clamp(120px, 15vw, 164px);
+  height: clamp(120px, 15vw, 164px);
+}
+.app-shell[data-step="4"][data-step4-view="hall"] .vars-card {
+  flex: 0 0 auto;
 }
 
 .pane {
@@ -341,6 +395,7 @@ button, a {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+  touch-action: none;
 }
 
 /* 左ペイン：ガイド＆パレット */
@@ -393,7 +448,7 @@ button, a {
 .palette-panel {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 10px;
+  padding: 12px;
 }
 
 .palette-header-row {
@@ -406,7 +461,7 @@ button, a {
 
 .panel-heading {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.94rem;
   color: var(--cyan);
 }
 
@@ -415,40 +470,67 @@ button, a {
   color: var(--text-sub);
 }
 
+/* ステップ4：占いの館受付フォーム */
+.hall-form-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0 14px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 226, 112, 0.4);
+}
+
+.hall-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.hall-sub-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* 五十音ルール表（ステップ0） */
 .rule-note, .rule-tip {
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: var(--text-sub);
   margin: 6px 0;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .vowel-table {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   margin: 8px 0;
 }
 
 .vowel-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: 8px;
+  padding: 7px 10px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.06);
-  font-size: 0.78rem;
-  line-height: 1.3;
+  font-size: 0.84rem;
+  line-height: 1.35;
 }
 
 .vowel-row strong {
-  flex: 0 0 44px;
+  flex: 0 0 50px;
   color: var(--gold);
 }
 
 .v-badge {
-  flex: 0 0 26px;
-  height: 26px;
+  flex: 0 0 28px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -475,10 +557,10 @@ button, a {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 46px;
-  padding: 8px 10px;
+  min-height: 48px;
+  padding: 8px 11px;
   border-radius: 12px;
-  font-size: 0.82rem;
+  font-size: 0.83rem;
   font-weight: 700;
   color: #fff;
   border: 2px solid transparent;
@@ -494,9 +576,9 @@ button, a {
 
 .palette-add-badge {
   flex: 0 0 auto;
-  padding: 2px 7px;
+  padding: 3px 8px;
   border-radius: 99px;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.26);
   font-size: 0.72rem;
 }
 
@@ -511,25 +593,27 @@ button, a {
    ========================================================================== */
 .step0-center {
   flex: 1 1 auto;
-  padding: 14px;
+  padding: 16px;
 }
 
 .step0-card {
+  max-width: 680px;
+  margin: 0 auto;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-magic);
+  border: 1.5px solid var(--border-magic);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: 18px;
 }
 
 .step0-card h3 {
   margin: 0 0 6px;
   color: var(--gold);
-  font-size: 1.08rem;
+  font-size: 1.2rem;
 }
 
 .step0-lead {
-  margin: 0 0 10px;
-  font-size: 0.85rem;
+  margin: 0 0 12px;
+  font-size: 0.9rem;
   color: var(--text-sub);
 }
 
@@ -541,13 +625,12 @@ button, a {
 
 .magic-input {
   flex: 1 1 auto;
-  min-height: 46px;
-  padding: 8px 12px;
+  min-height: 48px;
+  padding: 8px 14px;
   border-radius: 12px;
   border: 2px solid #9e82ff;
   background: #170a33;
   color: #fff;
-  font-size: 1.05rem;
   font-weight: 700;
   outline: none;
 }
@@ -560,10 +643,10 @@ button, a {
 .char-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  min-height: 78px;
-  margin: 12px 0;
-  padding: 10px;
+  gap: 10px;
+  min-height: 88px;
+  margin: 14px 0;
+  padding: 12px;
   border-radius: 12px;
   background: rgba(15, 6, 36, 0.55);
   align-items: center;
@@ -573,9 +656,9 @@ button, a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 52px;
-  padding: 6px 8px;
-  border-radius: 10px;
+  min-width: 58px;
+  padding: 8px 10px;
+  border-radius: 12px;
   background: linear-gradient(160deg, #4f2ba3, #31176b);
   border: 1.5px solid #bfa8ff;
   animation: popIn 0.2s ease-out;
@@ -587,55 +670,55 @@ button, a {
 }
 
 .char-card .c-kana {
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 800;
 }
 .char-card .c-vowel {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   color: var(--text-sub);
 }
 .char-card .c-num {
-  margin-top: 2px;
-  padding: 1px 8px;
+  margin-top: 3px;
+  padding: 2px 10px;
   border-radius: 99px;
   background: var(--gold);
   color: #241046;
   font-weight: 800;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
 }
 
 .step0-total-box {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px;
   border-radius: 12px;
   background: rgba(255, 226, 112, 0.14);
   border: 1.5px solid var(--gold);
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .total-label {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .total-value {
-  font-size: 1.6rem;
+  font-size: 1.85rem;
   font-weight: 900;
   color: var(--gold);
 }
 
 .step0-quiz-box h4 {
   margin: 0 0 4px;
-  font-size: 0.92rem;
+  font-size: 0.96rem;
   color: var(--cyan);
 }
 
 .step0-quiz-box p {
-  margin: 0 0 10px;
-  font-size: 0.8rem;
+  margin: 0 0 12px;
+  font-size: 0.85rem;
   color: var(--text-sub);
 }
 
@@ -677,6 +760,13 @@ button, a {
 .editor-tools {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hall-return-btn {
+  background: linear-gradient(135deg, #2be39c, #0fb376);
+  color: #06281b;
+  border-color: #9ff7d4;
 }
 
 .program-workspace {
@@ -748,9 +838,9 @@ button, a {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  min-height: 44px;
+  min-height: 46px;
   padding: 6px 8px;
-  font-size: 0.82rem;
+  font-size: 0.83rem;
   font-weight: 700;
   touch-action: none;
 }
@@ -767,23 +857,22 @@ button, a {
 .blk-drag-handle {
   cursor: grab;
   padding: 4px 5px;
-  opacity: 0.8;
+  opacity: 0.85;
   font-size: 0.95rem;
 }
 
 .blk-input, .blk-select {
-  height: 32px;
+  height: 34px;
   padding: 2px 6px;
   border-radius: 8px;
   border: 1.5px solid rgba(0, 0, 0, 0.25);
   background: #ffffff;
   color: #1e1038;
   font-weight: 800;
-  font-size: 0.82rem;
 }
 
 .blk-input {
-  width: 58px;
+  width: 64px;
   text-align: center;
 }
 
@@ -795,14 +884,14 @@ button, a {
 }
 
 .blk-ctrl-btn {
-  min-width: 32px;
-  height: 32px;
+  min-width: 34px;
+  height: 34px;
   padding: 0 6px;
   border: none;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.22);
   color: inherit;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 800;
 }
 
@@ -849,21 +938,6 @@ button, a {
   font-size: 0.72rem;
   font-weight: 800;
   opacity: 0.85;
-}
-
-.step4-custom-bar {
-  flex: 0 0 auto;
-  display: flex;
-  gap: 8px;
-  padding: 8px 10px;
-  background: rgba(45, 22, 95, 0.9);
-  border-top: 1px solid var(--border-magic);
-}
-
-.step4-custom-bar .secondary-magic-btn {
-  flex: 1 1 50%;
-  font-size: 0.76rem;
-  padding: 6px 8px;
 }
 
 /* ==========================================================================
@@ -933,6 +1007,7 @@ button, a {
   background: radial-gradient(circle at 50% 35%, #371b7a 0%, #170a36 100%);
   border: 1.5px solid var(--border-magic);
   overflow: hidden;
+  touch-action: none;
 }
 
 .confetti-canvas {
@@ -1037,21 +1112,39 @@ button, a {
 }
 
 .result-message {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   line-height: 1.38;
   color: #fff;
 }
 
 .result-item {
   margin-top: 3px;
-  font-size: 0.74rem;
+  font-size: 0.76rem;
   color: var(--gold);
   font-weight: 700;
 }
 
+/* ステップ3 カラーチャート */
+.color-legend-strip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+
+.legend-chip {
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: var(--c);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
 /* 変数モニター */
 .vars-card {
-  flex: 1 1 54%;
+  flex: 1 1 50%;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -1059,6 +1152,7 @@ button, a {
   border-radius: var(--radius-md);
   background: rgba(20, 9, 46, 0.88);
   border: 1.5px solid var(--border-magic);
+  touch-action: none;
 }
 
 .vars-header {
@@ -1101,6 +1195,10 @@ button, a {
   transition: background 0.25s, border-color 0.25s;
 }
 
+.var-item[hidden] {
+  display: none !important;
+}
+
 .var-item.is-flash {
   background: rgba(255, 226, 112, 0.28);
   border-color: var(--gold);
@@ -1111,7 +1209,7 @@ button, a {
 }
 
 .var-name {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: var(--text-sub);
   font-weight: 700;
 }
@@ -1122,8 +1220,8 @@ button, a {
   background: #ff8c1a;
   color: #fff;
   font-weight: 900;
-  font-size: 0.8rem;
-  min-width: 30px;
+  font-size: 0.82rem;
+  min-width: 32px;
   text-align: center;
 }
 
@@ -1132,7 +1230,7 @@ button, a {
   padding: 6px 8px;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.28);
-  font-size: 0.74rem;
+  font-size: 0.76rem;
   line-height: 1.38;
   color: #d9f3ff;
 }
@@ -1141,13 +1239,13 @@ button, a {
    共通ボタン・モーダル
    ========================================================================== */
 .mini-btn {
-  min-height: 36px;
+  min-height: 38px;
   padding: 4px 10px;
   border-radius: 99px;
   border: 1px solid var(--border-magic);
   background: rgba(74, 43, 146, 0.85);
   color: #fff;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 700;
 }
 
@@ -1163,30 +1261,25 @@ button, a {
 }
 
 .primary-magic-btn {
-  min-height: 46px;
+  min-height: 48px;
   padding: 8px 18px;
   border: none;
   border-radius: 999px;
   background: linear-gradient(135deg, #ffe270, #ff9900);
   color: #241046;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   font-weight: 900;
   box-shadow: 0 4px 0 #b86c00;
 }
 
 .secondary-magic-btn {
-  min-height: 44px;
+  min-height: 46px;
   padding: 8px 14px;
   border-radius: 12px;
   border: 1.5px solid #9e82ff;
   background: rgba(68, 36, 140, 0.9);
   color: #fff;
   font-weight: 800;
-}
-
-.guest-btn {
-  border-color: #66e6c4;
-  background: rgba(19, 94, 82, 0.85);
 }
 
 .modal-backdrop {
@@ -1199,6 +1292,7 @@ button, a {
   padding: 16px;
   background: rgba(10, 4, 24, 0.76);
   backdrop-filter: blur(4px);
+  touch-action: none;
 }
 
 .modal-backdrop[hidden] {
@@ -1219,7 +1313,7 @@ button, a {
 }
 
 .modal-wide {
-  width: min(680px, 94vw);
+  width: min(700px, 94vw);
   text-align: left;
 }
 
@@ -1241,7 +1335,7 @@ button, a {
 }
 
 .modal-body {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   line-height: 1.6;
   color: var(--text-main);
   margin-bottom: 14px;
@@ -1282,23 +1376,6 @@ button, a {
   border: 1.5px solid rgba(207, 194, 247, 0.35);
   background: #160932;
   color: #fff;
-  font-size: 0.82rem;
-}
-
-.guest-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  text-align: left;
-  margin-bottom: 14px;
-}
-
-.guest-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.84rem;
-  font-weight: 700;
 }
 
 .teacher-actions-grid {
@@ -1308,7 +1385,7 @@ button, a {
   margin-bottom: 12px;
 }
 
-/* ドラッグゴースト */
+/* ドラッグ中ゴースト */
 .drag-ghost {
   position: fixed;
   z-index: 9000;
@@ -1325,7 +1402,7 @@ button, a {
 }
 
 /* ==========================================================================
-   小さめの横画面（スマホAndroid横画面など高さ<=500px）向けの調整
+   小さめの横画面（スマホAndroid横画面など高さ<=540px）向けの調整
    ========================================================================== */
 @media (max-height: 540px) {
   .app-header {

@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -16,11 +16,11 @@
 
   <title>魔法のプログラミング占いの館 〜今日のラッキーカラーをきめよう！〜</title>
 
-  <link rel="manifest" href="./manifest.webmanifest?v=20261124-01">
-  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg?v=20261124-01">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=20261124-01">
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=20261124-01">
-  <link rel="stylesheet" href="./styles/app.css?v=20261124-01">
+  <link rel="manifest" href="./manifest.webmanifest?v=20261124-02">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg?v=20261124-02">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=20261124-02">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=20261124-02">
+  <link rel="stylesheet" href="./styles/app.css?v=20261124-02">
 </head>
 <body>
   <!-- 縦向き時の案内オーバーレイ（Landscape Lock） -->
@@ -47,7 +47,7 @@
   </div>
 
   <!-- アプリ全体コンテナ -->
-  <div id="app-shell" class="app-shell">
+  <div id="app-shell" class="app-shell" data-step="0" data-step4-view="hall">
     <!-- ヘッダーバー -->
     <header class="app-header">
       <div class="brand-area" id="brand-secret-trigger" title="5回タップで先生用メニュー">
@@ -102,9 +102,9 @@
       </div>
     </header>
 
-    <!-- メインコンテンツ（3ペイン） -->
+    <!-- メインコンテンツ（ステップごとにレイアウトが切り替わる） -->
     <main class="workspace-grid" id="main-workspace">
-      <!-- 左ペイン：ガイド＆ブロックパレット -->
+      <!-- 左ペイン：ガイド＆ブロックパレット（またはステップ0のルール表） -->
       <section class="pane pane-left" aria-label="ミッションとブロック">
         <!-- フクロウ先生ガイド -->
         <div class="guide-box">
@@ -118,7 +118,7 @@
           </div>
         </div>
 
-        <!-- ステップ0専用：左ペインは「五十音と数字のルール表」 -->
+        <!-- ステップ0専用：五十音と数字のルール表 -->
         <div id="step0-left-panel" class="palette-panel scrollable-y">
           <h3 class="panel-heading">🔢 ひらがな → 数字のルール</h3>
           <p class="rule-note">ひらがなの「<ruby>母音<rt>ぼいん</rt></ruby>（あ・い・う・え・お）」で数字がきまるよ！</p>
@@ -141,10 +141,37 @@
           </div>
           <div id="block-palette" class="block-palette"></div>
         </div>
+
+        <!-- ステップ4（占いの館モード）：おきゃくさん受付＆カード -->
+        <div id="step4-hall-panel" class="palette-panel scrollable-y" hidden>
+          <h3 class="panel-heading">🌙 占いの館へ ようこそ！</h3>
+          <p class="rule-note">じぶんや友だちの名前を入れて、今日のラッキーカラーを占ってあげよう！</p>
+          <div class="hall-form-box">
+            <label class="hall-label">
+              <span>うらなう人の なまえ（ひらがな）</span>
+              <input id="hall-name-input" class="magic-input" type="text" maxlength="14" placeholder="例：はなこ" autocomplete="off">
+            </label>
+            <label class="hall-label">
+              <span>うらなう日付（1〜31）</span>
+              <input id="hall-date-input" class="magic-input" type="number" min="1" max="31" value="24">
+            </label>
+            <button id="btn-hall-fortune" class="primary-magic-btn" type="button">
+              🔮 この人を うらなう！
+            </button>
+          </div>
+          <div class="hall-sub-actions">
+            <button id="btn-open-custom-messages" class="secondary-magic-btn" type="button">
+              ✏️ 7色のラッキーメッセージを自分で書く！
+            </button>
+            <button id="btn-switch-to-recipe" class="mini-btn" type="button">
+              🧩 プログラム（ブロック）をみる・なおす
+            </button>
+          </div>
+        </div>
       </section>
 
       <!-- 中央ペイン：ステップ0変換マシン OR プログラム組み立てエリア -->
-      <section class="pane pane-center" aria-label="プログラムを組み立てる場所">
+      <section class="pane pane-center" aria-label="作業エリア">
         <!-- ステップ0 中央画面 -->
         <div id="step0-center-panel" class="step0-center scrollable-y">
           <div class="step0-card">
@@ -180,6 +207,7 @@
               <span id="block-count-badge" class="count-badge">0こ</span>
             </div>
             <div class="editor-tools">
+              <button id="btn-switch-to-hall" class="mini-btn hall-return-btn" type="button" hidden>🌙 占いの館へもどる</button>
               <button id="btn-load-example" class="mini-btn" type="button" title="組み立てのヒントを並べる">✨ おてほん</button>
               <button id="btn-clear-program" class="mini-btn danger-mini" type="button" title="レシピをからにする">🗑️ ぜんぶ消す</button>
             </div>
@@ -192,23 +220,13 @@
               左の「つかえるブロック」をタップするか、<br>ここにドラッグして つなげてね！
             </div>
           </div>
-
-          <!-- ステップ4限定：オリジナルメッセージ設定タブボタン -->
-          <div id="step4-custom-bar" class="step4-custom-bar" hidden>
-            <button id="btn-open-custom-messages" class="secondary-magic-btn" type="button">
-              ✏️ 7色のラッキーメッセージをじぶんで書く！
-            </button>
-            <button id="btn-open-guest-mode" class="secondary-magic-btn guest-btn" type="button">
-              🧑‍🤝‍🧑 友だちをうらなう（おきゃくさんモード）
-            </button>
-          </div>
         </div>
       </section>
 
-      <!-- 右ペイン：占いの館ステージ＆水晶玉（変数モニター） -->
+      <!-- 右ペイン：占いの館ステージ＆水晶玉（ステップごとに表示項目が進化） -->
       <section class="pane pane-right" aria-label="占いの結果と水晶玉モニター">
         <!-- 実行コントロール -->
-        <div class="run-controls">
+        <div class="run-controls" id="run-controls-bar">
           <button id="btn-run" class="run-btn" type="button">
             🔮 うらないを<ruby>実行<rt>じっこう</rt></ruby>！
           </button>
@@ -242,32 +260,43 @@
           </div>
         </div>
 
-        <!-- 水晶玉のなかみ（変数モニター） -->
-        <div class="vars-card">
+        <!-- ステップ3用：7色カラーチャートヒント -->
+        <div id="color-legend-strip" class="color-legend-strip" hidden>
+          <span class="legend-chip" style="--c:#ff4757;">0:赤</span>
+          <span class="legend-chip" style="--c:#ff8c1a;">1:ｵﾚﾝｼﾞ</span>
+          <span class="legend-chip" style="--c:#ffd32a; color:#241300;">2:黄</span>
+          <span class="legend-chip" style="--c:#2ed573; color:#042411;">3:緑</span>
+          <span class="legend-chip" style="--c:#1e90ff;">4:青</span>
+          <span class="legend-chip" style="--c:#3b4cca;">5:あい</span>
+          <span class="legend-chip" style="--c:#9c4dff;">6:むらさき</span>
+        </div>
+
+        <!-- 水晶玉のなかみ（変数モニター：ステップに応じて必要な変数だけ表示） -->
+        <div class="vars-card" id="vars-card">
           <div class="vars-header">
             <h3>🔍 <ruby>水晶玉<rt>すいしょうだま</rt></ruby>のなかみ（<ruby>変数<rt>へんすう</rt></ruby>モニター）</h3>
             <span id="exec-step-label" class="exec-step-label">待機中</span>
           </div>
           <div class="vars-grid" id="vars-monitor">
-            <div class="var-item" data-var="名前">
+            <div class="var-item" data-var="名前" data-min-step="1">
               <span class="var-name">名前</span>
               <span class="var-val" id="var-val-name">0</span>
             </div>
-            <div class="var-item" data-var="日付">
+            <div class="var-item" data-var="日付" data-min-step="1">
               <span class="var-name">日付</span>
               <span class="var-val" id="var-val-date">0</span>
             </div>
-            <div class="var-item" data-var="名前と日付の和">
+            <div class="var-item var-item-wide" data-var="名前と日付の和" data-min-step="1">
               <span class="var-name">名前と日付の和</span>
               <span class="var-val" id="var-val-sum">0</span>
             </div>
-            <div class="var-item" data-var="7でわったあまり">
+            <div class="var-item" data-var="7でわったあまり" data-min-step="3">
               <span class="var-name">7でわったあまり</span>
               <span class="var-val" id="var-val-mod">?</span>
             </div>
-            <div class="var-item var-item-wide" data-var="今日のラッキーカラー">
-              <span class="var-name">今日のラッキーカラー</span>
-              <span class="var-val" id="var-val-color">まだきまっていない</span>
+            <div class="var-item" data-var="今日のラッキーカラー" data-min-step="3">
+              <span class="var-name">ラッキーカラー</span>
+              <span class="var-val" id="var-val-color">未決定</span>
             </div>
           </div>
           <div id="exec-log" class="exec-log" aria-live="polite">
@@ -278,7 +307,6 @@
     </main>
   </div>
 
-  <!-- モーダル群 -->
   <!-- 汎用情報 / クリア / NGワード / ヒント モーダル -->
   <div id="modal-backdrop" class="modal-backdrop" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -305,29 +333,6 @@
     </div>
   </div>
 
-  <!-- ステップ4：おきゃくさん占いモーダル -->
-  <div id="guest-modal-backdrop" class="modal-backdrop" hidden>
-    <div class="modal-card" role="dialog" aria-modal="true">
-      <div class="modal-icon">🔮</div>
-      <h2>🧑‍🤝‍🧑 友だちを うらなおう！</h2>
-      <p class="modal-sub">友だちの「なまえ（ひらがな）」と「うらなう日付」を入れてね。</p>
-      <div class="guest-form">
-        <label>
-          <span>友だちの なまえ（ひらがな）</span>
-          <input id="guest-name-input" class="magic-input" type="text" maxlength="14" placeholder="例：はなこ" autocomplete="off">
-        </label>
-        <label>
-          <span>日付（1〜31 または きょうの日付）</span>
-          <input id="guest-date-input" class="magic-input" type="number" min="1" max="31" value="24">
-        </label>
-      </div>
-      <div class="modal-actions">
-        <button id="btn-run-guest" class="primary-magic-btn" type="button">✨ この友だちを うらなう！</button>
-        <button id="btn-close-guest" class="mini-btn" type="button">やめる</button>
-      </div>
-    </div>
-  </div>
-
   <!-- 先生用メニューモーダル -->
   <div id="teacher-modal-backdrop" class="modal-backdrop" hidden>
     <div class="modal-card" role="dialog" aria-modal="true">
@@ -349,11 +354,11 @@
   <!-- ドラッグ中ゴースト要素 -->
   <div id="drag-ghost" class="drag-ghost" hidden></div>
 
-  <!-- スクリプト（file:// でも動作するよう標準scriptで順番読み込み） -->
-  <script defer src="./js/ng-filter.js?v=20261124-01"></script>
-  <script defer src="./js/sound.js?v=20261124-01"></script>
-  <script defer src="./js/curriculum.js?v=20261124-01"></script>
-  <script defer src="./js/blocks.js?v=20261124-01"></script>
-  <script defer src="./js/app.js?v=20261124-01"></script>
+  <!-- スクリプト -->
+  <script defer src="./js/ng-filter.js?v=20261124-02"></script>
+  <script defer src="./js/sound.js?v=20261124-02"></script>
+  <script defer src="./js/curriculum.js?v=20261124-02"></script>
+  <script defer src="./js/blocks.js?v=20261124-02"></script>
+  <script defer src="./js/app.js?v=20261124-02"></script>
 </body>
 </html>

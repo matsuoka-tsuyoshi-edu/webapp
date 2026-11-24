@@ -5,7 +5,7 @@
   'use strict';
 
   const STORAGE_KEY = 'uranai_app_state_v1';
-  const BUILD_VER = '20261124-01';
+  const BUILD_VER = '20261124-02';
 
   const NgFilter = global.UranaiNgFilter;
   const Sound = global.UranaiSound;
@@ -24,14 +24,14 @@
     customMessages: {}
   };
 
+  let step4View = 'hall'; // 'hall' (占いの館モード) | 'recipe' (ブロック確認・改造モード)
   let deferredInstallPrompt = null;
-  let stepRunner = null; // 1つずつ実行用のカーソル状態
+  let stepRunner = null;
   let animTimer = null;
   let isAnimatingRun = false;
   let secretTapCount = 0;
   let secretTapTimer = null;
 
-  // DOM 参照
   const $ = (id) => document.getElementById(id);
 
   function loadState() {
@@ -82,7 +82,7 @@
   }
 
   // =========================================================================
-  // Service Worker / PWA / 全画面 / 画面ロック / 誤操作防止
+  // Service Worker / PWA / 全画面 / 画面ロック / ピンチ・ダブルタップ完全抑止
   // =========================================================================
   function initServiceWorkerAndPwa() {
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
@@ -175,7 +175,6 @@
         } catch (e) {}
       }
 
-      // iPad / iOS Safari で標準 Fullscreen API が使えない場合の案内
       if (isIosSafari() && !isStandaloneMode()) {
         showModal(
           '📱',
@@ -191,7 +190,6 @@
   }
 
   function initTouchAndOrientationGuards() {
-    // 縦横チェック
     function checkOrientation() {
       const overlay = $('portrait-lock-overlay');
       if (!overlay) return;
@@ -203,12 +201,23 @@
     window.addEventListener('orientationchange', checkOrientation);
     checkOrientation();
 
-    // iOS Safari ピンチズーム抑制
+    // iOS Safari ジェスチャー（ピンチ）完全抑止
     ['gesturestart', 'gesturechange', 'gestureend'].forEach((evt) => {
-      document.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
+      document.addEventListener(evt, (e) => e.preventDefault(), { capture: true, passive: false });
     });
 
-    // マルチタッチピンチ & スクロール領域外での画面引っ張り防止
+    // 2本指以上のタッチ（ピンチイン・アウト）を入口で即ブロック
+    document.addEventListener(
+      'touchstart',
+      (e) => {
+        if (e.touches && e.touches.length > 1) {
+          e.preventDefault();
+        }
+      },
+      { capture: true, passive: false }
+    );
+
+    // マルチタッチ＆スクロール可能エリア外での引っ張りスクロール抑止
     document.addEventListener(
       'touchmove',
       (e) => {
@@ -221,24 +230,37 @@
           e.preventDefault();
         }
       },
-      { passive: false }
+      { capture: true, passive: false }
     );
 
-    // ダブルタップによる意図しない拡大抑制
+    // ブラウザの dblclick イベントを禁止
+    document.addEventListener('dblclick', (e) => e.preventDefault(), { capture: true, passive: false });
+
+    // PC トラックパッド / Ctrl+ホイールによるピンチ拡大を抑止
+    document.addEventListener(
+      'wheel',
+      (e) => {
+        if (e.ctrlKey) {
+          e.preventDefault();
+        }
+      },
+      { capture: true, passive: false }
+    );
+
+    // 非ボタン領域での連続タップ（ダブルタップ拡大）を抑止
+    // （ボタン・リンク・入力欄は CSS の touch-action: manipulation に任せて連打を妨げない）
     let lastTouchEnd = 0;
     document.addEventListener(
       'touchend',
       (e) => {
         const now = Date.now();
-        if (now - lastTouchEnd <= 280) {
-          const tag = (e.target && e.target.tagName) || '';
-          if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
-            e.preventDefault();
-          }
+        const isInteractive = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, .palette-item, .brand-area');
+        if (!isInteractive && now - lastTouchEnd <= 450) {
+          e.preventDefault();
         }
         lastTouchEnd = now;
       },
-      { passive: false }
+      { capture: true, passive: false }
     );
   }
 
@@ -291,8 +313,16 @@
   }
 
   // =========================================================================
-  // ステップナビゲーション & UI切替
+  // スモールステップ別 画面切替＆UI更新
   // =========================================================================
+  function triggerSceneTransition() {
+    const ws = $('main-workspace');
+    if (!ws) return;
+    ws.classList.remove('is-scene-entering');
+    void ws.offsetWidth;
+    ws.classList.add('is-scene-entering');
+  }
+
   function renderStepTabs() {
     const tabs = document.querySelectorAll('.step-tab');
     tabs.forEach((tab) => {
@@ -314,8 +344,12 @@
     if (!state.teacherMode && stepId > state.unlockedMaxStep) return;
 
     state.currentStep = stepId;
+    if (stepId === 4) {
+      step4View = 'hall';
+    }
     saveState();
     renderStepTabs();
+    triggerSceneTransition();
     renderCurrentStepView();
     resetCrystalAndVars();
   }
@@ -323,19 +357,39 @@
   function renderCurrentStepView() {
     const sId = state.currentStep;
     const meta = getStepMeta(sId);
+    const shell = $('app-shell');
+
+    shell.setAttribute('data-step', String(sId));
+    shell.setAttribute('data-step4-view', step4View);
 
     $('mission-title').textContent = meta.title;
     $('mission-desc').textContent = meta.desc;
 
     const isStep0 = sId === 0;
+    const isStep4Hall = sId === 4 && step4View === 'hall';
+
     $('step0-left-panel').hidden = !isStep0;
     $('step0-center-panel').hidden = !isStep0;
-    $('block-palette-panel').hidden = isStep0;
-    $('program-editor-panel').hidden = isStep0;
-    $('step4-custom-bar').hidden = sId !== 4;
+    $('step4-hall-panel').hidden = !isStep4Hall;
+    $('block-palette-panel').hidden = isStep0 || isStep4Hall;
+    $('program-editor-panel').hidden = isStep0 || isStep4Hall;
+    $('btn-switch-to-hall').hidden = !(sId === 4 && step4View === 'recipe');
+    $('color-legend-strip').hidden = sId < 3;
+    $('run-controls-bar').hidden = isStep4Hall;
+
+    // 変数モニターの項目をステップに合わせて段階表示
+    document.querySelectorAll('#vars-monitor .var-item[data-min-step]').forEach((item) => {
+      const minStep = Number(item.dataset.minStep) || 1;
+      item.hidden = sId < minStep;
+    });
 
     if (isStep0) {
       updateStep0Conversion($('step0-name-input').value || state.nameText || 'たろう');
+    } else if (isStep4Hall) {
+      if (!$('hall-name-input').value) {
+        $('hall-name-input').value = state.nameText || 'たろう';
+      }
+      $('hall-date-input').value = String(getTodayDate());
     } else {
       renderPalette(meta.allowedBlocks);
       renderProgramList();
@@ -368,7 +422,7 @@
     if (res.items.length === 0) {
       const hint = document.createElement('span');
       hint.style.color = '#cfc2f7';
-      hint.style.fontSize = '0.84rem';
+      hint.style.fontSize = '0.88rem';
       hint.textContent = 'ひらがなを入力すると、1文字ずつ数字にかわるよ！';
       cardsEl.appendChild(hint);
     } else {
@@ -385,8 +439,6 @@
 
     $('step0-total-value').textContent = String(res.total);
     $('step0-btn-val').textContent = String(res.total);
-    $('var-val-name').textContent = String(res.total);
-    $('var-val-date').textContent = String(getTodayDate());
   }
 
   function initStep0() {
@@ -419,7 +471,6 @@
       state.nameNum = res.total;
       state.clearedSteps['0'] = true;
       if (state.unlockedMaxStep < 1) state.unlockedMaxStep = 1;
-      // ステップ1の初期ブロックがあれば名前数字を更新
       if (!state.programsByStep['1'] || state.programsByStep['1'].length === 0) {
         state.programsByStep['1'] = [];
       }
@@ -429,7 +480,7 @@
       showModal(
         '🎉',
         'ステップ0 クリア！',
-        '<p>「<strong>' + escapeHtml(res.normalized) + '</strong>」の数字は <strong>' + res.total + '</strong> だね！<br>ステップ1が解放されたよ！</p>',
+        '<p>「<strong>' + escapeHtml(res.normalized) + '</strong>」の数字は <strong>' + res.total + '</strong> だね！<br>つぎは「たし算の部屋（ステップ1）」へすすもう！</p>',
         [
           {
             text: 'ステップ1へすすむ！',
@@ -587,8 +638,7 @@
         startX: e.clientX,
         startY: e.clientY,
         active: false,
-        pointerId: e.pointerId,
-        currentContainer: null
+        pointerId: e.pointerId
       };
 
       try {
@@ -623,7 +673,6 @@
       dragState = null;
 
       if (!wasActive) {
-        // タップ操作（パレットからの場合は末尾へ追加）
         if (payloadCopy.mode === 'create') {
           addBlockToContainer(payloadCopy.blockType, 'root');
         }
@@ -643,7 +692,6 @@
       const container = els[i].closest ? els[i].closest('[data-container-id]') : null;
       if (container) return container;
     }
-    // プログラムワークスペース内の空き領域にドロップされた場合はrootへ
     for (let j = 0; j < els.length; j++) {
       if (els[j].id === 'program-workspace' || els[j].id === 'empty-drop-hint') {
         return $('program-list');
@@ -690,7 +738,6 @@
     if (!containerEl) return;
     const containerKey = containerEl.dataset.containerId || 'root';
 
-    // ドロップ位置の挿入インデックスを計算
     let insertIdx = containerEl.children.length;
     const directChildren = Array.from(containerEl.children).filter((c) => c.dataset && c.dataset.blockId);
     for (let i = 0; i < directChildren.length; i++) {
@@ -711,7 +758,6 @@
       const info = Blocks.findContainerInfo(program, payload.blockId);
       if (!info) return;
 
-      // 自分自身の中へドロップする循環移動を防止
       const targetBlockId = containerKey === 'root' ? null : containerKey.split(':')[0];
       if (targetBlockId && Blocks.isDescendant(info.block, targetBlockId)) {
         return;
@@ -750,10 +796,7 @@
     stopRunningAnimation();
     stepRunner = null;
     const defaults = Blocks.createDefaultVars();
-    if (state.currentStep === 0) {
-      defaults['名前'] = state.nameNum || 0;
-      defaults['日付'] = getTodayDate();
-    }
+    defaults['今日のラッキーカラー'] = '未決定';
     updateVarsDisplay(defaults, null);
 
     const ball = $('crystal-ball');
@@ -762,7 +805,10 @@
     $('crystal-inner-text').innerHTML = '<span class="crystal-emoji">✨</span><span class="crystal-status">じゅんびOK</span>';
     $('fortune-result-box').hidden = true;
     $('exec-step-label').textContent = '待機中';
-    $('exec-log').textContent = 'プログラムをつくって「うらないを実行！」をおしてね。';
+    $('exec-log').textContent =
+      state.currentStep === 4 && step4View === 'hall'
+        ? 'なまえと日付を入れて「この人を うらなう！」をおしてね。'
+        : 'プログラムをつくって「うらないを実行！」をおしてね。';
   }
 
   function updateVarsDisplay(vars, changedVar) {
@@ -834,10 +880,7 @@
   }
 
   function runProgramAnimated(overrideInput, guestLabel) {
-    if (state.currentStep === 0 && !overrideInput) {
-      showModal('🦉', 'まずは名前を変換しよう！', '<p>ステップ0では、自分の名前を数字に変えて「ステップ1へ！」ボタンをおしてね。</p>');
-      return;
-    }
+    if (state.currentStep === 0 && !overrideInput) return;
 
     const program = getCurrentProgram();
     if (program.length === 0) {
@@ -857,7 +900,7 @@
     $('fortune-result-box').hidden = true;
 
     let idx = 0;
-    const delayMs = trace.length > 25 ? 110 : 260;
+    const delayMs = overrideInput ? 90 : (trace.length > 25 ? 110 : 240);
 
     function tick() {
       if (!isAnimatingRun) return;
@@ -949,10 +992,10 @@
         const btns =
           sId < 4
             ? [
-                { text: 'ステップ' + (sId + 1) + 'へすすむ！', onClick: () => switchStep(sId + 1) },
+                { text: 'ステップ' + (sId + 1) + 'の部屋へすすむ！', onClick: () => switchStep(sId + 1) },
                 { text: 'もう少しここで試す', className: 'mini-btn' }
               ]
-            : [{ text: 'やったー！' }];
+            : [{ text: '占いの館へいく！', onClick: () => { step4View = 'hall'; renderCurrentStepView(); } }];
 
         showModal('🎉', 'ステップ' + sId + ' クリア！', '<p>' + escapeHtml(res.message) + '</p>', btns);
       }
@@ -961,7 +1004,6 @@
     }
   }
 
-  // 紙吹雪エフェクト
   function launchConfetti(mainHex) {
     const canvas = $('confetti-canvas');
     if (!canvas) return;
@@ -1007,9 +1049,44 @@
   }
 
   // =========================================================================
-  // ステップ4：オリジナルメッセージ & おきゃくさん占い & 先生用メニュー
+  // ステップ4：占いの館モード & 7色メッセージ設定 & 先生用メニュー
   // =========================================================================
-  function initStep4Modals() {
+  function initStep4Views() {
+    $('btn-switch-to-recipe').addEventListener('click', () => {
+      Sound.playSnap();
+      step4View = 'recipe';
+      triggerSceneTransition();
+      renderCurrentStepView();
+      resetCrystalAndVars();
+    });
+
+    $('btn-switch-to-hall').addEventListener('click', () => {
+      Sound.playSnap();
+      step4View = 'hall';
+      triggerSceneTransition();
+      renderCurrentStepView();
+      resetCrystalAndVars();
+    });
+
+    $('btn-hall-fortune').addEventListener('click', () => {
+      const gName = $('hall-name-input').value.trim();
+      const gDate = Number($('hall-date-input').value) || getTodayDate();
+      const check = NgFilter.validateText(gName);
+      if (!check.ok) {
+        showNgWarningModal();
+        return;
+      }
+      const res = Curriculum.convertNameToNumbers(gName);
+      if (res.items.length === 0) {
+        showModal('🦉', 'なまえを入れてね', '<p>うらなう人の名前を<strong>ひらがな</strong>で入れてね！</p>');
+        return;
+      }
+      state.clearedSteps['4'] = true;
+      saveState();
+      renderStepTabs();
+      runProgramAnimated({ nameNum: res.total, dateNum: gDate }, gName + 'さん');
+    });
+
     $('btn-open-custom-messages').addEventListener('click', () => {
       Sound.playSnap();
       const list = $('custom-msg-list');
@@ -1059,36 +1136,7 @@
       saveState();
       $('custom-msg-backdrop').hidden = true;
       Sound.playClear();
-      showModal('💾', 'ほぞんしたよ！', '<p>オリジナルメッセージが保存されたよ！占いを実行してためしてみよう！</p>');
-    });
-
-    // おきゃくさんモード
-    $('btn-open-guest-mode').addEventListener('click', () => {
-      Sound.playSnap();
-      $('guest-date-input').value = String(getTodayDate());
-      $('guest-modal-backdrop').hidden = false;
-    });
-
-    $('btn-close-guest').addEventListener('click', () => {
-      $('guest-modal-backdrop').hidden = true;
-    });
-
-    $('btn-run-guest').addEventListener('click', () => {
-      const gName = $('guest-name-input').value.trim();
-      const gDate = Number($('guest-date-input').value) || getTodayDate();
-      const check = NgFilter.validateText(gName);
-      if (!check.ok) {
-        $('guest-modal-backdrop').hidden = true;
-        showNgWarningModal();
-        return;
-      }
-      const res = Curriculum.convertNameToNumbers(gName);
-      if (res.items.length === 0) {
-        showModal('🦉', 'なまえを入れてね', '<p>友だちの名前を<strong>ひらがな</strong>で入れてね！</p>');
-        return;
-      }
-      $('guest-modal-backdrop').hidden = true;
-      runProgramAnimated({ nameNum: res.total, dateNum: gDate }, gName + 'さん');
+      showModal('💾', 'ほぞんしたよ！', '<p>オリジナルメッセージが保存されたよ！さっそく占ってみよう！</p>');
     });
   }
 
@@ -1145,6 +1193,10 @@
         updateStep0Conversion('さくら');
         return;
       }
+      if (state.currentStep === 4) {
+        step4View = 'recipe';
+        renderCurrentStepView();
+      }
       const meta = getStepMeta(state.currentStep);
       setCurrentProgram(Blocks.hydrateBlocks(meta.exampleBlocks || []));
       renderProgramList();
@@ -1179,10 +1231,9 @@
     initFullscreenButton();
     initTouchAndOrientationGuards();
     initStep0();
-    initStep4Modals();
+    initStep4Views();
     initTeacherMenu();
 
-    // ステップタブクリック
     document.querySelectorAll('.step-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
         const sId = Number(tab.dataset.step);
@@ -1196,14 +1247,12 @@
       });
     });
 
-    // ヒント
     $('btn-hint').addEventListener('click', () => {
       Sound.playSnap();
       const meta = getStepMeta(state.currentStep);
       showModal('💡', 'フクロウ先生のヒント', '<p>' + escapeHtml(meta.hint) + '</p>');
     });
 
-    // おてほん & クリア
     $('btn-load-example').addEventListener('click', () => {
       Sound.playSnap();
       const meta = getStepMeta(state.currentStep);
@@ -1220,7 +1269,6 @@
       resetCrystalAndVars();
     });
 
-    // 実行・1ステップ・リセット
     $('btn-run').addEventListener('click', () => runProgramAnimated());
     $('btn-step-run').addEventListener('click', () => runSingleStep());
     $('btn-reset-vars').addEventListener('click', () => {
@@ -1228,7 +1276,6 @@
       resetCrystalAndVars();
     });
 
-    // サウンドトグル
     function updateSoundIcon() {
       $('sound-icon').textContent = Sound.getMuted() ? '🔇' : '🔊';
     }
