@@ -30,20 +30,22 @@
   }
 
   function playTone(freq, duration, type, volume, delay) {
-    const audio = getContext();
-    if (!audio) return;
-    const now = audio.currentTime + (delay || 0);
-    const osc = audio.createOscillator();
-    const gain = audio.createGain();
-    osc.type = type || 'sine';
-    osc.frequency.setValueAtTime(freq, now);
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.exponentialRampToValueAtTime(volume || 0.12, now + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-    osc.connect(gain);
-    gain.connect(audio.destination);
-    osc.start(now);
-    osc.stop(now + duration + 0.02);
+    try {
+      const audio = getContext();
+      if (!audio) return;
+      const now = audio.currentTime + (delay || 0);
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(volume || 0.12, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain);
+      gain.connect(audio.destination);
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    } catch (e) {}
   }
 
   function playSnap() {
