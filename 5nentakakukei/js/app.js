@@ -177,6 +177,7 @@
   let currentStepId = progress.currentStepId || 1;
   let currentChallengeIdx = progress.currentChallengeIdx || 0;
   let isRunning = false;
+  let isInitialized = false;
   let feedbackTimer = null;
   let preferredAlwaysPenDown = true;
 
@@ -188,13 +189,14 @@
         return {
           cleared: Array.isArray(parsed.cleared) ? parsed.cleared : [],
           clearedChallenges: Array.isArray(parsed.clearedChallenges) ? parsed.clearedChallenges : [],
+          challengeXmls: (parsed.challengeXmls && typeof parsed.challengeXmls === 'object') ? parsed.challengeXmls : {},
           teacherUnlock: !!parsed.teacherUnlock,
           currentStepId: Number(parsed.currentStepId) || 1,
           currentChallengeIdx: Number(parsed.currentChallengeIdx) || 0
         };
       }
     } catch (e) {}
-    return { cleared: [], clearedChallenges: [], teacherUnlock: false, currentStepId: 1, currentChallengeIdx: 0 };
+    return { cleared: [], clearedChallenges: [], challengeXmls: {}, teacherUnlock: false, currentStepId: 1, currentChallengeIdx: 0 };
   }
 
   function saveProgress() {
@@ -202,6 +204,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         cleared: progress.cleared,
         clearedChallenges: progress.clearedChallenges,
+        challengeXmls: progress.challengeXmls,
         teacherUnlock: progress.teacherUnlock,
         currentStepId: currentStepId,
         currentChallengeIdx: currentChallengeIdx
@@ -260,6 +263,12 @@
 
   window.addEventListener('resize', () => {
     setTimeout(() => Blockly.svgResize(workspace), 60);
+  });
+
+  workspace.addChangeListener((event) => {
+    if (event && !event.isUiEvent && isInitialized && getStepById(currentStepId).isChallenge) {
+      saveCurrentChallengeXml();
+    }
   });
 
   // --- 6. エンジン初期化 ---
@@ -352,12 +361,16 @@
   }
 
   function loadDefaultBlocks(step) {
-    workspace.clear();
-    if (step.defaultXml && step.defaultXml.trim()) {
-      try {
+    Blockly.Events.disable();
+    try {
+      workspace.clear();
+      if (step.defaultXml && step.defaultXml.trim()) {
         const xmlDom = Blockly.utils.xml.textToDom(step.defaultXml.trim());
         Blockly.Xml.domToWorkspace(xmlDom, workspace);
-      } catch (e) {}
+      }
+    } catch (e) {
+    } finally {
+      Blockly.Events.enable();
     }
   }
 
@@ -423,12 +436,45 @@
     updateStatusStrip();
   }
 
+  function saveCurrentChallengeXml() {
+    const ch = getCurrentChallenge();
+    if (!ch) return;
+    try {
+      const dom = Blockly.Xml.workspaceToDom(workspace);
+      const xmlText = Blockly.Xml.domToText(dom);
+      progress.challengeXmls[ch.id] = xmlText;
+      saveProgress();
+    } catch (e) {}
+  }
+
+  function loadChallengeXml(idx) {
+    Blockly.Events.disable();
+    try {
+      workspace.clear();
+      const list = App.CHALLENGES || [];
+      const ch = list[idx];
+      if (!ch) return;
+      const saved = progress.challengeXmls && progress.challengeXmls[ch.id];
+      if (saved && saved.trim()) {
+        const xmlDom = Blockly.utils.xml.textToDom(saved.trim());
+        Blockly.Xml.domToWorkspace(xmlDom, workspace);
+      }
+    } catch (e) {
+    } finally {
+      Blockly.Events.enable();
+    }
+  }
+
   function selectStep(stepId) {
     if (isRunning) {
       turtle.cancelRun();
       isRunning = false;
       runBtn.disabled = false;
     }
+    if (isInitialized && getStepById(currentStepId).isChallenge) {
+      saveCurrentChallengeXml();
+    }
+
     currentStepId = stepId;
     saveProgress();
 
@@ -447,7 +493,11 @@
 
     showFeedback('', false);
     renderStepNav();
-    loadDefaultBlocks(step);
+    if (step.isChallenge) {
+      loadChallengeXml(currentChallengeIdx);
+    } else {
+      loadDefaultBlocks(step);
+    }
     turtle.resetView();
     applyStepConfig(step);
     Blockly.svgResize(workspace);
@@ -459,9 +509,13 @@
       isRunning = false;
       runBtn.disabled = false;
     }
+    if (isInitialized && getStepById(currentStepId).isChallenge) {
+      saveCurrentChallengeXml();
+    }
     currentChallengeIdx = Math.max(0, Math.min(App.CHALLENGES.length - 1, idx));
     saveProgress();
     showFeedback('', false);
+    loadChallengeXml(currentChallengeIdx);
     turtle.resetView();
     applyStepConfig(getStepById(8));
   }
@@ -813,16 +867,19 @@
 
   resetProgressBtn.addEventListener('click', () => {
     if (confirm('すべてのクリア記録をリセットして、ステップ1からやり直しますか？')) {
-      progress = { cleared: [], clearedChallenges: [], teacherUnlock: false, currentStepId: 1, currentChallengeIdx: 0 };
+      progress = { cleared: [], clearedChallenges: [], challengeXmls: {}, teacherUnlock: false, currentStepId: 1, currentChallengeIdx: 0 };
       currentChallengeIdx = 0;
       saveProgress();
       teacherUnlockBtn.textContent = '🔓 全ステージを解放';
       settingsModal.classList.remove('open');
+      isInitialized = false;
       selectStep(1);
+      isInitialized = true;
     }
   });
 
   // 初期表示
   teacherUnlockBtn.textContent = progress.teacherUnlock ? '🔒 ひみつを隠す（通常）' : '🔓 全ステージを解放';
   selectStep(currentStepId);
+  isInitialized = true;
 })();
