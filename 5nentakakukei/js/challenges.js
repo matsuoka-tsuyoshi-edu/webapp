@@ -339,6 +339,28 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     return true;
   }
 
+  function rotateSegments(segs, cx, cy, rad) {
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    return segs.map((s) => {
+      const dx1 = s.x1 - cx;
+      const dy1 = s.y1 - cy;
+      const dx2 = s.x2 - cx;
+      const dy2 = s.y2 - cy;
+      return {
+        x1: cx + dx1 * cos - dy1 * sin,
+        y1: cy + dx1 * sin + dy1 * cos,
+        x2: cx + dx2 * cos - dy2 * sin,
+        y2: cy + dx2 * sin + dy2 * cos,
+        len: s.len
+      };
+    });
+  }
+
+  function segAngleRad(s) {
+    return Math.atan2(s.y2 - s.y1, s.x2 - s.x1);
+  }
+
   App.judgeChallenge = function (challenge, state) {
     const drawnSegs = state.segments;
     if (drawnSegs.length === 0) {
@@ -356,7 +378,25 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     const expectedNormal = buildSegmentsFromCommands(challenge.cmds, challenge.startPos, challenge.drawScale, false);
     const expectedMirror = buildSegmentsFromCommands(challenge.cmds, challenge.startPos, challenge.drawScale, true);
 
-    if (matchesExpectedSegments(drawnSegs, expectedNormal) || matchesExpectedSegments(drawnSegs, expectedMirror)) {
+    let matched = matchesExpectedSegments(drawnSegs, expectedNormal) || matchesExpectedSegments(drawnSegs, expectedMirror);
+
+    // 「まわる」を「うごかす」より先に置いた場合など、開始点での初期回転ズレを吸収して判定
+    if (!matched && drawnSegs.length > 0 && expectedNormal.length > 0) {
+      const drawnAng0 = segAngleRad(drawnSegs[0]);
+      const cx = challenge.startPos.x;
+      const cy = challenge.startPos.y;
+      const candidates = [expectedNormal, expectedMirror];
+      for (let k = 0; k < candidates.length && !matched; k++) {
+        const base = candidates[k];
+        const delta = drawnAng0 - segAngleRad(base[0]);
+        const rotated = rotateSegments(base, cx, cy, delta);
+        if (matchesExpectedSegments(drawnSegs, rotated)) {
+          matched = true;
+        }
+      }
+    }
+
+    if (matched) {
       return {
         cleared: true,
         clearMessage: `お題 ${challenge.num}「${challenge.title}」クリア！！みごとな プログラムだね！`
