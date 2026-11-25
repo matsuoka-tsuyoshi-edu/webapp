@@ -61,7 +61,7 @@
       hex: '#3b4cca',
       glow: 'rgba(59, 76, 202, 0.82)',
       textColor: '#ffffff',
-      emoji: '🫐',
+      emoji: '✦',
       defaultMsg: 'ふしぎなちえがわいてくる日！本をよむと新しい発見があるよ！',
       defaultItem: '青いしおり'
     },

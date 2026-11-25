@@ -5,7 +5,7 @@
   'use strict';
 
   const STORAGE_KEY = 'uranai_app_v2_state';
-  const BUILD_VER = '20261124-14';
+  const BUILD_VER = '20261125-02';
 
   const NgFilter = global.UranaiNgFilter;
   const Sound = global.UranaiSound;
@@ -995,6 +995,8 @@
   }
 
   function resetSimCrystalVisual() {
+    const pane = $('sim-crystal-pane');
+    if (pane) pane.style.background = '';
     const ball = $('sim-crystal-ball');
     ball.classList.remove('is-pulsing');
     const body = ball.querySelector('.orb-body');
@@ -1314,14 +1316,16 @@
     if (!color) return;
 
     simRun.phase = 'FINISHED';
+    const pane = $('sim-crystal-pane');
+    if (pane) {
+      pane.style.background = 'radial-gradient(circle at 35% 42%, ' + color.glow + ' 0%, rgba(28, 12, 64, 0.94) 58%, #12062b 100%)';
+    }
     const ball = $('sim-crystal-ball');
     ball.classList.remove('is-pulsing');
     const body = ball.querySelector('.orb-body');
-    body.style.background = 'radial-gradient(circle at 34% 28%, #ffffff 0%, ' + color.hex + ' 58%, #14052b 100%)';
-    body.style.boxShadow = '0 0 38px ' + color.glow + ', inset 0 -10px 20px rgba(0,0,0,0.38)';
-    $('sim-orb-inner').innerHTML =
-      '<div style="font-size:1.5rem;">' + color.emoji + '</div>' +
-      '<div style="font-size:0.9rem;">' + escapeHtml(color.name) + '</div>';
+    body.style.background = 'radial-gradient(circle at 32% 26%, #ffffff 0%, ' + color.hex + ' 42%, ' + color.hex + ' 76%, #14052b 100%)';
+    body.style.boxShadow = '0 0 46px ' + color.glow + ', 0 0 84px ' + color.glow + ', inset 0 -12px 24px rgba(0,0,0,0.4)';
+    $('sim-orb-inner').innerHTML = '';
 
     $('sim-crystal-speech').innerHTML =
       '「✨ 今日の <strong>' + escapeHtml(simRun.nameText) + '</strong> さんのラッキーカラーは<br><strong style="font-size:1.15em; color:' + color.hex + '; text-shadow:0 0 8px #000;">【' + escapeHtml(color.name) + '】</strong> じゃ！<br><span style="font-size:0.86em;">' + escapeHtml(color.defaultMsg) + '</span>」';
