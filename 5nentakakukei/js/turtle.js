@@ -23,6 +23,7 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
   let showGuide = true;
   let showTurnAngles = true;
   let alwaysPenDown = false;
+  let drawScale = 1.0;
   let runToken = 0;
 
   // 回転中の外角可視化用オーバーレイ＆表示しっぱなし用履歴
@@ -40,6 +41,7 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     if (opts.showGuide !== undefined) showGuide = opts.showGuide;
     if (opts.showTurnAngles !== undefined) showTurnAngles = opts.showTurnAngles;
     if (opts.alwaysPenDown !== undefined) alwaysPenDown = opts.alwaysPenDown;
+    if (opts.drawScale !== undefined) drawScale = Number(opts.drawScale) || 1.0;
   }
 
   function getToken() {
@@ -103,8 +105,9 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
 
     const stepForward = (len) => {
       const rad = (ang * Math.PI) / 180;
-      const nx = cx + len * Math.cos(rad);
-      const ny = cy + len * Math.sin(rad);
+      const dist = len * drawScale;
+      const nx = cx + dist * Math.cos(rad);
+      const ny = cy + dist * Math.sin(rad);
       targetCtx.lineTo(nx, ny);
       cx = nx;
       cy = ny;
@@ -298,8 +301,9 @@ window.TakakukeiApp.createTurtleEngine = function (canvas) {
     const startX = turtle.x;
     const startY = turtle.y;
     const rad = (turtle.angle * Math.PI) / 180;
-    const targetX = startX + numSteps * Math.cos(rad);
-    const targetY = startY + numSteps * Math.sin(rad);
+    const pixelDist = numSteps * drawScale;
+    const targetX = startX + pixelDist * Math.cos(rad);
+    const targetY = startY + pixelDist * Math.sin(rad);
     const drawing = turtle.isPenDown || alwaysPenDown;
 
     actionLog.push({ type: 'move', steps: numSteps, drawing });

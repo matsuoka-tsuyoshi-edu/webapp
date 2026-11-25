@@ -349,6 +349,7 @@
     turtle.setConfig({
       startPos: step.startPos,
       goalType: step.goalType,
+      drawScale: step.drawScale || 1.5,
       showGuide: guideCheckbox.checked,
       showTurnAngles: angleCheckbox.checked,
       alwaysPenDown: penCheckbox.checked
@@ -460,6 +461,7 @@
     turtle.setConfig({
       startPos: step.startPos,
       goalType: step.goalType,
+      drawScale: step.drawScale || 1.5,
       showGuide: guideCheckbox.checked,
       showTurnAngles: angleCheckbox.checked,
       alwaysPenDown: penCheckbox.checked

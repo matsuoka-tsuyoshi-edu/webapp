@@ -41,7 +41,7 @@ window.TakakukeiApp.judgeStep = function (step, state, workspaceStats) {
     const first = segs[0];
     const last = segs[segs.length - 1];
     const dist = Math.hypot(last.x2 - first.x1, last.y2 - first.y1);
-    return dist < 6;
+    return dist < 8;
   }
 
   function allSameLength(segs, minLen) {
