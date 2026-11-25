@@ -19,6 +19,8 @@ window.TakakukeiApp.createTurtleEngine = function (canvas, options) {
   let showGuide = true;
   let showTurnAngles = true;
   let alwaysPenDown = false;
+  let fastMode = false;
+  let customGuideSegments = null;
   let drawScale = 1.0;
   let runToken = 0;
 
@@ -50,6 +52,8 @@ window.TakakukeiApp.createTurtleEngine = function (canvas, options) {
     if (opts.showGuide !== undefined) showGuide = opts.showGuide;
     if (opts.showTurnAngles !== undefined) showTurnAngles = opts.showTurnAngles;
     if (opts.alwaysPenDown !== undefined) alwaysPenDown = opts.alwaysPenDown;
+    if (opts.fastMode !== undefined) fastMode = !!opts.fastMode;
+    if (opts.customGuideSegments !== undefined) customGuideSegments = opts.customGuideSegments;
     if (opts.drawScale !== undefined) drawScale = Number(opts.drawScale) || 1.0;
   }
 
@@ -250,6 +254,18 @@ window.TakakukeiApp.createTurtleEngine = function (canvas, options) {
     targetCtx.setLineDash([7 / view.zoom, 6 / view.zoom]);
     targetCtx.lineCap = 'round';
     targetCtx.lineJoin = 'round';
+
+    if (currentGoalType === 'challenge' && Array.isArray(customGuideSegments)) {
+      targetCtx.beginPath();
+      for (let i = 0; i < customGuideSegments.length; i++) {
+        const s = customGuideSegments[i];
+        targetCtx.moveTo(s.x1, s.y1);
+        targetCtx.lineTo(s.x2, s.y2);
+      }
+      targetCtx.stroke();
+      targetCtx.restore();
+      return;
+    }
 
     let cx = startPos.x;
     let cy = startPos.y;
@@ -490,7 +506,7 @@ window.TakakukeiApp.createTurtleEngine = function (canvas, options) {
 
     actionLog.push({ type: 'move', steps: numSteps, drawing });
 
-    const ok = await animateFrames(300, token, (t) => {
+    const ok = await animateFrames(fastMode ? 35 : 300, token, (t) => {
       const curX = startX + (targetX - startX) * t;
       const curY = startY + (targetY - startY) * t;
       if (drawing) {
@@ -546,7 +562,7 @@ window.TakakukeiApp.createTurtleEngine = function (canvas, options) {
     actionLog.push({ type: 'turn', deg: numDeg });
     turns.push(numDeg);
 
-    const ok = await animateFrames(360, token, (t) => {
+    const ok = await animateFrames(fastMode ? 25 : 360, token, (t) => {
       const curAngle = fromAngle + numDeg * t;
       turtle.angle = curAngle;
       activeTurnArc = {
@@ -564,6 +580,18 @@ window.TakakukeiApp.createTurtleEngine = function (canvas, options) {
     }
 
     turtle.angle = targetAngle;
+    if (fastMode) {
+      activeTurnArc = null;
+      recordedTurnArcs.push({
+        x: turtle.x,
+        y: turtle.y,
+        fromAngle,
+        currentAngle: targetAngle
+      });
+      redrawAll();
+      return;
+    }
+
     activeTurnArc = {
       x: turtle.x,
       y: turtle.y,

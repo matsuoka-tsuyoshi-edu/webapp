@@ -18,8 +18,8 @@
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 
   <title>正多角形をかくプログラミング（小学5年算数）</title>
-  <link rel="stylesheet" href="./css/style.css?v=20261125-3">
-  <script src="./vendor/blockly/blockly.min.js?v=20261125-3"></script>
+  <link rel="stylesheet" href="./css/style.css?v=20261125-4">
+  <script src="./vendor/blockly/blockly.min.js?v=20261125-4"></script>
 </head>
 <body>
   <div id="app-shell">
@@ -50,6 +50,11 @@
             <p class="mission-desc" id="missionDesc"></p>
           </div>
           <div class="mission-actions">
+            <div class="challenge-nav-group" id="challengeNavGroup" style="display:none;">
+              <button type="button" class="btn btn-challenge-step" id="prevChallengeBtn" title="まえのお題">◀</button>
+              <button type="button" class="btn btn-challenge-list" id="openChallengeListBtn">📋 お題 (1/16)</button>
+              <button type="button" class="btn btn-challenge-step" id="nextChallengeBtn" title="つぎのお題">▶</button>
+            </div>
             <button type="button" class="btn btn-hint" id="hintBtn">💡 ヒント</button>
           </div>
         </div>
@@ -77,6 +82,10 @@
               <span id="penStatusText">ペン：上がっている</span>
             </div>
             <div class="status-item" id="angleStatusText">向き：0°</div>
+            <label class="guide-toggle-label" title="チェックすると アニメが はやくなります">
+              <input type="checkbox" id="fastSpeedCheck">
+              🐇 はやい
+            </label>
           </div>
 
           <div class="pen-option-card" id="penOptionCard">
@@ -204,6 +213,17 @@
     </div>
   </div>
 
+  <!-- 超発展チャレンジお題一覧モーダル -->
+  <div class="modal-backdrop" id="challengeModal">
+    <div class="modal-card">
+      <div class="modal-header" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+        <h2 id="challengeModalTitle">🏆 超発展チャレンジ（全16問）</h2>
+        <button type="button" class="modal-close" id="closeChallengeModalBtn">✕</button>
+      </div>
+      <div class="modal-body" id="challengeListBody"></div>
+    </div>
+  </div>
+
   <!-- 汎用情報・ヒントモーダル -->
   <div class="modal-backdrop" id="infoModal">
     <div class="modal-card compact">
@@ -220,12 +240,13 @@
     </div>
   </div>
 
-  <script defer src="./js/steps.js?v=20261125-3"></script>
-  <script defer src="./js/turtle.js?v=20261125-3"></script>
-  <script defer src="./js/judge.js?v=20261125-3"></script>
-  <script defer src="./js/explain.js?v=20261125-3"></script>
-  <script defer src="./js/confetti.js?v=20261125-3"></script>
-  <script defer src="./js/pwa.js?v=20261125-3"></script>
-  <script defer src="./js/app.js?v=20261125-3"></script>
+  <script defer src="./js/steps.js?v=20261125-4"></script>
+  <script defer src="./js/challenges.js?v=20261125-4"></script>
+  <script defer src="./js/turtle.js?v=20261125-4"></script>
+  <script defer src="./js/judge.js?v=20261125-4"></script>
+  <script defer src="./js/explain.js?v=20261125-4"></script>
+  <script defer src="./js/confetti.js?v=20261125-4"></script>
+  <script defer src="./js/pwa.js?v=20261125-4"></script>
+  <script defer src="./js/app.js?v=20261125-4"></script>
 </body>
 </html>

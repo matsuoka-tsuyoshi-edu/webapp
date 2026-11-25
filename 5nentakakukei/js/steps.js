@@ -155,6 +155,25 @@ window.TakakukeiApp.STEPS = [
     startPos: { x: 210, y: 250, angle: -90 },
     toolboxMode: 'full',
     defaultXml: ''
+  },
+  {
+    id: 8,
+    shortName: '🏆 はってん',
+    title: '超発展チャレンジ（全16問）',
+    badge: 'ちょうせん',
+    isSecret: false,
+    isChallenge: true,
+    forcePenOffStart: false,
+    hasExplain: true,
+    explainPromptOnEnter: false,
+    desc: 'お題にそって、いろいろな図形や 芸術アートを かいてみよう！',
+    hint: '',
+    clearMessage: '',
+    goalType: 'challenge',
+    drawScale: 1.5,
+    startPos: { x: 210, y: 210, angle: -90 },
+    toolboxMode: 'full',
+    defaultXml: ''
   }
 ];
 

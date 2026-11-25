@@ -130,6 +130,15 @@
   const penCard = document.getElementById('penOptionCard');
   const guideCheckbox = document.getElementById('showGuideCheck');
   const angleCheckbox = document.getElementById('showAngleCheck');
+  const fastSpeedCheck = document.getElementById('fastSpeedCheck');
+  const challengeNavGroup = document.getElementById('challengeNavGroup');
+  const prevChallengeBtn = document.getElementById('prevChallengeBtn');
+  const nextChallengeBtn = document.getElementById('nextChallengeBtn');
+  const openChallengeListBtn = document.getElementById('openChallengeListBtn');
+  const challengeModal = document.getElementById('challengeModal');
+  const challengeModalTitle = document.getElementById('challengeModalTitle');
+  const challengeListBody = document.getElementById('challengeListBody');
+  const closeChallengeModalBtn = document.getElementById('closeChallengeModalBtn');
   const feedbackEl = document.getElementById('stageFeedback');
   const penDotEl = document.getElementById('penStatusDot');
   const penStatusTextEl = document.getElementById('penStatusText');
@@ -166,6 +175,7 @@
   // --- 4. 状態管理 ---
   let progress = loadProgress();
   let currentStepId = progress.currentStepId || 1;
+  let currentChallengeIdx = progress.currentChallengeIdx || 0;
   let isRunning = false;
   let feedbackTimer = null;
   let preferredAlwaysPenDown = true;
@@ -177,22 +187,32 @@
         const parsed = JSON.parse(raw);
         return {
           cleared: Array.isArray(parsed.cleared) ? parsed.cleared : [],
+          clearedChallenges: Array.isArray(parsed.clearedChallenges) ? parsed.clearedChallenges : [],
           teacherUnlock: !!parsed.teacherUnlock,
-          currentStepId: Number(parsed.currentStepId) || 1
+          currentStepId: Number(parsed.currentStepId) || 1,
+          currentChallengeIdx: Number(parsed.currentChallengeIdx) || 0
         };
       }
     } catch (e) {}
-    return { cleared: [], teacherUnlock: false, currentStepId: 1 };
+    return { cleared: [], clearedChallenges: [], teacherUnlock: false, currentStepId: 1, currentChallengeIdx: 0 };
   }
 
   function saveProgress() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         cleared: progress.cleared,
+        clearedChallenges: progress.clearedChallenges,
         teacherUnlock: progress.teacherUnlock,
-        currentStepId: currentStepId
+        currentStepId: currentStepId,
+        currentChallengeIdx: currentChallengeIdx
       }));
     } catch (e) {}
+  }
+
+  function getCurrentChallenge() {
+    const list = App.CHALLENGES || [];
+    const idx = Math.max(0, Math.min(list.length - 1, currentChallengeIdx));
+    return list[idx];
   }
 
   function isStepUnlocked(step) {
@@ -342,6 +362,38 @@
   }
 
   function applyStepConfig(step) {
+    if (step.isChallenge) {
+      const ch = getCurrentChallenge();
+      const total = App.CHALLENGES.length;
+      missionBadgeEl.textContent = `お題 ${ch.num}/${total}`;
+      missionBadgeEl.className = 'mission-badge secret';
+      missionTitleEl.textContent = ch.title;
+      missionDescEl.textContent = ch.desc;
+      openChallengeListBtn.textContent = `📋 お題 (${ch.num}/${total})`;
+      prevChallengeBtn.disabled = currentChallengeIdx <= 0;
+      nextChallengeBtn.disabled = currentChallengeIdx >= total - 1;
+
+      penCheckbox.disabled = false;
+      penCard.style.opacity = '1';
+      penCheckbox.checked = ch.needsPenBlock ? false : preferredAlwaysPenDown;
+      fastSpeedCheck.checked = !!ch.fastDefault;
+
+      workspace.updateToolbox(App.getToolboxXml('full', penCheckbox.checked));
+      turtle.setConfig({
+        startPos: ch.startPos,
+        goalType: 'challenge',
+        customGuideSegments: App.getChallengeGuideSegments(ch),
+        drawScale: ch.drawScale,
+        showGuide: guideCheckbox.checked,
+        showTurnAngles: angleCheckbox.checked,
+        fastMode: fastSpeedCheck.checked,
+        alwaysPenDown: penCheckbox.checked
+      });
+      turtle.reset(!ch.needsPenBlock && penCheckbox.checked);
+      updateStatusStrip();
+      return;
+    }
+
     // ペン設定：ステップ1のみ「ペンを下ろす」ブロックを使うため強制OFF、それ以外はユーザーの好み（初期値ON）
     if (step.forcePenOffStart) {
       penCheckbox.checked = false;
@@ -360,9 +412,11 @@
     turtle.setConfig({
       startPos: step.startPos,
       goalType: step.goalType,
+      customGuideSegments: null,
       drawScale: step.drawScale || 1.5,
       showGuide: guideCheckbox.checked,
       showTurnAngles: angleCheckbox.checked,
+      fastMode: fastSpeedCheck.checked,
       alwaysPenDown: penCheckbox.checked
     });
     turtle.reset(!step.forcePenOffStart && penCheckbox.checked);
@@ -379,10 +433,14 @@
     saveProgress();
 
     const step = getStepById(stepId);
-    missionBadgeEl.textContent = step.badge;
-    missionBadgeEl.className = 'mission-badge' + (step.isSecret ? ' secret' : '');
-    missionTitleEl.textContent = step.title;
-    missionDescEl.textContent = step.desc;
+    challengeNavGroup.style.display = step.isChallenge ? 'inline-flex' : 'none';
+    if (!step.isChallenge) {
+      missionBadgeEl.textContent = step.badge;
+      missionBadgeEl.className = 'mission-badge' + (step.isSecret ? ' secret' : '');
+      missionTitleEl.textContent = step.title;
+      missionDescEl.textContent = step.desc;
+      fastSpeedCheck.checked = false;
+    }
 
     explainBtn.style.display = step.hasExplain ? 'inline-flex' : 'none';
     explainBtn.classList.toggle('pulse', !!step.explainPromptOnEnter);
@@ -393,6 +451,69 @@
     turtle.resetView();
     applyStepConfig(step);
     Blockly.svgResize(workspace);
+  }
+
+  function selectChallenge(idx) {
+    if (isRunning) {
+      turtle.cancelRun();
+      isRunning = false;
+      runBtn.disabled = false;
+    }
+    currentChallengeIdx = Math.max(0, Math.min(App.CHALLENGES.length - 1, idx));
+    saveProgress();
+    showFeedback('', false);
+    turtle.resetView();
+    applyStepConfig(getStepById(8));
+  }
+
+  function openChallengeListModal() {
+    const list = App.CHALLENGES || [];
+    const clearedCount = list.filter((c) => progress.clearedChallenges.includes(c.id)).length;
+    challengeModalTitle.textContent = `🏆 超発展チャレンジ（${clearedCount} / ${list.length} クリア）`;
+    challengeListBody.innerHTML = '';
+
+    const levels = [];
+    list.forEach((ch, idx) => {
+      let grp = levels.find((g) => g.level === ch.level);
+      if (!grp) {
+        grp = { level: ch.level, items: [] };
+        levels.push(grp);
+      }
+      grp.items.push({ ch, idx });
+    });
+
+    levels.forEach((grp) => {
+      const h = document.createElement('div');
+      h.className = 'challenge-level-heading';
+      h.textContent = grp.level;
+      challengeListBody.appendChild(h);
+
+      const grid = document.createElement('div');
+      grid.className = 'challenge-grid';
+
+      grp.items.forEach(({ ch, idx }) => {
+        const isCleared = progress.clearedChallenges.includes(ch.id);
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'challenge-card' + (idx === currentChallengeIdx ? ' active' : '') + (isCleared ? ' cleared' : '');
+        card.innerHTML = `
+          <div class="challenge-card-top">
+            <span>お題 ${ch.num}</span>
+            ${isCleared ? '<span class="challenge-clear-tag">★ クリア</span>' : ''}
+          </div>
+          <div class="challenge-card-title">${ch.title}</div>
+          <div class="challenge-card-desc">${ch.desc}</div>
+        `;
+        card.addEventListener('click', () => {
+          challengeModal.classList.remove('open');
+          selectChallenge(idx);
+        });
+        grid.appendChild(card);
+      });
+      challengeListBody.appendChild(grid);
+    });
+
+    challengeModal.classList.add('open');
   }
 
   // --- 8. イベント設定 ---
@@ -419,6 +540,18 @@
     turtle.redrawAll();
   });
 
+  fastSpeedCheck.addEventListener('change', () => {
+    turtle.setConfig({ fastMode: fastSpeedCheck.checked });
+  });
+
+  prevChallengeBtn.addEventListener('click', () => selectChallenge(currentChallengeIdx - 1));
+  nextChallengeBtn.addEventListener('click', () => selectChallenge(currentChallengeIdx + 1));
+  openChallengeListBtn.addEventListener('click', openChallengeListModal);
+  closeChallengeModalBtn.addEventListener('click', () => challengeModal.classList.remove('open'));
+  challengeModal.addEventListener('click', (e) => {
+    if (e.target === challengeModal) challengeModal.classList.remove('open');
+  });
+
   canvasFitBtn.addEventListener('click', () => turtle.fitToDrawing());
   canvasZoomInBtn.addEventListener('click', () => turtle.zoomBy(1.25));
   canvasZoomOutBtn.addEventListener('click', () => turtle.zoomBy(0.8));
@@ -431,7 +564,8 @@
 
   hintBtn.addEventListener('click', () => {
     const step = getStepById(currentStepId);
-    showInfo('💡 ヒント', step.hint);
+    const hintMsg = step.isChallenge ? getCurrentChallenge().hint : step.hint;
+    showInfo('💡 ヒント', hintMsg);
   });
 
   resetBtn.addEventListener('click', () => {
@@ -439,7 +573,10 @@
     isRunning = false;
     runBtn.disabled = false;
     const step = getStepById(currentStepId);
-    turtle.reset(!step.forcePenOffStart && penCheckbox.checked);
+    const initialPen = step.isChallenge
+      ? (!getCurrentChallenge().needsPenBlock && penCheckbox.checked)
+      : (!step.forcePenOffStart && penCheckbox.checked);
+    turtle.reset(initialPen);
     showFeedback('', false);
     updateStatusStrip();
   });
@@ -475,15 +612,19 @@
     runBtn.disabled = true;
     showFeedback('', false);
 
+    const ch = step.isChallenge ? getCurrentChallenge() : null;
     turtle.setConfig({
-      startPos: step.startPos,
-      goalType: step.goalType,
-      drawScale: step.drawScale || 1.5,
+      startPos: ch ? ch.startPos : step.startPos,
+      goalType: ch ? 'challenge' : step.goalType,
+      customGuideSegments: ch ? App.getChallengeGuideSegments(ch) : null,
+      drawScale: ch ? ch.drawScale : (step.drawScale || 1.5),
       showGuide: guideCheckbox.checked,
       showTurnAngles: angleCheckbox.checked,
+      fastMode: fastSpeedCheck.checked,
       alwaysPenDown: penCheckbox.checked
     });
-    turtle.reset(!step.forcePenOffStart && penCheckbox.checked);
+    const initialPen = ch ? (!ch.needsPenBlock && penCheckbox.checked) : (!step.forcePenOffStart && penCheckbox.checked);
+    turtle.reset(initialPen);
     const token = turtle.getToken();
 
     const code = customGenerator.workspaceToCode(workspace);
@@ -511,18 +652,29 @@
 
       updateStatusStrip();
       const tState = turtle.getState();
-      const result = App.judgeStep(step, tState, { hasRepeat });
 
-      if (result.cleared) {
-        handleStepClear(step, result.extraMessage);
-      } else if (result.feedback) {
-        const outTip = tState.isOutOfView ? '（右下の「🎯 全体」やドラッグで、はみ出た絵も 見られるよ！）' : '';
-        showFeedback(result.feedback + (outTip ? ' ' + outTip : ''), result.warn, 8500);
-        if (result.suggestExplain && step.hasExplain) {
-          explainBtn.classList.add('pulse');
+      if (ch) {
+        const cResult = App.judgeChallenge(ch, tState);
+        if (cResult.cleared) {
+          handleChallengeClear(ch, cResult.clearMessage);
+        } else if (cResult.feedback) {
+          const outTip = tState.isOutOfView ? '（右下の「🎯 全体」やドラッグで 全体を見られるよ！）' : '';
+          showFeedback(cResult.feedback + (outTip ? ' ' + outTip : ''), cResult.warn, 8500);
         }
-      } else if (tState.isOutOfView) {
-        showFeedback('枠から はみ出たときは、右下の「🎯 全体」ボタンや ドラッグで 絵の全体を見られるよ！', false, 6500);
+      } else {
+        const result = App.judgeStep(step, tState, { hasRepeat });
+
+        if (result.cleared) {
+          handleStepClear(step, result.extraMessage);
+        } else if (result.feedback) {
+          const outTip = tState.isOutOfView ? '（右下の「🎯 全体」やドラッグで、はみ出た絵も 見られるよ！）' : '';
+          showFeedback(result.feedback + (outTip ? ' ' + outTip : ''), result.warn, 8500);
+          if (result.suggestExplain && step.hasExplain) {
+            explainBtn.classList.add('pulse');
+          }
+        } else if (tState.isOutOfView) {
+          showFeedback('枠から はみ出たときは、右下の「🎯 全体」ボタンや ドラッグで 絵の全体を見られるよ！', false, 6500);
+        }
       }
     } catch (e) {
       showInfo('⚠️ エラー', 'プログラムの じっこう中に エラーが おきました：' + e.message);
@@ -567,6 +719,33 @@
       nextStepBtn.style.display = 'none';
     }
 
+    clearModal.classList.add('open');
+  }
+
+  function handleChallengeClear(ch, message) {
+    if (!progress.clearedChallenges.includes(ch.id)) {
+      progress.clearedChallenges.push(ch.id);
+      saveProgress();
+    }
+    confetti.launch(true);
+    clearTitleEl.textContent = `🏆 お題 ${ch.num} クリア！`;
+    clearMsgEl.textContent = message;
+    unlockBannerEl.style.display = 'none';
+
+    if (currentChallengeIdx < App.CHALLENGES.length - 1) {
+      const nextCh = App.CHALLENGES[currentChallengeIdx + 1];
+      nextStepBtn.style.display = 'inline-flex';
+      nextStepBtn.textContent = `つぎのお題（${nextCh.num}. ${nextCh.title.split('（')[0]}）▶`;
+      nextStepBtn.onclick = () => {
+        clearModal.classList.remove('open');
+        confetti.stop();
+        selectChallenge(currentChallengeIdx + 1);
+      };
+    } else {
+      unlockBannerEl.style.display = 'block';
+      unlockBannerEl.innerHTML = '👑 <strong>超発展チャレンジ 全16問 完全制覇！！</strong> おめでとう！！';
+      nextStepBtn.style.display = 'none';
+    }
     clearModal.classList.add('open');
   }
 
@@ -634,7 +813,8 @@
 
   resetProgressBtn.addEventListener('click', () => {
     if (confirm('すべてのクリア記録をリセットして、ステップ1からやり直しますか？')) {
-      progress = { cleared: [], teacherUnlock: false, currentStepId: 1 };
+      progress = { cleared: [], clearedChallenges: [], teacherUnlock: false, currentStepId: 1, currentChallengeIdx: 0 };
+      currentChallengeIdx = 0;
       saveProgress();
       teacherUnlockBtn.textContent = '🔓 全ステージを解放';
       settingsModal.classList.remove('open');
