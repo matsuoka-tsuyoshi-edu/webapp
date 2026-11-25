@@ -2,7 +2,7 @@
  * sw.js - Service Worker
  * 方針：Network-First（オンライン時はHTTPキャッシュを無視して最新を取得し、オフライン時のみキャッシュを返す）
  */
-const CACHE_NAME = '5nen-takakukei-cache-v1.0.5';
+const CACHE_NAME = '5nen-takakukei-cache-v1.0.6';
 
 const PRECACHE_URLS = [
   './',

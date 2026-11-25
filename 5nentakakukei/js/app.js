@@ -6,7 +6,11 @@
   const App = window.TakakukeiApp;
   const STORAGE_KEY = '5nen_takakukei_progress_v1';
 
-  // --- 1. Blockly カスタムブロック定義 ---
+  // --- 1. Blockly カスタムブロック定義（Scratch寄せ配色：命令=オレンジ、繰り返し=黄色、数値=緑） ---
+  const CMD_ORANGE = '#F97316';
+  const CTRL_YELLOW = '#EAB308';
+  const NUM_GREEN = '#22A745';
+
   Blockly.defineBlocksWithJsonArray([
     {
       type: 'move_steps',
@@ -14,7 +18,7 @@
       args0: [{ type: 'input_value', name: 'STEPS', check: 'Number' }],
       previousStatement: null,
       nextStatement: null,
-      colour: 210
+      colour: CMD_ORANGE
     },
     {
       type: 'turn_degrees',
@@ -32,7 +36,7 @@
       ],
       previousStatement: null,
       nextStatement: null,
-      colour: 210
+      colour: CMD_ORANGE
     },
     {
       type: 'custom_repeat',
@@ -44,21 +48,21 @@
       ],
       previousStatement: null,
       nextStatement: null,
-      colour: 40
+      colour: CTRL_YELLOW
     },
     {
       type: 'pen_down',
       message0: 'ペンを下ろす',
       previousStatement: null,
       nextStatement: null,
-      colour: 160
+      colour: CMD_ORANGE
     },
     {
       type: 'pen_up',
       message0: 'ペンを上げる',
       previousStatement: null,
       nextStatement: null,
-      colour: 160
+      colour: CMD_ORANGE
     }
   ]);
 
@@ -199,6 +203,13 @@
   // --- 5. Blockly 初期化（子どもがつまみやすい大きめサイズ・テーマ） ---
   const kidsLargeTheme = Blockly.Theme.defineTheme('kidsLargeTheme', {
     base: Blockly.Themes.Classic,
+    blockStyles: {
+      math_blocks: {
+        colourPrimary: NUM_GREEN,
+        colourSecondary: '#1B8A38',
+        colourTertiary: '#146B2B'
+      }
+    },
     fontStyle: {
       family: '"Hiragino Maru Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif',
       weight: 'bold',
