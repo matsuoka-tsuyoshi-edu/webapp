@@ -371,25 +371,97 @@ header {
   background-color: #ffffff;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
   touch-action: none;
+  cursor: grab;
 }
 
-/* ステージ上のフィードバックトースト */
-.stage-feedback {
+#turtleCanvas.dragging {
+  cursor: grabbing;
+}
+
+.canvas-zoom-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.canvas-controls {
   position: absolute;
   bottom: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #cbd5e1;
+  padding: 4px 6px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+  z-index: 8;
+}
+
+.canvas-ctrl-btn {
+  border: none;
+  background: #e2e8f0;
+  color: #1e293b;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.86rem;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  transition: background 0.12s ease, transform 0.1s ease;
+}
+
+.canvas-ctrl-btn:hover {
+  background: #cbd5e1;
+}
+
+.canvas-ctrl-btn:active {
+  transform: scale(0.93);
+}
+
+.canvas-ctrl-btn.fit-btn {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.78rem;
+  padding: 0 9px;
+}
+
+.canvas-ctrl-btn.fit-btn:hover {
+  background: #bfdbfe;
+}
+
+/* ステージ上のフィードバックトースト（上端配置で操作ボタンと重ならない） */
+.stage-feedback {
+  position: absolute;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(15, 23, 42, 0.9);
   color: #ffffff;
   padding: 8px 14px;
   border-radius: 12px;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 700;
-  max-width: 92%;
+  max-width: 90%;
   text-align: center;
   line-height: 1.4;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  z-index: 10;
+  z-index: 12;
   display: none;
 }
 

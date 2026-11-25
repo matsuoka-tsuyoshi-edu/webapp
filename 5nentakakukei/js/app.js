@@ -134,6 +134,11 @@
   const penDotEl = document.getElementById('penStatusDot');
   const penStatusTextEl = document.getElementById('penStatusText');
   const angleStatusTextEl = document.getElementById('angleStatusText');
+  const canvasZoomBadge = document.getElementById('canvasZoomBadge');
+  const canvasFitBtn = document.getElementById('canvasFitBtn');
+  const canvasZoomInBtn = document.getElementById('canvasZoomInBtn');
+  const canvasZoomOutBtn = document.getElementById('canvasZoomOutBtn');
+  const canvasResetViewBtn = document.getElementById('canvasResetViewBtn');
 
   // モーダル要素
   const clearModal = document.getElementById('clearModal');
@@ -238,7 +243,13 @@
   });
 
   // --- 6. エンジン初期化 ---
-  const turtle = App.createTurtleEngine(document.getElementById('turtleCanvas'));
+  const turtle = App.createTurtleEngine(document.getElementById('turtleCanvas'), {
+    onViewChange: (zoom) => {
+      if (canvasZoomBadge) {
+        canvasZoomBadge.textContent = Math.round(zoom * 100) + '%';
+      }
+    }
+  });
   const explainMgr = App.createExplainManager();
   const confetti = App.createConfetti(document.getElementById('confettiCanvas'));
 
@@ -379,6 +390,7 @@
     showFeedback('', false);
     renderStepNav();
     loadDefaultBlocks(step);
+    turtle.resetView();
     applyStepConfig(step);
     Blockly.svgResize(workspace);
   }
@@ -406,6 +418,11 @@
     turtle.setConfig({ showTurnAngles: angleCheckbox.checked });
     turtle.redrawAll();
   });
+
+  canvasFitBtn.addEventListener('click', () => turtle.fitToDrawing());
+  canvasZoomInBtn.addEventListener('click', () => turtle.zoomBy(1.25));
+  canvasZoomOutBtn.addEventListener('click', () => turtle.zoomBy(0.8));
+  canvasResetViewBtn.addEventListener('click', () => turtle.resetView());
 
   explainBtn.addEventListener('click', () => {
     explainBtn.classList.remove('pulse');
@@ -493,15 +510,19 @@
       if (token !== turtle.getToken()) return; // 途中でリセットされた
 
       updateStatusStrip();
-      const result = App.judgeStep(step, turtle.getState(), { hasRepeat });
+      const tState = turtle.getState();
+      const result = App.judgeStep(step, tState, { hasRepeat });
 
       if (result.cleared) {
         handleStepClear(step, result.extraMessage);
       } else if (result.feedback) {
-        showFeedback(result.feedback, result.warn, 8000);
+        const outTip = tState.isOutOfView ? '（右下の「🎯 全体」やドラッグで、はみ出た絵も 見られるよ！）' : '';
+        showFeedback(result.feedback + (outTip ? ' ' + outTip : ''), result.warn, 8500);
         if (result.suggestExplain && step.hasExplain) {
           explainBtn.classList.add('pulse');
         }
+      } else if (tState.isOutOfView) {
+        showFeedback('枠から はみ出たときは、右下の「🎯 全体」ボタンや ドラッグで 絵の全体を見られるよ！', false, 6500);
       }
     } catch (e) {
       showInfo('⚠️ エラー', 'プログラムの じっこう中に エラーが おきました：' + e.message);
