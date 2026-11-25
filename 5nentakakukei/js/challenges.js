@@ -399,7 +399,7 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     if (matched) {
       return {
         cleared: true,
-        clearMessage: `お題 ${challenge.num}「${challenge.title}」クリア！！みごとな プログラムだね！`
+        clearMessage: `問題 ${challenge.num}「${challenge.title}」クリア！！みごとな プログラムだね！`
       };
     }
 

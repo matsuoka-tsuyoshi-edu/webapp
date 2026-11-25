@@ -167,7 +167,7 @@ window.TakakukeiApp.STEPS = [
     forcePenOffStart: false,
     hasExplain: true,
     explainPromptOnEnter: false,
-    desc: 'お題にそって、いろいろな図形や 芸術アートを かいてみよう！',
+    desc: '問題にそって、いろいろな図形や 芸術アートを かいてみよう！',
     hint: '',
     clearMessage: '',
     goalType: 'challenge',

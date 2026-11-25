@@ -378,11 +378,11 @@
     if (step.isChallenge) {
       const ch = getCurrentChallenge();
       const total = App.CHALLENGES.length;
-      missionBadgeEl.textContent = `お題 ${ch.num}/${total}`;
+      missionBadgeEl.textContent = `問題 ${ch.num}/${total}`;
       missionBadgeEl.className = 'mission-badge secret';
       missionTitleEl.textContent = ch.title;
       missionDescEl.textContent = ch.desc;
-      openChallengeListBtn.textContent = `📋 お題 (${ch.num}/${total})`;
+      openChallengeListBtn.textContent = `📋 問題 (${ch.num}/${total})`;
       prevChallengeBtn.disabled = currentChallengeIdx <= 0;
       nextChallengeBtn.disabled = currentChallengeIdx >= total - 1;
 
@@ -552,7 +552,7 @@
         card.className = 'challenge-card' + (idx === currentChallengeIdx ? ' active' : '') + (isCleared ? ' cleared' : '');
         card.innerHTML = `
           <div class="challenge-card-top">
-            <span>お題 ${ch.num}</span>
+            <span>問題 ${ch.num}</span>
             ${isCleared ? '<span class="challenge-clear-tag">★ クリア</span>' : ''}
           </div>
           <div class="challenge-card-title">${ch.title}</div>
@@ -782,14 +782,14 @@
       saveProgress();
     }
     confetti.launch(true);
-    clearTitleEl.textContent = `🏆 お題 ${ch.num} クリア！`;
+    clearTitleEl.textContent = `🏆 問題 ${ch.num} クリア！`;
     clearMsgEl.textContent = message;
     unlockBannerEl.style.display = 'none';
 
     if (currentChallengeIdx < App.CHALLENGES.length - 1) {
       const nextCh = App.CHALLENGES[currentChallengeIdx + 1];
       nextStepBtn.style.display = 'inline-flex';
-      nextStepBtn.textContent = `つぎのお題（${nextCh.num}. ${nextCh.title.split('（')[0]}）▶`;
+      nextStepBtn.textContent = `つぎの問題（${nextCh.num}. ${nextCh.title.split('（')[0]}）▶`;
       nextStepBtn.onclick = () => {
         clearModal.classList.remove('open');
         confetti.stop();
