@@ -91,7 +91,7 @@ def build():
     catalog_sets.sort(key=sort_key)
 
     catalog_obj = {
-        'version': '3.9.1',
+        'version': '3.9.2',
         'totalSets': len(catalog_sets),
         'sets': catalog_sets
     }

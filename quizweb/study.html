@@ -7,10 +7,10 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>POP QUIZ SHOW - 自習モード (Ver 3.9.1)</title>
+  <title>POP QUIZ SHOW - 自習モード (Ver 3.9.2)</title>
   <script>
-    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.9.1)
-    const APP_VERSION = "3.9.1";
+    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.9.2)
+    const APP_VERSION = "3.9.2";
 
     async function clearAllAppCaches() {
       try {
@@ -161,7 +161,7 @@
   <!-- Top Bar (Clean Header) -->
   <header class="bg-pop-dark border-b-4 border-black px-3 md:px-5 py-2 flex items-center justify-between shrink-0 z-30">
     <div class="flex items-center gap-2.5 min-w-0">
-      <a href="index.html?v=3.9.1" onclick="this.href='index.html?v='+APP_VERSION+'&t='+Date.now()" class="bg-pop-card hover:bg-slate-700 text-gray-200 px-2.5 py-1.5 rounded-xl border-2 border-black text-xs font-black flex items-center gap-1.5 shrink-0 transition-colors" title="メニューへ戻る">
+      <a href="index.html?v=3.9.2" onclick="this.href='index.html?v='+APP_VERSION+'&t='+Date.now()" class="bg-pop-card hover:bg-slate-700 text-gray-200 px-2.5 py-1.5 rounded-xl border-2 border-black text-xs font-black flex items-center gap-1.5 shrink-0 transition-colors" title="メニューへ戻る">
         <i class="fa-solid fa-house"></i>
         <span class="hidden sm:inline">メニュー</span>
       </a>
@@ -172,7 +172,7 @@
     </div>
 
     <div class="flex items-center gap-2 shrink-0">
-      <span class="hidden sm:inline-block bg-pop-card text-pop-cyan border-2 border-black px-2 py-0.5 rounded-lg text-[10px] font-black">Ver 3.9.1</span>
+      <span class="hidden sm:inline-block bg-pop-card text-pop-cyan border-2 border-black px-2 py-0.5 rounded-lg text-[10px] font-black">Ver 3.9.2</span>
       <button onclick="forceReloadLatestStudy()" class="w-9 h-9 bg-pop-card hover:bg-slate-700 text-pop-yellow rounded-xl border-2 border-black flex items-center justify-center text-sm neo-button" title="最新版に更新">
         <i class="fa-solid fa-rotate"></i>
       </button>
@@ -206,9 +206,9 @@
             <div>
               <h1 class="text-sm md:text-base font-black text-white leading-tight flex items-center gap-2 flex-wrap">
                 <span>STEP 1：挑戦するサンプル問題をえらぼう！</span>
-                <span class="bg-black/40 text-pop-yellow text-[10px] px-2 py-0.5 rounded-full">カードのどこでもタップで「＋たす」OK！10〜20問がおすすめ</span>
+                <span class="bg-black/40 text-pop-yellow text-[10px] px-2 py-0.5 rounded-full">タップで選択＆もう1回タップで解除！10〜20問がおすすめ</span>
               </h1>
-              <p class="text-[11px] text-purple-100 font-bold leading-tight">左のツリーや検索からセットのワクをタップするだけで次々と問題が足されていきます</p>
+              <p class="text-[11px] text-purple-100 font-bold leading-tight">左のツリーや検索からセットのワクをタップすると追加・再タップで解除できます</p>
             </div>
           </div>
 
@@ -260,7 +260,7 @@
               現在 0問
             </span>
             <span id="study-recommend-hint" class="text-[11px] font-bold text-gray-300 truncate max-w-[260px] md:max-w-lg">
-              セットのワクをタップすると問題が足されていくよ（10〜20問くらいが白熱！）
+              セットのワクをタップで追加・もう1回タップで解除（10〜20問くらいが白熱！）
             </span>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -641,7 +641,7 @@
   </main>
 
   <!-- オフラインフォールバック用サンプルバンドル -->
-  <script src="sample/sample_bundle.js?v=3.9.1"></script>
+  <script src="sample/sample_bundle.js?v=3.9.2"></script>
 
   <script>
     // =========================================================================
@@ -745,6 +745,7 @@
     let studyExpandedTreeNodes = new Set(['school:jh']);
     let studyExpandedPreviews = new Set();
     let studySearchQuery = '';
+    let studySelectedSetMap = new Map();
     let studyAddedSetCounts = new Map();
     let studyAddedSetTitles = [];
     let lastFilteredStudySets = [];
@@ -1022,7 +1023,10 @@
       const bulkText = document.getElementById('study-bulk-append-text');
       if (bulkBtn && bulkText) {
         if (filtered.length >= 2 && filtered.length <= 20) {
-          bulkText.textContent = `まとめてたす (${filtered.length}セット)`;
+          const allSelected = filtered.every(item => studySelectedSetMap.has(item.id));
+          bulkText.textContent = allSelected
+            ? `表示中をまとめて解除 (${filtered.length}セット)`
+            : `まとめて選択 (${filtered.length}セット)`;
           bulkBtn.classList.remove('hidden');
         } else {
           bulkBtn.classList.add('hidden');
@@ -1055,8 +1059,8 @@
         }
 
         const isExp = studyExpandedPreviews.has(item.id) || kw !== '';
-        const addedCnt = studyAddedSetCounts.get(item.id) || 0;
-        const addedBadge = addedCnt > 0 ? `<span class="bg-pop-green text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-black">✓ 追加済${addedCnt > 1 ? ` ×${addedCnt}` : ''}</span>` : '';
+        const isSelected = studySelectedSetMap.has(item.id);
+        const addedBadge = isSelected ? `<span class="bg-pop-green text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-black">✓ 選択中</span>` : '';
 
         let prevHtml = '';
         if (isExp && item.previewQuestions?.length) {
@@ -1068,7 +1072,7 @@
             </div>`).join('') + `</div>`;
         }
 
-        html += `<div role="button" tabindex="0" onclick="addStudySampleSet('${escapeHtml(item.id)}', 'append')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();addStudySampleSet('${escapeHtml(item.id)}','append');}" class="study-set-card bg-pop-card neo-border-sm shadow-neo-sm rounded-2xl p-3 cursor-pointer transition-all hover:border-pop-yellow hover:bg-[#2a2748] active:scale-[0.99] select-none ${addedCnt > 0 ? 'border-pop-green/80 bg-[#272644]' : ''}">
+        html += `<div role="button" tabindex="0" aria-pressed="${isSelected}" onclick="addStudySampleSet('${escapeHtml(item.id)}', 'toggle')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();addStudySampleSet('${escapeHtml(item.id)}','toggle');}" class="study-set-card neo-border-sm shadow-neo-sm rounded-2xl p-3 cursor-pointer transition-all active:scale-[0.99] select-none ${isSelected ? 'border-2 border-pop-green bg-emerald-950/55 hover:bg-emerald-950/75' : 'bg-pop-card hover:border-pop-yellow hover:bg-[#2a2748]'}">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap mb-1">
@@ -1082,8 +1086,8 @@
               <button type="button" onclick="event.stopPropagation(); toggleStudyPreview('${escapeHtml(item.id)}')" class="bg-pop-dark hover:bg-slate-800 text-gray-200 font-black text-[11px] py-2 px-2.5 rounded-xl border-2 border-black flex items-center gap-1">
                 <i class="fa-solid ${isExp ? 'fa-chevron-up' : 'fa-eye'} text-pop-cyan"></i><span>${isExp ? '閉じる' : '見る'}</span>
               </button>
-              <span class="bg-pop-cyan hover:bg-cyan-300 text-black font-black text-xs py-2 px-3 rounded-xl neo-border-sm flex items-center gap-1 pointer-events-none">
-                <i class="fa-solid fa-plus"></i><span>${addedCnt > 0 ? 'さらにたす' : 'たす'} (+${item.questionCount})</span>
+              <span class="font-black text-xs py-2 px-3 rounded-xl neo-border-sm flex items-center gap-1 pointer-events-none ${isSelected ? 'bg-pop-green text-black' : 'bg-pop-cyan text-black'}">
+                <i class="fa-solid ${isSelected ? 'fa-check' : 'fa-plus'}"></i><span>${isSelected ? '選択中（再タップで解除）' : `選択 (+${item.questionCount})`}</span>
               </span>
             </div>
           </div>
@@ -1094,60 +1098,82 @@
       updateStudyFooter();
     }
 
-    async function addStudySampleSet(setId, mode = 'append') {
-      initAudio();
-      const loaded = await fetchSetQuestions(setId);
-      if (!loaded) return;
+    function syncSelectedQuestionsFromMap() {
+      selectedStudyQuestions = [];
+      studyAddedSetCounts.clear();
+      studyAddedSetTitles = [];
+      studySelectedSetMap.forEach((entry, sId) => {
+        selectedStudyQuestions.push(...JSON.parse(JSON.stringify(entry.questions)));
+        studyAddedSetCounts.set(sId, 1);
+        studyAddedSetTitles.push(`${entry.meta.subjectName}[${entry.meta.title.split(':')[0]}]`);
+      });
+    }
 
-      const qList = JSON.parse(JSON.stringify(loaded.questions));
-      if (mode === 'replace_and_next') {
-        selectedStudyQuestions = qList;
-        studyAddedSetCounts.clear();
-        studyAddedSetCounts.set(setId, 1);
-        studyAddedSetTitles = [`${loaded.meta.subjectName}[${loaded.meta.title.split(':')[0]}]`];
+    async function addStudySampleSet(setId, mode = 'toggle') {
+      initAudio();
+
+      if (mode === 'toggle' && studySelectedSetMap.has(setId)) {
+        const removed = studySelectedSetMap.get(setId);
+        studySelectedSetMap.delete(setId);
+        syncSelectedQuestionsFromMap();
         updateStudyFooter();
         renderStudyLibraryList();
-        playBeep(880, 'triangle', 0.14);
-        goToOpponentSetup();
+        showStudyToast(`「${removed.meta.title}」を解除しました（現在 ${selectedStudyQuestions.length}問）`);
+        playBeep(520, 'sine', 0.08);
         return;
       }
 
-      selectedStudyQuestions = [...selectedStudyQuestions, ...qList];
-      studyAddedSetCounts.set(setId, (studyAddedSetCounts.get(setId) || 0) + 1);
-      studyAddedSetTitles.push(`${loaded.meta.subjectName}[${loaded.meta.title.split(':')[0]}]`);
+      const loaded = await fetchSetQuestions(setId);
+      if (!loaded) return;
+
+      if (mode === 'replace') {
+        studySelectedSetMap.clear();
+      }
+      studySelectedSetMap.set(setId, { meta: loaded.meta, questions: JSON.parse(JSON.stringify(loaded.questions)) });
+      syncSelectedQuestionsFromMap();
       updateStudyFooter();
       renderStudyLibraryList();
-      showStudyToast(`「${loaded.meta.title}」(+${qList.length}問) をたしました！（現在 ${selectedStudyQuestions.length}問）`);
+      showStudyToast(`「${loaded.meta.title}」(+${loaded.questions.length}問) を追加しました！（現在 ${selectedStudyQuestions.length}問）`);
       playBeep(784, 'triangle', 0.12);
     }
 
     async function appendAllFilteredStudySets() {
       initAudio();
       if (!lastFilteredStudySets.length) return;
-      if (lastFilteredStudySets.length >= 8) {
-        const total = lastFilteredStudySets.reduce((s, x) => s + (x.questionCount || 0), 0);
-        if (!confirm(`表示中の ${lastFilteredStudySets.length}セット（計${total}問）をまとめて追加しますか？`)) return;
+      const allSelected = lastFilteredStudySets.every(item => studySelectedSetMap.has(item.id));
+      if (allSelected) {
+        lastFilteredStudySets.forEach(meta => studySelectedSetMap.delete(meta.id));
+        syncSelectedQuestionsFromMap();
+        updateStudyFooter();
+        renderStudyLibraryList();
+        showStudyToast(`表示中の ${lastFilteredStudySets.length}セットをまとめて解除しました（現在 ${selectedStudyQuestions.length}問）`);
+        playBeep(520, 'sine', 0.1);
+        return;
+      }
+
+      const toAdd = lastFilteredStudySets.filter(item => !studySelectedSetMap.has(item.id));
+      if (toAdd.length >= 8) {
+        const total = toAdd.reduce((s, x) => s + (x.questionCount || 0), 0);
+        if (!confirm(`未選択の ${toAdd.length}セット（計${total}問）をまとめて選択しますか？`)) return;
       }
       let addedCount = 0;
-      for (const meta of lastFilteredStudySets) {
+      for (const meta of toAdd) {
         const loaded = await fetchSetQuestions(meta.id);
         if (loaded?.questions) {
-          selectedStudyQuestions.push(...JSON.parse(JSON.stringify(loaded.questions)));
-          studyAddedSetCounts.set(meta.id, (studyAddedSetCounts.get(meta.id) || 0) + 1);
-          studyAddedSetTitles.push(`${meta.subjectName}[${meta.title.split(':')[0]}]`);
+          studySelectedSetMap.set(meta.id, { meta: loaded.meta, questions: JSON.parse(JSON.stringify(loaded.questions)) });
           addedCount += loaded.questions.length;
         }
       }
+      syncSelectedQuestionsFromMap();
       updateStudyFooter();
       renderStudyLibraryList();
-      showStudyToast(`${lastFilteredStudySets.length}セット (+${addedCount}問) をまとめて追加しました！`);
+      showStudyToast(`${toAdd.length}セット (+${addedCount}問) をまとめて選択しました！`);
       playBeep(880, 'triangle', 0.15);
     }
 
     function clearStudySelectedQuestions() {
-      selectedStudyQuestions = [];
-      studyAddedSetCounts.clear();
-      studyAddedSetTitles = [];
+      studySelectedSetMap.clear();
+      syncSelectedQuestionsFromMap();
       updateStudyFooter();
       renderStudyLibraryList();
       showStudyToast('選択をクリア（0問）にしました');
@@ -1167,7 +1193,7 @@
           : "bg-gray-700 text-gray-200 text-xs font-black px-3 py-1 rounded-full border border-gray-500 shrink-0";
       }
       if (hint) {
-        if (n === 0) hint.textContent = 'セットのワクをタップすると問題が足されていきます（10〜20問くらいが白熱！）';
+        if (n === 0) hint.textContent = 'セットのワクをタップで追加・もう1回タップで解除できます（10〜20問くらいが白熱！）';
         else if (n < 10) hint.textContent = `${studyAddedSetTitles.join('＋')}（あと少し足して10〜20問にするのもおすすめ！）`;
         else hint.textContent = `${studyAddedSetTitles.join('＋')}（ちょうどいいボリュームでバッチリ！）`;
       }
