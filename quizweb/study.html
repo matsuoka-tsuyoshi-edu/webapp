@@ -7,10 +7,10 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>POP QUIZ SHOW - 自習モード (Ver 3.9.0)</title>
+  <title>POP QUIZ SHOW - 自習モード (Ver 3.9.1)</title>
   <script>
-    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.9.0)
-    const APP_VERSION = "3.9.0";
+    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.9.1)
+    const APP_VERSION = "3.9.1";
 
     async function clearAllAppCaches() {
       try {
@@ -161,7 +161,7 @@
   <!-- Top Bar (Clean Header) -->
   <header class="bg-pop-dark border-b-4 border-black px-3 md:px-5 py-2 flex items-center justify-between shrink-0 z-30">
     <div class="flex items-center gap-2.5 min-w-0">
-      <a href="index.html?v=3.9.0" onclick="this.href='index.html?v='+APP_VERSION+'&t='+Date.now()" class="bg-pop-card hover:bg-slate-700 text-gray-200 px-2.5 py-1.5 rounded-xl border-2 border-black text-xs font-black flex items-center gap-1.5 shrink-0 transition-colors" title="メニューへ戻る">
+      <a href="index.html?v=3.9.1" onclick="this.href='index.html?v='+APP_VERSION+'&t='+Date.now()" class="bg-pop-card hover:bg-slate-700 text-gray-200 px-2.5 py-1.5 rounded-xl border-2 border-black text-xs font-black flex items-center gap-1.5 shrink-0 transition-colors" title="メニューへ戻る">
         <i class="fa-solid fa-house"></i>
         <span class="hidden sm:inline">メニュー</span>
       </a>
@@ -172,7 +172,7 @@
     </div>
 
     <div class="flex items-center gap-2 shrink-0">
-      <span class="hidden sm:inline-block bg-pop-card text-pop-cyan border-2 border-black px-2 py-0.5 rounded-lg text-[10px] font-black">Ver 3.9.0</span>
+      <span class="hidden sm:inline-block bg-pop-card text-pop-cyan border-2 border-black px-2 py-0.5 rounded-lg text-[10px] font-black">Ver 3.9.1</span>
       <button onclick="forceReloadLatestStudy()" class="w-9 h-9 bg-pop-card hover:bg-slate-700 text-pop-yellow rounded-xl border-2 border-black flex items-center justify-center text-sm neo-button" title="最新版に更新">
         <i class="fa-solid fa-rotate"></i>
       </button>
@@ -206,9 +206,9 @@
             <div>
               <h1 class="text-sm md:text-base font-black text-white leading-tight flex items-center gap-2 flex-wrap">
                 <span>STEP 1：挑戦するサンプル問題をえらぼう！</span>
-                <span class="bg-black/40 text-pop-yellow text-[10px] px-2 py-0.5 rounded-full">教科をまたいで「＋たす」OK！10〜20問がおすすめ</span>
+                <span class="bg-black/40 text-pop-yellow text-[10px] px-2 py-0.5 rounded-full">カードのどこでもタップで「＋たす」OK！10〜20問がおすすめ</span>
               </h1>
-              <p class="text-[11px] text-purple-100 font-bold leading-tight">左のツリーや検索からセットを選んで「＋たす」で自分だけの特訓コースを作れます</p>
+              <p class="text-[11px] text-purple-100 font-bold leading-tight">左のツリーや検索からセットのワクをタップするだけで次々と問題が足されていきます</p>
             </div>
           </div>
 
@@ -260,7 +260,7 @@
               現在 0問
             </span>
             <span id="study-recommend-hint" class="text-[11px] font-bold text-gray-300 truncate max-w-[260px] md:max-w-lg">
-              セットを選んで「＋ たす」を押してね（20問前後が白熱！）
+              セットのワクをタップすると問題が足されていくよ（10〜20問くらいが白熱！）
             </span>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -486,7 +486,7 @@
             </div>
           </div>
 
-          <!-- Right: Explanation + Rival Standings -->
+          <!-- Right: Explanation + Toggleable Rival Standings -->
           <div class="md:col-span-6 flex flex-col gap-2.5 min-h-0 overflow-hidden">
             <div class="flex-1 bg-gradient-to-br from-[#23203d] to-pop-dark neo-border-sm rounded-2xl p-4 flex flex-col min-h-0 overflow-y-auto">
               <div class="flex items-center gap-2 text-pop-yellow font-black text-sm mb-2 shrink-0">
@@ -496,12 +496,26 @@
               <p id="reveal-explanation-text" class="text-sm md:text-base text-white font-bold leading-relaxed"></p>
             </div>
 
-            <div id="reveal-standings-box" class="bg-pop-card neo-border-sm rounded-2xl p-3 shrink-0 max-h-[150px] overflow-y-auto">
-              <div class="text-[11px] font-black text-pop-cyan mb-1.5 flex items-center justify-between">
-                <span>🏆 現在の暫定順位</span>
-                <span id="reveal-secret-note" class="text-pop-pink hidden">🔒 表彰式までお楽しみ！</span>
+            <!-- Collapsible Standings Toggle Button + Hidden-by-Default Drawer -->
+            <div id="reveal-standings-wrap" class="shrink-0 flex flex-col gap-2">
+              <button id="reveal-standings-toggle-btn" type="button" onclick="toggleRevealStandings()" class="w-full bg-pop-card hover:bg-[#363054] text-pop-cyan neo-border-sm rounded-2xl px-3.5 py-2 text-xs font-black flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-2">
+                  <i class="fa-solid fa-ranking-star text-pop-yellow"></i>
+                  <span id="reveal-standings-btn-label">みんなの途中順位を見る</span>
+                </span>
+                <span class="flex items-center gap-1.5 text-[11px] text-gray-300">
+                  <span id="reveal-standings-chevron-label">タップで開く</span>
+                  <i id="reveal-standings-chevron" class="fa-solid fa-chevron-down transition-transform"></i>
+                </span>
+              </button>
+
+              <div id="reveal-standings-box" class="hidden bg-pop-card neo-border-sm rounded-2xl p-3 max-h-[160px] overflow-y-auto">
+                <div class="text-[11px] font-black text-pop-cyan mb-1.5 flex items-center justify-between gap-2">
+                  <span id="reveal-standings-header-text">🏆 現在の暫定順位</span>
+                  <span id="reveal-secret-note" class="text-pop-pink hidden">🔒 表彰式までお楽しみ！</span>
+                </div>
+                <div id="reveal-standings-list" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs"></div>
               </div>
-              <div id="reveal-standings-list" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs"></div>
             </div>
           </div>
         </div>
@@ -627,7 +641,7 @@
   </main>
 
   <!-- オフラインフォールバック用サンプルバンドル -->
-  <script src="sample/sample_bundle.js?v=3.9.0"></script>
+  <script src="sample/sample_bundle.js?v=3.9.1"></script>
 
   <script>
     // =========================================================================
@@ -1054,7 +1068,7 @@
             </div>`).join('') + `</div>`;
         }
 
-        html += `<div class="bg-pop-card neo-border-sm shadow-neo-sm rounded-2xl p-3 ${addedCnt > 0 ? 'border-pop-green/80 bg-[#272644]' : 'hover:border-pop-yellow'}">
+        html += `<div role="button" tabindex="0" onclick="addStudySampleSet('${escapeHtml(item.id)}', 'append')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();addStudySampleSet('${escapeHtml(item.id)}','append');}" class="study-set-card bg-pop-card neo-border-sm shadow-neo-sm rounded-2xl p-3 cursor-pointer transition-all hover:border-pop-yellow hover:bg-[#2a2748] active:scale-[0.99] select-none ${addedCnt > 0 ? 'border-pop-green/80 bg-[#272644]' : ''}">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap mb-1">
@@ -1065,15 +1079,12 @@
               <p class="text-[11px] text-gray-300 font-bold leading-snug line-clamp-2">${escapeHtml(item.description)}</p>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
-              <button type="button" onclick="toggleStudyPreview('${escapeHtml(item.id)}')" class="bg-pop-dark hover:bg-slate-800 text-gray-200 font-black text-[11px] py-2 px-2.5 rounded-xl border-2 border-black flex items-center gap-1">
+              <button type="button" onclick="event.stopPropagation(); toggleStudyPreview('${escapeHtml(item.id)}')" class="bg-pop-dark hover:bg-slate-800 text-gray-200 font-black text-[11px] py-2 px-2.5 rounded-xl border-2 border-black flex items-center gap-1">
                 <i class="fa-solid ${isExp ? 'fa-chevron-up' : 'fa-eye'} text-pop-cyan"></i><span>${isExp ? '閉じる' : '見る'}</span>
               </button>
-              <button type="button" onclick="addStudySampleSet('${escapeHtml(item.id)}', 'append')" class="bg-pop-cyan hover:bg-cyan-300 text-black font-black text-xs py-2 px-3 rounded-xl neo-border-sm neo-button flex items-center gap-1">
-                <i class="fa-solid fa-plus"></i><span>たす (+${item.questionCount})</span>
-              </button>
-              <button type="button" onclick="addStudySampleSet('${escapeHtml(item.id)}', 'replace_and_next')" class="bg-pop-green hover:bg-emerald-400 text-black font-black text-xs py-2 px-3 rounded-xl neo-border-sm neo-button flex items-center gap-1">
-                <i class="fa-solid fa-play"></i><span>これにする</span>
-              </button>
+              <span class="bg-pop-cyan hover:bg-cyan-300 text-black font-black text-xs py-2 px-3 rounded-xl neo-border-sm flex items-center gap-1 pointer-events-none">
+                <i class="fa-solid fa-plus"></i><span>${addedCnt > 0 ? 'さらにたす' : 'たす'} (+${item.questionCount})</span>
+              </span>
             </div>
           </div>
           ${prevHtml}
@@ -1156,7 +1167,7 @@
           : "bg-gray-700 text-gray-200 text-xs font-black px-3 py-1 rounded-full border border-gray-500 shrink-0";
       }
       if (hint) {
-        if (n === 0) hint.textContent = 'セットを選んで「＋ たす」を押してね（10〜20問くらいが盛り上がります！）';
+        if (n === 0) hint.textContent = 'セットのワクをタップすると問題が足されていきます（10〜20問くらいが白熱！）';
         else if (n < 10) hint.textContent = `${studyAddedSetTitles.join('＋')}（あと少し足して10〜20問にするのもおすすめ！）`;
         else hint.textContent = `${studyAddedSetTitles.join('＋')}（ちょうどいいボリュームでバッチリ！）`;
       }
@@ -1749,17 +1760,29 @@
 
       document.getElementById('game-my-score').textContent = `${human.score.toLocaleString()} pt`;
 
-      // Compute rankings
+      // Compute rankings & escalating secret mystery
       const sorted = [...participants].sort((a, b) => b.score - a.score);
       const myRank = sorted.findIndex(p => p.isHuman) + 1;
       const totalQ = activeQuizQuestions.length;
       const midIdx = Math.floor(totalQ / 2) - 1;
       const isMidTriggerNext = (studyMode !== 'solo') && (totalQ >= 6) && !hasDoneMidRank && (currentIndex === midIdx);
-      const isSecretPhase = (studyMode !== 'solo') && (
-        totalQ >= 6
-          ? (currentIndex > midIdx)
-          : (totalQ >= 4 && currentIndex >= totalQ - 2 && currentIndex < totalQ - 1)
-      );
+
+      // 後半になるほど順位・ライバルとの差が分からなくなる段階的シークレット:
+      // secretLevel 0: 前半（順位・スコアすべて公開）
+      // secretLevel 1: 後半戦序盤（順位数「❓」＋スコア順ソート解除で順位推理不可）
+      // secretLevel 2: 最終盤ラスト（順位「❓」に加え他者の得点も「???」化・完全ヒミツ！）
+      let secretLevel = 0;
+      if (studyMode !== 'solo') {
+        if (totalQ >= 6) {
+          const deepThreshold = totalQ - Math.max(2, Math.floor(totalQ * 0.25));
+          if (currentIndex >= deepThreshold) secretLevel = 2;
+          else if (currentIndex > midIdx) secretLevel = 1;
+        } else if (totalQ >= 4) {
+          if (currentIndex >= totalQ - 1) secretLevel = 2;
+          else if (currentIndex >= totalQ - 2) secretLevel = 1;
+        }
+      }
+      const isSecretPhase = secretLevel > 0;
 
       // Switch to Reveal Stage
       document.getElementById('game-stage-question').classList.add('hidden');
@@ -1788,8 +1811,10 @@
 
       if (studyMode === 'solo') {
         rankBadge.textContent = `正解数 ${human.correctCount} / ${currentIndex + 1}`;
-      } else if (isSecretPhase) {
-        rankBadge.textContent = '現在 第❓位（最終決戦！）';
+      } else if (secretLevel === 2) {
+        rankBadge.textContent = '現在 第❓位（最終決戦・完全ヒミツ！）';
+      } else if (secretLevel === 1) {
+        rankBadge.textContent = '現在 第❓位（後半戦シークレット）';
       } else {
         rankBadge.textContent = `現在 第${myRank}位 / ${participants.length}人`;
       }
@@ -1822,25 +1847,73 @@
 
       document.getElementById('reveal-explanation-text').textContent = q.explanation || 'この問題のワンポイントをおさらいしておこう！';
 
-      // Standings box
+      // Collapsible standings drawer (always collapsed by default; tap button to expand)
+      const standWrap = document.getElementById('reveal-standings-wrap');
       const standBox = document.getElementById('reveal-standings-box');
       const secNote = document.getElementById('reveal-secret-note');
+      const btnLabel = document.getElementById('reveal-standings-btn-label');
+      const hdrText = document.getElementById('reveal-standings-header-text');
+      const chevIcon = document.getElementById('reveal-standings-chevron');
+      const chevLbl = document.getElementById('reveal-standings-chevron-label');
+
+      if (standBox) standBox.classList.add('hidden');
+      if (chevIcon) chevIcon.classList.remove('rotate-180');
+      if (chevLbl) chevLbl.textContent = 'タップで開く';
+
       if (studyMode === 'solo') {
-        standBox.classList.add('hidden');
+        if (standWrap) standWrap.classList.add('hidden');
       } else {
-        standBox.classList.remove('hidden');
-        secNote.classList.toggle('hidden', !isSecretPhase);
-        document.getElementById('reveal-standings-list').innerHTML = sorted.map((p, idx) => `
+        if (standWrap) standWrap.classList.remove('hidden');
+        if (secNote) {
+          secNote.classList.toggle('hidden', !isSecretPhase);
+          secNote.textContent = secretLevel === 2 ? '🔒 完全シークレット！表彰式までヒミツ' : '🔒 順位シークレット中！';
+        }
+        if (btnLabel) {
+          btnLabel.textContent = secretLevel === 2
+            ? 'みんなの状況を見る（第❓位・得点も非公開）'
+            : secretLevel === 1
+            ? 'みんなの状況を見る（順位❓シークレット中）'
+            : `みんなの途中順位を見る（現在 第${myRank}位）`;
+        }
+        if (hdrText) {
+          hdrText.textContent = secretLevel === 2
+            ? '🔒 最終決戦ステータス（全員ヒミツ！）'
+            : secretLevel === 1
+            ? '🤫 後半戦メンバー状況（順不同・順位❓）'
+            : '🏆 現在の暫定順位';
+        }
+
+        // 後半戦ではスコア順ソートを解除し、参加者順（固定並び）にして順位を推測できないようにする
+        const displayList = isSecretPhase ? [...participants] : sorted;
+        document.getElementById('reveal-standings-list').innerHTML = displayList.map((p, idx) => {
+          const rankDisp = isSecretPhase ? '❓' : `${idx + 1}位`;
+          const scoreDisp = secretLevel === 2
+            ? (p.isHuman ? `${p.score.toLocaleString()}pt` : '🔒 ???')
+            : (secretLevel === 1 ? `${p.score.toLocaleString()}pt` : `${p.score.toLocaleString()}pt`);
+          return `
           <div class="px-2.5 py-1.5 rounded-xl border border-black flex items-center justify-between ${p.isHuman ? 'bg-pop-purple text-white font-black' : 'bg-pop-dark text-gray-200 font-bold'}">
             <span class="flex items-center gap-1.5 truncate">
-              <span class="text-pop-yellow font-black">${isSecretPhase ? '❓' : (idx + 1) + '位'}</span>
+              <span class="text-pop-yellow font-black">${rankDisp}</span>
               <span>${p.avatar}</span>
               <span class="truncate">${escapeHtml(p.isHuman ? 'あなた' : p.shortName)}</span>
             </span>
-            <span class="text-pop-yellow font-black shrink-0">${isSecretPhase ? '---' : p.score.toLocaleString() + 'pt'}</span>
+            <span class="text-pop-yellow font-black shrink-0">${scoreDisp}</span>
           </div>
-        `).join('');
+        `;
+        }).join('');
       }
+    }
+
+    function toggleRevealStandings() {
+      const box = document.getElementById('reveal-standings-box');
+      const icon = document.getElementById('reveal-standings-chevron');
+      const lbl = document.getElementById('reveal-standings-chevron-label');
+      if (!box) return;
+      const willOpen = box.classList.contains('hidden');
+      box.classList.toggle('hidden', !willOpen);
+      if (icon) icon.classList.toggle('rotate-180', willOpen);
+      if (lbl) lbl.textContent = willOpen ? '閉じる' : 'タップで開く';
+      playBeep(willOpen ? 720 : 540, 'sine', 0.06);
     }
 
     function nextStudyQuestion() {

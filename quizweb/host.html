@@ -227,8 +227,8 @@
       lastTouchEnd = now;
     }, { passive: false });
 
-    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.9.0)
-    const APP_VERSION = "3.9.0";
+    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.9.1)
+    const APP_VERSION = "3.9.1";
 
     async function clearAllAppCaches() {
       try {
@@ -317,7 +317,7 @@
 
   <!-- Floating Controls (Version Badge, Force Cache Reload & Sound) -->
   <div class="fixed top-3 right-3 z-40 flex items-center space-x-2">
-    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.9.0</span>
+    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.9.1</span>
     <button onclick="forceReloadLatestHost()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-yellow text-base neo-button hover:bg-slate-800" title="キャッシュを削除して最新版に更新">
       <i class="fa-solid fa-rotate"></i>
     </button>
@@ -900,7 +900,7 @@
       </div>
 
       <div class="mt-2.5 w-full bg-pop-dark p-2.5 md:p-3 rounded-xl neo-border-sm flex flex-col sm:flex-row items-center justify-between gap-2">
-        <a id="study-qr-direct-link" href="study.html?v=3.9.0" target="_blank" class="text-[11px] text-pop-cyan hover:text-white underline font-bold truncate max-w-[260px]">
+        <a id="study-qr-direct-link" href="study.html?v=3.9.1" target="_blank" class="text-[11px] text-pop-cyan hover:text-white underline font-bold truncate max-w-[260px]">
           study.html をこの端末で開く
         </a>
         <button onclick="closeStudyQrModal()" class="bg-pop-yellow hover:bg-amber-300 text-black font-black text-xs md:text-sm px-5 py-2 rounded-xl neo-border-sm neo-button shrink-0">
@@ -1126,7 +1126,7 @@
   </div>
 
   <!-- サンプルライブラリ オフライン/ローカル用フォールバックバンドル -->
-  <script src="sample/sample_bundle.js?v=3.9.0"></script>
+  <script src="sample/sample_bundle.js?v=3.9.1"></script>
 
   <!-- JAVASCRIPT APP LOGIC -->
   <script>
