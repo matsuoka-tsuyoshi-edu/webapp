@@ -168,7 +168,7 @@
     }
 
     /* QR Code Safe Display (Single & Beautiful) */
-    #qr-container canvas, #qr-container img, #modal-qr-container canvas, #modal-qr-container img {
+    #qr-container canvas, #qr-container img, #modal-qr-container canvas, #modal-qr-container img, #study-modal-qr-container canvas, #study-modal-qr-container img {
       border-radius: 14px;
       border: 4px solid #000;
       background: #fff;
@@ -218,8 +218,8 @@
       lastTouchEnd = now;
     }, { passive: false });
 
-    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.7.0)
-    const APP_VERSION = "3.7.0";
+    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.8.0)
+    const APP_VERSION = "3.8.0";
 
     async function clearAllAppCaches() {
       try {
@@ -308,7 +308,7 @@
 
   <!-- Floating Controls (Version Badge, Force Cache Reload & Sound) -->
   <div class="fixed top-3 right-3 z-40 flex items-center space-x-2">
-    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.7.0</span>
+    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.8.0</span>
     <button onclick="forceReloadLatestHost()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-yellow text-base neo-button hover:bg-slate-800" title="キャッシュを削除して最新版に更新">
       <i class="fa-solid fa-rotate"></i>
     </button>
@@ -331,10 +331,16 @@
             <span class="bg-pop-yellow text-black px-2.5 py-0.5 rounded-full text-[11px] font-black neo-border-sm uppercase tracking-wider inline-block mb-1">子端末の接続コード</span>
             <div class="text-4xl md:text-5xl font-black tracking-widest text-white drop-shadow-[4px_4px_0px_#000]" id="setup-room-code">接続中...</div>
             <p class="text-[11px] font-bold text-purple-200 mt-1.5">カメラで右のQRコードをかざすだけで即参加！</p>
-            <button onclick="openQrModal()" class="mt-1.5 bg-pop-yellow text-black text-xs font-black px-2.5 py-1 rounded-xl neo-border-sm neo-button inline-flex items-center gap-1 shadow-sm">
-              <i class="fa-solid fa-magnifying-glass-plus"></i>
-              <span>QRコードを画面いっぱいに拡大</span>
-            </button>
+            <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <button onclick="openQrModal()" class="bg-pop-yellow text-black text-xs font-black px-2.5 py-1 rounded-xl neo-border-sm neo-button inline-flex items-center gap-1 shadow-sm">
+                <i class="fa-solid fa-magnifying-glass-plus"></i>
+                <span>QR拡大</span>
+              </button>
+              <button onclick="openStudyQrModal()" class="bg-pop-cyan hover:bg-cyan-300 text-black text-xs font-black px-2.5 py-1 rounded-xl neo-border-sm neo-button inline-flex items-center gap-1 shadow-sm" title="生徒が一人で解ける自習モードへのQRコードを表示">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>自習モードQR</span>
+              </button>
+            </div>
           </div>
           <div id="qr-container" class="shrink-0 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" onclick="openQrModal()" title="クリックで拡大">
             <!-- QR code rendered here -->
@@ -818,6 +824,34 @@
     </div>
   </div>
 
+  <!-- ==================== STUDY MODE QR MODAL (生徒自習用QRコード発行) ==================== -->
+  <div id="study-qr-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex flex-col items-center justify-center p-3 md:p-4" onclick="closeStudyQrModal()">
+    <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl p-4 md:p-6 max-w-lg w-full text-center relative flex flex-col items-center max-h-[92dvh] overflow-y-auto" onclick="event.stopPropagation()">
+      <button onclick="closeStudyQrModal()" class="absolute top-3 right-3 w-10 h-10 bg-pop-pink text-black rounded-xl neo-border-sm flex items-center justify-center text-lg font-black neo-button" title="閉じる">
+        ✕
+      </button>
+
+      <span class="bg-pop-cyan text-black px-3 py-0.5 rounded-full text-[11px] font-black uppercase neo-border-sm mb-1 inline-block">
+        🎓 生徒配布用：自習モードアクセスQR
+      </span>
+      <h2 class="text-xl md:text-2xl font-black text-white mb-0.5">自習モードをスキャンしてね！</h2>
+      <p class="text-[11px] text-gray-300 font-bold mb-2">公式サンプル問題（7教科71セット）のみに挑戦できます（自作読込なし・安心設計）</p>
+
+      <div class="bg-white p-3 rounded-2xl neo-border inline-block shadow-neo mx-auto my-1" id="study-modal-qr-container">
+        <!-- Study QR injected here -->
+      </div>
+
+      <div class="mt-2.5 w-full bg-pop-dark p-2.5 md:p-3 rounded-xl neo-border-sm flex flex-col sm:flex-row items-center justify-between gap-2">
+        <a id="study-qr-direct-link" href="study.html?v=3.8.0" target="_blank" class="text-[11px] text-pop-cyan hover:text-white underline font-bold truncate max-w-[260px]">
+          study.html をこの端末で開く
+        </a>
+        <button onclick="closeStudyQrModal()" class="bg-pop-yellow hover:bg-amber-300 text-black font-black text-xs md:text-sm px-5 py-2 rounded-xl neo-border-sm neo-button shrink-0">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== QUIZ STUDIO (CREATOR & EDITOR MODAL) ==================== -->
   <div id="quiz-studio-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col p-4 md:p-6" onclick="closeQuizStudio()">
     <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl flex-1 flex flex-col overflow-hidden max-w-6xl w-full mx-auto" onclick="event.stopPropagation()">
@@ -1034,7 +1068,7 @@
   </div>
 
   <!-- サンプルライブラリ オフライン/ローカル用フォールバックバンドル -->
-  <script src="sample/sample_bundle.js?v=3.7.0"></script>
+  <script src="sample/sample_bundle.js?v=3.8.0"></script>
 
   <!-- JAVASCRIPT APP LOGIC -->
   <script>
@@ -2226,6 +2260,58 @@
 
     function closeQrModal() {
       document.getElementById('qr-modal').classList.add('hidden');
+    }
+
+    function getStudyModeUrl() {
+      const targetUrl = new URL('study.html', window.location.href);
+      targetUrl.searchParams.set('v', APP_VERSION);
+      targetUrl.searchParams.set('t', Date.now().toString());
+      return targetUrl.toString();
+    }
+
+    function openStudyQrModal() {
+      initAudio();
+      const modalEl = document.getElementById('study-qr-modal');
+      const qrBox = document.getElementById('study-modal-qr-container');
+      const linkEl = document.getElementById('study-qr-direct-link');
+      const studyUrl = getStudyModeUrl();
+
+      if (linkEl) {
+        linkEl.href = studyUrl;
+        linkEl.textContent = studyUrl;
+      }
+
+      if (qrBox) {
+        qrBox.innerHTML = '';
+        new QRCode(qrBox, {
+          text: studyUrl,
+          width: 300,
+          height: 300,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        setTimeout(() => {
+          const canvas = qrBox.querySelector('canvas');
+          const img = qrBox.querySelector('img');
+          if (img && img.src && img.src.startsWith('data:image')) {
+            if (canvas) canvas.style.display = 'none';
+            img.style.display = 'block';
+            img.style.margin = '0 auto';
+          } else if (canvas) {
+            canvas.style.display = 'block';
+            canvas.style.margin = '0 auto';
+            if (img) img.style.display = 'none';
+          }
+        }, 50);
+      }
+
+      if (modalEl) modalEl.classList.remove('hidden');
+      playBeep(750, 'triangle', 0.1);
+    }
+
+    function closeStudyQrModal() {
+      document.getElementById('study-qr-modal').classList.add('hidden');
     }
 
     function handleIncomingConnection(conn) {

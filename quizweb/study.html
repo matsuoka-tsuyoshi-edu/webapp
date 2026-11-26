@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <!-- キャッシュ無効化 -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>POP QUIZ SHOW - 自習モード (Ver 3.8.0)</title>
+  <script>
+    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.8.0)
+    const APP_VERSION = "3.8.0";
+
+    async function clearAllAppCaches() {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) await reg.unregister();
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          for (const key of keys) await caches.delete(key);
+        }
+      } catch (e) {}
+    }
+
+    async function checkVersionAndPurgeCache() {
+      try {
+        const storedVer = localStorage.getItem('popquiz_app_version');
+        if (storedVer !== APP_VERSION) {
+          await clearAllAppCaches();
+          localStorage.setItem('popquiz_app_version', APP_VERSION);
+        }
+        if (location.protocol.startsWith('http')) {
+          const res = await fetch('./version.json?nocache=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.version && data.version !== APP_VERSION) {
+              const guardKey = 'popquiz_study_reloaded_' + data.version;
+              if (!sessionStorage.getItem(guardKey)) {
+                sessionStorage.setItem(guardKey, '1');
+                await clearAllAppCaches();
+                const url = new URL(window.location.href);
+                url.searchParams.set('v', data.version);
+                url.searchParams.set('t', Date.now().toString());
+                window.location.replace(url.toString());
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
+    checkVersionAndPurgeCache();
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) checkVersionAndPurgeCache();
+    });
+
+    async function forceReloadLatestStudy() {
+      await clearAllAppCaches();
+      try { localStorage.removeItem('popquiz_app_version'); sessionStorage.clear(); } catch(e) {}
+      const url = new URL(window.location.href);
+      url.searchParams.set('v', APP_VERSION);
+      url.searchParams.set('t', Date.now().toString());
+      window.location.replace(url.toString());
+    }
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'pop-purple': '#6C5CE7',
+            'pop-dark': '#1E1B2E',
+            'pop-card': '#2A2640',
+            'pop-pink': '#FF7675',
+            'pop-yellow': '#FDCB6E',
+            'pop-green': '#00B894',
+            'pop-blue': '#0984E3',
+            'pop-cyan': '#00CEC9',
+          },
+          fontFamily: {
+            pop: ['"Fredoka"', '"M PLUS Rounded 1c"', 'sans-serif'],
+          },
+          boxShadow: {
+            'neo': '5px 5px 0px #000000',
+            'neo-lg': '8px 8px 0px #000000',
+            'neo-sm': '3px 3px 0px #000000',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      box-sizing: border-box;
+      font-family: 'Fredoka', 'M PLUS Rounded 1c', sans-serif;
+    }
+    input, textarea {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+    html, body {
+      background-color: #141221;
+      color: #FFFFFF;
+      height: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      touch-action: manipulation;
+      overscroll-behavior: none;
+    }
+    .neo-border { border: 4px solid #000000; }
+    .neo-border-sm { border: 3px solid #000000; }
+    .neo-button { transition: all 0.1s ease; cursor: pointer; }
+    .neo-button:active {
+      transform: translate(3px, 3px);
+      box-shadow: 2px 2px 0px #000000 !important;
+    }
+    .timer-ring-circle {
+      transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    @keyframes pop-toast {
+      0% { transform: translateY(30px) scale(0.8); opacity: 0; }
+      20% { transform: translateY(-4px) scale(1.05); opacity: 1; }
+      85% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-20px) scale(0.95); opacity: 0; }
+    }
+    .toast-pop-anim { animation: pop-toast 2.0s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    @keyframes pop-podium {
+      0% { transform: translateY(100%) scale(0.8); opacity: 0; }
+      80% { transform: translateY(-5%) scale(1.05); opacity: 1; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .animate-podium-pop { animation: pop-podium 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #1E1B2E; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #6C5CE7; border-radius: 4px; border: 2px solid #000; }
+  </style>
+</head>
+<body class="flex flex-col h-full min-h-0 overflow-hidden bg-[#141221] text-white">
+
+  <!-- Top Bar (Clean Header) -->
+  <header class="bg-pop-dark border-b-4 border-black px-3 md:px-5 py-2 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <a href="index.html?v=3.8.0" onclick="this.href='index.html?v='+APP_VERSION+'&t='+Date.now()" class="bg-pop-card hover:bg-slate-700 text-gray-200 px-2.5 py-1.5 rounded-xl border-2 border-black text-xs font-black flex items-center gap-1.5 shrink-0 transition-colors" title="メニューへ戻る">
+        <i class="fa-solid fa-house"></i>
+        <span class="hidden sm:inline">メニュー</span>
+      </a>
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="bg-pop-yellow text-black text-xs px-2.5 py-0.5 rounded-full border-2 border-black font-black shrink-0">🎓 自習モード</span>
+        <span id="study-header-status" class="text-xs font-bold text-pop-cyan truncate hidden md:inline">サンプル問題を選んでチャレンジしよう！</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 shrink-0">
+      <span class="hidden sm:inline-block bg-pop-card text-pop-cyan border-2 border-black px-2 py-0.5 rounded-lg text-[10px] font-black">Ver 3.8.0</span>
+      <button onclick="forceReloadLatestStudy()" class="w-9 h-9 bg-pop-card hover:bg-slate-700 text-pop-yellow rounded-xl border-2 border-black flex items-center justify-center text-sm neo-button" title="最新版に更新">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+      <button onclick="toggleSound()" id="study-sound-btn" class="w-9 h-9 bg-pop-card hover:bg-slate-700 text-pop-cyan rounded-xl border-2 border-black flex items-center justify-center text-sm neo-button" title="効果音 ON/OFF">
+        <i class="fa-solid fa-volume-high" id="study-sound-icon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Global Notification Toast -->
+  <div id="study-global-toast" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-[100] bg-pop-green text-black px-5 py-2.5 rounded-2xl neo-border shadow-neo-lg font-black text-xs md:text-sm flex items-center gap-2 pointer-events-none">
+    <i class="fa-solid fa-circle-check text-lg"></i>
+    <span id="study-global-toast-text">更新しました</span>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
+
+    <!-- ========================================================================= -->
+    <!-- STEP 1: SELECT SAMPLE SETS (ツリー探索・複数教科合体OK・スタジオ不可)     -->
+    <!-- ========================================================================= -->
+    <section id="step-select" class="flex-1 min-h-0 flex flex-col p-2.5 md:p-4 max-w-6xl w-full mx-auto">
+      <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl flex-1 flex flex-col overflow-hidden min-h-0">
+
+        <!-- Title & Search Header -->
+        <div class="bg-pop-purple px-4 md:px-5 py-2.5 border-b-4 border-black flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 bg-pop-yellow text-black rounded-xl neo-border-sm flex items-center justify-center text-lg font-black shrink-0">
+              📚
+            </div>
+            <div>
+              <h1 class="text-sm md:text-base font-black text-white leading-tight flex items-center gap-2 flex-wrap">
+                <span>STEP 1：挑戦するサンプル問題をえらぼう！</span>
+                <span class="bg-black/40 text-pop-yellow text-[10px] px-2 py-0.5 rounded-full">教科をまたいで「＋たす」OK！10〜20問がおすすめ</span>
+              </h1>
+              <p class="text-[11px] text-purple-100 font-bold leading-tight">左のツリーや検索からセットを選んで「＋たす」で自分だけの特訓コースを作れます</p>
+            </div>
+          </div>
+
+          <div class="relative w-full sm:w-56">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+            <input type="text" id="study-search-input" oninput="onStudySearchInput(this.value)" placeholder="単元・キーワード検索..." class="w-full bg-pop-dark text-white text-xs font-bold pl-8 pr-7 py-1.5 rounded-xl border-2 border-black focus:border-pop-yellow outline-none">
+            <button id="study-search-clear" onclick="clearStudySearch()" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs">
+              <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2-Pane Explorer Body -->
+        <div class="flex-1 grid grid-cols-1 md:grid-cols-12 min-h-0 overflow-hidden">
+          <!-- Left Tree -->
+          <aside class="md:col-span-4 bg-pop-dark/90 border-b-4 md:border-b-0 md:border-r-4 border-black flex flex-col min-h-0 max-h-[180px] md:max-h-none">
+            <div class="px-3 py-1.5 border-b border-gray-700/80 flex items-center justify-between shrink-0 bg-pop-dark">
+              <span class="text-[11px] font-black text-pop-cyan flex items-center gap-1.5">
+                <i class="fa-solid fa-folder-tree"></i><span>カテゴリ ツリー</span>
+              </span>
+              <div class="flex items-center gap-1">
+                <button onclick="expandAllStudyTree()" class="text-[10px] font-bold text-gray-300 hover:text-pop-yellow bg-gray-800 px-2 py-0.5 rounded border border-gray-700">全開</button>
+                <button onclick="collapseAllStudyTree()" class="text-[10px] font-bold text-gray-300 hover:text-pop-yellow bg-gray-800 px-2 py-0.5 rounded border border-gray-700">全閉</button>
+              </div>
+            </div>
+            <div id="study-tree-container" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+          </aside>
+
+          <!-- Right List -->
+          <div class="md:col-span-8 flex flex-col min-h-0 bg-[#1c1830]">
+            <div class="px-3.5 py-2 border-b border-gray-700/80 bg-pop-card/60 flex items-center justify-between gap-2 shrink-0 flex-wrap">
+              <div id="study-breadcrumb" class="text-xs font-black text-gray-200 flex items-center gap-1.5 flex-wrap truncate"></div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button id="study-bulk-append-btn" type="button" onclick="appendAllFilteredStudySets()" class="hidden bg-pop-purple hover:bg-purple-600 text-white text-[11px] font-black px-2.5 py-1 rounded-lg border border-black flex items-center gap-1 shadow-xs">
+                  <i class="fa-solid fa-layer-group text-pop-yellow"></i>
+                  <span id="study-bulk-append-text">まとめてたす</span>
+                </button>
+                <span id="study-result-count" class="text-[11px] font-black bg-pop-dark text-pop-yellow px-2.5 py-0.5 rounded-full border border-gray-600">0セット</span>
+              </div>
+            </div>
+            <div id="study-library-list" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
+          </div>
+        </div>
+
+        <!-- Step 1 Footer -->
+        <div class="bg-pop-dark px-4 py-2.5 border-t-4 border-black flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div class="flex items-center gap-2 min-w-0">
+            <span id="study-selected-count-badge" class="bg-gray-700 text-gray-200 text-xs font-black px-3 py-1 rounded-full border border-gray-500 shrink-0">
+              現在 0問
+            </span>
+            <span id="study-recommend-hint" class="text-[11px] font-bold text-gray-300 truncate max-w-[260px] md:max-w-lg">
+              セットを選んで「＋ たす」を押してね（20問前後が白熱！）
+            </span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button id="study-clear-btn" type="button" onclick="clearStudySelectedQuestions()" class="hidden bg-slate-700 hover:bg-rose-500 hover:text-black text-gray-200 text-xs font-black px-3 py-1.5 rounded-xl border-2 border-black transition-colors flex items-center gap-1">
+              <i class="fa-solid fa-trash-can"></i><span>クリア</span>
+            </button>
+            <button id="study-to-setup-btn" type="button" onclick="goToOpponentSetup()" disabled class="bg-gray-600 text-gray-400 text-xs md:text-sm font-black px-5 py-2 rounded-xl border-2 border-black flex items-center gap-2 transition-all cursor-not-allowed">
+              <span>次へ：対戦相手をえらぶ</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- STEP 2: PLAYER & AI RIVAL (BOT) SETUP                                     -->
+    <!-- ========================================================================= -->
+    <section id="step-setup" class="hidden flex-1 min-h-0 overflow-y-auto p-3 md:p-5 max-w-5xl w-full mx-auto">
+      <div class="bg-pop-card neo-border shadow-neo-lg rounded-3xl p-4 md:p-6 space-y-5">
+
+        <!-- Header -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b-2 border-gray-700">
+          <div>
+            <span class="bg-pop-cyan text-black text-[10px] font-black px-2.5 py-0.5 rounded-full border border-black inline-block mb-1">STEP 2：対戦セッティング</span>
+            <h2 class="text-xl md:text-2xl font-black text-white">プレイヤーとAIライバルをきめよう！</h2>
+          </div>
+          <button onclick="backToProblemSelect()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-black px-3.5 py-2 rounded-xl border-2 border-black flex items-center gap-1.5">
+            <i class="fa-solid fa-arrow-left"></i><span>問題を選びなおす (<span id="setup-q-count-label">0</span>問)</span>
+          </button>
+        </div>
+
+        <!-- Row 1: Player Profile & Options -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div class="md:col-span-7 bg-pop-dark/80 rounded-2xl p-4 border-2 border-black space-y-3">
+            <div class="text-xs font-black text-pop-yellow flex items-center gap-1.5">
+              <i class="fa-solid fa-user-astronaut"></i><span>あなたのニックネーム ＆ アバター</span>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+              <input type="text" id="study-player-name" value="チャレンジャー" maxlength="12" placeholder="ニックネーム" class="flex-1 bg-pop-card text-white font-black text-sm px-3.5 py-2.5 rounded-xl border-2 border-black focus:border-pop-yellow outline-none">
+              <div class="flex items-center gap-1.5 flex-wrap" id="study-avatar-picker">
+                <!-- Avatar buttons rendered by JS -->
+              </div>
+            </div>
+          </div>
+
+          <div class="md:col-span-5 bg-pop-dark/80 rounded-2xl p-4 border-2 border-black flex flex-col justify-between gap-2">
+            <div class="text-xs font-black text-pop-cyan flex items-center gap-1.5">
+              <i class="fa-solid fa-sliders"></i><span>出題オプション</span>
+            </div>
+            <label class="flex items-center justify-between gap-2 bg-pop-card px-3 py-2 rounded-xl border border-gray-700 cursor-pointer">
+              <span class="text-xs font-bold text-gray-200">🔀 出題順をシャッフルする</span>
+              <input type="checkbox" id="study-shuffle-toggle" class="w-5 h-5 accent-yellow-400 cursor-pointer">
+            </label>
+            <div class="text-[11px] font-bold text-gray-400 flex items-center justify-between px-1">
+              <span>合計問題数：</span>
+              <span class="text-pop-green font-black text-sm"><span id="setup-q-total-badge">0</span> 問</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Battle Mode (Solo vs 4 AI Bots) -->
+        <div class="space-y-3">
+          <div class="text-xs font-black text-pop-yellow flex items-center gap-1.5">
+            <i class="fa-solid fa-trophy"></i><span>対戦モードをえらぼう！</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <button type="button" onclick="setStudyMode('solo')" id="mode-btn-solo" class="study-mode-card text-left p-4 rounded-2xl neo-border-sm bg-pop-dark hover:bg-slate-800 transition-all">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-2xl">🧘</span>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 mode-badge">1人用</span>
+              </div>
+              <div class="font-black text-sm md:text-base text-white">ひとりで特訓</div>
+              <p class="text-[11px] text-gray-400 font-bold mt-1">BOTなし！自分のペースでじっくり全問正解を目指そう。</p>
+            </button>
+
+            <button type="button" onclick="setStudyMode('bot_random')" id="mode-btn-bot_random" class="study-mode-card text-left p-4 rounded-2xl neo-border bg-pop-purple text-white shadow-neo transition-all">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-2xl">🎲</span>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-pop-yellow text-black mode-badge">おすすめ・5人戦</span>
+              </div>
+              <div class="font-black text-sm md:text-base text-white">AIライバル4人（ランダム）</div>
+              <p class="text-[11px] text-purple-100 font-bold mt-1">個性豊かな8体のAIからランダムで4体が参戦！誰が来るかお楽しみ！</p>
+            </button>
+
+            <button type="button" onclick="setStudyMode('bot_select')" id="mode-btn-bot_select" class="study-mode-card text-left p-4 rounded-2xl neo-border-sm bg-pop-dark hover:bg-slate-800 transition-all">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-2xl">👆</span>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 mode-badge">カスタム・5人戦</span>
+              </div>
+              <div class="font-black text-sm md:text-base text-white">AIライバルを4人えらぶ</div>
+              <p class="text-[11px] text-gray-400 font-bold mt-1">8体のキャラクターから戦いたい4体を自分でセレクト！</p>
+            </button>
+          </div>
+        </div>
+
+        <!-- Row 3: 8 AI Characters Roster (Selectable in 'bot_select', Preview in 'bot_random', Hidden in 'solo') -->
+        <div id="bot-roster-section" class="bg-pop-dark/90 rounded-2xl p-4 border-2 border-black space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-black text-pop-cyan">🤖 参戦キャラクター図鑑（全8体）</span>
+              <span id="bot-select-counter" class="bg-pop-yellow text-black text-[11px] font-black px-2.5 py-0.5 rounded-full border border-black">
+                ランダムで4体選出
+              </span>
+            </div>
+            <button id="bot-reroll-btn" type="button" onclick="randomizeSelectedBots()" class="text-xs font-black bg-pop-card hover:bg-slate-700 text-pop-yellow px-3 py-1 rounded-xl border border-gray-600 flex items-center gap-1.5">
+              <i class="fa-solid fa-dice"></i><span>組み合わせシャッフル</span>
+            </button>
+          </div>
+
+          <div id="bot-roster-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <!-- Dynamically rendered 8 character cards -->
+          </div>
+        </div>
+
+        <!-- Start CTA -->
+        <div class="pt-2 flex justify-center">
+          <button onclick="startStudyQuiz()" class="w-full md:w-2/3 bg-pop-green hover:bg-emerald-400 text-black text-lg md:text-xl font-black py-3.5 px-6 rounded-2xl neo-border shadow-neo-lg neo-button flex items-center justify-center gap-3">
+            <i class="fa-solid fa-play text-xl"></i>
+            <span>クイズ大会をスタートする！</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- STEP 3: QUIZ GAMEPLAY & REVEAL & PODIUM CEREMONY                          -->
+    <!-- ========================================================================= -->
+    <section id="step-game" class="hidden flex-1 min-h-0 flex flex-col p-2.5 md:p-4 max-w-6xl w-full mx-auto overflow-hidden">
+
+      <!-- GAME TOP HUD BAR -->
+      <div class="bg-pop-card neo-border-sm shadow-neo-sm px-3 md:px-4 py-2 rounded-2xl flex items-center justify-between gap-3 shrink-0 mb-2.5">
+        <div class="flex items-center gap-2.5">
+          <span class="bg-pop-yellow text-black px-3 py-0.5 rounded-xl font-black text-sm md:text-base border-2 border-black" id="game-q-badge">Q1 / 10</span>
+          <span class="bg-pop-dark text-pop-cyan px-2.5 py-0.5 rounded-lg font-black text-xs border border-gray-700 hidden sm:inline-block" id="game-q-category">単元</span>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+          <div class="bg-pop-dark px-3 py-1 rounded-xl border-2 border-black flex items-center gap-2">
+            <span class="text-base" id="game-my-avatar">🐯</span>
+            <span class="text-xs font-black text-gray-300 hidden sm:inline" id="game-my-name">チャレンジャー</span>
+            <span class="text-sm font-black text-pop-yellow" id="game-my-score">0 pt</span>
+          </div>
+          <button onclick="quitStudyToMenu()" class="bg-slate-700 hover:bg-rose-500 hover:text-black text-gray-200 text-xs font-black px-3 py-1.5 rounded-xl border-2 border-black transition-colors">
+            やめる
+          </button>
+        </div>
+      </div>
+
+      <!-- STAGE A: QUESTION & ANSWERING -->
+      <div id="game-stage-question" class="flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
+
+        <!-- Question Card + Circular Timer -->
+        <div class="bg-pop-purple neo-border shadow-neo rounded-2xl md:rounded-3xl p-3.5 md:p-5 flex items-center justify-between gap-4 shrink-0">
+          <h2 id="game-q-text" class="flex-1 text-lg sm:text-xl md:text-2xl font-black text-white leading-snug drop-shadow-[2px_2px_0px_#000]">
+            問題文がここに表示されます
+          </h2>
+
+          <div class="relative w-16 h-16 md:w-20 md:h-20 shrink-0 flex items-center justify-center bg-pop-dark rounded-full neo-border-sm">
+            <svg class="w-full h-full" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" stroke="#374151" stroke-width="10" fill="none"></circle>
+              <circle id="game-timer-ring" class="timer-ring-circle" cx="50" cy="50" r="42" stroke="#FDCB6E" stroke-width="10" fill="none" stroke-dasharray="263.89" stroke-dashoffset="0" stroke-linecap="round"></circle>
+            </svg>
+            <span id="game-timer-text" class="absolute text-xl md:text-2xl font-black text-pop-yellow">10</span>
+          </div>
+        </div>
+
+        <!-- Answer Options Area -->
+        <div id="game-options-area" class="flex-1 min-h-0 grid gap-2.5 md:gap-3 overflow-y-auto py-0.5">
+          <!-- Options buttons rendered dynamically -->
+        </div>
+
+        <!-- Live Bot Pressure Bar (Visible when AI Bots are active) -->
+        <div id="game-bot-pressure-bar" class="bg-pop-card neo-border-sm rounded-2xl p-2.5 flex flex-wrap items-center justify-between gap-2 shrink-0 relative">
+          <div id="game-live-rivals-list" class="flex items-center gap-2 flex-wrap flex-1">
+            <!-- Player & Bot status chips -->
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <div id="game-bot-speech-bubble" class="hidden sm:flex items-center gap-1.5 bg-pop-dark text-xs font-bold text-pop-yellow px-3 py-1 rounded-xl border border-gray-600 max-w-[260px] truncate">
+              <span>💬</span><span id="game-bot-speech-text">みんな考え中...</span>
+            </div>
+            <button id="game-skip-wait-btn" onclick="finishQuestionEarly()" class="hidden bg-pop-yellow hover:bg-amber-300 text-black text-xs font-black px-3.5 py-1.5 rounded-xl neo-border-sm neo-button flex items-center gap-1">
+              <span>結果を見る</span><i class="fa-solid fa-forward-step"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- STAGE B: RESULT DISTRIBUTION + REVEAL + EXPLANATION -->
+      <div id="game-stage-reveal" class="hidden flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
+
+        <!-- Top Result Banner + Next Button -->
+        <div id="reveal-banner-card" class="neo-border shadow-neo rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 shrink-0 bg-pop-card">
+          <div class="flex items-center gap-3 min-w-0">
+            <span id="reveal-judge-icon" class="text-3xl shrink-0">⭕</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span id="reveal-judge-title" class="text-base md:text-lg font-black text-white">大正解！！</span>
+                <span id="reveal-points-badge" class="bg-pop-yellow text-black text-xs font-black px-2.5 py-0.5 rounded-full border border-black">+1,200 pt</span>
+                <span id="reveal-rank-badge" class="bg-pop-dark text-pop-cyan text-xs font-black px-2.5 py-0.5 rounded-full border border-gray-600">現在 第1位</span>
+              </div>
+              <p class="text-xs text-gray-200 font-bold truncate" id="reveal-correct-summary">正解：...</p>
+            </div>
+          </div>
+
+          <button id="reveal-next-btn" onclick="nextStudyQuestion()" class="bg-pop-yellow hover:bg-amber-300 text-black font-black text-sm md:text-base px-4 md:px-5 py-2 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center gap-1.5 shrink-0">
+            <span id="reveal-next-text">次の問題へ</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+
+        <!-- 2-Column Educational Review Panel (Left: Options & Who Picked What / Right: Explanation & Rivals) -->
+        <div class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-3 overflow-hidden">
+          <!-- Left: Question & Choices Breakdown -->
+          <div class="md:col-span-6 bg-pop-card neo-border-sm rounded-2xl p-3.5 flex flex-col min-h-0 overflow-y-auto">
+            <p class="text-xs md:text-sm font-black text-gray-200 mb-2.5 pb-2 border-b border-gray-700 leading-snug" id="reveal-q-text-review"></p>
+            <div id="reveal-choices-breakdown" class="space-y-2">
+              <!-- Choice cards with avatar chips of who picked them -->
+            </div>
+          </div>
+
+          <!-- Right: Explanation + Rival Standings -->
+          <div class="md:col-span-6 flex flex-col gap-2.5 min-h-0 overflow-hidden">
+            <div class="flex-1 bg-gradient-to-br from-[#23203d] to-pop-dark neo-border-sm rounded-2xl p-4 flex flex-col min-h-0 overflow-y-auto">
+              <div class="flex items-center gap-2 text-pop-yellow font-black text-sm mb-2 shrink-0">
+                <i class="fa-solid fa-lightbulb text-lg"></i>
+                <span>💡 ワンポイント解説</span>
+              </div>
+              <p id="reveal-explanation-text" class="text-sm md:text-base text-white font-bold leading-relaxed"></p>
+            </div>
+
+            <div id="reveal-standings-box" class="bg-pop-card neo-border-sm rounded-2xl p-3 shrink-0 max-h-[150px] overflow-y-auto">
+              <div class="text-[11px] font-black text-pop-cyan mb-1.5 flex items-center justify-between">
+                <span>🏆 現在の暫定順位</span>
+                <span id="reveal-secret-note" class="text-pop-pink hidden">🔒 表彰式までお楽しみ！</span>
+              </div>
+              <div id="reveal-standings-list" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- STAGE C: DRAMATIC PODIUM CEREMONY -->
+      <div id="game-stage-ceremony" class="hidden flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div class="flex items-center justify-between shrink-0">
+          <h2 class="text-2xl md:text-3xl font-black text-pop-yellow drop-shadow-[3px_3px_0px_#000] flex items-center gap-2">
+            <span>🏆 最終結果表彰式！！</span>
+          </h2>
+          <span id="ceremony-step-badge" class="bg-pop-purple text-white text-xs font-black px-3 py-1 rounded-full neo-border-sm">結果発表中...</span>
+        </div>
+
+        <div class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-3 overflow-hidden">
+          <!-- Podium (8 cols) -->
+          <div id="ceremony-podium-panel" class="md:col-span-8 bg-pop-card neo-border shadow-neo rounded-3xl p-4 flex items-end justify-center gap-3 md:gap-5 relative overflow-hidden min-h-[260px]">
+            <!-- 2nd Place -->
+            <div id="study-podium-2" class="w-1/3 max-w-[190px] flex flex-col items-center opacity-0 transition-all duration-500">
+              <div class="text-3xl md:text-4xl mb-1" id="p2-avatar">🐶</div>
+              <div class="bg-white text-black font-black text-xs md:text-sm px-2.5 py-0.5 rounded-full neo-border-sm mb-1 truncate max-w-full text-center" id="p2-name">2位</div>
+              <div class="text-xs font-black text-gray-200 mb-1.5" id="p2-score">0 pt</div>
+              <div class="w-full bg-gray-400 neo-border shadow-neo rounded-t-2xl h-28 md:h-36 flex flex-col items-center justify-start pt-2">
+                <span class="text-3xl font-black text-black opacity-80">2</span>
+                <span class="text-[10px] font-black text-black">SILVER</span>
+              </div>
+            </div>
+
+            <!-- 1st Place -->
+            <div id="study-podium-1" class="w-1/3 max-w-[210px] flex flex-col items-center opacity-0 z-10 transition-all duration-500">
+              <div class="text-3xl mb-0.5 animate-bounce">👑</div>
+              <div class="text-4xl md:text-5xl mb-1" id="p1-avatar">🦊</div>
+              <div class="bg-pop-yellow text-black font-black text-sm md:text-base px-3 py-0.5 rounded-full neo-border-sm mb-1 truncate max-w-full text-center" id="p1-name">1位</div>
+              <div class="text-sm font-black text-pop-yellow mb-1.5" id="p1-score">0 pt</div>
+              <div class="w-full bg-pop-yellow neo-border shadow-neo rounded-t-2xl h-36 md:h-48 flex flex-col items-center justify-start pt-3">
+                <span class="text-4xl font-black text-black">1</span>
+                <span class="text-[11px] font-black text-black">CHAMPION!</span>
+              </div>
+            </div>
+
+            <!-- 3rd Place -->
+            <div id="study-podium-3" class="w-1/3 max-w-[190px] flex flex-col items-center opacity-0 transition-all duration-500">
+              <div class="text-3xl md:text-4xl mb-1" id="p3-avatar">🐰</div>
+              <div class="bg-amber-600 text-white font-black text-xs md:text-sm px-2.5 py-0.5 rounded-full neo-border-sm mb-1 truncate max-w-full text-center" id="p3-name">3位</div>
+              <div class="text-xs font-black text-amber-200 mb-1.5" id="p3-score">0 pt</div>
+              <div class="w-full bg-amber-800 neo-border shadow-neo rounded-t-2xl h-20 md:h-28 flex flex-col items-center justify-start pt-2">
+                <span class="text-3xl font-black text-white opacity-80">3</span>
+                <span class="text-[10px] font-black text-white">BRONZE</span>
+              </div>
+            </div>
+
+            <!-- Solo Mode Card (Shown when playing solo without bots) -->
+            <div id="study-solo-summary" class="hidden absolute inset-0 bg-pop-card flex flex-col items-center justify-center p-6 text-center z-20">
+              <div class="text-5xl mb-2" id="solo-rank-emoji">🏆</div>
+              <div class="text-2xl md:text-3xl font-black text-pop-yellow mb-1" id="solo-rank-title">Sランク！マスター達成！</div>
+              <p class="text-sm md:text-base font-bold text-gray-200 mb-4" id="solo-rank-detail">10問中 9問正解！（正答率 90%）</p>
+              <div class="bg-pop-dark px-6 py-3 rounded-2xl neo-border text-2xl font-black text-pop-cyan" id="solo-final-score">8,500 pt</div>
+            </div>
+          </div>
+
+          <!-- Right Summary & Actions (4 cols) -->
+          <div class="md:col-span-4 bg-pop-card neo-border shadow-neo rounded-3xl p-4 flex flex-col justify-between gap-3 overflow-y-auto">
+            <div>
+              <h3 class="text-sm md:text-base font-black text-white pb-2 mb-2 border-b border-gray-700 flex items-center justify-between">
+                <span>📊 成績＆順位</span>
+                <span id="my-accuracy-badge" class="bg-pop-green text-black text-xs px-2 py-0.5 rounded-full border border-black font-black">0 / 0 正解</span>
+              </h3>
+              <div id="ceremony-full-ranks" class="space-y-1.5 text-xs"></div>
+            </div>
+
+            <div class="space-y-2 pt-2">
+              <button id="btn-retry-wrong" onclick="retryWrongQuestionsOnly()" class="hidden w-full bg-pop-pink hover:bg-rose-400 text-black font-black text-xs md:text-sm py-2.5 px-4 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center justify-center gap-2">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span id="btn-retry-wrong-text">間違えた問題だけ復習する</span>
+              </button>
+              <button onclick="replaySameStudySet()" class="w-full bg-pop-cyan hover:bg-cyan-300 text-black font-black text-xs md:text-sm py-2.5 px-4 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center justify-center gap-2">
+                <i class="fa-solid fa-repeat"></i><span>同じ問題でもう一度挑戦</span>
+              </button>
+              <button onclick="backToProblemSelectFromCeremony()" class="w-full bg-pop-yellow hover:bg-amber-300 text-black font-black text-xs md:text-sm py-2.5 px-4 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center justify-center gap-2">
+                <i class="fa-solid fa-folder-open"></i><span>別のサンプル問題をえらぶ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- オフラインフォールバック用サンプルバンドル -->
+  <script src="sample/sample_bundle.js?v=3.8.0"></script>
+
+  <script>
+    // =========================================================================
+    // 1. AUDIO SYNTHESIZER (WEB AUDIO API)
+    // =========================================================================
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function toggleSound() {
+      initAudio();
+      soundEnabled = !soundEnabled;
+      const icon = document.getElementById('study-sound-icon');
+      if (icon) {
+        icon.className = soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark text-gray-500';
+      }
+    }
+
+    function playBeep(freq = 440, type = 'sine', duration = 0.1, vol = 0.2) {
+      if (!soundEnabled) return;
+      initAudio();
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playCorrectSound() {
+      playBeep(880, 'sine', 0.12, 0.25);
+      setTimeout(() => playBeep(1108.73, 'sine', 0.28, 0.28), 110);
+    }
+
+    function playWrongSound() {
+      playBeep(220, 'sawtooth', 0.18, 0.2);
+      setTimeout(() => playBeep(185, 'sawtooth', 0.28, 0.2), 140);
+    }
+
+    function playDrumRoll(durationMs = 2000) {
+      if (!soundEnabled) return;
+      initAudio();
+      if (!audioCtx) return;
+      const count = Math.floor(durationMs / 85);
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+          playBeep(140 + Math.random() * 40, 'triangle', 0.05, 0.12);
+        }, i * 85);
+      }
+    }
+
+    function playFanfare() {
+      if (!soundEnabled) return;
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((f, idx) => {
+        setTimeout(() => playBeep(f, 'triangle', idx === 3 ? 0.55 : 0.18, 0.28), idx * 130);
+      });
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    let studyToastTimer = null;
+    function showStudyToast(msg) {
+      const toast = document.getElementById('study-global-toast');
+      const txt = document.getElementById('study-global-toast-text');
+      if (!toast || !txt) return;
+      txt.textContent = msg;
+      toast.classList.remove('hidden');
+      if (studyToastTimer) clearTimeout(studyToastTimer);
+      studyToastTimer = setTimeout(() => toast.classList.add('hidden'), 2600);
+    }
+
+    // =========================================================================
+    // 2. SAMPLE LIBRARY (READ-ONLY TREE + MERGE SUPPORT)
+    // =========================================================================
+    let SAMPLE_CATALOG_SETS = [];
+    let sampleCatalogLoaded = false;
+    const SAMPLE_DATA_FILE_CACHE = new Map();
+
+    let studySelectedNode = { school: 'all', subject: 'all', topic: 'all' };
+    let studyExpandedTreeNodes = new Set(['school:jh']);
+    let studyExpandedPreviews = new Set();
+    let studySearchQuery = '';
+    let studyAddedSetCounts = new Map();
+    let studyAddedSetTitles = [];
+    let lastFilteredStudySets = [];
+
+    let selectedStudyQuestions = []; // 自習で出題する問題リスト
+    let activeQuizQuestions = [];    // 実際にプレイ中（シャッフル・復習反映後）の問題リスト
+
+    const SCHOOL_META = {
+      jh: { icon: '🏫', order: 1 },
+      elem: { icon: '🎒', order: 2 },
+      general: { icon: '✨', order: 3 }
+    };
+
+    const SUBJECT_ICONS = {
+      health: '🏃',
+      social_history: '🏯',
+      social_geo: '🗺️',
+      social_civics: '⚖️',
+      science_bio: '🧬',
+      science_astro: '🔭',
+      science_chem: '⚗️',
+      science: '🔬',
+      math: '📐',
+      japanese: '📖',
+      social: '🌍',
+      english: '🔤',
+      general: '🚀'
+    };
+
+    async function ensureCatalogLoaded() {
+      if (sampleCatalogLoaded && SAMPLE_CATALOG_SETS.length > 0) return SAMPLE_CATALOG_SETS;
+      if (location.protocol.startsWith('http')) {
+        try {
+          const res = await fetch(`./sample/catalog.json?v=${APP_VERSION}&t=${Date.now()}`, { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Array.isArray(data.sets)) {
+              SAMPLE_CATALOG_SETS = data.sets;
+              sampleCatalogLoaded = true;
+              return SAMPLE_CATALOG_SETS;
+            }
+          }
+        } catch (e) {}
+      }
+      if (window.POPQUIZ_SAMPLE_BUNDLE?.catalog?.sets) {
+        SAMPLE_CATALOG_SETS = window.POPQUIZ_SAMPLE_BUNDLE.catalog.sets;
+        sampleCatalogLoaded = true;
+        return SAMPLE_CATALOG_SETS;
+      }
+      return [];
+    }
+
+    async function fetchSetQuestions(setId) {
+      await ensureCatalogLoaded();
+      const meta = SAMPLE_CATALOG_SETS.find(s => s.id === setId);
+      if (!meta) return null;
+
+      let fileSets = SAMPLE_DATA_FILE_CACHE.get(meta.dataFile);
+      if (!fileSets) {
+        if (location.protocol.startsWith('http') && meta.dataFile) {
+          try {
+            const res = await fetch(`./${meta.dataFile}?v=${APP_VERSION}&t=${Date.now()}`, { cache: 'no-store' });
+            if (res.ok) {
+              const parsed = await res.json();
+              fileSets = Array.isArray(parsed) ? parsed : [parsed];
+              SAMPLE_DATA_FILE_CACHE.set(meta.dataFile, fileSets);
+            }
+          } catch (e) {}
+        }
+        if (!fileSets && window.POPQUIZ_SAMPLE_BUNDLE?.files?.[meta.dataFile]) {
+          fileSets = window.POPQUIZ_SAMPLE_BUNDLE.files[meta.dataFile];
+          SAMPLE_DATA_FILE_CACHE.set(meta.dataFile, fileSets);
+        }
+      }
+      if (!fileSets) return null;
+      const found = fileSets.find(s => s.id === setId);
+      return found ? { meta, questions: found.questions || [] } : null;
+    }
+
+    function buildStudyTreeData() {
+      const treeMap = new Map();
+      SAMPLE_CATALOG_SETS.forEach(item => {
+        const sKey = item.school || 'general';
+        if (!treeMap.has(sKey)) {
+          treeMap.set(sKey, {
+            key: sKey,
+            name: item.schoolName || 'その他',
+            icon: SCHOOL_META[sKey]?.icon || '📁',
+            order: SCHOOL_META[sKey]?.order || 99,
+            count: 0,
+            subjects: new Map()
+          });
+        }
+        const sObj = treeMap.get(sKey);
+        sObj.count += 1;
+
+        const subKey = item.subject || 'general';
+        if (!sObj.subjects.has(subKey)) {
+          sObj.subjects.set(subKey, {
+            key: subKey,
+            name: item.subjectName || '一般',
+            icon: SUBJECT_ICONS[subKey] || '📘',
+            count: 0,
+            topics: new Map()
+          });
+        }
+        const subObj = sObj.subjects.get(subKey);
+        subObj.count += 1;
+
+        const tKey = item.topic || '標準';
+        if (!subObj.topics.has(tKey)) subObj.topics.set(tKey, { key: tKey, name: tKey, count: 0 });
+        subObj.topics.get(tKey).count += 1;
+      });
+
+      if (!treeMap.has('elem')) {
+        const elemSub = new Map();
+        elemSub.set('japanese', { key: 'japanese', name: '国語 (予定)', icon: '📖', count: 0, topics: new Map() });
+        elemSub.set('math', { key: 'math', name: '算数 (予定)', icon: '📐', count: 0, topics: new Map() });
+        elemSub.set('science', { key: 'science', name: '理科 (予定)', icon: '🔬', count: 0, topics: new Map() });
+        elemSub.set('social', { key: 'social', name: '社会 (予定)', icon: '🌍', count: 0, topics: new Map() });
+        treeMap.set('elem', { key: 'elem', name: '小学校', icon: '🎒', order: 2, count: 0, subjects: elemSub });
+      }
+      return Array.from(treeMap.values()).sort((a, b) => a.order - b.order);
+    }
+
+    function toggleStudyTreeNode(id, ev) {
+      if (ev) ev.stopPropagation();
+      if (studyExpandedTreeNodes.has(id)) studyExpandedTreeNodes.delete(id);
+      else studyExpandedTreeNodes.add(id);
+      renderStudyTree();
+    }
+
+    function selectStudyTreeNode(school, subject, topic) {
+      studySelectedNode = { school, subject, topic };
+      if (school !== 'all') studyExpandedTreeNodes.add(`school:${school}`);
+      if (subject !== 'all') studyExpandedTreeNodes.add(`subj:${school}:${subject}`);
+      renderStudyTree();
+      renderStudyLibraryList();
+    }
+
+    function expandAllStudyTree() {
+      buildStudyTreeData().forEach(s => {
+        studyExpandedTreeNodes.add(`school:${s.key}`);
+        s.subjects.forEach(sub => studyExpandedTreeNodes.add(`subj:${s.key}:${sub.key}`));
+      });
+      renderStudyTree();
+    }
+
+    function collapseAllStudyTree() {
+      studyExpandedTreeNodes.clear();
+      renderStudyTree();
+    }
+
+    function onStudySearchInput(val) {
+      studySearchQuery = val || '';
+      const clr = document.getElementById('study-search-clear');
+      if (clr) clr.classList.toggle('hidden', studySearchQuery.trim().length === 0);
+      renderStudyLibraryList();
+    }
+
+    function clearStudySearch() {
+      const inp = document.getElementById('study-search-input');
+      if (inp) inp.value = '';
+      onStudySearchInput('');
+    }
+
+    function toggleStudyPreview(setId) {
+      if (studyExpandedPreviews.has(setId)) studyExpandedPreviews.delete(setId);
+      else studyExpandedPreviews.add(setId);
+      renderStudyLibraryList();
+    }
+
+    function renderStudyTree() {
+      const container = document.getElementById('study-tree-container');
+      if (!container) return;
+      const tree = buildStudyTreeData();
+      const isAll = studySelectedNode.school === 'all';
+
+      let html = `
+        <button onclick="selectStudyTreeNode('all','all','all')" class="w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between text-xs font-black ${isAll ? 'bg-pop-yellow text-black neo-border-sm' : 'text-gray-200 hover:bg-gray-800'}">
+          <span class="flex items-center gap-2 truncate"><span>🏠</span><span>すべて表示</span></span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full font-black ${isAll ? 'bg-black text-pop-yellow' : 'bg-gray-700 text-gray-300'}">${SAMPLE_CATALOG_SETS.length}</span>
+        </button>
+      `;
+
+      tree.forEach(school => {
+        const sNode = `school:${school.key}`;
+        const exp = studyExpandedTreeNodes.has(sNode);
+        const sel = studySelectedNode.school === school.key && studySelectedNode.subject === 'all';
+        const hasCh = school.subjects.size > 0;
+        html += `<div class="mt-1">
+          <div onclick="selectStudyTreeNode('${escapeHtml(school.key)}','all','all')" class="w-full px-2 py-1.5 rounded-xl flex items-center justify-between text-xs font-black cursor-pointer ${sel ? 'bg-pop-yellow text-black neo-border-sm' : 'text-gray-200 hover:bg-gray-800'}">
+            <div class="flex items-center gap-1.5 min-w-0">
+              ${hasCh ? `<button type="button" onclick="toggleStudyTreeNode('${escapeHtml(sNode)}', event)" class="w-5 h-5 flex items-center justify-center rounded hover:bg-black/20 text-[10px]"><i class="fa-solid ${exp ? 'fa-chevron-down' : 'fa-chevron-right'}"></i></button>` : '<span class="w-5"></span>'}
+              <span>${school.icon}</span><span class="truncate">${escapeHtml(school.name)}</span>
+            </div>
+            ${school.count > 0 ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full font-black ${sel ? 'bg-black text-pop-yellow' : 'bg-pop-purple text-white'}">${school.count}</span>` : `<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-400">準備中</span>`}
+          </div>`;
+
+        if (exp && hasCh) {
+          html += `<div class="ml-4 pl-2 border-l-2 border-gray-700 mt-0.5 space-y-0.5">`;
+          school.subjects.forEach(subj => {
+            const subNode = `subj:${school.key}:${subj.key}`;
+            const subExp = studyExpandedTreeNodes.has(subNode);
+            const subSel = studySelectedNode.school === school.key && studySelectedNode.subject === subj.key && studySelectedNode.topic === 'all';
+            const hasTop = subj.topics.size > 0;
+            html += `<div>
+              <div onclick="selectStudyTreeNode('${escapeHtml(school.key)}','${escapeHtml(subj.key)}','all')" class="w-full px-2 py-1.5 rounded-lg flex items-center justify-between text-[11px] font-black cursor-pointer ${subSel ? 'bg-pop-cyan text-black neo-border-sm' : (subj.count === 0 ? 'text-gray-500' : 'text-gray-300 hover:bg-gray-800')}">
+                <div class="flex items-center gap-1 min-w-0">
+                  ${hasTop ? `<button type="button" onclick="toggleStudyTreeNode('${escapeHtml(subNode)}', event)" class="w-4 h-4 flex items-center justify-center rounded hover:bg-black/20 text-[9px]"><i class="fa-solid ${subExp ? 'fa-chevron-down' : 'fa-chevron-right'}"></i></button>` : '<span class="w-4"></span>'}
+                  <span>${subj.icon}</span><span class="truncate">${escapeHtml(subj.name)}</span>
+                </div>
+                ${subj.count > 0 ? `<span class="text-[10px] px-1.5 rounded-full font-black ${subSel ? 'bg-black text-pop-cyan' : 'bg-gray-700 text-gray-200'}">${subj.count}</span>` : ''}
+              </div>`;
+            if (subExp && hasTop) {
+              html += `<div class="ml-4 pl-2 border-l border-gray-700 mt-0.5 space-y-0.5">`;
+              subj.topics.forEach(t => {
+                const tSel = studySelectedNode.school === school.key && studySelectedNode.subject === subj.key && studySelectedNode.topic === t.key;
+                const enc = encodeURIComponent(t.key);
+                html += `<button type="button" onclick="selectStudyTreeNode('${escapeHtml(school.key)}','${escapeHtml(subj.key)}',decodeURIComponent('${enc}'))" class="w-full text-left px-2 py-1 rounded-lg flex items-center justify-between text-[11px] font-bold ${tSel ? 'bg-pop-green text-black font-black' : 'text-gray-400 hover:text-white hover:bg-gray-800'}">
+                  <span class="flex items-center gap-1.5 truncate"><i class="fa-regular fa-file-lines text-[10px]"></i><span class="truncate">${escapeHtml(t.name)}</span></span>
+                  <span class="text-[9px] px-1.5 rounded-full font-black ${tSel ? 'bg-black text-pop-green' : 'bg-gray-800 text-gray-400'}">${t.count}</span>
+                </button>`;
+              });
+              html += `</div>`;
+            }
+            html += `</div>`;
+          });
+          html += `</div>`;
+        }
+        html += `</div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function renderStudyLibraryList() {
+      const container = document.getElementById('study-library-list');
+      if (!container) return;
+      const kw = studySearchQuery.trim().toLowerCase();
+
+      const filtered = SAMPLE_CATALOG_SETS.filter(item => {
+        if (studySelectedNode.school !== 'all' && item.school !== studySelectedNode.school) return false;
+        if (studySelectedNode.subject !== 'all' && item.subject !== studySelectedNode.subject) return false;
+        if (studySelectedNode.topic !== 'all' && item.topic !== studySelectedNode.topic) return false;
+        if (kw !== '') {
+          const hay = (item.searchText || `${item.title} ${item.description} ${item.topic}`).toLowerCase();
+          if (!hay.includes(kw)) return false;
+        }
+        return true;
+      });
+
+      lastFilteredStudySets = filtered;
+      const cntEl = document.getElementById('study-result-count');
+      if (cntEl) cntEl.textContent = `${filtered.length}セット`;
+
+      const bc = document.getElementById('study-breadcrumb');
+      if (bc) {
+        const parts = [`<button onclick="selectStudyTreeNode('all','all','all')" class="hover:text-pop-yellow">🏠 すべて</button>`];
+        if (studySelectedNode.school !== 'all') {
+          const tree = buildStudyTreeData();
+          const sObj = tree.find(s => s.key === studySelectedNode.school);
+          parts.push(`<span class="text-gray-500">/</span><button onclick="selectStudyTreeNode('${escapeHtml(studySelectedNode.school)}','all','all')" class="hover:text-pop-yellow">${escapeHtml(sObj ? sObj.name : studySelectedNode.school)}</button>`);
+          if (studySelectedNode.subject !== 'all' && sObj) {
+            const subObj = sObj.subjects.get(studySelectedNode.subject);
+            parts.push(`<span class="text-gray-500">/</span><button onclick="selectStudyTreeNode('${escapeHtml(studySelectedNode.school)}','${escapeHtml(studySelectedNode.subject)}','all')" class="hover:text-pop-yellow">${escapeHtml(subObj ? subObj.name : studySelectedNode.subject)}</button>`);
+            if (studySelectedNode.topic !== 'all') {
+              parts.push(`<span class="text-gray-500">/</span><span class="text-pop-green">${escapeHtml(studySelectedNode.topic)}</span>`);
+            }
+          }
+        }
+        bc.innerHTML = parts.join('');
+      }
+
+      const bulkBtn = document.getElementById('study-bulk-append-btn');
+      const bulkText = document.getElementById('study-bulk-append-text');
+      if (bulkBtn && bulkText) {
+        if (filtered.length >= 2 && filtered.length <= 20) {
+          bulkText.textContent = `まとめてたす (${filtered.length}セット)`;
+          bulkBtn.classList.remove('hidden');
+        } else {
+          bulkBtn.classList.add('hidden');
+        }
+      }
+
+      if (filtered.length === 0) {
+        const isElem = studySelectedNode.school === 'elem' && kw === '';
+        container.innerHTML = `<div class="py-12 text-center text-gray-300">
+          <div class="text-4xl mb-2">${isElem ? '🎒' : '🔍'}</div>
+          <p class="font-black text-base text-white mb-1">${isElem ? '小学校のサンプルは現在準備中です！' : '見つかりませんでした'}</p>
+          <p class="text-xs text-gray-400 font-bold mb-3">他の教科やキーワードでお試しください。</p>
+          <button onclick="clearStudySearch(); selectStudyTreeNode('all','all','all')" class="bg-pop-yellow text-black font-black text-xs px-4 py-2 rounded-xl neo-border-sm">すべて表示する</button>
+        </div>`;
+        updateStudyFooter();
+        return;
+      }
+
+      let html = '';
+      let lastGroup = '';
+      filtered.forEach(item => {
+        const grp = `${item.schoolName}｜${item.subjectName}｜${item.topic}`;
+        if (grp !== lastGroup) {
+          lastGroup = grp;
+          html += `<div class="flex items-center gap-2 pt-1 pb-0.5 px-1">
+            <span class="bg-pop-purple text-white text-[10px] font-black px-2 py-0.5 rounded-md neo-border-sm">${escapeHtml(item.schoolName)}</span>
+            <span class="bg-pop-cyan text-black text-[10px] font-black px-2 py-0.5 rounded-md neo-border-sm">${escapeHtml(item.subjectName)}</span>
+            <span class="text-xs font-black text-gray-200 truncate">📖 ${escapeHtml(item.topic)}</span>
+          </div>`;
+        }
+
+        const isExp = studyExpandedPreviews.has(item.id) || kw !== '';
+        const addedCnt = studyAddedSetCounts.get(item.id) || 0;
+        const addedBadge = addedCnt > 0 ? `<span class="bg-pop-green text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-black">✓ 追加済${addedCnt > 1 ? ` ×${addedCnt}` : ''}</span>` : '';
+
+        let prevHtml = '';
+        if (isExp && item.previewQuestions?.length) {
+          prevHtml = `<div class="mt-2 bg-pop-dark/90 rounded-xl p-2 border border-gray-700 space-y-0.5">` +
+            item.previewQuestions.map((q, i) => `<div class="flex items-start gap-2 text-xs text-gray-200 py-0.5">
+              <span class="font-black text-pop-yellow shrink-0">Q${i+1}.</span>
+              <span class="text-[10px] font-black px-1 rounded ${q.type==='2choice' ? 'bg-pop-pink/20 text-pop-pink' : 'bg-pop-blue/20 text-pop-blue'}">${q.type==='2choice'?'〇×':'4択'}</span>
+              <span class="font-bold leading-snug">${escapeHtml(q.question)}</span>
+            </div>`).join('') + `</div>`;
+        }
+
+        html += `<div class="bg-pop-card neo-border-sm shadow-neo-sm rounded-2xl p-3 ${addedCnt > 0 ? 'border-pop-green/80 bg-[#272644]' : 'hover:border-pop-yellow'}">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                <span class="bg-pop-yellow text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-black">${item.questionCount}問 (${escapeHtml(item.questionTypes)})</span>
+                ${addedBadge}
+                <h4 class="font-black text-sm text-white leading-snug">${escapeHtml(item.title)}</h4>
+              </div>
+              <p class="text-[11px] text-gray-300 font-bold leading-snug line-clamp-2">${escapeHtml(item.description)}</p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="toggleStudyPreview('${escapeHtml(item.id)}')" class="bg-pop-dark hover:bg-slate-800 text-gray-200 font-black text-[11px] py-2 px-2.5 rounded-xl border-2 border-black flex items-center gap-1">
+                <i class="fa-solid ${isExp ? 'fa-chevron-up' : 'fa-eye'} text-pop-cyan"></i><span>${isExp ? '閉じる' : '見る'}</span>
+              </button>
+              <button type="button" onclick="addStudySampleSet('${escapeHtml(item.id)}', 'append')" class="bg-pop-cyan hover:bg-cyan-300 text-black font-black text-xs py-2 px-3 rounded-xl neo-border-sm neo-button flex items-center gap-1">
+                <i class="fa-solid fa-plus"></i><span>たす (+${item.questionCount})</span>
+              </button>
+              <button type="button" onclick="addStudySampleSet('${escapeHtml(item.id)}', 'replace_and_next')" class="bg-pop-green hover:bg-emerald-400 text-black font-black text-xs py-2 px-3 rounded-xl neo-border-sm neo-button flex items-center gap-1">
+                <i class="fa-solid fa-play"></i><span>これにする</span>
+              </button>
+            </div>
+          </div>
+          ${prevHtml}
+        </div>`;
+      });
+      container.innerHTML = html;
+      updateStudyFooter();
+    }
+
+    async function addStudySampleSet(setId, mode = 'append') {
+      initAudio();
+      const loaded = await fetchSetQuestions(setId);
+      if (!loaded) return;
+
+      const qList = JSON.parse(JSON.stringify(loaded.questions));
+      if (mode === 'replace_and_next') {
+        selectedStudyQuestions = qList;
+        studyAddedSetCounts.clear();
+        studyAddedSetCounts.set(setId, 1);
+        studyAddedSetTitles = [`${loaded.meta.subjectName}[${loaded.meta.title.split(':')[0]}]`];
+        updateStudyFooter();
+        renderStudyLibraryList();
+        playBeep(880, 'triangle', 0.14);
+        goToOpponentSetup();
+        return;
+      }
+
+      selectedStudyQuestions = [...selectedStudyQuestions, ...qList];
+      studyAddedSetCounts.set(setId, (studyAddedSetCounts.get(setId) || 0) + 1);
+      studyAddedSetTitles.push(`${loaded.meta.subjectName}[${loaded.meta.title.split(':')[0]}]`);
+      updateStudyFooter();
+      renderStudyLibraryList();
+      showStudyToast(`「${loaded.meta.title}」(+${qList.length}問) をたしました！（現在 ${selectedStudyQuestions.length}問）`);
+      playBeep(784, 'triangle', 0.12);
+    }
+
+    async function appendAllFilteredStudySets() {
+      initAudio();
+      if (!lastFilteredStudySets.length) return;
+      if (lastFilteredStudySets.length >= 8) {
+        const total = lastFilteredStudySets.reduce((s, x) => s + (x.questionCount || 0), 0);
+        if (!confirm(`表示中の ${lastFilteredStudySets.length}セット（計${total}問）をまとめて追加しますか？`)) return;
+      }
+      let addedCount = 0;
+      for (const meta of lastFilteredStudySets) {
+        const loaded = await fetchSetQuestions(meta.id);
+        if (loaded?.questions) {
+          selectedStudyQuestions.push(...JSON.parse(JSON.stringify(loaded.questions)));
+          studyAddedSetCounts.set(meta.id, (studyAddedSetCounts.get(meta.id) || 0) + 1);
+          studyAddedSetTitles.push(`${meta.subjectName}[${meta.title.split(':')[0]}]`);
+          addedCount += loaded.questions.length;
+        }
+      }
+      updateStudyFooter();
+      renderStudyLibraryList();
+      showStudyToast(`${lastFilteredStudySets.length}セット (+${addedCount}問) をまとめて追加しました！`);
+      playBeep(880, 'triangle', 0.15);
+    }
+
+    function clearStudySelectedQuestions() {
+      selectedStudyQuestions = [];
+      studyAddedSetCounts.clear();
+      studyAddedSetTitles = [];
+      updateStudyFooter();
+      renderStudyLibraryList();
+      showStudyToast('選択をクリア（0問）にしました');
+    }
+
+    function updateStudyFooter() {
+      const n = selectedStudyQuestions.length;
+      const badge = document.getElementById('study-selected-count-badge');
+      const hint = document.getElementById('study-recommend-hint');
+      const clr = document.getElementById('study-clear-btn');
+      const nextBtn = document.getElementById('study-to-setup-btn');
+
+      if (badge) {
+        badge.textContent = `現在 ${n}問`;
+        badge.className = n > 0
+          ? "bg-pop-green text-black text-xs font-black px-3 py-1 rounded-full neo-border-sm shrink-0"
+          : "bg-gray-700 text-gray-200 text-xs font-black px-3 py-1 rounded-full border border-gray-500 shrink-0";
+      }
+      if (hint) {
+        if (n === 0) hint.textContent = 'セットを選んで「＋ たす」を押してね（10〜20問くらいが盛り上がります！）';
+        else if (n < 10) hint.textContent = `${studyAddedSetTitles.join('＋')}（あと少し足して10〜20問にするのもおすすめ！）`;
+        else hint.textContent = `${studyAddedSetTitles.join('＋')}（ちょうどいいボリュームでバッチリ！）`;
+      }
+      if (clr) clr.classList.toggle('hidden', n === 0);
+      if (nextBtn) {
+        if (n > 0) {
+          nextBtn.disabled = false;
+          nextBtn.className = "bg-pop-yellow hover:bg-amber-300 text-black text-xs md:text-sm font-black px-5 py-2 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center gap-2";
+        } else {
+          nextBtn.disabled = true;
+          nextBtn.className = "bg-gray-600 text-gray-400 text-xs md:text-sm font-black px-5 py-2 rounded-xl border-2 border-black flex items-center gap-2 cursor-not-allowed";
+        }
+      }
+    }
+
+    // =========================================================================
+    // 3. AI RIVAL BOT ROSTER (8 UNIQUE PERSONALITIES) & STEP 2 SETUP
+    // =========================================================================
+    const PLAYER_AVATARS = ['🐯', '🦁', '🐨', '🐸', '🦄', '🐧', '🐙', '🦖'];
+
+    const AI_BOT_ROSTER = [
+      {
+        id: 'fox',
+        name: 'キツネ（コン太）',
+        shortName: 'キツネ',
+        avatar: '🦊',
+        tag: 'ずるがしこい超速',
+        trait: '狡猾かつずるがしこく、誰よりも素早く回答！時々ウラをかいてミスすることも。',
+        speedStars: 5,
+        smartStars: 4,
+        minDelayMs: 1400,
+        maxDelayMs: 3400,
+        accuracy: 0.80,
+        fastTalk: ['フッ、読めたぜ…！', '一番乗りいただき！', 'この問題、いただきコン♪'],
+        wrongTalk: ['ゲッ、ひっかけ問題かよ！', '計算ちがいだコン…']
+      },
+      {
+        id: 'rabbit',
+        name: 'うさぎ（ミミィ）',
+        shortName: 'うさぎ',
+        avatar: '🐰',
+        tag: 'ふんわりマイペース',
+        trait: 'やわらかくふんわりと回答する癒し系。ほどよいテンポでじわじわ迫るよ！',
+        speedStars: 3,
+        smartStars: 4,
+        minDelayMs: 4200,
+        maxDelayMs: 7200,
+        accuracy: 0.72,
+        fastTalk: ['ふんわりこれにするね♪', 'たぶんこれかなぁ〜？', 'ぴょんっと決めたよ！'],
+        wrongTalk: ['あれれ〜？まちがえちゃった…', 'えへへ、次は当てるよ〜']
+      },
+      {
+        id: 'bear',
+        name: 'くま（ゴロー）',
+        shortName: 'くま',
+        avatar: '🐻',
+        tag: 'ごうかいドーン！',
+        trait: 'ごうかいにどーんと回答！たまに「それ違うだろ！」って選択肢も豪快に選ぶ！',
+        speedStars: 4,
+        smartStars: 2,
+        minDelayMs: 2000,
+        maxDelayMs: 4800,
+        accuracy: 0.58,
+        fastTalk: ['ガハハ！これだべ！！', '迷わずドーンと押したぞ！', '気合いで正解じゃい！'],
+        wrongTalk: ['うおっ、全然ちがったべ！！', 'ガハハ！豪快にハズした〜！']
+      },
+      {
+        id: 'dog',
+        name: '犬（ポチ丸）',
+        shortName: '犬',
+        avatar: '🐶',
+        tag: 'けっこう頭いい',
+        trait: 'けっこう頭がいい頼れるライバル！素早く堅実に正解を重ねてくる強敵だワン！',
+        speedStars: 4,
+        smartStars: 5,
+        minDelayMs: 2600,
+        maxDelayMs: 5000,
+        accuracy: 0.88,
+        fastTalk: ['ワン！根拠はバッチリだ！', '冷静に考えてこれだワン！', '油断はしないワン！'],
+        wrongTalk: ['くぅ〜ん…ミスしたワン…', '次は絶対取り返すワン！']
+      },
+      {
+        id: 'cat',
+        name: 'ねこ（タマ）',
+        shortName: 'ねこ',
+        avatar: '🐱',
+        tag: 'きまぐれ天才肌',
+        trait: '気分屋で、一瞬でひらめくこともあれば、のんびり昼寝しながら押すことも。',
+        speedStars: 3,
+        smartStars: 4,
+        minDelayMs: 1800,
+        maxDelayMs: 8200,
+        accuracy: 0.76,
+        fastTalk: ['にゃーん、これで決定にゃ', '天才のひらめき発動！', 'まあこんなもんだにゃ〜'],
+        wrongTalk: ['ふぁ〜…ねむくて押し間違えたにゃ', 'まあそんな日もあるにゃ']
+      },
+      {
+        id: 'owl',
+        name: 'フクロウ（ホウ先生）',
+        shortName: 'フクロウ',
+        avatar: '🦉',
+        tag: '博識・森の賢者',
+        trait: '時間は少しかかるが、なんと正答率9割超えの森の賢者！後半の追い上げが脅威！',
+        speedStars: 2,
+        smartStars: 5,
+        minDelayMs: 5200,
+        maxDelayMs: 8400,
+        accuracy: 0.92,
+        fastTalk: ['ホー、落ち着いて考えよう…', '知識の泉が答えておるわい', 'これは基本じゃな、ホー'],
+        wrongTalk: ['むむっ、わしとしたことが…！', 'まだまだ勉強が足りんのう…']
+      },
+      {
+        id: 'panda',
+        name: 'パンダ（ロンロン）',
+        shortName: 'パンダ',
+        avatar: '🐼',
+        tag: 'のんびりおっとり',
+        trait: 'ササを食べながらのんびり回答。たまにミラクルな大正解を出して周囲を驚かせる！',
+        speedStars: 2,
+        smartStars: 3,
+        minDelayMs: 5600,
+        maxDelayMs: 8800,
+        accuracy: 0.65,
+        fastTalk: ['ささ食べながら押すよ〜', 'のんびりこれでいこう〜', 'これっぽい気がする〜'],
+        wrongTalk: ['あれ、ささに夢中だった〜', 'どんまい、次がんばる〜']
+      },
+      {
+        id: 'tiger',
+        name: 'トラ（タイガー）',
+        shortName: 'トラ',
+        avatar: '🐯',
+        tag: '熱血最速バトル',
+        trait: '早押しバトルが生きがい！キツネと最速を争うスピードスターだが早とちり注意！',
+        speedStars: 5,
+        smartStars: 3,
+        minDelayMs: 1200,
+        maxDelayMs: 3200,
+        accuracy: 0.74,
+        fastTalk: ['ガオー！早押しなら負けねぇ！', 'スピード勝負だ！！', '電光石火の一撃！！'],
+        wrongTalk: ['ぬわっ！早とちりしたー！', '次はしっかり問題読むガオ！']
+      }
+    ];
+
+    let selectedMyAvatar = '🦁';
+    let studyMode = 'bot_random'; // 'solo' | 'bot_random' | 'bot_select'
+    let selectedBotIds = ['fox', 'rabbit', 'bear', 'dog']; // 4 selected bots
+
+    function renderAvatarPicker() {
+      const el = document.getElementById('study-avatar-picker');
+      if (!el) return;
+      el.innerHTML = PLAYER_AVATARS.map(av => {
+        const active = av === selectedMyAvatar;
+        return `<button type="button" onclick="selectMyAvatar('${av}')" class="w-9 h-9 rounded-xl border-2 border-black flex items-center justify-center text-xl transition-transform ${active ? 'bg-pop-yellow scale-110 shadow-neo-sm' : 'bg-pop-card hover:bg-slate-700'}">${av}</button>`;
+      }).join('');
+    }
+
+    function selectMyAvatar(av) {
+      selectedMyAvatar = av;
+      renderAvatarPicker();
+      playBeep(700, 'sine', 0.05);
+    }
+
+    function randomizeSelectedBots() {
+      const pool = [...AI_BOT_ROSTER].sort(() => Math.random() - 0.5);
+      selectedBotIds = pool.slice(0, 4).map(b => b.id);
+      renderBotRoster();
+      playBeep(660, 'triangle', 0.08);
+    }
+
+    function setStudyMode(mode) {
+      studyMode = mode;
+      ['solo', 'bot_random', 'bot_select'].forEach(m => {
+        const btn = document.getElementById(`mode-btn-${m}`);
+        if (!btn) return;
+        const badge = btn.querySelector('.mode-badge');
+        if (m === mode) {
+          btn.className = "study-mode-card text-left p-4 rounded-2xl neo-border bg-pop-purple text-white shadow-neo transition-all";
+          if (badge) badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full bg-pop-yellow text-black mode-badge";
+        } else {
+          btn.className = "study-mode-card text-left p-4 rounded-2xl neo-border-sm bg-pop-dark hover:bg-slate-800 text-gray-200 transition-all";
+          if (badge) badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 mode-badge";
+        }
+      });
+
+      const rosterSec = document.getElementById('bot-roster-section');
+      if (rosterSec) rosterSec.classList.toggle('hidden', mode === 'solo');
+      if (mode === 'bot_random') randomizeSelectedBots();
+      else renderBotRoster();
+      playBeep(750, 'sine', 0.06);
+    }
+
+    function toggleBotSelection(botId) {
+      if (studyMode !== 'bot_select') {
+        setStudyMode('bot_select');
+      }
+      const idx = selectedBotIds.indexOf(botId);
+      if (idx >= 0) {
+        if (selectedBotIds.length <= 1) {
+          showStudyToast('最低1体は選んでね！');
+          return;
+        }
+        selectedBotIds.splice(idx, 1);
+      } else {
+        if (selectedBotIds.length >= 4) {
+          selectedBotIds.shift(); // 4体枠なので一番古いのを外して入れ替え
+        }
+        selectedBotIds.push(botId);
+      }
+      renderBotRoster();
+      playBeep(820, 'sine', 0.05);
+    }
+
+    function renderBotRoster() {
+      const grid = document.getElementById('bot-roster-grid');
+      const counter = document.getElementById('bot-select-counter');
+      const rerollBtn = document.getElementById('bot-reroll-btn');
+      if (!grid) return;
+
+      if (counter) {
+        counter.textContent = studyMode === 'bot_random'
+          ? 'ランダム選出中の4体（シャッフル可）'
+          : `選択中：${selectedBotIds.length} / 4体`;
+      }
+      if (rerollBtn) rerollBtn.classList.toggle('hidden', studyMode !== 'bot_random');
+
+      grid.innerHTML = AI_BOT_ROSTER.map(bot => {
+        const isPicked = selectedBotIds.includes(bot.id);
+        const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+        return `
+          <div onclick="toggleBotSelection('${bot.id}')" class="cursor-pointer rounded-2xl p-2.5 border-2 transition-all flex flex-col justify-between ${isPicked ? 'bg-[#2e2954] border-pop-yellow shadow-neo-sm' : 'bg-pop-card/60 border-black opacity-65 hover:opacity-100'}">
+            <div>
+              <div class="flex items-center justify-between gap-1 mb-1">
+                <span class="text-2xl">${bot.avatar}</span>
+                ${isPicked ? '<span class="bg-pop-green text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-black">参戦!</span>' : '<span class="text-[10px] text-gray-400 font-bold">待機</span>'}
+              </div>
+              <div class="font-black text-xs text-white leading-tight">${escapeHtml(bot.name)}</div>
+              <div class="text-[10px] font-black text-pop-cyan mt-0.5">${escapeHtml(bot.tag)}</div>
+              <p class="text-[10px] text-gray-300 font-bold mt-1 leading-snug line-clamp-2">${escapeHtml(bot.trait)}</p>
+            </div>
+            <div class="mt-2 pt-1.5 border-t border-gray-700/80 text-[9px] font-bold text-gray-300 space-y-0.5">
+              <div class="flex justify-between"><span>早さ</span><span class="text-pop-yellow">${stars(bot.speedStars)}</span></div>
+              <div class="flex justify-between"><span>かしこさ</span><span class="text-pop-green">${stars(bot.smartStars)}</span></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function showStudySection(secId) {
+      ['step-select', 'step-setup', 'step-game'].forEach(id => {
+        document.getElementById(id)?.classList.toggle('hidden', id !== secId);
+      });
+    }
+
+    function goToOpponentSetup() {
+      if (selectedStudyQuestions.length === 0) return;
+      document.getElementById('setup-q-count-label').textContent = selectedStudyQuestions.length;
+      document.getElementById('setup-q-total-badge').textContent = selectedStudyQuestions.length;
+      renderAvatarPicker();
+      setStudyMode(studyMode);
+      showStudySection('step-setup');
+      document.getElementById('study-header-status').textContent = `全 ${selectedStudyQuestions.length}問 選択中 — 対戦相手を選ぼう！`;
+    }
+
+    function backToProblemSelect() {
+      showStudySection('step-select');
+      document.getElementById('study-header-status').textContent = 'サンプル問題を選んでチャレンジしよう！';
+    }
+
+    // =========================================================================
+    // 4. GAME ENGINE (TIMERS, BOT AI PRESSURE, REVEAL & PODIUM CEREMONY)
+    // =========================================================================
+    let participants = []; // [{ id, name, avatar, isHuman, botDef, score, correctCount, currentAnswer, answerTimeMs }]
+    let currentIndex = 0;
+    let wrongQuestionList = [];
+    let questionTimerId = null;
+    let questionStartTimeMs = 0;
+    let currentTimeLimitMs = 12000;
+    let botTimeoutIds = [];
+    let hasShownResultForCurrent = false;
+
+    function startStudyQuiz(customQuestionList = null) {
+      initAudio();
+      let pool = customQuestionList ? JSON.parse(JSON.stringify(customQuestionList)) : JSON.parse(JSON.stringify(selectedStudyQuestions));
+      if (!pool.length) return;
+
+      const doShuffle = document.getElementById('study-shuffle-toggle')?.checked;
+      if (doShuffle && !customQuestionList) {
+        pool.sort(() => Math.random() - 0.5);
+      }
+      activeQuizQuestions = pool;
+      currentIndex = 0;
+      wrongQuestionList = [];
+
+      const myName = (document.getElementById('study-player-name')?.value || '').trim() || 'チャレンジャー';
+      participants = [
+        {
+          id: 'human',
+          name: myName,
+          avatar: selectedMyAvatar,
+          isHuman: true,
+          score: 0,
+          correctCount: 0,
+          currentAnswer: null,
+          answerTimeMs: 0
+        }
+      ];
+
+      if (studyMode !== 'solo') {
+        if (studyMode === 'bot_random') {
+          randomizeSelectedBots();
+        }
+        const activeBots = selectedBotIds.map(id => AI_BOT_ROSTER.find(b => b.id === id)).filter(Boolean);
+        activeBots.forEach(bot => {
+          participants.push({
+            id: 'bot_' + bot.id,
+            name: bot.name,
+            shortName: bot.shortName,
+            avatar: bot.avatar,
+            isHuman: false,
+            botDef: bot,
+            score: 0,
+            correctCount: 0,
+            currentAnswer: null,
+            answerTimeMs: 0
+          });
+        });
+      }
+
+      showStudySection('step-game');
+      document.getElementById('game-my-avatar').textContent = selectedMyAvatar;
+      document.getElementById('game-my-name').textContent = myName;
+      document.getElementById('game-my-score').textContent = '0 pt';
+      document.getElementById('study-header-status').textContent = studyMode === 'solo' ? 'ひとりで特訓中！' : `AIライバル${participants.length - 1}体と白熱対戦中！`;
+
+      loadStudyQuestion();
+    }
+
+    function clearQuestionTimers() {
+      if (questionTimerId) {
+        clearInterval(questionTimerId);
+        questionTimerId = null;
+      }
+      botTimeoutIds.forEach(tid => clearTimeout(tid));
+      botTimeoutIds = [];
+    }
+
+    function loadStudyQuestion() {
+      clearQuestionTimers();
+      hasShownResultForCurrent = false;
+
+      if (currentIndex >= activeQuizQuestions.length) {
+        startCeremony();
+        return;
+      }
+
+      const q = activeQuizQuestions[currentIndex];
+      participants.forEach(p => {
+        p.currentAnswer = null;
+        p.answerTimeMs = 0;
+      });
+
+      document.getElementById('game-stage-question').classList.remove('hidden');
+      document.getElementById('game-stage-reveal').classList.add('hidden');
+      document.getElementById('game-stage-ceremony').classList.add('hidden');
+
+      document.getElementById('game-q-badge').textContent = `Q${currentIndex + 1} / ${activeQuizQuestions.length}`;
+      document.getElementById('game-q-category').textContent = q.category || 'クイズ';
+      document.getElementById('game-q-text').textContent = q.question;
+      document.getElementById('game-skip-wait-btn').classList.add('hidden');
+
+      // Render Option Buttons
+      const optArea = document.getElementById('game-options-area');
+      const is2Choice = (q.type === '2choice') || (q.options.length === 2);
+      const colors = [
+        { bg: 'bg-[#FF7675] hover:bg-[#ff8d8c]', badge: '1' },
+        { bg: 'bg-[#0984E3] hover:bg-[#2394ec]', badge: '2' },
+        { bg: 'bg-[#FDCB6E] hover:bg-[#ffd687]', badge: '3', textDark: true },
+        { bg: 'bg-[#00B894] hover:bg-[#14cda8]', badge: '4' }
+      ];
+
+      if (is2Choice) {
+        optArea.className = 'flex-1 min-h-0 grid grid-cols-2 gap-3 md:gap-4 py-1';
+        optArea.innerHTML = q.options.map((opt, idx) => {
+          const isO = idx === 0;
+          const symbol = isO ? '〇' : '×';
+          const bg = isO ? 'bg-[#0984E3] hover:bg-[#2295ed]' : 'bg-[#FF7675] hover:bg-[#ff8d8c]';
+          const textSub = opt.replace(/^[〇×]\s*/, '');
+          return `<button type="button" onclick="submitHumanAnswer(${idx + 1})" class="study-opt-btn ${bg} text-white neo-border shadow-neo rounded-3xl flex flex-col items-center justify-center p-4 neo-button">
+            <span class="text-6xl md:text-8xl font-black leading-none drop-shadow-[3px_3px_0px_#000]">${symbol}</span>
+            <span class="text-sm md:text-lg font-black mt-2 bg-black/25 px-3 py-0.5 rounded-full">${escapeHtml(opt)}</span>
+          </button>`;
+        }).join('');
+      } else {
+        optArea.className = 'flex-1 min-h-0 grid grid-cols-1 sm:grid-cols-2 gap-2.5 md:gap-3 py-1';
+        optArea.innerHTML = q.options.map((opt, idx) => {
+          const c = colors[idx % 4];
+          return `<button type="button" onclick="submitHumanAnswer(${idx + 1})" class="study-opt-btn ${c.bg} ${c.textDark ? 'text-black' : 'text-white'} neo-border shadow-neo rounded-2xl flex items-center gap-3.5 p-3.5 md:p-5 text-left neo-button">
+            <span class="w-10 h-10 md:w-12 md:h-12 bg-black text-white rounded-xl flex items-center justify-center font-black text-xl shrink-0">${c.badge}</span>
+            <span class="text-base md:text-xl font-black leading-snug">${escapeHtml(opt)}</span>
+          </button>`;
+        }).join('');
+      }
+
+      // Setup Bot Pressure Bar
+      const pressureBar = document.getElementById('game-bot-pressure-bar');
+      if (studyMode === 'solo') {
+        pressureBar.classList.add('hidden');
+      } else {
+        pressureBar.classList.remove('hidden');
+        document.getElementById('game-bot-speech-text').textContent = 'みんな問題をよんでいるよ...';
+        renderLiveRivalsRow();
+        scheduleBotAnswers(q);
+      }
+
+      // Start Countdown Timer
+      const sec = q.timeLimit || 12;
+      currentTimeLimitMs = sec * 1000;
+      questionStartTimeMs = Date.now();
+      updateTimerVisual(sec, sec);
+
+      questionTimerId = setInterval(() => {
+        const elapsed = Date.now() - questionStartTimeMs;
+        const remainSec = Math.max(0, Math.ceil((currentTimeLimitMs - elapsed) / 1000));
+        const ratio = Math.max(0, (currentTimeLimitMs - elapsed) / currentTimeLimitMs);
+        updateTimerVisual(remainSec, ratio);
+        if (elapsed >= currentTimeLimitMs) {
+          revealStudyResult();
+        }
+      }, 100);
+    }
+
+    function updateTimerVisual(remainSec, ratioOrTotal) {
+      const ratio = typeof ratioOrTotal === 'number' && ratioOrTotal <= 1 ? ratioOrTotal : 1;
+      const ring = document.getElementById('game-timer-ring');
+      const txt = document.getElementById('game-timer-text');
+      const circ = 263.89;
+      if (ring) {
+        ring.style.strokeDashoffset = circ * (1 - ratio);
+        ring.style.stroke = remainSec <= 3 ? '#FF7675' : '#FDCB6E';
+      }
+      if (txt) {
+        txt.textContent = remainSec;
+        txt.className = remainSec <= 3 ? 'absolute text-xl md:text-2xl font-black text-pop-pink animate-pulse' : 'absolute text-xl md:text-2xl font-black text-pop-yellow';
+      }
+    }
+
+    function renderLiveRivalsRow() {
+      const container = document.getElementById('game-live-rivals-list');
+      if (!container) return;
+      container.innerHTML = participants.map(p => {
+        const answered = p.currentAnswer !== null;
+        return `<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border-2 border-black text-xs font-black transition-all ${answered ? 'bg-pop-green text-black scale-105' : 'bg-pop-dark text-gray-300 opacity-80'}">
+          <span class="text-base">${p.avatar}</span>
+          <span class="hidden sm:inline truncate max-w-[80px]">${escapeHtml(p.isHuman ? 'あなた' : p.shortName)}</span>
+          <span>${answered ? '⚡済' : '💭'}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function scheduleBotAnswers(q) {
+      const totalOpts = q.options.length;
+      const correctChoice = q.correct;
+
+      participants.filter(p => !p.isHuman).forEach(botPlayer => {
+        const def = botPlayer.botDef;
+        // Calculate personality-based delay clamped to timeLimit - 400ms
+        const rawDelay = def.minDelayMs + Math.random() * (def.maxDelayMs - def.minDelayMs);
+        const delay = Math.min(currentTimeLimitMs - 500, Math.max(800, rawDelay));
+
+        const tid = setTimeout(() => {
+          if (hasShownResultForCurrent) return;
+          botPlayer.answerTimeMs = delay;
+
+          // Personality-driven accuracy (occasionally gets tricked!)
+          const isBotCorrect = Math.random() < def.accuracy;
+          if (isBotCorrect) {
+            botPlayer.currentAnswer = correctChoice;
+          } else {
+            const wrongPool = [];
+            for (let i = 1; i <= totalOpts; i++) {
+              if (i !== correctChoice) wrongPool.push(i);
+            }
+            botPlayer.currentAnswer = wrongPool[Math.floor(Math.random() * wrongPool.length)] || 1;
+          }
+
+          renderLiveRivalsRow();
+          const line = def.fastTalk[Math.floor(Math.random() * def.fastTalk.length)];
+          document.getElementById('game-bot-speech-text').textContent = `${def.avatar} ${def.shortName}「${line}」`;
+          playBeep(520 + Math.random() * 200, 'sine', 0.05, 0.08);
+
+          checkIfAllAnswered();
+        }, delay);
+
+        botTimeoutIds.push(tid);
+      });
+    }
+
+    function submitHumanAnswer(choiceNum) {
+      if (hasShownResultForCurrent) return;
+      const human = participants.find(p => p.isHuman);
+      if (!human || human.currentAnswer !== null) return;
+
+      initAudio();
+      human.currentAnswer = choiceNum;
+      human.answerTimeMs = Math.max(200, Date.now() - questionStartTimeMs);
+
+      // Highlight chosen option button
+      document.querySelectorAll('.study-opt-btn').forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx + 1 === choiceNum) {
+          btn.classList.add('ring-4', 'ring-white', 'scale-[0.98]');
+        } else {
+          btn.classList.add('opacity-45');
+        }
+      });
+
+      playBeep(700, 'triangle', 0.1, 0.2);
+
+      if (studyMode === 'solo') {
+        setTimeout(() => revealStudyResult(), 350);
+      } else {
+        renderLiveRivalsRow();
+        document.getElementById('game-skip-wait-btn').classList.remove('hidden');
+        checkIfAllAnswered();
+      }
+    }
+
+    function checkIfAllAnswered() {
+      if (hasShownResultForCurrent) return;
+      if (participants.every(p => p.currentAnswer !== null)) {
+        setTimeout(() => revealStudyResult(), 450);
+      }
+    }
+
+    function finishQuestionEarly() {
+      // Force any remaining slow bots to answer right away (with slight penalty/random) and reveal!
+      const q = activeQuizQuestions[currentIndex];
+      participants.filter(p => !p.isHuman && p.currentAnswer === null).forEach(bot => {
+        const def = bot.botDef;
+        bot.answerTimeMs = Math.max(1000, Date.now() - questionStartTimeMs);
+        if (Math.random() < def.accuracy) {
+          bot.currentAnswer = q.correct;
+        } else {
+          const wrongs = [1, 2, 3, 4].filter(n => n <= q.options.length && n !== q.correct);
+          bot.currentAnswer = wrongs[Math.floor(Math.random() * wrongs.length)] || 1;
+        }
+      });
+      revealStudyResult();
+    }
+
+    function revealStudyResult() {
+      if (hasShownResultForCurrent) return;
+      hasShownResultForCurrent = true;
+      clearQuestionTimers();
+
+      const q = activeQuizQuestions[currentIndex];
+      const correctChoice = q.correct;
+
+      // Calculate points (base 1000 + speed bonus up to 500)
+      let humanEarned = 0;
+      let humanIsCorrect = false;
+
+      participants.forEach(p => {
+        if (p.currentAnswer === correctChoice) {
+          const ratio = Math.max(0, 1 - (p.answerTimeMs / currentTimeLimitMs));
+          const pts = 1000 + Math.round(500 * ratio);
+          p.score += pts;
+          p.correctCount += 1;
+          if (p.isHuman) {
+            humanEarned = pts;
+            humanIsCorrect = true;
+          }
+        }
+      });
+
+      const human = participants.find(p => p.isHuman);
+      if (!humanIsCorrect) {
+        wrongQuestionList.push(q);
+        playWrongSound();
+      } else {
+        playCorrectSound();
+      }
+
+      document.getElementById('game-my-score').textContent = `${human.score.toLocaleString()} pt`;
+
+      // Compute rankings
+      const sorted = [...participants].sort((a, b) => b.score - a.score);
+      const myRank = sorted.findIndex(p => p.isHuman) + 1;
+      const isSecretPhase = (studyMode !== 'solo') && (activeQuizQuestions.length >= 4) && (currentIndex >= activeQuizQuestions.length - 2) && (currentIndex < activeQuizQuestions.length - 1);
+
+      // Switch to Reveal Stage
+      document.getElementById('game-stage-question').classList.add('hidden');
+      document.getElementById('game-stage-reveal').classList.remove('hidden');
+
+      const banner = document.getElementById('reveal-banner-card');
+      const iconEl = document.getElementById('reveal-judge-icon');
+      const titleEl = document.getElementById('reveal-judge-title');
+      const ptsBadge = document.getElementById('reveal-points-badge');
+      const rankBadge = document.getElementById('reveal-rank-badge');
+
+      if (humanIsCorrect) {
+        banner.className = "neo-border shadow-neo rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 shrink-0 bg-emerald-900/90";
+        iconEl.textContent = '⭕';
+        titleEl.textContent = '大正解！！';
+        ptsBadge.textContent = `+${humanEarned.toLocaleString()} pt`;
+        ptsBadge.className = "bg-pop-yellow text-black text-xs font-black px-2.5 py-0.5 rounded-full border border-black";
+      } else {
+        banner.className = "neo-border shadow-neo rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 shrink-0 bg-rose-950/90";
+        iconEl.textContent = '❌';
+        titleEl.textContent = human.currentAnswer === null ? '時間切れ！' : 'ざんねん…不正解！';
+        ptsBadge.textContent = '+0 pt';
+        ptsBadge.className = "bg-gray-700 text-gray-200 text-xs font-black px-2.5 py-0.5 rounded-full border border-black";
+      }
+
+      if (studyMode === 'solo') {
+        rankBadge.textContent = `正解数 ${human.correctCount} / ${currentIndex + 1}`;
+      } else if (isSecretPhase) {
+        rankBadge.textContent = '現在 第❓位（最終決戦！）';
+      } else {
+        rankBadge.textContent = `現在 第${myRank}位 / ${participants.length}人`;
+      }
+
+      document.getElementById('reveal-correct-summary').textContent = `正解：${q.options[correctChoice - 1] || ''}`;
+      document.getElementById('reveal-next-text').textContent = (currentIndex === activeQuizQuestions.length - 1) ? '最終結果へ！' : '次の問題へ';
+
+      // Choices breakdown with avatars
+      document.getElementById('reveal-q-text-review').textContent = q.question;
+      const bd = document.getElementById('reveal-choices-breakdown');
+      bd.innerHTML = q.options.map((opt, idx) => {
+        const cNum = idx + 1;
+        const isCorr = cNum === correctChoice;
+        const pickers = participants.filter(p => p.currentAnswer === cNum);
+        const pickerChips = pickers.map(p => `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-black border border-black ${p.isHuman ? 'bg-pop-yellow text-black' : 'bg-pop-dark text-white'}">${p.avatar}${p.isHuman ? '自分' : ''}</span>`).join(' ');
+
+        return `<div class="p-2.5 rounded-xl border-2 flex items-center justify-between gap-2 ${isCorr ? 'bg-emerald-700/35 border-pop-yellow' : 'bg-pop-dark/70 border-gray-700 opacity-85'}">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${isCorr ? 'bg-pop-yellow text-black' : 'bg-gray-700 text-gray-300'}">${cNum}</span>
+            <span class="text-xs md:text-sm font-bold text-white truncate">${escapeHtml(opt)}</span>
+            ${isCorr ? '<span class="text-[10px] font-black text-pop-yellow shrink-0">👑正解</span>' : ''}
+          </div>
+          <div class="flex items-center gap-1 flex-wrap justify-end shrink-0">${pickerChips}</div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('reveal-explanation-text').textContent = q.explanation || 'この問題のワンポイントをおさらいしておこう！';
+
+      // Standings box
+      const standBox = document.getElementById('reveal-standings-box');
+      const secNote = document.getElementById('reveal-secret-note');
+      if (studyMode === 'solo') {
+        standBox.classList.add('hidden');
+      } else {
+        standBox.classList.remove('hidden');
+        secNote.classList.toggle('hidden', !isSecretPhase);
+        document.getElementById('reveal-standings-list').innerHTML = sorted.map((p, idx) => `
+          <div class="px-2.5 py-1.5 rounded-xl border border-black flex items-center justify-between ${p.isHuman ? 'bg-pop-purple text-white font-black' : 'bg-pop-dark text-gray-200 font-bold'}">
+            <span class="flex items-center gap-1.5 truncate">
+              <span class="text-pop-yellow font-black">${isSecretPhase ? '❓' : (idx + 1) + '位'}</span>
+              <span>${p.avatar}</span>
+              <span class="truncate">${escapeHtml(p.isHuman ? 'あなた' : p.shortName)}</span>
+            </span>
+            <span class="text-pop-yellow font-black shrink-0">${isSecretPhase ? '---' : p.score.toLocaleString() + 'pt'}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function nextStudyQuestion() {
+      currentIndex += 1;
+      loadStudyQuestion();
+    }
+
+    function startCeremony() {
+      clearQuestionTimers();
+      document.getElementById('game-stage-question').classList.add('hidden');
+      document.getElementById('game-stage-reveal').classList.add('hidden');
+      document.getElementById('game-stage-ceremony').classList.remove('hidden');
+
+      const human = participants.find(p => p.isHuman);
+      const totalQ = activeQuizQuestions.length;
+      document.getElementById('my-accuracy-badge').textContent = `${human.correctCount} / ${totalQ} 正解`;
+
+      const retryBtn = document.getElementById('btn-retry-wrong');
+      if (wrongQuestionList.length > 0) {
+        retryBtn.classList.remove('hidden');
+        document.getElementById('btn-retry-wrong-text').textContent = `間違えた問題だけ復習 (${wrongQuestionList.length}問)`;
+      } else {
+        retryBtn.classList.add('hidden');
+      }
+
+      const sorted = [...participants].sort((a, b) => b.score - a.score);
+      document.getElementById('ceremony-full-ranks').innerHTML = sorted.map((p, i) => `
+        <div class="px-3 py-1.5 rounded-xl border-2 border-black flex items-center justify-between ${p.isHuman ? 'bg-pop-purple text-white font-black' : 'bg-pop-dark text-gray-200 font-bold'}">
+          <span class="flex items-center gap-2 truncate">
+            <span class="text-pop-yellow font-black w-6">${i + 1}位</span>
+            <span class="text-lg">${p.avatar}</span>
+            <span class="truncate">${escapeHtml(p.name)}</span>
+          </span>
+          <span class="text-pop-yellow font-black shrink-0">${p.score.toLocaleString()} pt (${p.correctCount}/${totalQ})</span>
+        </div>
+      `).join('');
+
+      const soloCard = document.getElementById('study-solo-summary');
+      if (studyMode === 'solo') {
+        soloCard.classList.remove('hidden');
+        const rate = Math.round((human.correctCount / totalQ) * 100);
+        let emoji = '🏆', title = 'Sランク！パーフェクトマスター！';
+        if (rate < 100 && rate >= 80) { emoji = '🌟'; title = 'Aランク！すばらしい成績！'; }
+        else if (rate < 80 && rate >= 60) { emoji = '👍'; title = 'Bランク！ナイスチャレンジ！'; }
+        else if (rate < 60) { emoji = '🔥'; title = '伸びしろいっぱい！復習しよう！'; }
+
+        document.getElementById('solo-rank-emoji').textContent = emoji;
+        document.getElementById('solo-rank-title').textContent = title;
+        document.getElementById('solo-rank-detail').textContent = `${totalQ}問中 ${human.correctCount}問正解！（正答率 ${rate}%）`;
+        document.getElementById('solo-final-score').textContent = `${human.score.toLocaleString()} pt`;
+        document.getElementById('ceremony-step-badge').textContent = '特訓完了！';
+        playFanfare();
+        if (typeof confetti === 'function' && rate >= 60) {
+          confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+        }
+        return;
+      }
+
+      // Multi-player BOT Podium Animation!
+      soloCard.classList.add('hidden');
+      ['1', '2', '3'].forEach(r => {
+        const el = document.getElementById(`study-podium-${r}`);
+        el.classList.add('opacity-0');
+        el.classList.remove('animate-podium-pop');
+      });
+
+      const fillPodium = (rank, idx) => {
+        const p = sorted[idx];
+        if (!p) return;
+        document.getElementById(`p${rank}-avatar`).textContent = p.avatar;
+        document.getElementById(`p${rank}-name`).textContent = p.isHuman ? `${p.name}(自分)` : (p.shortName || p.name);
+        document.getElementById(`p${rank}-score`).textContent = `${p.score.toLocaleString()} pt`;
+      };
+      fillPodium(1, 0);
+      fillPodium(2, 1);
+      fillPodium(3, 2);
+
+      document.getElementById('ceremony-step-badge').textContent = '第3位発表！';
+      setTimeout(() => {
+        if (sorted[2]) {
+          const p3 = document.getElementById('study-podium-3');
+          p3.classList.remove('opacity-0');
+          p3.classList.add('animate-podium-pop');
+          playBeep(523.25, 'triangle', 0.2);
+        }
+      }, 450);
+
+      setTimeout(() => {
+        document.getElementById('ceremony-step-badge').textContent = '第2位発表！';
+        if (sorted[1]) {
+          const p2 = document.getElementById('study-podium-2');
+          p2.classList.remove('opacity-0');
+          p2.classList.add('animate-podium-pop');
+          playBeep(659.25, 'triangle', 0.25);
+        }
+      }, 1500);
+
+      setTimeout(() => {
+        document.getElementById('ceremony-step-badge').textContent = '栄えある第1位は…！';
+        playDrumRoll(1600);
+      }, 2500);
+
+      setTimeout(() => {
+        const p1 = document.getElementById('study-podium-1');
+        p1.classList.remove('opacity-0');
+        p1.classList.add('animate-podium-pop');
+        document.getElementById('ceremony-step-badge').textContent = sorted[0]?.isHuman ? '🎉 優勝おめでとう！！' : '👑 チャンピオン決定！';
+        playFanfare();
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 120, spread: 90, origin: { y: 0.55 } });
+        }
+      }, 4300);
+    }
+
+    function retryWrongQuestionsOnly() {
+      if (!wrongQuestionList.length) return;
+      startStudyQuiz([...wrongQuestionList]);
+    }
+
+    function replaySameStudySet() {
+      startStudyQuiz();
+    }
+
+    function backToProblemSelectFromCeremony() {
+      clearQuestionTimers();
+      showStudySection('step-select');
+      document.getElementById('study-header-status').textContent = 'サンプル問題を選んでチャレンジしよう！';
+    }
+
+    function quitStudyToMenu() {
+      if (confirm('クイズの途中ですが、メニューに戻りますか？')) {
+        clearQuestionTimers();
+        showStudySection('step-setup');
+      }
+    }
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', async () => {
+      await ensureCatalogLoaded();
+      renderStudyTree();
+      renderStudyLibraryList();
+      updateStudyFooter();
+    });
+  </script>
+</body>
+</html>

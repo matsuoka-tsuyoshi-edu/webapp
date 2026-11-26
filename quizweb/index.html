@@ -7,12 +7,12 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POP QUIZ SHOW - ポータルメニュー (Ver 3.7.0)</title>
+  <title>POP QUIZ SHOW - ポータルメニュー (Ver 3.8.0)</title>
   <script>
     // =================================================================
-    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.7.0)
+    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.8.0)
     // =================================================================
-    const APP_VERSION = "3.7.0";
+    const APP_VERSION = "3.8.0";
 
     async function clearAllAppCaches() {
       try {
@@ -113,7 +113,7 @@
 </head>
 <body class="bg-[#141221] text-white min-h-screen flex flex-col items-center justify-center p-6">
 
-  <div class="max-w-2xl w-full bg-[#1E1B2E] neo-border neo-shadow rounded-3xl p-8 text-center">
+  <div class="max-w-4xl w-full bg-[#1E1B2E] neo-border neo-shadow rounded-3xl p-6 md:p-8 text-center">
     
     <!-- Title -->
     <div class="flex items-center justify-center gap-2 mb-3">
@@ -121,48 +121,64 @@
         WebRTC Realtime Quiz System
       </div>
       <div class="inline-block bg-[#00CEC9] text-black px-3 py-1 rounded-full text-xs font-black border-2 border-black">
-        Ver 3.7.0
+        Ver 3.8.0
       </div>
     </div>
     <h1 class="text-4xl md:text-5xl font-black text-[#FDCB6E] tracking-wider mb-2 drop-shadow-[3px_3px_0px_#000]">
       POP QUIZ SHOW ⚡
     </h1>
-    <p class="text-gray-300 font-bold text-sm md:text-base mb-8">
-      サーバー設置不要！ブラウザだけで動く1:Nリアルタイム対戦クイズシステム
+    <p class="text-gray-300 font-bold text-sm md:text-base mb-7">
+      サーバー設置不要！授業のリアルタイム対戦＆自習特訓がブラウザだけで動くクイズシステム
     </p>
 
     <!-- Navigation Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-7 text-left">
       
       <!-- Host Launch -->
-      <a href="host.html?v=3.7.0" data-base="host.html" onclick="return openWithNoCache(this)" class="block bg-[#6C5CE7] hover:bg-[#5b4bc4] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
+      <a href="host.html?v=3.8.0" data-base="host.html" onclick="return openWithNoCache(this)" class="block bg-[#6C5CE7] hover:bg-[#5b4bc4] p-5 rounded-2xl neo-border neo-shadow neo-btn group">
         <div class="flex items-center justify-between mb-3">
-          <div class="w-14 h-14 bg-[#FDCB6E] text-black rounded-xl border-2 border-black flex items-center justify-center text-3xl font-black">
+          <div class="w-12 h-12 bg-[#FDCB6E] text-black rounded-xl border-2 border-black flex items-center justify-center text-2xl font-black">
             🖥️
           </div>
-          <span class="text-xs font-black bg-black text-[#00CEC9] px-2.5 py-1 rounded-md">親機 (iPad / PC)</span>
+          <span class="text-[11px] font-black bg-black text-[#00CEC9] px-2.5 py-1 rounded-md">親機 (先生)</span>
         </div>
-        <h2 class="text-2xl font-black text-white group-hover:text-[#FDCB6E] transition-colors">
+        <h2 class="text-xl font-black text-white group-hover:text-[#FDCB6E] transition-colors">
           ホスト画面を開く
         </h2>
         <p class="text-xs font-bold text-purple-200 mt-2 leading-relaxed">
-          サンプル問題ライブラリ（中学校保健10セット搭載）、部屋・QRコード発行、アプリ内クイズ作成、CBT動画2段階出題、ZIP/Excel保存・読込。
+          部屋・QR発行、7教科サンプル合体出題、クイズスタジオ作成、CBT動画出題、リアルタイム演出。
         </p>
       </a>
 
       <!-- Player Launch -->
-      <a href="player.html?v=3.7.0" data-base="player.html" onclick="return openWithNoCache(this)" class="block bg-[#00B894] hover:bg-[#00a383] p-6 rounded-2xl neo-border neo-shadow neo-btn group">
+      <a href="player.html?v=3.8.0" data-base="player.html" onclick="return openWithNoCache(this)" class="block bg-[#00B894] hover:bg-[#00a383] p-5 rounded-2xl neo-border neo-shadow neo-btn group">
         <div class="flex items-center justify-between mb-3">
-          <div class="w-14 h-14 bg-white text-black rounded-xl border-2 border-black flex items-center justify-center text-3xl font-black">
+          <div class="w-12 h-12 bg-white text-black rounded-xl border-2 border-black flex items-center justify-center text-2xl font-black">
             📱
           </div>
-          <span class="text-xs font-black bg-black text-[#FDCB6E] px-2.5 py-1 rounded-md">子機 (スマホ)</span>
+          <span class="text-[11px] font-black bg-black text-[#FDCB6E] px-2.5 py-1 rounded-md">子機 (生徒)</span>
         </div>
-        <h2 class="text-2xl font-black text-black group-hover:text-white transition-colors">
+        <h2 class="text-xl font-black text-black group-hover:text-white transition-colors">
           参加者画面を開く
         </h2>
-        <p class="text-xs font-black text-slate-800 mt-2 leading-relaxed">
-          カメラでQR即参加。CBT動画視聴待機画面＆問題画像の手元表示＆2択/3択/4択に最適化された巨大ボタン回答。
+        <p class="text-xs font-black text-slate-900 mt-2 leading-relaxed">
+          カメラでQR即参加！巨大ボタン＆特大〇×で早押し回答、手元の振り返り＆表彰式同期。
+        </p>
+      </a>
+
+      <!-- Study Mode Launch -->
+      <a href="study.html?v=3.8.0" data-base="study.html" onclick="return openWithNoCache(this)" class="block bg-[#FDCB6E] hover:bg-[#fbd07c] p-5 rounded-2xl neo-border neo-shadow neo-btn group">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-12 h-12 bg-black text-[#FDCB6E] rounded-xl border-2 border-black flex items-center justify-center text-2xl font-black">
+            🎓
+          </div>
+          <span class="text-[11px] font-black bg-[#FF7675] text-black px-2.5 py-1 rounded-md border border-black">自習・特訓</span>
+        </div>
+        <h2 class="text-xl font-black text-black group-hover:text-[#6C5CE7] transition-colors">
+          自習モードで遊ぶ
+        </h2>
+        <p class="text-xs font-black text-slate-900 mt-2 leading-relaxed">
+          サンプル問題を複数選んで特訓！1人練習や、個性派AIライバル4体との白熱バトル＆表彰式に挑戦！
         </p>
       </a>
 
@@ -184,10 +200,10 @@
       <div class="flex flex-wrap items-center gap-2 text-gray-300 shrink-0">
         <i class="fa-solid fa-book text-yellow-400 text-lg"></i>
         <span>マニュアル:</span>
-        <a href="manual/guide_a4_landscape.html?v=3.7.0" data-base="manual/guide_a4_landscape.html" onclick="return openWithNoCache(this)" class="bg-[#FDCB6E] hover:bg-amber-300 text-black px-2.5 py-1 rounded-lg neo-border-sm text-[11px] font-black inline-flex items-center gap-1 shadow">
+        <a href="manual/guide_a4_landscape.html?v=3.8.0" data-base="manual/guide_a4_landscape.html" onclick="return openWithNoCache(this)" class="bg-[#FDCB6E] hover:bg-amber-300 text-black px-2.5 py-1 rounded-lg neo-border-sm text-[11px] font-black inline-flex items-center gap-1 shadow">
           <i class="fa-solid fa-file-pdf"></i>A4横1枚ガイド (印刷/PDF)
         </a>
-        <a href="manual/manual.html?v=3.7.0" data-base="manual/manual.html" onclick="return openWithNoCache(this)" class="text-[#FDCB6E] underline hover:text-white">Web版取扱説明書</a>
+        <a href="manual/manual.html?v=3.8.0" data-base="manual/manual.html" onclick="return openWithNoCache(this)" class="text-[#FDCB6E] underline hover:text-white">Web版取扱説明書</a>
       </div>
     </div>
 
