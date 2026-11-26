@@ -49,11 +49,12 @@ window.TakakukeiApp = window.TakakukeiApp || {};
   }
 
   App.CHALLENGES = [
-    // --- レベル1：いろいろな正多角形 ---
+    // --- 円をかこう（問題1〜5） ---
     {
       id: 'c1',
       num: 1,
-      level: 'レベル1：正多角形マスター',
+      group: 'circle',
+      level: '円をかこう：正多角形から円へ',
       title: '正六角形（せいろっかくけい）',
       desc: '1辺が 100 の 正六角形を かこう！（6回くりかえす）',
       hint: '360 ÷ 6 ＝ 60度！ 6回くりかえしてみよう。',
@@ -66,7 +67,8 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     {
       id: 'c2',
       num: 2,
-      level: 'レベル1：正多角形マスター',
+      group: 'circle',
+      level: '円をかこう：正多角形から円へ',
       title: '正八角形（せいはっかくけい）',
       desc: '1辺が 80 の 正八角形を かこう！（8回くりかえす）',
       hint: '360 ÷ 8 ＝ 45度！ 長さは 80 歩で 8回くりかえそう。',
@@ -79,7 +81,8 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     {
       id: 'c3',
       num: 3,
-      level: 'レベル1：正多角形マスター',
+      group: 'circle',
+      level: '円をかこう：正多角形から円へ',
       title: '正十角形（せいじゅっかくけい）',
       desc: '1辺が 60 の 正十角形を かこう！（10回くりかえす）',
       hint: '360 ÷ 10 ＝ 36度！ 長さは 60 歩で 10回くりかえそう。',
@@ -92,7 +95,8 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     {
       id: 'c4',
       num: 4,
-      level: 'レベル1：正多角形マスター',
+      group: 'circle',
+      level: '円をかこう：正多角形から円へ',
       title: '正十二角形（せいじゅうにかくけい）',
       desc: '1辺が 50 の 正十二角形を かこう！（12回くりかえす）',
       hint: '360 ÷ 12 ＝ 30度！ 長さは 50 歩で 12回くりかえそう。',
@@ -105,7 +109,8 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     {
       id: 'c5',
       num: 5,
-      level: 'レベル1：正多角形マスター',
+      group: 'circle',
+      level: '円をかこう：正多角形から円へ',
       title: 'ほぼ円！？正三十六角形',
       desc: '1辺が 20 の 正三十六角形（36回）を かいて、円に 近づけよう！',
       hint: '360 ÷ 36 ＝ 10度！ 長さ 20 歩で 36回くりかえしてみよう。',
@@ -119,8 +124,9 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     // --- レベル2：くみあわせ図形＆いろいろな星 ---
     {
       id: 'c6',
-      num: 6,
-      level: 'レベル2：回転のくふう',
+      num: 1,
+      group: 'grade6',
+      level: 'ステップ1：回転のくふう',
       title: '3だん かいだん',
       desc: '右と 左の まわり方を つかいわけて、長さ 60 の 3だん かいだんを かこう！',
       hint: '「60歩 → 右に90度 → 60歩 → 左に90度」を 3回くりかえしてみよう！',
@@ -132,8 +138,9 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     },
     {
       id: 'c7',
-      num: 7,
-      level: 'レベル2：回転のくふう',
+      num: 2,
+      group: 'grade6',
+      level: 'ステップ1：回転のくふう',
       title: 'ギザギザの 山（3つ）',
       desc: '60度の とがった山を 3つ ならべて かこう！（1辺 80、くりかえし3回）',
       hint: '最初に「右に30度」むいておいて、「80歩 → 右120度 → 80歩 → 左120度」を 3回くりかえすと かけるよ！',
@@ -147,8 +154,9 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     },
     {
       id: 'c8',
-      num: 8,
-      level: 'レベル2：回転のくふう',
+      num: 3,
+      group: 'grade6',
+      level: 'ステップ1：回転のくふう',
       title: '八芒星（8つトゲの星）',
       desc: '1辺 100 で 8回くりかえして、8つトゲの かっこいい星を かこう！',
       hint: '1回に「135度」ずつ 右にまわってみよう！（135 × 8 ＝ 1080 ＝ 3周！）',
@@ -160,8 +168,9 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     },
     {
       id: 'c9',
-      num: 9,
-      level: 'レベル2：回転のくふう',
+      num: 4,
+      group: 'grade6',
+      level: 'ステップ1：回転のくふう',
       title: '十芒星（10トゲの星）',
       desc: '1辺 100 で 10回くりかえして、10コのとがった星を かこう！',
       hint: '1回に「108度」ずつ 右にまわってみよう！（108 × 10 ＝ 1080 ＝ 3周！）',
@@ -175,8 +184,9 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     // --- レベル3：ペンを上げる・下ろす活用 ---
     {
       id: 'c10',
-      num: 10,
-      level: 'レベル3：ペンの上げ下ろし',
+      num: 5,
+      group: 'grade6',
+      level: 'ステップ2：ペンの上げ下ろし',
       title: 'はなれた点線（4ほん）',
       desc: '「ペンを上げる／下ろす」を つかって、長さ 40・すきま 30 の点線を 4本 かこう！',
       hint: '「ペンを下ろす → 40歩 → ペンを上げる → 30歩」を 4回くりかえそう！',
@@ -188,8 +198,9 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     },
     {
       id: 'c11',
-      num: 11,
-      level: 'レベル3：ペンの上げ下ろし',
+      num: 6,
+      group: 'grade6',
+      level: 'ステップ2：ペンの上げ下ろし',
       title: 'ならんだ 2つの正方形',
       desc: '1辺 80 の正方形を かいたあと、すきま 40 あけて 右にもう1つ 正方形を かこう！',
       hint: '1つ目の正方形 → ペンを上げる → 右に90度 → 120歩（80＋40） → 左に90度 → ペンを下ろす → 2つ目の正方形！',
@@ -212,8 +223,9 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     // --- レベル4：くりかえしの中のくりかえし（幾何学アート） ---
     {
       id: 'c12',
-      num: 12,
-      level: 'レベル4：二重くりかえしアート',
+      num: 7,
+      group: 'grade6',
+      level: 'ステップ3：くりかえしの入れ子（6年）',
       title: '風車（正方形 × 4）',
       desc: 'くりかえすの中にくりかえすを入れて、1辺 80 の正方形が 4つ 並んだ「風車」をかこう！',
       hint: '「4回くりかえす」の中に「4回くりかえす（80歩・右90度）」を入れ、その下に「右に90度まわす」をいれよう！',
@@ -225,8 +237,9 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     },
     {
       id: 'c13',
-      num: 13,
-      level: 'レベル4：二重くりかえしアート',
+      num: 8,
+      group: 'grade6',
+      level: 'ステップ3：くりかえしの入れ子（6年）',
       title: '6まいの花びら（三角形 × 6）',
       desc: '1辺 90 の正三角形を 60度ずつ ずらしながら 6つ かいて、お花の模様をつくろう！',
       hint: '「6回くりかえす」の中に「3回くりかえす（90歩・右120度）」を入れ、その下に「右に60度まわす」をいれよう！',
@@ -238,21 +251,23 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     },
     {
       id: 'c14',
-      num: 14,
-      level: 'レベル4：二重くりかえしアート',
-      title: 'きらめく太陽（正方形 × 8）',
-      desc: '1辺 80 の正方形を 45度ずつ まわしながら 8つ かいてみよう！',
-      hint: '「8回くりかえす」の中に「4回くりかえす（80歩・右90度）」を入れ、その下に「右に45度まわす」をいれよう！',
-      drawScale: 1.38,
+      num: 9,
+      group: 'grade6',
+      level: 'ステップ3：くりかえしの入れ子（6年）',
+      title: 'ロボくんのお絵かき（正方形 × 8）',
+      desc: '6年教科書 p.202！ 1辺 50 の正方形を 45度ずつ まわしながら 8つ かこう！',
+      hint: '「8回くりかえす」の中に「4回くりかえす（50歩・右90度）」を入れ、その下に「右に45度まわす」をいれよう！',
+      drawScale: 2.2,
       startPos: { x: 210, y: 210, angle: -90 },
       fastDefault: true,
       needsPenBlock: false,
-      cmds: repeatCmds(8, [...repeatCmds(4, [{ t: 'mv', v: 80 }, { t: 'tr', v: 90 }]), { t: 'tr', v: 45 }])
+      cmds: repeatCmds(8, [...repeatCmds(4, [{ t: 'mv', v: 50 }, { t: 'tr', v: 90 }]), { t: 'tr', v: 45 }])
     },
     {
       id: 'c15',
-      num: 15,
-      level: 'レベル4：二重くりかえしアート',
+      num: 10,
+      group: 'grade6',
+      level: 'ステップ3：くりかえしの入れ子（6年）',
       title: '六角の結晶（正六角形 × 6）',
       desc: '1辺 60 の正六角形を 60度ずつ ずらして 6つ かくと、どんな結晶ができるかな？',
       hint: '「6回くりかえす」の中に「6回くりかえす（60歩・右60度）」を入れ、その下に「右に60度まわす」をいれよう！',
@@ -264,8 +279,9 @@ window.TakakukeiApp = window.TakakukeiApp || {};
     },
     {
       id: 'c16',
-      num: 16,
-      level: 'レベル4：二重くりかえしアート',
+      num: 11,
+      group: 'grade6',
+      level: 'ステップ3：くりかえしの入れ子（6年）',
       title: '【最終奥義】五角形マンダラ（×10）',
       desc: '1辺 60 の正五角形を 36度ずつ ずらして 10こ かく、最高の幾何学アートにちょうせん！',
       hint: '「10回くりかえす」の中に「5回くりかえす（60歩・右72度）」を入れ、その下に「右に36度まわす」をいれよう！',
@@ -276,6 +292,11 @@ window.TakakukeiApp = window.TakakukeiApp || {};
       cmds: repeatCmds(10, [...repeatCmds(5, [{ t: 'mv', v: 60 }, { t: 'tr', v: 72 }]), { t: 'tr', v: 36 }])
     }
   ];
+
+  App.getChallengesByGroup = function (group) {
+    if (!group) return App.CHALLENGES;
+    return App.CHALLENGES.filter((c) => c.group === group);
+  };
 
   App.getChallengeGuideSegments = function (challenge) {
     return buildSegmentsFromCommands(challenge.cmds, challenge.startPos, challenge.drawScale, false);

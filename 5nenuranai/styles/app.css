@@ -1093,6 +1093,13 @@ button, a {
   position: relative;
   z-index: 3;
 }
+.prog-block.is-running.is-tap-target,
+.prog-block.is-running.is-tap-target .prog-block-head {
+  cursor: pointer;
+}
+.prog-block.is-running.is-tap-target {
+  animation: doomTapPulse 0.7s ease-in-out infinite alternate;
+}
 .prog-block-head {
   display: flex;
   align-items: center;

@@ -175,7 +175,6 @@
   // --- 4. 状態管理 ---
   let progress = loadProgress();
   let currentStepId = progress.currentStepId || 1;
-  let currentChallengeIdx = progress.currentChallengeIdx || 0;
   let isRunning = false;
   let isInitialized = false;
   let feedbackTimer = null;
@@ -186,17 +185,30 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
+        const byGrp = (parsed.challengeIdxByGroup && typeof parsed.challengeIdxByGroup === 'object')
+          ? parsed.challengeIdxByGroup
+          : {};
         return {
           cleared: Array.isArray(parsed.cleared) ? parsed.cleared : [],
           clearedChallenges: Array.isArray(parsed.clearedChallenges) ? parsed.clearedChallenges : [],
           challengeXmls: (parsed.challengeXmls && typeof parsed.challengeXmls === 'object') ? parsed.challengeXmls : {},
+          challengeIdxByGroup: {
+            circle: Number(byGrp.circle) || 0,
+            grade6: Number(byGrp.grade6) || 0
+          },
           teacherUnlock: !!parsed.teacherUnlock,
-          currentStepId: Number(parsed.currentStepId) || 1,
-          currentChallengeIdx: Number(parsed.currentChallengeIdx) || 0
+          currentStepId: Number(parsed.currentStepId) || 1
         };
       }
     } catch (e) {}
-    return { cleared: [], clearedChallenges: [], challengeXmls: {}, teacherUnlock: false, currentStepId: 1, currentChallengeIdx: 0 };
+    return {
+      cleared: [],
+      clearedChallenges: [],
+      challengeXmls: {},
+      challengeIdxByGroup: { circle: 0, grade6: 0 },
+      teacherUnlock: false,
+      currentStepId: 1
+    };
   }
 
   function saveProgress() {
@@ -205,16 +217,32 @@
         cleared: progress.cleared,
         clearedChallenges: progress.clearedChallenges,
         challengeXmls: progress.challengeXmls,
+        challengeIdxByGroup: progress.challengeIdxByGroup,
         teacherUnlock: progress.teacherUnlock,
-        currentStepId: currentStepId,
-        currentChallengeIdx: currentChallengeIdx
+        currentStepId: currentStepId
       }));
     } catch (e) {}
   }
 
+  function getChallengeGroupForStep(step) {
+    return (step && step.challengeGroup) || 'circle';
+  }
+
+  function getChallengeListForStep(step) {
+    return App.getChallengesByGroup(getChallengeGroupForStep(step));
+  }
+
+  function getChallengeIdxForStep(step) {
+    const grp = getChallengeGroupForStep(step);
+    const list = getChallengeListForStep(step);
+    const raw = (progress.challengeIdxByGroup && progress.challengeIdxByGroup[grp]) || 0;
+    return Math.max(0, Math.min(list.length - 1, raw));
+  }
+
   function getCurrentChallenge() {
-    const list = App.CHALLENGES || [];
-    const idx = Math.max(0, Math.min(list.length - 1, currentChallengeIdx));
+    const step = getStepById(currentStepId);
+    const list = getChallengeListForStep(step);
+    const idx = getChallengeIdxForStep(step);
     return list[idx];
   }
 
@@ -376,15 +404,17 @@
 
   function applyStepConfig(step) {
     if (step.isChallenge) {
-      const ch = getCurrentChallenge();
-      const total = App.CHALLENGES.length;
-      missionBadgeEl.textContent = `問題 ${ch.num}/${total}`;
+      const list = getChallengeListForStep(step);
+      const idx = getChallengeIdxForStep(step);
+      const ch = list[idx];
+      const total = list.length;
+      missionBadgeEl.textContent = `${step.badge} ${ch.num}/${total}`;
       missionBadgeEl.className = 'mission-badge secret';
       missionTitleEl.textContent = ch.title;
       missionDescEl.textContent = ch.desc;
       openChallengeListBtn.textContent = `📋 問題 (${ch.num}/${total})`;
-      prevChallengeBtn.disabled = currentChallengeIdx <= 0;
-      nextChallengeBtn.disabled = currentChallengeIdx >= total - 1;
+      prevChallengeBtn.disabled = idx <= 0;
+      nextChallengeBtn.disabled = idx >= total - 1;
 
       penCheckbox.disabled = false;
       penCard.style.opacity = '1';
@@ -447,11 +477,11 @@
     } catch (e) {}
   }
 
-  function loadChallengeXml(idx) {
+  function loadChallengeXml(step, idx) {
     Blockly.Events.disable();
     try {
       workspace.clear();
-      const list = App.CHALLENGES || [];
+      const list = getChallengeListForStep(step);
       const ch = list[idx];
       if (!ch) return;
       const saved = progress.challengeXmls && progress.challengeXmls[ch.id];
@@ -494,7 +524,7 @@
     showFeedback('', false);
     renderStepNav();
     if (step.isChallenge) {
-      loadChallengeXml(currentChallengeIdx);
+      loadChallengeXml(step, getChallengeIdxForStep(step));
     } else {
       loadDefaultBlocks(step);
     }
@@ -509,21 +539,28 @@
       isRunning = false;
       runBtn.disabled = false;
     }
-    if (isInitialized && getStepById(currentStepId).isChallenge) {
+    const step = getStepById(currentStepId);
+    if (!step.isChallenge) return;
+    if (isInitialized) {
       saveCurrentChallengeXml();
     }
-    currentChallengeIdx = Math.max(0, Math.min(App.CHALLENGES.length - 1, idx));
+    const list = getChallengeListForStep(step);
+    const grp = getChallengeGroupForStep(step);
+    const nextIdx = Math.max(0, Math.min(list.length - 1, idx));
+    progress.challengeIdxByGroup[grp] = nextIdx;
     saveProgress();
     showFeedback('', false);
-    loadChallengeXml(currentChallengeIdx);
+    loadChallengeXml(step, nextIdx);
     turtle.resetView();
-    applyStepConfig(getStepById(8));
+    applyStepConfig(step);
   }
 
   function openChallengeListModal() {
-    const list = App.CHALLENGES || [];
+    const step = getStepById(currentStepId);
+    const list = getChallengeListForStep(step);
+    const activeIdx = getChallengeIdxForStep(step);
     const clearedCount = list.filter((c) => progress.clearedChallenges.includes(c.id)).length;
-    challengeModalTitle.textContent = `🏆 超発展チャレンジ（${clearedCount} / ${list.length} クリア）`;
+    challengeModalTitle.textContent = `${step.shortName}（${clearedCount} / ${list.length} クリア）`;
     challengeListBody.innerHTML = '';
 
     const levels = [];
@@ -549,7 +586,7 @@
         const isCleared = progress.clearedChallenges.includes(ch.id);
         const card = document.createElement('button');
         card.type = 'button';
-        card.className = 'challenge-card' + (idx === currentChallengeIdx ? ' active' : '') + (isCleared ? ' cleared' : '');
+        card.className = 'challenge-card' + (idx === activeIdx ? ' active' : '') + (isCleared ? ' cleared' : '');
         card.innerHTML = `
           <div class="challenge-card-top">
             <span>問題 ${ch.num}</span>
@@ -598,8 +635,8 @@
     turtle.setConfig({ fastMode: fastSpeedCheck.checked });
   });
 
-  prevChallengeBtn.addEventListener('click', () => selectChallenge(currentChallengeIdx - 1));
-  nextChallengeBtn.addEventListener('click', () => selectChallenge(currentChallengeIdx + 1));
+  prevChallengeBtn.addEventListener('click', () => selectChallenge(getChallengeIdxForStep(getStepById(currentStepId)) - 1));
+  nextChallengeBtn.addEventListener('click', () => selectChallenge(getChallengeIdxForStep(getStepById(currentStepId)) + 1));
   openChallengeListBtn.addEventListener('click', openChallengeListModal);
   closeChallengeModalBtn.addEventListener('click', () => challengeModal.classList.remove('open'));
   challengeModal.addEventListener('click', (e) => {
@@ -751,11 +788,12 @@
     clearTitleEl.textContent = `🎉 ${step.shortName} クリア！`;
     clearMsgEl.textContent = step.clearMessage + (extraMessage ? '\n' + extraMessage : '');
 
-    // 新しく解放された隠しステージがあるかチェック
-    const newlyUnlocked = App.STEPS.find((s) => s.isSecret && s.unlockAfter === step.id);
-    if (newlyUnlocked && wasFirstClear) {
+    // 新しく解放された隠しステージがあるかチェック（複数同時解放対応）
+    const newlyUnlockedList = App.STEPS.filter((s) => s.isSecret && s.unlockAfter === step.id);
+    if (newlyUnlockedList.length > 0 && wasFirstClear) {
+      const names = newlyUnlockedList.map((s) => `<strong>「${s.shortName}」</strong>`).join(' ');
       unlockBannerEl.style.display = 'block';
-      unlockBannerEl.innerHTML = `✨ ひみつのステージ <strong>「${newlyUnlocked.shortName}」</strong> が あらわれたよ！！`;
+      unlockBannerEl.innerHTML = `✨ ひみつのステージ ${names} が あらわれたよ！！`;
     } else {
       unlockBannerEl.style.display = 'none';
     }
@@ -777,6 +815,10 @@
   }
 
   function handleChallengeClear(ch, message) {
+    const step = getStepById(currentStepId);
+    const list = getChallengeListForStep(step);
+    const idx = getChallengeIdxForStep(step);
+
     if (!progress.clearedChallenges.includes(ch.id)) {
       progress.clearedChallenges.push(ch.id);
       saveProgress();
@@ -786,18 +828,18 @@
     clearMsgEl.textContent = message;
     unlockBannerEl.style.display = 'none';
 
-    if (currentChallengeIdx < App.CHALLENGES.length - 1) {
-      const nextCh = App.CHALLENGES[currentChallengeIdx + 1];
+    if (idx < list.length - 1) {
+      const nextCh = list[idx + 1];
       nextStepBtn.style.display = 'inline-flex';
       nextStepBtn.textContent = `つぎの問題（${nextCh.num}. ${nextCh.title.split('（')[0]}）▶`;
       nextStepBtn.onclick = () => {
         clearModal.classList.remove('open');
         confetti.stop();
-        selectChallenge(currentChallengeIdx + 1);
+        selectChallenge(idx + 1);
       };
     } else {
       unlockBannerEl.style.display = 'block';
-      unlockBannerEl.innerHTML = '👑 <strong>超発展チャレンジ 全16問 完全制覇！！</strong> おめでとう！！';
+      unlockBannerEl.innerHTML = `👑 <strong>「${step.shortName}」全${list.length}問 完全制覇！！</strong> おめでとう！！`;
       nextStepBtn.style.display = 'none';
     }
     clearModal.classList.add('open');
@@ -867,8 +909,14 @@
 
   resetProgressBtn.addEventListener('click', () => {
     if (confirm('すべてのクリア記録をリセットして、ステップ1からやり直しますか？')) {
-      progress = { cleared: [], clearedChallenges: [], challengeXmls: {}, teacherUnlock: false, currentStepId: 1, currentChallengeIdx: 0 };
-      currentChallengeIdx = 0;
+      progress = {
+        cleared: [],
+        clearedChallenges: [],
+        challengeXmls: {},
+        challengeIdxByGroup: { circle: 0, grade6: 0 },
+        teacherUnlock: false,
+        currentStepId: 1
+      };
       saveProgress();
       teacherUnlockBtn.textContent = '🔓 全ステージを解放';
       settingsModal.classList.remove('open');

@@ -5,7 +5,7 @@
   'use strict';
 
   const STORAGE_KEY = 'uranai_app_v2_state';
-  const BUILD_VER = '20261125-02';
+  const BUILD_VER = '20261126-01';
 
   const NgFilter = global.UranaiNgFilter;
   const Sound = global.UranaiSound;
@@ -1079,6 +1079,13 @@
 
       if (active) {
         blkEl.classList.add('is-running');
+        if (!isAuto && (p === 'ADD_DATE' || p.indexOf('LOOP_') === 0 || p === 'MOD_7')) {
+          blkEl.classList.add('is-tap-target');
+          blkEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            advanceSimManualStep(blkEl);
+          });
+        }
         if (!firstRunningEl) firstRunningEl = blkEl;
       }
     });
@@ -1162,12 +1169,13 @@
         simRun.timer = setTimeout(runAutoSimSequence, 320);
       } else {
         $('sim-crystal-speech').innerHTML =
-          '「さぁ、蛍光グリーンに光った フローチャート（<strong>名前の数に日付をたす</strong>）を タップするのじゃ！」';
+          '「さぁ、蛍光グリーンに光っているところ（<strong>名前の数に日付をたす</strong>）を タップするのじゃ！」';
       }
     }, 950);
   }
 
   function animateFlyingOp(sourceEl, opLabel, nextValue, callback) {
+    if (simRun) simRun.animating = true;
     const chip = $('flying-op-chip');
     const card = $('magic-number-card');
     const srcRect = sourceEl.getBoundingClientRect();
@@ -1197,16 +1205,19 @@
 
       setTimeout(() => {
         tag.hidden = true;
-        simRun.currentNum = nextValue;
+        if (simRun) {
+          simRun.animating = false;
+          simRun.currentNum = nextValue;
+        }
         $('mnc-value').textContent = String(nextValue);
         if (callback) callback();
       }, 240);
     }, 430);
   }
 
-  function handleSimFlowchartTap(slotKey) {
-    if (!simRun) return;
-    if (simRun.phase === 'ADD_DATE' && slotKey === 'イ') {
+  function advanceSimManualStep(sourceElOverride) {
+    if (!simRun || simRun.animating) return;
+    if (simRun.phase === 'ADD_DATE') {
       Sound.playThump();
       const nextVal = simRun.currentNum + simRun.dateDay;
       animateFlyingOp($('today-day-chip'), '＋' + simRun.dateDay, nextVal, () => {
@@ -1215,12 +1226,12 @@
         Sound.playThump();
         renderSimFlowchartAndBlocks();
         $('sim-crystal-speech').innerHTML =
-          '「日付が合体したぞ！つぎは『<strong>5回くり返す（÷2して四捨五入）</strong>』をタップするのじゃ！（<strong>1 / 5回目</strong>）」';
+          '「日付が合体したぞ！つぎは光っている『<strong>5回くり返す（÷2して四捨五入）</strong>』をタップするのじゃ！（<strong>1 / 5回目</strong>）」';
       });
-    } else if (simRun.phase.indexOf('LOOP_') === 0 && (slotKey === 'ウ' || slotKey === 'エ' || slotKey === 'オ')) {
+    } else if (simRun.phase.indexOf('LOOP_') === 0) {
       Sound.playThump();
       const nextVal = Math.round(simRun.currentNum / 2);
-      const srcEl = document.querySelector('#sim-flowchart-view [data-fc-slot="' + slotKey + '"]') || $('sim-flowchart-view');
+      const srcEl = sourceElOverride || document.querySelector('#sim-flowchart-view [data-fc-slot="エ"]') || $('sim-flowchart-view');
       animateFlyingOp(srcEl, '÷2 四捨五入', nextVal, () => {
         if (simRun.loopIdx < 5) {
           simRun.loopIdx += 1;
@@ -1228,22 +1239,35 @@
           Sound.playThump();
           renderSimFlowchartAndBlocks();
           $('sim-crystal-speech').innerHTML =
-            '「数字が半分になったぞ！もういちど『くり返し』をタップじゃ！（<strong>' + simRun.loopIdx + ' / 5回目</strong>）」';
+            '「数字が半分になったぞ！もういちど光っているところをタップじゃ！（<strong>' + simRun.loopIdx + ' / 5回目</strong>）」';
         } else {
           simRun.phase = 'MOD_7';
           Sound.playThump();
           renderSimFlowchartAndBlocks();
           $('sim-crystal-speech').innerHTML =
-            '「5回くり返し 完了じゃ！最後は『<strong>7でわったあまりがいくらか</strong>』をタップするのじゃ！」';
+            '「5回くり返し 完了じゃ！最後は光っている『<strong>7でわったあまりがいくらか</strong>』をタップするのじゃ！」';
         }
       });
-    } else if (simRun.phase === 'MOD_7' && slotKey === 'カ') {
+    } else if (simRun.phase === 'MOD_7') {
       Sound.playThump();
       const rem = ((simRun.currentNum % 7) + 7) % 7;
-      const srcEl = document.querySelector('#sim-flowchart-view [data-fc-slot="カ"]') || $('sim-flowchart-view');
+      const srcEl = sourceElOverride || document.querySelector('#sim-flowchart-view [data-fc-slot="カ"]') || $('sim-flowchart-view');
       animateFlyingOp(srcEl, '÷7 のあまり', rem, () => {
         enterPickColorPhase(false);
       });
+    }
+  }
+
+  function handleSimFlowchartTap(slotKey) {
+    if (!simRun || simRun.animating) return;
+    if (simRun.phase === 'ADD_DATE' && slotKey === 'イ') {
+      advanceSimManualStep(null);
+    } else if (simRun.phase.indexOf('LOOP_') === 0 && (slotKey === 'ウ' || slotKey === 'エ' || slotKey === 'オ')) {
+      const srcEl = document.querySelector('#sim-flowchart-view [data-fc-slot="' + slotKey + '"]') || $('sim-flowchart-view');
+      advanceSimManualStep(srcEl);
+    } else if (simRun.phase === 'MOD_7' && slotKey === 'カ') {
+      const srcEl = document.querySelector('#sim-flowchart-view [data-fc-slot="カ"]') || $('sim-flowchart-view');
+      advanceSimManualStep(srcEl);
     }
   }
 
