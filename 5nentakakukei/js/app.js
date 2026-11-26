@@ -6,6 +6,49 @@
   const App = window.TakakukeiApp;
   const STORAGE_KEY = '5nen_takakukei_progress_v1';
 
+  // --- 0. Blockly メッセージ日本語化＆児童向け不要コンテキストメニュー削除 ---
+  if (Blockly.Msg) {
+    Object.assign(Blockly.Msg, {
+      DUPLICATE_BLOCK: 'ふくせい（コピー）',
+      DELETE_BLOCK: 'ブロックを けす',
+      DELETE_X_BLOCKS: '%1 個のブロックを けす',
+      DELETE_ALL_BLOCKS: '%1 個のブロックを すべて けしますか？',
+      UNDO: 'ひとつ もどす',
+      REDO: 'やりなおす',
+      CLEAN_UP: 'ブロックを きれいに ならべる',
+      INLINE_INPUTS: 'よこならび入力',
+      EXTERNAL_INPUTS: 'そとがわ入力',
+      COLLAPSE_BLOCK: 'たたむ',
+      EXPAND_BLOCK: 'ひらく',
+      COLLAPSE_ALL: 'すべて たたむ',
+      EXPAND_ALL: 'すべて ひらく',
+      DISABLE_BLOCK: 'うごかなくする',
+      ENABLE_BLOCK: 'うごくようにする',
+      ADD_COMMENT: 'メモをかく',
+      REMOVE_COMMENT: 'メモをけす',
+      HELP: 'ヘルプ'
+    });
+  }
+
+  if (Blockly.ContextMenuRegistry && Blockly.ContextMenuRegistry.registry) {
+    const removeMenuIds = [
+      'blockInline',        // External Inputs / Inline Inputs
+      'blockComment',       // Add Comment
+      'blockCollapseExpand',// Collapse / Expand
+      'blockDisable',       // Disable / Enable
+      'blockHelp',          // Help
+      'collapseWorkspace',  // Collapse Blocks
+      'expandWorkspace'     // Expand Blocks
+    ];
+    removeMenuIds.forEach((id) => {
+      try {
+        if (Blockly.ContextMenuRegistry.registry.getItem(id)) {
+          Blockly.ContextMenuRegistry.registry.unregister(id);
+        }
+      } catch (e) {}
+    });
+  }
+
   // --- 1. Blockly カスタムブロック定義（Scratch寄せ配色：命令=オレンジ、繰り返し=黄色、数値=緑） ---
   const CMD_ORANGE = '#F97316';
   const CTRL_YELLOW = '#EAB308';
