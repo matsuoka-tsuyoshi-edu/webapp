@@ -218,8 +218,8 @@
       lastTouchEnd = now;
     }, { passive: false });
 
-    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.6.0)
-    const APP_VERSION = "3.6.0";
+    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.7.0)
+    const APP_VERSION = "3.7.0";
 
     async function clearAllAppCaches() {
       try {
@@ -308,7 +308,7 @@
 
   <!-- Floating Controls (Version Badge, Force Cache Reload & Sound) -->
   <div class="fixed top-3 right-3 z-40 flex items-center space-x-2">
-    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.6.0</span>
+    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.7.0</span>
     <button onclick="forceReloadLatestHost()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-yellow text-base neo-button hover:bg-slate-800" title="キャッシュを削除して最新版に更新">
       <i class="fa-solid fa-rotate"></i>
     </button>
@@ -971,14 +971,20 @@
 
         <!-- Right Pane: Breadcrumb + Compact Set List -->
         <div class="md:col-span-8 flex flex-col min-h-0 bg-[#1c1830]">
-          <!-- Breadcrumb & Count Bar -->
-          <div class="px-4 py-2.5 border-b border-gray-700/80 bg-pop-card/60 flex items-center justify-between gap-2 shrink-0">
+          <!-- Breadcrumb & Bulk Append Bar -->
+          <div class="px-4 py-2 border-b border-gray-700/80 bg-pop-card/60 flex items-center justify-between gap-2 shrink-0 flex-wrap">
             <div id="sample-breadcrumb" class="text-xs font-black text-gray-200 flex items-center gap-1.5 flex-wrap truncate">
               <!-- Dynamically rendered -->
             </div>
-            <span id="sample-result-count" class="text-[11px] font-black bg-pop-dark text-pop-yellow px-2.5 py-0.5 rounded-full border border-gray-600 shrink-0">
-              0セット
-            </span>
+            <div class="flex items-center gap-2 shrink-0">
+              <button id="sample-bulk-append-btn" type="button" onclick="appendAllFilteredSampleSets()" class="hidden bg-pop-purple hover:bg-purple-600 text-white text-[11px] font-black px-2.5 py-1 rounded-lg border border-black flex items-center gap-1 shadow-xs transition-colors" title="いま表示されているセットをまとめて追加します">
+                <i class="fa-solid fa-layer-group text-pop-yellow"></i>
+                <span id="sample-bulk-append-text">まとめてたす</span>
+              </button>
+              <span id="sample-result-count" class="text-[11px] font-black bg-pop-dark text-pop-yellow px-2.5 py-0.5 rounded-full border border-gray-600 shrink-0">
+                0セット
+              </span>
+            </div>
           </div>
 
           <!-- Sets Container (Scrollable) -->
@@ -987,6 +993,28 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- Modal Footer: Current Total & Multi-Set Merge Controls -->
+      <div id="sample-library-footer" class="bg-pop-dark px-4 md:px-6 py-2.5 border-t-4 border-black flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span id="sample-footer-count-badge" class="bg-pop-cyan text-black text-xs font-black px-3 py-1 rounded-full neo-border-sm shrink-0">
+            現在 0問
+          </span>
+          <span id="sample-footer-summary" class="text-xs text-gray-300 font-bold truncate max-w-[260px] md:max-w-md">
+            「セットする」または「＋ たす」で問題を選べます
+          </span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="sample-footer-clear-btn" type="button" onclick="clearCurrentSampleTargetQuestions()" class="hidden bg-slate-700 hover:bg-rose-500 hover:text-black text-gray-200 text-xs font-black px-3 py-1.5 rounded-xl border-2 border-black transition-colors flex items-center gap-1" title="セット済みの問題を0問にリセット">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>クリア</span>
+          </button>
+          <button id="sample-footer-done-btn" type="button" onclick="closeSampleLibraryModal()" class="bg-pop-yellow hover:bg-amber-300 text-black text-xs md:text-sm font-black px-4 py-1.5 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center gap-1.5">
+            <i class="fa-solid fa-check"></i>
+            <span id="sample-footer-done-text">閉じる</span>
+          </button>
+        </div>
       </div>
 
     </div>
@@ -1006,7 +1034,7 @@
   </div>
 
   <!-- サンプルライブラリ オフライン/ローカル用フォールバックバンドル -->
-  <script src="sample/sample_bundle.js?v=3.6.0"></script>
+  <script src="sample/sample_bundle.js?v=3.7.0"></script>
 
   <!-- JAVASCRIPT APP LOGIC -->
   <script>
@@ -1063,6 +1091,100 @@
     let sampleExpandedTreeNodes = new Set(['school:jh']);
     let sampleExpandedSetPreviews = new Set();
     let sampleSearchQuery = '';
+    let sampleAddedSetCounts = new Map();   // setId -> 追加回数
+    let sampleAddedSetTitles = [];          // 追加したセット名の履歴
+
+    function getCurrentSampleTargetQuestions() {
+      return sampleLibraryTarget === 'host' ? questions : studioQuestions;
+    }
+
+    function setCurrentSampleTargetQuestions(newList) {
+      newList.forEach((q, idx) => { q.id = idx + 1; });
+      if (sampleLibraryTarget === 'host') {
+        questions = newList;
+        currentQIndex = 0;
+      } else {
+        studioQuestions = newList;
+        if (studioQuestions.length === 0) {
+          studioActiveIndex = -1;
+        } else if (studioActiveIndex < 0 || studioActiveIndex >= studioQuestions.length) {
+          studioActiveIndex = 0;
+        }
+        renderStudioList();
+        renderStudioForm();
+      }
+    }
+
+    function updateSampleFooterBar() {
+      const targetList = getCurrentSampleTargetQuestions();
+      const totalQ = targetList.length;
+      const badgeEl = document.getElementById('sample-footer-count-badge');
+      const sumEl = document.getElementById('sample-footer-summary');
+      const clearBtn = document.getElementById('sample-footer-clear-btn');
+      const doneText = document.getElementById('sample-footer-done-text');
+
+      if (badgeEl) {
+        badgeEl.textContent = `現在 ${totalQ}問`;
+        badgeEl.className = totalQ > 0
+          ? "bg-pop-green text-black text-xs font-black px-3 py-1 rounded-full neo-border-sm shrink-0"
+          : "bg-gray-700 text-gray-200 text-xs font-black px-3 py-1 rounded-full border border-gray-500 shrink-0";
+      }
+
+      if (sumEl) {
+        if (totalQ === 0) {
+          sumEl.textContent = "「セットする」または「＋ たす」で問題を選べます";
+        } else if (sampleAddedSetTitles.length > 0) {
+          sumEl.textContent = sampleAddedSetTitles.join(' ＋ ');
+        } else {
+          sumEl.textContent = `既存の ${totalQ}問 を編集中（「＋ たす」で後ろに追加できます）`;
+        }
+      }
+
+      if (clearBtn) {
+        if (totalQ > 0) clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+      }
+
+      if (doneText) {
+        doneText.textContent = totalQ > 0 ? `この ${totalQ}問 で完了（閉じる）` : '閉じる';
+      }
+    }
+
+    function syncHostLobbyStatusBadge(summaryLabel) {
+      const badge = document.getElementById('file-status-badge');
+      const sumText = document.getElementById('quiz-summary-text');
+      if (questions.length === 0) {
+        if (badge) {
+          badge.textContent = '問題未セット (0問)';
+          badge.className = 'bg-pop-dark text-gray-300 text-xs px-2.5 py-1 rounded-full neo-border-sm font-bold';
+        }
+        if (sumText) {
+          sumText.textContent = '「クイズを作成・編集」から作成または読込';
+        }
+        return;
+      }
+
+      if (badge) {
+        if (sampleAddedSetTitles.length > 1) {
+          badge.textContent = `合体セット (${sampleAddedSetTitles.length}件・${questions.length}問)`;
+        } else if (summaryLabel && summaryLabel.badgeText) {
+          badge.textContent = summaryLabel.badgeText;
+        } else {
+          badge.textContent = `セット完了 (${questions.length}問)`;
+        }
+        badge.className = 'bg-pop-green text-black text-xs px-3 py-1 rounded-full neo-border-sm font-black';
+      }
+
+      if (sumText) {
+        if (sampleAddedSetTitles.length > 1) {
+          sumText.textContent = `${sampleAddedSetTitles.join(' ＋ ')} (計${questions.length}問)`;
+        } else if (summaryLabel && summaryLabel.summaryText) {
+          sumText.textContent = summaryLabel.summaryText;
+        } else {
+          sumText.textContent = `計${questions.length}問 がセットされています`;
+        }
+      }
+    }
 
     const SAMPLE_SCHOOL_META = {
       jh: { icon: '🏫', order: 1 },
@@ -1180,8 +1302,14 @@
         await ensureSampleCatalogLoaded();
       }
 
+      if (getCurrentSampleTargetQuestions().length === 0) {
+        sampleAddedSetCounts.clear();
+        sampleAddedSetTitles = [];
+      }
+
       renderSampleTree();
       renderSampleLibraryList();
+      updateSampleFooterBar();
     }
 
     function closeSampleLibraryModal() {
@@ -1438,191 +1566,309 @@
       bc.innerHTML = parts.join('');
     }
 
-    function renderSampleLibraryList() {
-      const container = document.getElementById('sample-library-list');
-      if (!container) return;
+      let lastFilteredSampleSets = [];
 
-      const kw = sampleSearchQuery.trim().toLowerCase();
+      function renderSampleLibraryList() {
+        const container = document.getElementById('sample-library-list');
+        if (!container) return;
 
-      const filtered = SAMPLE_CATALOG_SETS.filter(item => {
-        const matchSchool = (sampleSelectedNode.school === 'all') || (item.school === sampleSelectedNode.school);
-        const matchSubj = (sampleSelectedNode.subject === 'all') || (item.subject === sampleSelectedNode.subject);
-        const matchTopic = (sampleSelectedNode.topic === 'all') || (item.topic === sampleSelectedNode.topic);
-        if (!matchSchool || !matchSubj || !matchTopic) return false;
+        const kw = sampleSearchQuery.trim().toLowerCase();
 
-        if (kw !== '') {
-          const haystack = (item.searchText || `${item.title} ${item.description} ${item.topic}`).toLowerCase();
-          if (!haystack.includes(kw)) return false;
+        const filtered = SAMPLE_CATALOG_SETS.filter(item => {
+          const matchSchool = (sampleSelectedNode.school === 'all') || (item.school === sampleSelectedNode.school);
+          const matchSubj = (sampleSelectedNode.subject === 'all') || (item.subject === sampleSelectedNode.subject);
+          const matchTopic = (sampleSelectedNode.topic === 'all') || (item.topic === sampleSelectedNode.topic);
+          if (!matchSchool || !matchSubj || !matchTopic) return false;
+
+          if (kw !== '') {
+            const haystack = (item.searchText || `${item.title} ${item.description} ${item.topic}`).toLowerCase();
+            if (!haystack.includes(kw)) return false;
+          }
+          return true;
+        });
+
+        lastFilteredSampleSets = filtered;
+        renderSampleBreadcrumb(filtered.length);
+
+        const bulkBtn = document.getElementById('sample-bulk-append-btn');
+        const bulkText = document.getElementById('sample-bulk-append-text');
+        if (bulkBtn && bulkText) {
+          if (filtered.length >= 2 && filtered.length <= 20) {
+            bulkText.textContent = `まとめてたす (${filtered.length}セット)`;
+            bulkBtn.classList.remove('hidden');
+          } else {
+            bulkBtn.classList.add('hidden');
+          }
         }
-        return true;
-      });
 
-      renderSampleBreadcrumb(filtered.length);
-
-      if (filtered.length === 0) {
-        const isComingSoon = (sampleSelectedNode.school === 'elem' && kw === '');
-        container.innerHTML = `
-          <div class="py-12 px-4 text-center text-gray-300 flex flex-col items-center justify-center">
-            <div class="w-16 h-16 bg-pop-dark rounded-2xl border-2 border-gray-700 flex items-center justify-center text-3xl mb-3">
-              ${isComingSoon ? '🎒' : '🔍'}
-            </div>
-            <p class="font-black text-base text-white mb-1">
-              ${isComingSoon ? '小学校のサンプル問題は現在準備中です！' : '該当するサンプル問題セットが見つかりませんでした。'}
-            </p>
-            <p class="text-xs text-gray-400 font-bold mb-4 max-w-md">
-              ${isComingSoon
-                ? '今後のアップデートで国語・算数・理科・社会などの公式セットを順次追加予定です。今はスタジオから自作問題やExcel/ZIPもご利用いただけます！'
-                : '左のツリーや検索キーワードを変更してお試しください。'}
-            </p>
-            <button onclick="clearSampleSearch(); selectSampleTreeNode('all','all','all')" class="bg-pop-yellow hover:bg-amber-300 text-black font-black text-xs px-4 py-2 rounded-xl neo-border-sm neo-button">
-              🏠 すべてのサンプルを表示する
-            </button>
-          </div>
-        `;
-        return;
-      }
-
-      // 単元ごとにグループ化して見やすく整理表示
-      let html = '';
-      let lastGroupKey = '';
-
-      filtered.forEach(item => {
-        const groupKey = `${item.schoolName}｜${item.subjectName}｜${item.topic}`;
-        if (groupKey !== lastGroupKey) {
-          lastGroupKey = groupKey;
-          html += `
-            <div class="flex items-center gap-2 pt-1 pb-0.5 px-1">
-              <span class="bg-pop-purple text-white text-[10px] font-black px-2 py-0.5 rounded-md neo-border-sm">${escapeHtml(item.schoolName)}</span>
-              <span class="bg-pop-cyan text-black text-[10px] font-black px-2 py-0.5 rounded-md neo-border-sm">${escapeHtml(item.subjectName)}</span>
-              <span class="text-xs font-black text-gray-200 truncate">📖 ${escapeHtml(item.topic)}</span>
+        if (filtered.length === 0) {
+          const isComingSoon = (sampleSelectedNode.school === 'elem' && kw === '');
+          container.innerHTML = `
+            <div class="py-12 px-4 text-center text-gray-300 flex flex-col items-center justify-center">
+              <div class="w-16 h-16 bg-pop-dark rounded-2xl border-2 border-gray-700 flex items-center justify-center text-3xl mb-3">
+                ${isComingSoon ? '🎒' : '🔍'}
+              </div>
+              <p class="font-black text-base text-white mb-1">
+                ${isComingSoon ? '小学校のサンプル問題は現在準備中です！' : '該当するサンプル問題セットが見つかりませんでした。'}
+              </p>
+              <p class="text-xs text-gray-400 font-bold mb-4 max-w-md">
+                ${isComingSoon
+                  ? '今後のアップデートで国語・算数・理科・社会などの公式セットを順次追加予定です。今はスタジオから自作問題やExcel/ZIPもご利用いただけます！'
+                  : '左のツリーや検索キーワードを変更してお試しください。'}
+              </p>
+              <button onclick="clearSampleSearch(); selectSampleTreeNode('all','all','all')" class="bg-pop-yellow hover:bg-amber-300 text-black font-black text-xs px-4 py-2 rounded-xl neo-border-sm neo-button">
+                🏠 すべてのサンプルを表示する
+              </button>
             </div>
           `;
+          updateSampleFooterBar();
+          return;
         }
 
-        const qCount = item.questionCount || 0;
-        const qTypes = item.questionTypes || '4択';
-        const isExpanded = sampleExpandedSetPreviews.has(item.id) || (kw !== '');
-        const previews = item.previewQuestions || [];
+        const hasExisting = getCurrentSampleTargetQuestions().length > 0;
 
-        let qPreviewHtml = '';
-        if (isExpanded && previews.length > 0) {
-          let rows = '';
-          previews.forEach((q, idx) => {
-            const typeBadge = q.type === '2choice'
-              ? '<span class="bg-pop-pink/20 text-pop-pink px-1.5 py-0.5 rounded text-[10px] font-black shrink-0">〇×</span>'
-              : '<span class="bg-pop-blue/20 text-pop-blue px-1.5 py-0.5 rounded text-[10px] font-black shrink-0">4択</span>';
-            rows += `
-              <div class="flex items-start gap-2 text-xs text-gray-200 py-1 border-b border-gray-800 last:border-b-0">
-                <span class="font-black text-pop-yellow shrink-0">Q${idx + 1}.</span>
-                ${typeBadge}
-                <span class="leading-snug font-bold">${escapeHtml(q.question)}</span>
+        // 単元ごとにグループ化して見やすく整理表示
+        let html = '';
+        let lastGroupKey = '';
+
+        filtered.forEach(item => {
+          const groupKey = `${item.schoolName}｜${item.subjectName}｜${item.topic}`;
+          if (groupKey !== lastGroupKey) {
+            lastGroupKey = groupKey;
+            html += `
+              <div class="flex items-center gap-2 pt-1 pb-0.5 px-1">
+                <span class="bg-pop-purple text-white text-[10px] font-black px-2 py-0.5 rounded-md neo-border-sm">${escapeHtml(item.schoolName)}</span>
+                <span class="bg-pop-cyan text-black text-[10px] font-black px-2 py-0.5 rounded-md neo-border-sm">${escapeHtml(item.subjectName)}</span>
+                <span class="text-xs font-black text-gray-200 truncate">📖 ${escapeHtml(item.topic)}</span>
               </div>
             `;
-          });
-          qPreviewHtml = `
-            <div class="mt-2.5 bg-pop-dark/90 rounded-xl p-2.5 border border-gray-700 space-y-0.5">
-              ${rows}
-            </div>
-          `;
-        }
+          }
 
-        html += `
-          <div class="bg-pop-card neo-border-sm shadow-neo-sm rounded-2xl p-3 hover:border-pop-yellow transition-all">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-1.5 flex-wrap mb-1">
-                  <span class="bg-pop-yellow text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-black">
-                    ${qCount}問 (${qTypes})
-                  </span>
-                  <h4 class="font-black text-sm text-white leading-snug">
-                    ${escapeHtml(item.title)}
-                  </h4>
+          const qCount = item.questionCount || 0;
+          const qTypes = item.questionTypes || '4択';
+          const isExpanded = sampleExpandedSetPreviews.has(item.id) || (kw !== '');
+          const previews = item.previewQuestions || [];
+          const addedCnt = sampleAddedSetCounts.get(item.id) || 0;
+          const addedBadgeHtml = addedCnt > 0
+            ? `<span class="bg-pop-green text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-black flex items-center gap-1"><i class="fa-solid fa-check"></i><span>追加済${addedCnt > 1 ? ` ×${addedCnt}` : ''}</span></span>`
+            : '';
+
+          let qPreviewHtml = '';
+          if (isExpanded && previews.length > 0) {
+            let rows = '';
+            previews.forEach((q, idx) => {
+              const typeBadge = q.type === '2choice'
+                ? '<span class="bg-pop-pink/20 text-pop-pink px-1.5 py-0.5 rounded text-[10px] font-black shrink-0">〇×</span>'
+                : '<span class="bg-pop-blue/20 text-pop-blue px-1.5 py-0.5 rounded text-[10px] font-black shrink-0">4択</span>';
+              rows += `
+                <div class="flex items-start gap-2 text-xs text-gray-200 py-1 border-b border-gray-800 last:border-b-0">
+                  <span class="font-black text-pop-yellow shrink-0">Q${idx + 1}.</span>
+                  ${typeBadge}
+                  <span class="leading-snug font-bold">${escapeHtml(q.question)}</span>
                 </div>
-                <p class="text-[11px] text-gray-300 font-bold leading-snug line-clamp-2">
-                  ${escapeHtml(item.description)}
-                </p>
+              `;
+            });
+            qPreviewHtml = `
+              <div class="mt-2.5 bg-pop-dark/90 rounded-xl p-2.5 border border-gray-700 space-y-0.5">
+                ${rows}
               </div>
+            `;
+          }
 
-              <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick="toggleSampleSetPreview('${escapeHtml(item.id)}')" class="bg-pop-dark hover:bg-slate-800 text-gray-200 font-black text-[11px] py-2 px-3 rounded-xl border-2 border-black flex items-center gap-1.5 transition-colors">
-                  <i class="fa-solid ${isExpanded ? 'fa-chevron-up text-pop-cyan' : 'fa-eye text-pop-cyan'}"></i>
-                  <span>${isExpanded ? '閉じる' : '問題を見る'}</span>
+          const actionButtonsHtml = hasExisting
+            ? `
+                <button type="button" onclick="applySampleSet('${escapeHtml(item.id)}', 'append')" class="bg-pop-cyan hover:bg-cyan-300 text-black font-black text-xs py-2 px-3 rounded-xl neo-border-sm neo-button flex items-center gap-1 shadow-xs" title="いまの問題リストの後ろに追加します">
+                  <i class="fa-solid fa-plus"></i>
+                  <span>たす (+${qCount})</span>
                 </button>
-                <button type="button" onclick="applySampleSet('${escapeHtml(item.id)}')" class="bg-pop-green hover:bg-emerald-400 text-black font-black text-xs py-2 px-3.5 rounded-xl neo-border-sm neo-button flex items-center gap-1.5 shadow-xs">
+                <button type="button" onclick="applySampleSet('${escapeHtml(item.id)}', 'replace')" class="bg-slate-700 hover:bg-pop-green hover:text-black text-gray-200 font-black text-[11px] py-2 px-2.5 rounded-xl border-2 border-black flex items-center gap-1 transition-colors" title="いまの問題を入れ替えてこのセットだけにします">
+                  <i class="fa-solid fa-arrows-rotate"></i>
+                  <span>入れ替え</span>
+                </button>
+              `
+            : `
+                <button type="button" onclick="applySampleSet('${escapeHtml(item.id)}', 'append')" class="bg-pop-cyan hover:bg-cyan-300 text-black font-black text-xs py-2 px-3 rounded-xl neo-border-sm neo-button flex items-center gap-1 shadow-xs" title="開いたまま問題を追加します（複数セット連続選択に便利）">
+                  <i class="fa-solid fa-plus"></i>
+                  <span>たす</span>
+                </button>
+                <button type="button" onclick="applySampleSet('${escapeHtml(item.id)}', 'replace')" class="bg-pop-green hover:bg-emerald-400 text-black font-black text-xs py-2 px-3.5 rounded-xl neo-border-sm neo-button flex items-center gap-1.5 shadow-xs">
                   <i class="fa-solid fa-check"></i>
                   <span>セットする</span>
                 </button>
+              `;
+
+          html += `
+            <div class="bg-pop-card neo-border-sm shadow-neo-sm rounded-2xl p-3 ${addedCnt > 0 ? 'border-pop-green/80 bg-[#272644]' : 'hover:border-pop-yellow'} transition-all">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                    <span class="bg-pop-yellow text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-black">
+                      ${qCount}問 (${qTypes})
+                    </span>
+                    ${addedBadgeHtml}
+                    <h4 class="font-black text-sm text-white leading-snug">
+                      ${escapeHtml(item.title)}
+                    </h4>
+                  </div>
+                  <p class="text-[11px] text-gray-300 font-bold leading-snug line-clamp-2">
+                    ${escapeHtml(item.description)}
+                  </p>
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0 flex-wrap">
+                  <button type="button" onclick="toggleSampleSetPreview('${escapeHtml(item.id)}')" class="bg-pop-dark hover:bg-slate-800 text-gray-200 font-black text-[11px] py-2 px-2.5 rounded-xl border-2 border-black flex items-center gap-1 transition-colors">
+                    <i class="fa-solid ${isExpanded ? 'fa-chevron-up text-pop-cyan' : 'fa-eye text-pop-cyan'}"></i>
+                    <span>${isExpanded ? '閉じる' : '問題を見る'}</span>
+                  </button>
+                  ${actionButtonsHtml}
+                </div>
               </div>
+              ${qPreviewHtml}
             </div>
-            ${qPreviewHtml}
-          </div>
-        `;
-      });
+          `;
+        });
 
-      container.innerHTML = html;
-    }
-
-    let hostToastTimer = null;
-    function showHostGlobalToast(message) {
-      const toast = document.getElementById('host-global-toast');
-      const textEl = document.getElementById('host-global-toast-text');
-      if (!toast || !textEl) return;
-      textEl.textContent = message;
-      toast.classList.remove('hidden');
-      if (hostToastTimer) clearTimeout(hostToastTimer);
-      hostToastTimer = setTimeout(() => {
-        toast.classList.add('hidden');
-      }, 3200);
-    }
-
-    async function applySampleSet(setId) {
-      initAudio();
-      const loaded = await fetchSampleSetQuestions(setId);
-      if (!loaded) {
-        alert('問題データの読み込みに失敗しました。再読み込みしてからお試しください。');
-        return;
+        container.innerHTML = html;
+        updateSampleFooterBar();
       }
 
-      const targetItem = loaded.meta;
-      const qList = JSON.parse(JSON.stringify(loaded.questions));
-      qList.forEach(q => sanitizeQuestionOptions(q));
+      let hostToastTimer = null;
+      function showHostGlobalToast(message) {
+        const toast = document.getElementById('host-global-toast');
+        const textEl = document.getElementById('host-global-toast-text');
+        if (!toast || !textEl) return;
+        textEl.textContent = message;
+        toast.classList.remove('hidden');
+        if (hostToastTimer) clearTimeout(hostToastTimer);
+        hostToastTimer = setTimeout(() => {
+          toast.classList.add('hidden');
+        }, 3200);
+      }
 
-      if (sampleLibraryTarget === 'host') {
-        questions = qList;
-        currentQIndex = 0;
-
-        const badge = document.getElementById('file-status-badge');
-        if (badge) {
-          badge.textContent = `${targetItem.subjectName} [${targetItem.title.split(':')[0]}] ${questions.length}問`;
-          badge.className = "bg-pop-green text-black text-xs px-3 py-1 rounded-full neo-border-sm font-black";
+      async function applySampleSet(setId, mode = 'replace') {
+        initAudio();
+        const loaded = await fetchSampleSetQuestions(setId);
+        if (!loaded) {
+          alert('問題データの読み込みに失敗しました。再読み込みしてからお試しください。');
+          return;
         }
 
-        const sumText = document.getElementById('quiz-summary-text');
-        if (sumText) {
-          sumText.textContent = `${targetItem.schoolName} ${targetItem.subjectName}：${targetItem.title} (${questions.length}問)`;
+        const targetItem = loaded.meta;
+        const qList = JSON.parse(JSON.stringify(loaded.questions));
+        qList.forEach(q => sanitizeQuestionOptions(q));
+
+        if (mode === 'append') {
+          const current = getCurrentSampleTargetQuestions();
+          const merged = [...current, ...qList];
+          setCurrentSampleTargetQuestions(merged);
+
+          sampleAddedSetCounts.set(setId, (sampleAddedSetCounts.get(setId) || 0) + 1);
+          sampleAddedSetTitles.push(`${targetItem.subjectName}[${targetItem.title.split(':')[0]}]`);
+
+          if (sampleLibraryTarget === 'host') {
+            syncHostLobbyStatusBadge({
+              badgeText: `${targetItem.subjectName} [${targetItem.title.split(':')[0]}] ${questions.length}問`,
+              summaryText: `${targetItem.schoolName} ${targetItem.subjectName}：${targetItem.title} (${questions.length}問)`
+            });
+          }
+
+          renderSampleLibraryList();
+          updateSampleFooterBar();
+          showHostGlobalToast(`➕ 「${targetItem.title}」(+${qList.length}問) をたしました！（現在 計${merged.length}問）`);
+          playBeep(784, 'triangle', 0.12);
+          setTimeout(() => playBeep(1046.5, 'triangle', 0.16), 90);
+          return;
         }
 
-        closeSampleLibraryModal();
-        showHostGlobalToast(`「${targetItem.title}」(${questions.length}問) をセットしました！`);
-        playBeep(880, 'triangle', 0.15);
-        setTimeout(() => playBeep(1174.66, 'triangle', 0.2), 120);
-      } else {
-        // studio target
-        if (studioQuestions.length > 0) {
-          if (!confirm(`現在の編集中の問題を破棄し、\n「${targetItem.title} (${qList.length}問)」をセットしますか？`)) {
+        // mode === 'replace'
+        if (sampleLibraryTarget === 'host') {
+          sampleAddedSetCounts.clear();
+          sampleAddedSetCounts.set(setId, 1);
+          sampleAddedSetTitles = [`${targetItem.subjectName}[${targetItem.title.split(':')[0]}]`];
+
+          setCurrentSampleTargetQuestions(qList);
+          syncHostLobbyStatusBadge({
+            badgeText: `${targetItem.subjectName} [${targetItem.title.split(':')[0]}] ${questions.length}問`,
+            summaryText: `${targetItem.schoolName} ${targetItem.subjectName}：${targetItem.title} (${questions.length}問)`
+          });
+
+          closeSampleLibraryModal();
+          showHostGlobalToast(`「${targetItem.title}」(${questions.length}問) をセットしました！`);
+          playBeep(880, 'triangle', 0.15);
+          setTimeout(() => playBeep(1174.66, 'triangle', 0.2), 120);
+        } else {
+          // studio target replace
+          if (studioQuestions.length > 0) {
+            if (!confirm(`現在の編集中の問題を破棄し、\n「${targetItem.title} (${qList.length}問)」に入れ替えますか？\n（追加したい場合は「＋ たす」ボタンをご利用ください）`)) {
+              return;
+            }
+          }
+          sampleAddedSetCounts.clear();
+          sampleAddedSetCounts.set(setId, 1);
+          sampleAddedSetTitles = [`${targetItem.subjectName}[${targetItem.title.split(':')[0]}]`];
+
+          setCurrentSampleTargetQuestions(qList);
+          closeSampleLibraryModal();
+          showHostGlobalToast(`スタジオに「${targetItem.title}」(${qList.length}問) を読み込みました！`);
+          playBeep(880, 'triangle', 0.15);
+          setTimeout(() => playBeep(1174.66, 'triangle', 0.2), 120);
+        }
+      }
+
+      async function appendAllFilteredSampleSets() {
+        initAudio();
+        if (!lastFilteredSampleSets || lastFilteredSampleSets.length === 0) return;
+
+        const targets = [...lastFilteredSampleSets];
+        const totalToAdd = targets.reduce((sum, s) => sum + (s.questionCount || 0), 0);
+        if (targets.length >= 6) {
+          if (!confirm(`表示中の ${targets.length}セット（計 ${totalToAdd}問）をまとめて追加しますか？`)) {
             return;
           }
         }
-        studioQuestions = qList;
-        studioActiveIndex = 0;
-        renderStudioList();
-        renderStudioForm();
-        closeSampleLibraryModal();
-        showHostGlobalToast(`スタジオに「${targetItem.title}」(${qList.length}問) を読み込みました！`);
+
+        const current = getCurrentSampleTargetQuestions();
+        const appendedQuestions = [];
+        for (const meta of targets) {
+          const loaded = await fetchSampleSetQuestions(meta.id);
+          if (loaded && Array.isArray(loaded.questions)) {
+            const qList = JSON.parse(JSON.stringify(loaded.questions));
+            qList.forEach(q => sanitizeQuestionOptions(q));
+            appendedQuestions.push(...qList);
+            sampleAddedSetCounts.set(meta.id, (sampleAddedSetCounts.get(meta.id) || 0) + 1);
+            sampleAddedSetTitles.push(`${meta.subjectName}[${meta.title.split(':')[0]}]`);
+          }
+        }
+
+        const merged = [...current, ...appendedQuestions];
+        setCurrentSampleTargetQuestions(merged);
+        if (sampleLibraryTarget === 'host') {
+          syncHostLobbyStatusBadge();
+        }
+        renderSampleLibraryList();
+        updateSampleFooterBar();
+        showHostGlobalToast(`📦 ${targets.length}セット（+${appendedQuestions.length}問）をまとめてたしました！（計${merged.length}問）`);
         playBeep(880, 'triangle', 0.15);
         setTimeout(() => playBeep(1174.66, 'triangle', 0.2), 120);
       }
-    }
+
+      function clearCurrentSampleTargetQuestions() {
+        const current = getCurrentSampleTargetQuestions();
+        if (current.length === 0) return;
+        if (!confirm(`現在セットされている ${current.length}問 をすべてクリア（0問）に戻しますか？`)) {
+          return;
+        }
+        sampleAddedSetCounts.clear();
+        sampleAddedSetTitles = [];
+        setCurrentSampleTargetQuestions([]);
+        if (sampleLibraryTarget === 'host') {
+          syncHostLobbyStatusBadge();
+        }
+        renderSampleLibraryList();
+        updateSampleFooterBar();
+        showHostGlobalToast('問題をクリア（0問）に戻しました');
+        playBeep(440, 'sine', 0.1);
+      }
 
 
     // お手本用サンプル問題（代表的な4択 1問 ＋ 2択〇× 1問 の計2問）
