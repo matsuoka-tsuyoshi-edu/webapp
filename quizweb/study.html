@@ -7,10 +7,10 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>POP QUIZ SHOW - 自習モード (Ver 3.8.0)</title>
+  <title>POP QUIZ SHOW - 自習モード (Ver 3.9.0)</title>
   <script>
-    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.8.0)
-    const APP_VERSION = "3.8.0";
+    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.9.0)
+    const APP_VERSION = "3.9.0";
 
     async function clearAllAppCaches() {
       try {
@@ -145,6 +145,12 @@
       100% { transform: translateY(0) scale(1); opacity: 1; }
     }
     .animate-podium-pop { animation: pop-podium 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    @keyframes bestten-flip {
+      0% { transform: perspective(600px) rotateX(90deg) scale(0.95); opacity: 0.2; }
+      60% { transform: perspective(600px) rotateX(-12deg) scale(1.03); opacity: 1; }
+      100% { transform: perspective(600px) rotateX(0deg) scale(1); opacity: 1; }
+    }
+    .bestten-revealed { animation: bestten-flip 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #1E1B2E; border-radius: 4px; }
     ::-webkit-scrollbar-thumb { background: #6C5CE7; border-radius: 4px; border: 2px solid #000; }
@@ -155,7 +161,7 @@
   <!-- Top Bar (Clean Header) -->
   <header class="bg-pop-dark border-b-4 border-black px-3 md:px-5 py-2 flex items-center justify-between shrink-0 z-30">
     <div class="flex items-center gap-2.5 min-w-0">
-      <a href="index.html?v=3.8.0" onclick="this.href='index.html?v='+APP_VERSION+'&t='+Date.now()" class="bg-pop-card hover:bg-slate-700 text-gray-200 px-2.5 py-1.5 rounded-xl border-2 border-black text-xs font-black flex items-center gap-1.5 shrink-0 transition-colors" title="メニューへ戻る">
+      <a href="index.html?v=3.9.0" onclick="this.href='index.html?v='+APP_VERSION+'&t='+Date.now()" class="bg-pop-card hover:bg-slate-700 text-gray-200 px-2.5 py-1.5 rounded-xl border-2 border-black text-xs font-black flex items-center gap-1.5 shrink-0 transition-colors" title="メニューへ戻る">
         <i class="fa-solid fa-house"></i>
         <span class="hidden sm:inline">メニュー</span>
       </a>
@@ -166,7 +172,7 @@
     </div>
 
     <div class="flex items-center gap-2 shrink-0">
-      <span class="hidden sm:inline-block bg-pop-card text-pop-cyan border-2 border-black px-2 py-0.5 rounded-lg text-[10px] font-black">Ver 3.8.0</span>
+      <span class="hidden sm:inline-block bg-pop-card text-pop-cyan border-2 border-black px-2 py-0.5 rounded-lg text-[10px] font-black">Ver 3.9.0</span>
       <button onclick="forceReloadLatestStudy()" class="w-9 h-9 bg-pop-card hover:bg-slate-700 text-pop-yellow rounded-xl border-2 border-black flex items-center justify-center text-sm neo-button" title="最新版に更新">
         <i class="fa-solid fa-rotate"></i>
       </button>
@@ -502,6 +508,39 @@
 
       </div>
 
+      <!-- STAGE B2: THE BEST TEN STYLE MID-GAME RANKING SHOW -->
+      <div id="game-stage-midrank" class="hidden flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div class="bg-gradient-to-r from-[#191430] via-[#2b1e54] to-[#191430] border-4 border-pop-yellow shadow-neo rounded-2xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div class="flex items-center gap-2.5">
+            <span class="bg-pop-pink text-black text-xs font-black px-2.5 py-0.5 rounded-full border-2 border-black animate-pulse">📺 折り返し特番！</span>
+            <h2 class="text-lg md:text-2xl font-black text-pop-yellow tracking-wide drop-shadow-[2px_2px_0px_#000]" id="midrank-title">
+              ザ・ベストテン風 中間ランキング発表！
+            </h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="midrank-skip-btn" onclick="skipMidRankAnimation()" class="bg-pop-dark hover:bg-slate-800 text-gray-200 text-xs font-black px-3 py-1.5 rounded-xl border-2 border-gray-500">
+              ⚡ 一気にめくる
+            </button>
+            <button id="midrank-continue-btn" onclick="continueFromMidRank()" class="hidden bg-pop-green hover:bg-emerald-400 text-black text-xs md:text-sm font-black px-4 py-1.5 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center gap-1.5 animate-bounce">
+              <span>🔥 後半戦へ！（ここからは順位❓）</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Electric Scoreboard List -->
+        <div class="flex-1 min-h-0 bg-[#0d0c18] border-4 border-pop-yellow/90 shadow-neo-lg rounded-3xl p-3.5 md:p-5 flex flex-col justify-between overflow-y-auto">
+          <div class="flex items-center justify-between text-[11px] font-black text-pop-cyan pb-2 mb-2 border-b border-yellow-500/30 shrink-0">
+            <span id="midrank-subtitle">第〇問 終了時点 — 下位から順番に発表！！</span>
+            <span class="text-pop-pink">※後半戦は順位が「❓」シークレットになります</span>
+          </div>
+
+          <div id="midrank-board-rows" class="flex-1 flex flex-col justify-center gap-2 max-w-3xl w-full mx-auto">
+            <!-- Dynamically populated slots (1st at top, revealed from bottom rank up!) -->
+          </div>
+        </div>
+      </div>
+
       <!-- STAGE C: DRAMATIC PODIUM CEREMONY -->
       <div id="game-stage-ceremony" class="hidden flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
         <div class="flex items-center justify-between shrink-0">
@@ -588,7 +627,7 @@
   </main>
 
   <!-- オフラインフォールバック用サンプルバンドル -->
-  <script src="sample/sample_bundle.js?v=3.8.0"></script>
+  <script src="sample/sample_bundle.js?v=3.9.0"></script>
 
   <script>
     // =========================================================================
@@ -1397,7 +1436,9 @@
     let questionStartTimeMs = 0;
     let currentTimeLimitMs = 12000;
     let botTimeoutIds = [];
+    let midRankTimeouts = [];
     let hasShownResultForCurrent = false;
+    let hasDoneMidRank = false;
 
     function startStudyQuiz(customQuestionList = null) {
       initAudio();
@@ -1410,6 +1451,7 @@
       }
       activeQuizQuestions = pool;
       currentIndex = 0;
+      hasDoneMidRank = false;
       wrongQuestionList = [];
 
       const myName = (document.getElementById('study-player-name')?.value || '').trim() || 'チャレンジャー';
@@ -1463,6 +1505,8 @@
       }
       botTimeoutIds.forEach(tid => clearTimeout(tid));
       botTimeoutIds = [];
+      midRankTimeouts.forEach(tid => clearTimeout(tid));
+      midRankTimeouts = [];
     }
 
     function loadStudyQuestion() {
@@ -1482,6 +1526,7 @@
 
       document.getElementById('game-stage-question').classList.remove('hidden');
       document.getElementById('game-stage-reveal').classList.add('hidden');
+      document.getElementById('game-stage-midrank').classList.add('hidden');
       document.getElementById('game-stage-ceremony').classList.add('hidden');
 
       document.getElementById('game-q-badge').textContent = `Q${currentIndex + 1} / ${activeQuizQuestions.length}`;
@@ -1707,10 +1752,18 @@
       // Compute rankings
       const sorted = [...participants].sort((a, b) => b.score - a.score);
       const myRank = sorted.findIndex(p => p.isHuman) + 1;
-      const isSecretPhase = (studyMode !== 'solo') && (activeQuizQuestions.length >= 4) && (currentIndex >= activeQuizQuestions.length - 2) && (currentIndex < activeQuizQuestions.length - 1);
+      const totalQ = activeQuizQuestions.length;
+      const midIdx = Math.floor(totalQ / 2) - 1;
+      const isMidTriggerNext = (studyMode !== 'solo') && (totalQ >= 6) && !hasDoneMidRank && (currentIndex === midIdx);
+      const isSecretPhase = (studyMode !== 'solo') && (
+        totalQ >= 6
+          ? (currentIndex > midIdx)
+          : (totalQ >= 4 && currentIndex >= totalQ - 2 && currentIndex < totalQ - 1)
+      );
 
       // Switch to Reveal Stage
       document.getElementById('game-stage-question').classList.add('hidden');
+      document.getElementById('game-stage-midrank').classList.add('hidden');
       document.getElementById('game-stage-reveal').classList.remove('hidden');
 
       const banner = document.getElementById('reveal-banner-card');
@@ -1742,7 +1795,11 @@
       }
 
       document.getElementById('reveal-correct-summary').textContent = `正解：${q.options[correctChoice - 1] || ''}`;
-      document.getElementById('reveal-next-text').textContent = (currentIndex === activeQuizQuestions.length - 1) ? '最終結果へ！' : '次の問題へ';
+      if (isMidTriggerNext) {
+        document.getElementById('reveal-next-text').textContent = '📺 途中経過ランキング発表へ！';
+      } else {
+        document.getElementById('reveal-next-text').textContent = (currentIndex === activeQuizQuestions.length - 1) ? '最終結果へ！' : '次の問題へ';
+      }
 
       // Choices breakdown with avatars
       document.getElementById('reveal-q-text-review').textContent = q.question;
@@ -1787,6 +1844,103 @@
     }
 
     function nextStudyQuestion() {
+      const totalQ = activeQuizQuestions.length;
+      const midIdx = Math.floor(totalQ / 2) - 1;
+      if (studyMode !== 'solo' && totalQ >= 6 && !hasDoneMidRank && currentIndex === midIdx) {
+        hasDoneMidRank = true;
+        startMidRankShow();
+        return;
+      }
+      currentIndex += 1;
+      loadStudyQuestion();
+    }
+
+    let midRankSortedCache = [];
+    function startMidRankShow() {
+      clearQuestionTimers();
+      document.getElementById('game-stage-question').classList.add('hidden');
+      document.getElementById('game-stage-reveal').classList.add('hidden');
+      document.getElementById('game-stage-ceremony').classList.add('hidden');
+      document.getElementById('game-stage-midrank').classList.remove('hidden');
+
+      const totalQ = activeQuizQuestions.length;
+      document.getElementById('midrank-subtitle').textContent = `全${totalQ}問中 第${currentIndex + 1}問 終了時点 — 下位から順番に発表！！`;
+      document.getElementById('midrank-skip-btn').classList.remove('hidden');
+      document.getElementById('midrank-continue-btn').classList.add('hidden');
+
+      midRankSortedCache = [...participants].sort((a, b) => b.score - a.score);
+      const board = document.getElementById('midrank-board-rows');
+      board.innerHTML = midRankSortedCache.map((p, idx) => {
+        const rank = idx + 1;
+        return `
+          <div id="midrank-row-${idx}" class="bg-[#18162b] border-2 border-gray-700 rounded-2xl px-4 py-2.5 flex items-center justify-between transition-all">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 bg-black text-pop-yellow rounded-xl border-2 border-yellow-500/60 flex items-center justify-center font-black text-lg">
+                ${rank}位
+              </span>
+              <span class="text-2xl opacity-30 midrank-avatar">❓</span>
+              <span class="text-base md:text-lg font-black text-gray-500 midrank-name">？？？？？</span>
+            </div>
+            <span class="text-sm md:text-lg font-black text-gray-600 midrank-score">--- pt</span>
+          </div>
+        `;
+      }).join('');
+
+      // Reveal from bottom rank (last index) up to 1st place (index 0) like "The Best Ten"!
+      const notes = [523.25, 587.33, 659.25, 783.99, 1046.50];
+      const n = midRankSortedCache.length;
+      for (let step = 0; step < n; step++) {
+        const targetIdx = n - 1 - step;
+        const tid = setTimeout(() => {
+          revealMidRankRow(targetIdx);
+          const f = notes[Math.min(notes.length - 1, step)];
+          if (targetIdx === 0) {
+            playFanfare();
+            document.getElementById('midrank-skip-btn').classList.add('hidden');
+            document.getElementById('midrank-continue-btn').classList.remove('hidden');
+          } else {
+            playBeep(f, 'triangle', 0.18, 0.25);
+          }
+        }, 500 + step * 750);
+        midRankTimeouts.push(tid);
+      }
+    }
+
+    function revealMidRankRow(idx) {
+      const p = midRankSortedCache[idx];
+      const row = document.getElementById(`midrank-row-${idx}`);
+      if (!p || !row) return;
+      const isTop1 = idx === 0;
+      const baseStyle = p.isHuman
+        ? 'bg-gradient-to-r from-pop-purple to-indigo-700 border-pop-yellow shadow-neo bestten-revealed'
+        : (isTop1 ? 'bg-gradient-to-r from-amber-500/30 to-[#241f44] border-pop-yellow shadow-neo-sm bestten-revealed' : 'bg-[#24203d] border-pop-cyan/70 bestten-revealed');
+      row.className = `${baseStyle} border-2 rounded-2xl px-4 py-2.5 flex items-center justify-between`;
+      const av = row.querySelector('.midrank-avatar');
+      const nm = row.querySelector('.midrank-name');
+      const sc = row.querySelector('.midrank-score');
+      if (av) { av.textContent = p.avatar; av.classList.remove('opacity-30'); }
+      if (nm) {
+        nm.textContent = p.isHuman ? `${p.name}（あなた！）` : p.name;
+        nm.className = `text-base md:text-lg font-black ${p.isHuman || isTop1 ? 'text-pop-yellow' : 'text-white'} midrank-name`;
+      }
+      if (sc) {
+        sc.textContent = `${p.score.toLocaleString()} pt`;
+        sc.className = 'text-sm md:text-lg font-black text-pop-cyan midrank-score';
+      }
+    }
+
+    function skipMidRankAnimation() {
+      midRankTimeouts.forEach(tid => clearTimeout(tid));
+      midRankTimeouts = [];
+      for (let i = midRankSortedCache.length - 1; i >= 0; i--) {
+        revealMidRankRow(i);
+      }
+      document.getElementById('midrank-skip-btn').classList.add('hidden');
+      document.getElementById('midrank-continue-btn').classList.remove('hidden');
+      playFanfare();
+    }
+
+    function continueFromMidRank() {
       currentIndex += 1;
       loadStudyQuestion();
     }

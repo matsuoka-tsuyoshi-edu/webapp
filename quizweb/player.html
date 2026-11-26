@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <!-- iPad Safari / iOS 完全固定ビューポート (ズーム・拡大縮小の完全抑止) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
-  <title>POP QUIZ - Player (Ver 3.8.0)</title>
+  <title>POP QUIZ - Player (Ver 3.9.0)</title>
   <script>
-    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.8.0)
-    const APP_VERSION = "3.8.0";
+    // 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.9.0)
+    const APP_VERSION = "3.9.0";
 
     async function clearAllAppCaches() {
       try {
@@ -1483,9 +1483,38 @@
           break;
         }
 
+        // ★ 中間ランキング発表待機（大画面ザ・ベストテンに注目！）
+        case 'MID_RANKING_START': {
+          cancelPlayerTimer();
+          const card = document.querySelector('#screen-ceremony-waiting .ceremony-wait-card');
+          if (card) {
+            const icon = card.querySelector('.ceremony-wait-icon');
+            const h2 = card.querySelector('h2');
+            const pSub = card.querySelectorAll('p');
+            if (icon) icon.textContent = '📺';
+            if (h2) h2.textContent = '途中経過！中間ランキング発表中！';
+            if (pSub[0]) pSub[0].textContent = 'ザ・ベストテン風に下から順位が発表されています！先生の画面に注目！';
+            if (pSub[1]) pSub[1].textContent = '後半戦はあなたの順位が「❓」のシークレットになります！';
+          }
+          document.getElementById('ceremony-waiting-score').textContent = `${currentScore.toLocaleString()} pt`;
+          switchScreen('screen-ceremony-waiting');
+          playSound('tap');
+          break;
+        }
+
         // ★ 表彰式開始通知（先生の画面に注目してドキドキ待機！ネタバレ防止）
         case 'CEREMONY_START': {
           cancelPlayerTimer();
+          const card = document.querySelector('#screen-ceremony-waiting .ceremony-wait-card');
+          if (card) {
+            const icon = card.querySelector('.ceremony-wait-icon');
+            const h2 = card.querySelector('h2');
+            const pSub = card.querySelectorAll('p');
+            if (icon) icon.textContent = '🏆';
+            if (h2) h2.textContent = '表彰式が始まりました！';
+            if (pSub[0]) pSub[0].textContent = '先生（ホスト）の画面に注目してね！';
+            if (pSub[1]) pSub[1].textContent = 'まもなくドラムロールと共に、あなたの最終順位が手元でも発表されます...';
+          }
           document.getElementById('ceremony-waiting-score').textContent = `${currentScore.toLocaleString()} pt`;
           switchScreen('screen-ceremony-waiting');
           playSound('tap');

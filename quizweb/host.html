@@ -141,6 +141,15 @@
       animation: pop-podium 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
 
+    @keyframes bestten-flip {
+      0% { transform: perspective(600px) rotateX(90deg) scale(0.95); opacity: 0.2; }
+      60% { transform: perspective(600px) rotateX(-12deg) scale(1.03); opacity: 1; }
+      100% { transform: perspective(600px) rotateX(0deg) scale(1); opacity: 1; }
+    }
+    .bestten-revealed {
+      animation: bestten-flip 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
     /* 回答時のピョコッとポップ演出 */
     @keyframes pop-toast {
       0% { transform: translateY(50px) scale(0.7); opacity: 0; }
@@ -218,8 +227,8 @@
       lastTouchEnd = now;
     }, { passive: false });
 
-    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.8.0)
-    const APP_VERSION = "3.8.0";
+    // 4. 自動キャッシュ削除 & 最新版チェック機構 (Ver 3.9.0)
+    const APP_VERSION = "3.9.0";
 
     async function clearAllAppCaches() {
       try {
@@ -308,7 +317,7 @@
 
   <!-- Floating Controls (Version Badge, Force Cache Reload & Sound) -->
   <div class="fixed top-3 right-3 z-40 flex items-center space-x-2">
-    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.8.0</span>
+    <span class="hidden sm:inline-block bg-pop-card/90 text-pop-cyan border-2 border-black px-2.5 py-1 rounded-xl text-[11px] font-black shadow-neo-sm">Ver 3.9.0</span>
     <button onclick="forceReloadLatestHost()" class="w-11 h-11 bg-pop-dark neo-border shadow-neo rounded-xl flex items-center justify-center text-pop-yellow text-base neo-button hover:bg-slate-800" title="キャッシュを削除して最新版に更新">
       <i class="fa-solid fa-rotate"></i>
     </button>
@@ -689,6 +698,55 @@
     </section>
 
 
+    <!-- ==================== PHASE 3.5: THE BEST TEN STYLE MID-GAME RANKING ==================== -->
+    <section id="phase-midrank" class="phase-content hidden h-full flex flex-col gap-2.5 overflow-hidden">
+      <div class="bg-gradient-to-r from-[#191430] via-[#2b1e54] to-[#191430] neo-border border-pop-yellow shadow-neo rounded-2xl pl-5 pr-44 sm:pr-48 py-2 flex items-center justify-between gap-3 shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="bg-pop-pink text-black text-xs font-black px-2.5 py-0.5 rounded-full neo-border-sm animate-pulse shrink-0">📺 折り返し特番！</span>
+          <h2 class="text-lg md:text-xl font-black text-pop-yellow tracking-wide drop-shadow-[2px_2px_0px_#000] truncate">
+            途中経過スペシャル！ザ・ベストテン風 中間ランキング
+          </h2>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="host-midrank-skip-btn" onclick="skipHostMidRankAnimation()" class="bg-pop-dark hover:bg-slate-800 text-gray-200 text-xs font-black px-3 py-1.5 rounded-xl border-2 border-gray-500">
+            ⚡ 一気にめくる
+          </button>
+          <button id="host-midrank-next-btn" onclick="continueHostAfterMidRank()" class="hidden bg-pop-green hover:bg-emerald-400 text-black text-xs md:text-sm font-black px-4 py-1.5 rounded-xl neo-border-sm shadow-neo-sm neo-button flex items-center gap-2 animate-bounce">
+            <span>🔥 後半戦スタート！（ここからは順位❓）</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 min-h-0 grid grid-cols-12 gap-4 overflow-hidden">
+        <!-- Left 8 cols: Top 10 Electric Ranking Board (Revealed Bottom-Up!) -->
+        <div class="col-span-8 bg-[#0d0c18] neo-border border-pop-yellow shadow-neo-lg rounded-3xl p-3.5 flex flex-col overflow-hidden">
+          <div class="flex items-center justify-between text-xs font-black text-pop-cyan pb-1.5 mb-1.5 border-b border-yellow-500/30 shrink-0">
+            <span id="host-midrank-subtitle">第〇問終了時点 — 下位から1人ずつ発表！！</span>
+            <span class="text-pop-pink">※後半戦は順位が「❓」になります</span>
+          </div>
+          <div id="host-midrank-board" class="flex-1 overflow-y-auto space-y-1 pr-1">
+            <!-- Slots 1..10 rendered dynamically and flipped bottom-up -->
+          </div>
+        </div>
+
+        <!-- Right 4 cols: 11th+ Ranks & Info -->
+        <div class="col-span-4 bg-pop-card neo-border shadow-neo rounded-3xl p-4 flex flex-col justify-between overflow-hidden">
+          <div class="min-h-0 flex-1 flex flex-col">
+            <h3 class="text-base md:text-lg font-black text-white pb-2 mb-2 border-b border-gray-700 flex items-center justify-between shrink-0">
+              <span>📋 11位以下・全体状況</span>
+              <span class="text-xs bg-pop-dark text-pop-yellow px-2 py-0.5 rounded-lg border border-gray-600" id="host-midrank-total-badge">0名</span>
+            </h3>
+            <div id="host-midrank-others" class="flex-1 overflow-y-auto space-y-1.5 pr-1 text-xs"></div>
+          </div>
+          <div class="mt-3 bg-pop-dark/90 rounded-2xl p-3 border border-gray-700 text-xs font-bold text-gray-300 shrink-0">
+            <p class="text-pop-yellow font-black mb-1">💡 後半戦のルール予告</p>
+            <p class="leading-relaxed">ここからの後半戦は、生徒の手元画面でも順位が <span class="text-pop-pink font-black">「第❓位」</span> になり、最終表彰式まで大逆転のドキドキが続きます！</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ==================== PHASE 4: FINAL RANKING PODIUM (FULLY AUTOMATED) ==================== -->
     <section id="phase-ranking" class="phase-content hidden h-full grid grid-cols-12 gap-5 md:gap-6">
       
@@ -842,7 +900,7 @@
       </div>
 
       <div class="mt-2.5 w-full bg-pop-dark p-2.5 md:p-3 rounded-xl neo-border-sm flex flex-col sm:flex-row items-center justify-between gap-2">
-        <a id="study-qr-direct-link" href="study.html?v=3.8.0" target="_blank" class="text-[11px] text-pop-cyan hover:text-white underline font-bold truncate max-w-[260px]">
+        <a id="study-qr-direct-link" href="study.html?v=3.9.0" target="_blank" class="text-[11px] text-pop-cyan hover:text-white underline font-bold truncate max-w-[260px]">
           study.html をこの端末で開く
         </a>
         <button onclick="closeStudyQrModal()" class="bg-pop-yellow hover:bg-amber-300 text-black font-black text-xs md:text-sm px-5 py-2 rounded-xl neo-border-sm neo-button shrink-0">
@@ -1068,7 +1126,7 @@
   </div>
 
   <!-- サンプルライブラリ オフライン/ローカル用フォールバックバンドル -->
-  <script src="sample/sample_bundle.js?v=3.8.0"></script>
+  <script src="sample/sample_bundle.js?v=3.9.0"></script>
 
   <!-- JAVASCRIPT APP LOGIC -->
   <script>
@@ -1088,6 +1146,9 @@
     let timerInterval = null;
     let soundEnabled = true;
     let rankingRevealStep = 0; // 0: reset, 1: 4th+, 2: 3rd, 3: 2nd, 4: 1st
+    let hasShownHostMidRank = false;
+    let hostMidRankTimeouts = [];
+    let hostMidRankSorted = [];
     let currentPhase = 'setup'; // 'setup', 'quiz', 'reveal', 'ranking'
     let questionStartTime = 0;
     let answerCountForQuestion = 0;
@@ -2548,6 +2609,8 @@
         runQuizQuestion();
       } else if (phaseName === 'reveal') {
         setupAndShowGraphFirst();
+      } else if (phaseName === 'midrank') {
+        prepareAndShowMidRanking();
       } else if (phaseName === 'ranking') {
         prepareAndShowRanking();
       }
@@ -3601,6 +3664,7 @@
       }
 
       currentQIndex = 0;
+      hasShownHostMidRank = false;
       players.forEach(p => {
         p.score = 0;
         p.answered = false;
@@ -4108,7 +4172,11 @@
       }, 4500);
 
       const isLastQ = currentQIndex >= questions.length - 1;
-      document.getElementById('next-action-text').textContent = isLastQ ? "最終ランキング発表へ" : "次の問題へ";
+      const midIdx = Math.floor(questions.length / 2) - 1;
+      const shouldGoMidRank = (questions.length >= 6 && !hasShownHostMidRank && currentQIndex === midIdx);
+      document.getElementById('next-action-text').textContent = isLastQ
+        ? "最終ランキング発表へ"
+        : (shouldGoMidRank ? "📺 途中経過ランキング発表へ！" : "次の問題へ");
     }
 
     function triggerDramaticAnswerReveal() {
@@ -4261,9 +4329,12 @@
           pLabel.classList.add('scale-110');
         }
 
-        // 終盤戦の順位伏せ（ワクワクシークレット演出: 3問以上の場合はラスト2問から、2問以下の場合は最終問題で発動）
+        // 中間ランキング発表後の後半戦は順位伏せ（6問以上の場合は折り返し地点以降ずっと❓、5問以下は終盤シークレット）
         const isLastQ = (currentQIndex >= questions.length - 1);
-        const isSecretRank = questions.length >= 3 ? (currentQIndex >= questions.length - 2) : isLastQ;
+        const midIdx = Math.floor(questions.length / 2) - 1;
+        const isSecretRank = questions.length >= 6
+          ? (currentQIndex > midIdx)
+          : (questions.length >= 3 ? (currentQIndex >= questions.length - 2) : isLastQ);
         if (isSecretRank) {
           statBadge.innerHTML = `<span class="animate-pulse text-pop-pink"><i class="fa-solid fa-lock mr-1"></i>順位シークレット中！</span>`;
         }
@@ -4305,12 +4376,196 @@
     }
 
     function advanceNextQuestionOrFinish() {
+      const midIdx = Math.floor(questions.length / 2) - 1;
+      if (questions.length >= 6 && !hasShownHostMidRank && currentQIndex === midIdx) {
+        hasShownHostMidRank = true;
+        switchPhase('midrank');
+        return;
+      }
       if (currentQIndex < questions.length - 1) {
         currentQIndex++;
         switchPhase('quiz');
       } else {
         switchPhase('ranking');
       }
+    }
+
+    // =========================================================================
+    // 8.5 ★折り返し特番：ザ・ベストテン風 中間ランキング発表（下位 ➔ 1位）
+    // =========================================================================
+    function clearHostMidRankTimeouts() {
+      hostMidRankTimeouts.forEach(t => clearTimeout(t));
+      hostMidRankTimeouts = [];
+    }
+
+    function prepareAndShowMidRanking() {
+      clearHostMidRankTimeouts();
+      hostMidRankSorted = Array.from(players.values()).sort((a, b) => b.score - a.score);
+
+      const subtitle = document.getElementById('host-midrank-subtitle');
+      const board = document.getElementById('host-midrank-board');
+      const others = document.getElementById('host-midrank-others');
+      const totalBadge = document.getElementById('host-midrank-total-badge');
+      const skipBtn = document.getElementById('host-midrank-skip-btn');
+      const nextBtn = document.getElementById('host-midrank-next-btn');
+
+      if (subtitle) {
+        subtitle.textContent = `第${currentQIndex + 1}問終了時点（全${questions.length}問） — 下位から1人ずつ発表！！`;
+      }
+      if (totalBadge) {
+        totalBadge.textContent = `${hostMidRankSorted.length}名`;
+      }
+      if (skipBtn) skipBtn.classList.remove('hidden');
+      if (nextBtn) nextBtn.classList.add('hidden');
+
+      // 子機にも「中間ランキング発表中」を通知
+      broadcast({ type: 'MID_RANKING_START' });
+
+      const topCount = Math.min(10, hostMidRankSorted.length);
+      if (board) {
+        if (topCount === 0) {
+          board.innerHTML = `<div class="text-center text-gray-400 font-bold py-10">まだ参加者がいません</div>`;
+        } else {
+          let html = '';
+          for (let i = 0; i < topCount; i++) {
+            const rankNum = i + 1;
+            const rankBadgeStyle = rankNum === 1
+              ? 'bg-pop-yellow text-black border-yellow-200'
+              : rankNum === 2
+              ? 'bg-gray-200 text-black border-white'
+              : rankNum === 3
+              ? 'bg-amber-600 text-white border-amber-300'
+              : 'bg-[#1a1830] text-pop-cyan border-cyan-500/40';
+            html += `
+              <div id="host-midrank-row-${i}" data-revealed="false" class="bg-[#18162a] border-2 border-gray-700/80 rounded-xl px-3.5 py-1.5 flex items-center justify-between gap-3 transition-all">
+                <div class="flex items-center gap-3 min-w-0">
+                  <span class="w-12 h-7 ${rankBadgeStyle} border-2 rounded-lg font-black text-xs flex items-center justify-center shrink-0">
+                    ${rankNum}位
+                  </span>
+                  <div class="flex items-center gap-2 min-w-0 text-gray-500 font-black">
+                    <span class="w-7 h-7 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-xs shrink-0">❓</span>
+                    <span class="truncate text-sm tracking-widest">？？？？？？</span>
+                  </div>
+                </div>
+                <span class="text-sm font-black text-gray-600 tabular-nums shrink-0">--- pt</span>
+              </div>
+            `;
+          }
+          board.innerHTML = html;
+        }
+      }
+
+      // 11位以下の表示
+      if (others) {
+        const rest = hostMidRankSorted.slice(10);
+        if (hostMidRankSorted.length === 0) {
+          others.innerHTML = `<div class="text-gray-500 font-bold py-4 text-center">参加者データなし</div>`;
+        } else if (rest.length === 0) {
+          others.innerHTML = `<div class="bg-pop-dark/60 border border-gray-700 rounded-xl p-3 text-center text-emerald-300 font-bold">全員が左のベスト10ボードに表示されています！</div>`;
+        } else {
+          others.innerHTML = rest.map((p, idx) => `
+            <div class="bg-pop-dark/80 border border-gray-700 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-gray-400 font-black w-7 shrink-0">${idx + 11}位</span>
+                <span class="shrink-0">${p.avatar}</span>
+                <span class="font-bold text-white truncate">${escapeHtml(p.name)}</span>
+              </div>
+              <span class="font-black text-pop-cyan shrink-0 tabular-nums">${p.score.toLocaleString()} pt</span>
+            </div>
+          `).join('');
+        }
+      }
+
+      if (topCount === 0) {
+        if (skipBtn) skipBtn.classList.add('hidden');
+        if (nextBtn) nextBtn.classList.remove('hidden');
+        return;
+      }
+
+      // 下位 (topCount - 1) から 1位 (0) へ 順番にザ・ベストテン風に反転発表
+      for (let i = topCount - 1; i >= 0; i--) {
+        const stepOrder = (topCount - 1) - i;
+        const delayMs = 450 + stepOrder * 750;
+        hostMidRankTimeouts.push(setTimeout(() => {
+          revealHostMidRankRow(i, topCount);
+        }, delayMs));
+      }
+
+      const finishDelay = 450 + (topCount - 1) * 750 + 500;
+      hostMidRankTimeouts.push(setTimeout(() => {
+        if (skipBtn) skipBtn.classList.add('hidden');
+        if (nextBtn) nextBtn.classList.remove('hidden');
+        playBeep(523.25, 'triangle', 0.14);
+        setTimeout(() => playBeep(659.25, 'triangle', 0.14), 100);
+        setTimeout(() => playBeep(783.99, 'triangle', 0.25), 200);
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 70, spread: 70, origin: { y: 0.65 } });
+        }
+      }, finishDelay));
+    }
+
+    function revealHostMidRankRow(idx, totalTop) {
+      const p = hostMidRankSorted[idx];
+      const row = document.getElementById(`host-midrank-row-${idx}`);
+      if (!p || !row || row.dataset.revealed === 'true') return;
+
+      row.dataset.revealed = 'true';
+      const rankNum = idx + 1;
+      const topCount = totalTop || Math.min(10, hostMidRankSorted.length);
+      const isTop3 = rankNum <= 3;
+
+      const rowBg = rankNum === 1
+        ? 'bg-gradient-to-r from-amber-500/35 via-yellow-500/20 to-[#1f1c38] border-2 border-pop-yellow shadow-[0_0_18px_rgba(253,203,110,0.45)]'
+        : rankNum === 2
+        ? 'bg-gradient-to-r from-slate-300/20 to-[#1f1c38] border-2 border-gray-300'
+        : rankNum === 3
+        ? 'bg-gradient-to-r from-amber-700/25 to-[#1f1c38] border-2 border-amber-500'
+        : 'bg-[#221f3d] border-2 border-pop-cyan/60';
+
+      const rankBadgeStyle = rankNum === 1
+        ? 'bg-pop-yellow text-black border-white'
+        : rankNum === 2
+        ? 'bg-gray-200 text-black border-white'
+        : rankNum === 3
+        ? 'bg-amber-600 text-white border-amber-300'
+        : 'bg-pop-cyan text-black border-black';
+
+      row.className = `${rowBg} rounded-xl px-3.5 py-1.5 flex items-center justify-between gap-3 bestten-revealed`;
+      row.innerHTML = `
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-12 h-7 ${rankBadgeStyle} border-2 rounded-lg font-black text-xs flex items-center justify-center shrink-0">
+            ${rankNum === 1 ? '👑1位' : `${rankNum}位`}
+          </span>
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-7 h-7 rounded-lg bg-pop-dark border border-gray-600 flex items-center justify-center text-base shrink-0">${p.avatar}</span>
+            <span class="truncate text-sm font-black ${isTop3 ? 'text-pop-yellow' : 'text-white'}">${escapeHtml(p.name)}</span>
+          </div>
+        </div>
+        <span class="text-sm font-black ${rankNum === 1 ? 'text-pop-yellow' : 'text-pop-cyan'} tabular-nums shrink-0">${p.score.toLocaleString()} pt</span>
+      `;
+
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const baseFreq = 420 + (topCount - idx) * 48;
+      playBeep(baseFreq, idx === 0 ? 'triangle' : 'sine', idx === 0 ? 0.25 : 0.12);
+    }
+
+    function skipHostMidRankAnimation() {
+      clearHostMidRankTimeouts();
+      const topCount = Math.min(10, hostMidRankSorted.length);
+      for (let i = topCount - 1; i >= 0; i--) {
+        revealHostMidRankRow(i, topCount);
+      }
+      const skipBtn = document.getElementById('host-midrank-skip-btn');
+      const nextBtn = document.getElementById('host-midrank-next-btn');
+      if (skipBtn) skipBtn.classList.add('hidden');
+      if (nextBtn) nextBtn.classList.remove('hidden');
+      playBeep(783.99, 'triangle', 0.2);
+    }
+
+    function continueHostAfterMidRank() {
+      clearHostMidRankTimeouts();
+      currentQIndex++;
+      switchPhase('quiz');
     }
 
     // =========================================================================
@@ -4461,7 +4716,9 @@
     }
 
     function restartGame() {
+      clearHostMidRankTimeouts();
       currentQIndex = 0;
+      hasShownHostMidRank = false;
       players.forEach(p => {
         p.score = 0;
         p.answered = false;
