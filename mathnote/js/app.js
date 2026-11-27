@@ -41,6 +41,7 @@ const state = {
   anglesVisible: false,
   darkMode: false,
   ageLevel: 'elem_high',
+  loupeMode: 'auto', // 'auto' | 'always' | 'off'
   selectedId: null,
   transformTargetId: null,
   transformSubMode: 'both', // 'both' | 'rotate' | 'scale' | 'vertex'
@@ -54,6 +55,15 @@ const bgImageLayer = document.getElementById('bg-image-layer');
 const objectsLayer = document.getElementById('objects-layer');
 const previewLayer = document.getElementById('preview-layer');
 const overlayLayer = document.getElementById('overlay-layer');
+const loupeLayer = document.getElementById('loupe-layer');
+const loupeUse = document.getElementById('loupe-use');
+const loupeClipCircle = document.getElementById('loupe-clip-circle');
+const loupeShadow = document.getElementById('loupe-shadow');
+const loupeBg = document.getElementById('loupe-bg');
+const loupeRing = document.getElementById('loupe-ring');
+const loupeCrossH = document.getElementById('loupe-cross-h');
+const loupeCrossV = document.getElementById('loupe-cross-v');
+const loupeCenterDot = document.getElementById('loupe-center-dot');
 const hintPill = document.getElementById('hint-pill');
 const transformBar = document.getElementById('transform-bar');
 const bgControls = document.getElementById('bg-controls');
@@ -90,6 +100,10 @@ function loadPreferences() {
     if (savedAge && AGE_LEVELS.some((a) => a.id === savedAge)) {
       state.ageLevel = savedAge;
     }
+    const savedLoupe = localStorage.getItem('mathnote_loupe');
+    if (savedLoupe === 'auto' || savedLoupe === 'always' || savedLoupe === 'off') {
+      state.loupeMode = savedLoupe;
+    }
   } catch (_) {}
 }
 
@@ -97,6 +111,7 @@ function savePreferences() {
   try {
     localStorage.setItem('mathnote_dark', state.darkMode ? '1' : '0');
     localStorage.setItem('mathnote_age', state.ageLevel);
+    localStorage.setItem('mathnote_loupe', state.loupeMode);
   } catch (_) {}
 }
 
@@ -420,8 +435,37 @@ function bindUIEvents() {
 
   document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
   document.getElementById('btn-toggle-ui').addEventListener('click', () => {
-    document.body.classList.toggle('ui-hidden');
+    const hidden = document.body.classList.toggle('ui-hidden');
+    const lbl = document.getElementById('ui-toggle-label');
+    if (lbl) {
+      lbl.setAttribute('data-i18n', hidden ? 'show_ui' : 'hide_ui');
+      lbl.innerHTML = t(hidden ? 'show_ui' : 'hide_ui', state.ageLevel);
+    }
     closeAllPopovers();
+  });
+
+  document.getElementById('btn-collapse-top').addEventListener('click', () => {
+    document.body.classList.add('top-collapsed');
+    closeAllPopovers();
+  });
+  document.getElementById('tab-expand-top').addEventListener('click', () => {
+    document.body.classList.remove('top-collapsed');
+  });
+  document.getElementById('btn-collapse-bottom').addEventListener('click', () => {
+    document.body.classList.add('bottom-collapsed');
+    closeAllPopovers();
+  });
+  document.getElementById('tab-expand-bottom').addEventListener('click', () => {
+    document.body.classList.remove('bottom-collapsed');
+  });
+
+  document.querySelectorAll('#loupe-mode-list .pop-item[data-loupe]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.loupeMode = btn.dataset.loupe;
+      savePreferences();
+      updateToolbarState();
+      closeAllPopovers();
+    });
   });
 
   // 下部ツールボタン
@@ -617,6 +661,9 @@ function updateToolbarState() {
   });
   document.querySelectorAll('#age-list .pop-item').forEach((b) => {
     b.classList.toggle('selected', b.dataset.ageId === state.ageLevel);
+  });
+  document.querySelectorAll('#loupe-mode-list .pop-item').forEach((b) => {
+    b.classList.toggle('selected', b.dataset.loupe === state.loupeMode);
   });
 
   const fillBtn = document.getElementById('btn-toggle-fill');
@@ -830,21 +877,17 @@ function onPointerDown(e) {
     return;
   }
 
-  // --- 点モード ---
+  // --- 点モード (押しながらスライド微調整＋虫眼鏡で離した位置に確定) ---
   if (state.tool === 'point') {
     const pt = snapWorldPoint(world.x, world.y);
-    const obj = {
-      id: uid('pt'),
-      kind: 'point',
+    interaction = {
+      type: 'place_point',
+      pointerId: e.pointerId,
       x: pt.x,
-      y: pt.y,
-      strokeColor: state.style.strokeColor,
-      strokeWidth: state.style.strokeWidth
+      y: pt.y
     };
-    state.objects.push(obj);
-    state.selectedId = obj.id;
-    pushHistory();
-    renderAll();
+    renderPreview();
+    showLoupeIfNeeded('place_point', null, pt.x, pt.y, e.clientX, e.clientY);
     return;
   }
 
@@ -1009,6 +1052,10 @@ function onPointerMove(e) {
       const world = clientToWorld(e.clientX, e.clientY);
       updateCompassArcProgress(interaction, world);
       renderPreview();
+      const curAngle = interaction.startAngle + interaction.deltaAngle;
+      const penX = interaction.anchor.x + interaction.radius * Math.cos(curAngle);
+      const penY = interaction.anchor.y + interaction.radius * Math.sin(curAngle);
+      showLoupeIfNeeded('compass', null, penX, penY, e.clientX, e.clientY);
     }
     return;
   }
@@ -1016,12 +1063,22 @@ function onPointerMove(e) {
   if (interaction.pointerId !== e.pointerId) return;
   const world = clientToWorld(e.clientX, e.clientY);
 
+  if (interaction.type === 'place_point') {
+    const pt = snapWorldPoint(world.x, world.y);
+    interaction.x = pt.x;
+    interaction.y = pt.y;
+    renderPreview();
+    showLoupeIfNeeded('place_point', null, pt.x, pt.y, e.clientX, e.clientY);
+    return;
+  }
+
   if (interaction.type === 'compass_anchor_hold') {
     if (Math.hypot(e.clientX - ptr.startX, e.clientY - ptr.startY) > 10) {
       interaction.moved = true;
       // 1本目をドラッグしたままなら支点をリアルタイム移動
       interaction.anchor = snapWorldPoint(world.x, world.y);
       renderPreview();
+      showLoupeIfNeeded('compass', null, interaction.anchor.x, interaction.anchor.y, e.clientX, e.clientY);
     }
     return;
   }
@@ -1032,6 +1089,10 @@ function onPointerMove(e) {
     }
     updateCompassArcProgress(interaction, world);
     renderPreview();
+    const curAngle = interaction.startAngle + interaction.deltaAngle;
+    const penX = interaction.anchor.x + interaction.radius * Math.cos(curAngle);
+    const penY = interaction.anchor.y + interaction.radius * Math.sin(curAngle);
+    showLoupeIfNeeded('compass', null, penX, penY, e.clientX, e.clientY);
     return;
   }
 
@@ -1051,6 +1112,7 @@ function onPointerMove(e) {
     interaction.x2 = end.x;
     interaction.y2 = end.y;
     renderPreview();
+    showLoupeIfNeeded('draw_line', null, end.x, end.y, e.clientX, e.clientY);
     return;
   }
 
@@ -1067,6 +1129,7 @@ function onPointerMove(e) {
     interaction.x2 = world.x;
     interaction.y2 = world.y;
     renderPreview();
+    showLoupeIfNeeded('scissors', null, world.x, world.y, e.clientX, e.clientY);
     return;
   }
 
@@ -1093,6 +1156,10 @@ function onPointerMove(e) {
     translateObject(obj, dx, dy);
     dragSnapshotDirty = true;
     renderObjectsAndOverlay();
+    const focusPt = obj.kind === 'point'
+      ? { x: obj.x, y: obj.y }
+      : { x: interaction.startWorld.x + dx, y: interaction.startWorld.y + dy };
+    showLoupeIfNeeded('move_obj', obj, focusPt.x, focusPt.y, e.clientX, e.clientY);
     return;
   }
 
@@ -1102,6 +1169,9 @@ function onPointerMove(e) {
     applyHandleTransform(obj, interaction, world);
     dragSnapshotDirty = true;
     renderObjectsAndOverlay();
+    const handles = getTransformHandles(obj);
+    const h = handles.find((item) => item.idx === interaction.handleIdx) || world;
+    showLoupeIfNeeded('handle_drag', obj, h.x, h.y, e.clientX, e.clientY);
   }
 }
 
@@ -1109,6 +1179,7 @@ function onPointerUpOrCancel(e) {
   const ptr = activePointers.get(e.pointerId);
   activePointers.delete(e.pointerId);
   cancelLongPress();
+  hideLoupe();
 
   if (!interaction) return;
 
@@ -1169,7 +1240,19 @@ function onPointerUpOrCancel(e) {
 
   if (interaction.pointerId !== e.pointerId) return;
 
-  if (interaction.type === 'draw_line') {
+  if (interaction.type === 'place_point') {
+    const obj = {
+      id: uid('pt'),
+      kind: 'point',
+      x: interaction.x,
+      y: interaction.y,
+      strokeColor: state.style.strokeColor,
+      strokeWidth: state.style.strokeWidth
+    };
+    state.objects.push(obj);
+    state.selectedId = obj.id;
+    pushHistory();
+  } else if (interaction.type === 'draw_line') {
     if (Math.hypot(interaction.x2 - interaction.x1, interaction.y2 - interaction.y1) >= 6) {
       const obj = {
         id: uid('ln'),
@@ -1358,6 +1441,12 @@ function restoreObjectFromBase(target, base) {
 
 function findTopObjectAt(wx, wy) {
   const tol = 16 / state.view.scale;
+  // 線分や図形の上に置かれた点を確実に掴めるよう point を最優先で判定
+  for (let i = state.objects.length - 1; i >= 0; i--) {
+    if (state.objects[i].kind === 'point' && hitTestObject(state.objects[i], wx, wy, tol)) {
+      return state.objects[i];
+    }
+  }
   for (let i = state.objects.length - 1; i >= 0; i--) {
     if (hitTestObject(state.objects[i], wx, wy, tol)) {
       return state.objects[i];
@@ -1569,7 +1658,24 @@ function renderPreview() {
   const stroke = resolveColor(state.style.strokeColor, state.darkMode);
   const sw = state.style.strokeWidth;
 
-  if (interaction.type === 'draw_line') {
+  if (interaction.type === 'place_point') {
+    const ptEl = createSvgEl('circle');
+    ptEl.setAttribute('cx', String(interaction.x));
+    ptEl.setAttribute('cy', String(interaction.y));
+    ptEl.setAttribute('r', String(Math.max(4, sw * 1.15)));
+    ptEl.setAttribute('fill', stroke);
+    previewLayer.appendChild(ptEl);
+
+    const ring = createSvgEl('circle');
+    ring.setAttribute('cx', String(interaction.x));
+    ring.setAttribute('cy', String(interaction.y));
+    ring.setAttribute('r', String(14 / state.view.scale));
+    ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', '#3b82f6');
+    ring.setAttribute('stroke-width', String(1.5 / state.view.scale));
+    ring.setAttribute('stroke-dasharray', `${3 / state.view.scale} ${3 / state.view.scale}`);
+    previewLayer.appendChild(ring);
+  } else if (interaction.type === 'draw_line') {
     const el = createSvgEl('line');
     el.setAttribute('x1', String(interaction.x1));
     el.setAttribute('y1', String(interaction.y1));
@@ -1756,6 +1862,69 @@ function renderOverlay() {
 
 function createSvgEl(tag) {
   return document.createElementNS(SVG_NS, tag);
+}
+
+// --- ドラッグ時拡大虫眼鏡（ルーペ） ---
+function shouldShowLoupe(actionKind, obj) {
+  if (state.loupeMode === 'off') return false;
+  if (state.loupeMode === 'always') return true;
+  // autoモード: 点・線・頂点・はさみ・コンパス、およびスナップOFF時の移動
+  if (actionKind === 'place_point' || actionKind === 'draw_line' ||
+      actionKind === 'scissors' || actionKind === 'handle_drag' || actionKind === 'compass') {
+    return true;
+  }
+  if (actionKind === 'move_obj') {
+    return Boolean((obj && obj.kind === 'point') || !state.snapEnabled);
+  }
+  return false;
+}
+
+function showLoupeIfNeeded(actionKind, obj, wx, wy, clientX, clientY) {
+  if (!shouldShowLoupe(actionKind, obj)) {
+    hideLoupe();
+    return;
+  }
+  const rect = svg.getBoundingClientRect();
+  const sx = clientX - rect.left;
+  const sy = clientY - rect.top;
+  const R = 72;
+
+  // 指に隠れない位置（基本は指の真上115px、上端に近ければ下115pxへ自動退避）
+  const lx = Math.max(R + 12, Math.min(rect.width - R - 12, sx));
+  const ly = sy > 195 ? sy - 115 : Math.min(rect.height - R - 12, sy + 115);
+
+  const loupeScale = Math.max(2.0, state.view.scale * 2.4);
+  const tx = lx - wx * loupeScale;
+  const ty = ly - wy * loupeScale;
+
+  loupeClipCircle.setAttribute('cx', String(lx));
+  loupeClipCircle.setAttribute('cy', String(ly));
+  loupeShadow.setAttribute('cx', String(lx));
+  loupeShadow.setAttribute('cy', String(ly + 3));
+  loupeBg.setAttribute('x', String(lx - R - 4));
+  loupeBg.setAttribute('y', String(ly - R - 4));
+  loupeBg.setAttribute('width', String((R + 4) * 2));
+  loupeBg.setAttribute('height', String((R + 4) * 2));
+  loupeUse.setAttribute('transform', `translate(${tx}, ${ty}) scale(${loupeScale})`);
+
+  loupeRing.setAttribute('cx', String(lx));
+  loupeRing.setAttribute('cy', String(ly));
+  loupeCrossH.setAttribute('x1', String(lx - 16));
+  loupeCrossH.setAttribute('x2', String(lx + 16));
+  loupeCrossH.setAttribute('y1', String(ly));
+  loupeCrossH.setAttribute('y2', String(ly));
+  loupeCrossV.setAttribute('x1', String(lx));
+  loupeCrossV.setAttribute('x2', String(lx));
+  loupeCrossV.setAttribute('y1', String(ly - 16));
+  loupeCrossV.setAttribute('y2', String(ly + 16));
+  loupeCenterDot.setAttribute('cx', String(lx));
+  loupeCenterDot.setAttribute('cy', String(ly));
+
+  loupeLayer.style.display = '';
+}
+
+function hideLoupe() {
+  if (loupeLayer) loupeLayer.style.display = 'none';
 }
 
 // --- JSON / ZIP / 背景画像 入出力 ---

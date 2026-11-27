@@ -36,28 +36,54 @@
         <marker id="arrow-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="context-stroke"/>
         </marker>
+        <clipPath id="loupe-clip">
+          <circle id="loupe-clip-circle" cx="0" cy="0" r="72"/>
+        </clipPath>
       </defs>
 
       <g id="viewport-group">
-        <!-- 背景画像レイヤー（方眼の下に配置） -->
-        <g id="bg-image-layer"></g>
-        <!-- 無限方眼レイヤー -->
-        <rect id="grid-bg-rect" x="-10000" y="-10000" width="20000" height="20000" fill="url(#grid-major-pattern)" opacity="0.92"/>
-        <!-- 原点軸目印 -->
-        <line x1="-10000" y1="0" x2="10000" y2="0" stroke="var(--grid-origin)" stroke-width="1" stroke-dasharray="6 6" opacity="0.5"/>
-        <line x1="0" y1="-10000" x2="0" y2="10000" stroke="var(--grid-origin)" stroke-width="1" stroke-dasharray="6 6" opacity="0.5"/>
-        <!-- 描画オブジェクトレイヤー -->
-        <g id="objects-layer"></g>
-        <!-- 操作中プレビュー・コンパス・はさみ線レイヤー -->
-        <g id="preview-layer"></g>
-        <!-- 選択・頂点ハンドル・ガイドレイヤー -->
-        <g id="overlay-layer"></g>
+        <g id="world-root">
+          <!-- 背景画像レイヤー（方眼の下に配置） -->
+          <g id="bg-image-layer"></g>
+          <!-- 無限方眼レイヤー -->
+          <rect id="grid-bg-rect" x="-10000" y="-10000" width="20000" height="20000" fill="url(#grid-major-pattern)" opacity="0.92"/>
+          <!-- 原点軸目印 -->
+          <line x1="-10000" y1="0" x2="10000" y2="0" stroke="var(--grid-origin)" stroke-width="1" stroke-dasharray="6 6" opacity="0.5"/>
+          <line x1="0" y1="-10000" x2="0" y2="10000" stroke="var(--grid-origin)" stroke-width="1" stroke-dasharray="6 6" opacity="0.5"/>
+          <!-- 描画オブジェクトレイヤー -->
+          <g id="objects-layer"></g>
+          <!-- 操作中プレビュー・コンパス・はさみ線レイヤー -->
+          <g id="preview-layer"></g>
+          <!-- 選択・頂点ハンドル・ガイドレイヤー -->
+          <g id="overlay-layer"></g>
+        </g>
+      </g>
+
+      <!-- ドラッグ時拡大虫眼鏡（ルーペ）レイヤー -->
+      <g id="loupe-layer" style="display:none; pointer-events:none;">
+        <circle id="loupe-shadow" cx="0" cy="0" r="74" fill="rgba(15, 23, 42, 0.22)"/>
+        <g clip-path="url(#loupe-clip)">
+          <rect id="loupe-bg" x="-100" y="-100" width="200" height="200" fill="var(--bg-canvas)"/>
+          <use id="loupe-use" href="#world-root"/>
+        </g>
+        <!-- 精密十字クロスヘア -->
+        <line id="loupe-cross-h" x1="-14" y1="0" x2="14" y2="0" stroke="#ef4444" stroke-width="1.5" opacity="0.85"/>
+        <line id="loupe-cross-v" x1="0" y1="-14" x2="0" y2="14" stroke="#ef4444" stroke-width="1.5" opacity="0.85"/>
+        <circle id="loupe-center-dot" cx="0" cy="0" r="2.2" fill="#ef4444"/>
+        <circle id="loupe-ring" cx="0" cy="0" r="72" fill="none" stroke="var(--accent)" stroke-width="3.5"/>
       </g>
     </svg>
   </div>
 
-  <!-- 右上常駐のUI表示切替ボタン（全画面執筆用） -->
-  <button id="btn-toggle-ui" type="button" title="UI表示切替" aria-label="ツール表示切替">👁️</button>
+  <!-- 右上常駐の発表モード（UI一括折り畳み）ボタン -->
+  <button id="btn-toggle-ui" type="button" title="発表モード（ツールを隠す/表示）" aria-label="ツール表示切替">
+    <span class="ui-toggle-icon">📺</span>
+    <span id="ui-toggle-label" data-i18n="hide_ui">かくす</span>
+  </button>
+
+  <!-- 折り畳み時に端に出る再表示タブ -->
+  <button id="tab-expand-top" class="collapse-tab collapse-tab-top" type="button" aria-label="上のバーをひらく">▼ メニュー</button>
+  <button id="tab-expand-bottom" class="collapse-tab collapse-tab-bottom" type="button" aria-label="下のバーをひらく">▲ ツール</button>
 
   <!-- 上部ミニフローティングバー -->
   <header id="top-bar" class="floating-bar">
@@ -86,6 +112,7 @@
       <button id="btn-dark" class="ui-btn" type="button">🌙 <span data-i18n="dark_mode">ダークモード</span></button>
       <button id="btn-fullscreen" class="ui-btn" type="button">⛶ <span data-i18n="fullscreen">全画面</span></button>
       <button id="btn-menu" class="ui-btn" type="button">⚙ <span data-i18n="menu">設定・保存</span></button>
+      <button id="btn-collapse-top" class="ui-btn collapse-handle" type="button" title="上のバーをたたむ" aria-label="上のバーをたたむ">▲</button>
     </div>
   </header>
 
@@ -146,6 +173,9 @@
     <button class="tool-btn eraser-btn" data-tool="eraser" type="button">
       <span class="tool-icon">🧹</span>
       <span class="tool-label" data-i18n="tool_eraser">消しゴム</span>
+    </button>
+    <button id="btn-collapse-bottom" class="tool-btn collapse-handle-bottom" type="button" title="下のツールバーをたたむ" aria-label="下のバーをたたむ">
+      <span class="tool-icon">▼</span>
     </button>
   </nav>
 
@@ -210,6 +240,13 @@
   <div id="menu-settings" class="popover-menu" style="min-width:240px;">
     <div class="pop-title" data-i18n="menu_age">表示用語のレベル</div>
     <div id="age-list"></div>
+    <div class="pop-sep"></div>
+    <div class="pop-title" data-i18n="menu_loupe">虫眼鏡（ドラッグ拡大）</div>
+    <div id="loupe-mode-list">
+      <button class="pop-item selected" data-loupe="auto" type="button">🔍 <span data-i18n="loupe_auto">自動（おすすめ）</span></button>
+      <button class="pop-item" data-loupe="always" type="button">🔎 <span data-i18n="loupe_always">いつも使う</span></button>
+      <button class="pop-item" data-loupe="off" type="button">🚫 <span data-i18n="loupe_off">使わない</span></button>
+    </div>
     <div class="pop-sep"></div>
     <button id="btn-save-json" class="pop-item" type="button">💾 <span data-i18n="menu_save_json">JSON保存</span></button>
     <button id="btn-load-json" class="pop-item" type="button">📂 <span data-i18n="menu_load_json">JSON読込</span></button>

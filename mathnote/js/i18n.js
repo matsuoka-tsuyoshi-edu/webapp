@@ -28,28 +28,28 @@ const DICT = {
     teacher: 'やり直す'
   },
   clear: {
-    elem_low: 'ぜんぶけす',
+    elem_low: 'ぜんけし',
     elem_high: 'ぜんぶ<ruby>消<rt>け</rt></ruby>す',
     junior: '全消去',
     teacher: '全消去'
   },
   snap: {
-    elem_low: 'マスにピタッ',
-    elem_high: '方眼<ruby>スナップ<rt>すなっぷ</rt></ruby>',
-    junior: '方眼スナップ',
-    teacher: '方眼スナップ'
+    elem_low: 'スナップ',
+    elem_high: '<ruby>スナップ<rt>すなっぷ</rt></ruby>',
+    junior: 'スナップ',
+    teacher: 'スナップ'
   },
   angles: {
-    elem_low: 'かどをみる',
-    elem_high: '<ruby>角<rt>かく</rt></ruby>を<ruby>表示<rt>ひょうじ</rt></ruby>',
-    junior: '角を表示',
+    elem_low: 'かど',
+    elem_high: '<ruby>角<rt>かく</rt></ruby>',
+    junior: '角表示',
     teacher: '角表示'
   },
   scissors: {
     elem_low: 'はさみ',
-    elem_high: 'はさみで<ruby>切<rt>き</rt></ruby>る',
+    elem_high: 'はさみ',
     junior: '切断',
-    teacher: '図形切断'
+    teacher: '切断'
   },
   color: {
     elem_low: 'いろ',
@@ -70,13 +70,13 @@ const DICT = {
     teacher: '塗りつぶし'
   },
   dark_mode: {
-    elem_low: 'くらいがめん',
-    elem_high: 'ダークモード',
-    junior: 'ダークモード',
-    teacher: 'ダークモード'
+    elem_low: 'ダーク',
+    elem_high: 'ダーク',
+    junior: 'ダーク',
+    teacher: 'ダーク'
   },
   menu: {
-    elem_low: 'せってい・ほぞん',
+    elem_low: 'せってい',
     elem_high: '<ruby>設定<rt>せってい</rt></ruby>・<ruby>保存<rt>ほぞん</rt></ruby>',
     junior: '設定・保存',
     teacher: 'メニュー'
@@ -420,10 +420,40 @@ const DICT = {
     teacher: '背景倍率'
   },
   hide_ui: {
-    elem_low: 'ボタンを かくす',
-    elem_high: 'ツールをかくす',
-    junior: 'ツール非表示',
-    teacher: 'UI非表示'
+    elem_low: 'かくす',
+    elem_high: 'かくす',
+    junior: '非表示',
+    teacher: '発表'
+  },
+  show_ui: {
+    elem_low: 'もどす',
+    elem_high: 'もどす',
+    junior: '表示',
+    teacher: '表示'
+  },
+  menu_loupe: {
+    elem_low: 'むしめがね（かくだい）',
+    elem_high: '<ruby>虫眼鏡<rt>むしめがね</rt></ruby>（ドラッグ<ruby>拡大<rt>かくだい</rt></ruby>）',
+    junior: '虫眼鏡（拡大ルーペ）',
+    teacher: 'ドラッグ拡大ルーペ'
+  },
+  loupe_auto: {
+    elem_low: 'じどう（おすすめ）',
+    elem_high: '<ruby>自動<rt>じどう</rt></ruby>（おすすめ）',
+    junior: '自動（点・頂点・線など）',
+    teacher: '自動（精密操作時）'
+  },
+  loupe_always: {
+    elem_low: 'いつも つかう',
+    elem_high: 'いつも<ruby>使<rt>つか</rt></ruby>う',
+    junior: '常時オン',
+    teacher: '常に表示'
+  },
+  loupe_off: {
+    elem_low: 'つかわない',
+    elem_high: '<ruby>使<rt>つか</rt></ruby>わない',
+    junior: 'オフ',
+    teacher: 'オフ'
   }
 };
 
