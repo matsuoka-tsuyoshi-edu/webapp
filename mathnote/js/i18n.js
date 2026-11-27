@@ -552,16 +552,64 @@ const DICT = {
     teacher: 'グループ解除'
   },
   multi_add: {
-    elem_low: 'ついかで えらぶ',
-    elem_high: '<ruby>追加<rt>ついか</rt></ruby><ruby>選択<rt>せんたく</rt></ruby>',
-    junior: '追加選択',
-    teacher: '連続選択'
+    elem_low: 'ふくすう',
+    elem_high: '<ruby>複数<rt>ふくすう</rt></ruby>',
+    junior: '複数',
+    teacher: '複数'
   },
   multi_delete: {
-    elem_low: 'まとめて けす',
-    elem_high: 'まとめて<ruby>消<rt>け</rt></ruby>す',
-    junior: '一括削除',
-    teacher: '一括削除'
+    elem_low: 'けす',
+    elem_high: '<ruby>削除<rt>さくじょ</rt></ruby>',
+    junior: '削除',
+    teacher: '削除'
+  },
+  multi_cut: {
+    elem_low: 'カット',
+    elem_high: 'カット',
+    junior: 'カット',
+    teacher: 'カット'
+  },
+  multi_copy: {
+    elem_low: 'コピー',
+    elem_high: 'コピー',
+    junior: 'コピー',
+    teacher: 'コピー'
+  },
+  multi_paste: {
+    elem_low: 'はる',
+    elem_high: '<ruby>貼<rt>は</rt></ruby>り<ruby>付<rt>つ</rt></ruby>け',
+    junior: '貼り付け',
+    teacher: '貼り付け'
+  },
+  tool_text: {
+    elem_low: 'もじ',
+    elem_high: '<ruby>文字<rt>もじ</rt></ruby>',
+    junior: '文字',
+    teacher: '文字'
+  },
+  menu_grid: {
+    elem_low: 'ほうがんし',
+    elem_high: '<ruby>方眼紙<rt>ほうがんし</rt></ruby>',
+    junior: '方眼紙',
+    teacher: '方眼紙'
+  },
+  text_keyboard: {
+    elem_low: 'キーボード',
+    elem_high: 'キーボード',
+    junior: 'キーボード',
+    teacher: '直接入力'
+  },
+  text_hw_all: {
+    elem_low: 'ぜんぶ',
+    elem_high: 'すべて',
+    junior: 'すべて',
+    teacher: '全文字'
+  },
+  text_hw_digit: {
+    elem_low: 'すうじ',
+    elem_high: '<ruby>数字<rt>すうじ</rt></ruby>',
+    junior: '数字優先',
+    teacher: '数字(MNIST)'
   },
   multi_clear: {
     elem_low: 'かいじょ',

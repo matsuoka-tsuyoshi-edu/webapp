@@ -1325,6 +1325,50 @@ body.is-portrait .portrait-lock {
   border-radius: 22px;
   box-shadow: inset 0 2px 8px rgba(15, 23, 42, 0.06);
   overflow: hidden;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+/* たしざん・ひきざん時：教科書準拠の位ごとの色分け（十の位＝薄い黄色、一の位＝薄いピンク） */
+.answer-board.is-place-colored #frame-tens {
+  background: #fef5d4;
+  border-color: #eab308;
+}
+
+.answer-board.is-place-colored #frame-tens .crosshair-guide::before,
+.answer-board.is-place-colored #frame-tens .crosshair-guide::after {
+  border-color: #dec98a;
+}
+
+.answer-board.is-place-colored #frame-tens .place-watermark {
+  color: rgba(161, 98, 7, 0.42);
+}
+
+.answer-board.is-place-colored #label-slot-left {
+  background: #fde68a;
+  color: #713f12;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.answer-board.is-place-colored #frame-ones {
+  background: #fde6f0;
+  border-color: #f472b6;
+}
+
+.answer-board.is-place-colored #frame-ones .crosshair-guide::before,
+.answer-board.is-place-colored #frame-ones .crosshair-guide::after {
+  border-color: #e6b3ca;
+}
+
+.answer-board.is-place-colored #frame-ones .place-watermark {
+  color: rgba(157, 23, 77, 0.38);
+}
+
+.answer-board.is-place-colored #label-slot-right {
+  background: #fbcfe8;
+  color: #831843;
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
 .crosshair-guide {

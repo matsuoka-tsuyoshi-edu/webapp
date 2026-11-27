@@ -223,13 +223,25 @@ export function getObjectCenter(obj) {
     }
     return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
   }
-  if (obj.kind === 'point' || obj.kind === 'right_angle') {
+  if (obj.kind === 'point' || obj.kind === 'right_angle' || obj.kind === 'text') {
     return { x: obj.x, y: obj.y };
   }
   if (obj.kind === 'angle_arc') {
     return { x: obj.vx, y: obj.vy };
   }
   return { x: 0, y: 0 };
+}
+
+export function estimateTextBoxSize(obj) {
+  const fs = obj.fontSize || 28;
+  const chars = Array.from(obj.text || '').length;
+  let units = 0;
+  for (const ch of (obj.text || '')) {
+    units += /[\x20-\x7e]/.test(ch) ? 0.62 : 1.02;
+  }
+  const w = Math.max(fs * 0.9, units * fs + 12);
+  const h = fs * 1.25;
+  return { w, h };
 }
 
 /**
@@ -260,6 +272,29 @@ export function getTransformHandles(obj) {
       { idx: 1, x: obj.x2, y: obj.y2 }
     ];
   }
+  if (obj.kind === 'text') {
+    const { w, h } = estimateTextBoxSize(obj);
+    const cos = Math.cos(obj.rotation || 0);
+    const sin = Math.sin(obj.rotation || 0);
+    const locals = [
+      { x: w / 2, y: 0 },
+      { x: -w / 2, y: 0 },
+      { x: 0, y: -h / 2 },
+      { x: 0, y: h / 2 }
+    ];
+    return locals.map((p, idx) => ({
+      idx,
+      x: obj.x + p.x * cos - p.y * sin,
+      y: obj.y + p.x * sin + p.y * cos
+    }));
+  }
+  if (obj.kind === 'angle_arc') {
+    const r = (obj.radius || 26) + ((obj.arcs || 1) - 1) * 6;
+    const mid = obj.startAngle + obj.deltaAngle / 2;
+    return [
+      { idx: 0, x: obj.vx + r * Math.cos(mid), y: obj.vy + r * Math.sin(mid) }
+    ];
+  }
   return [];
 }
 
@@ -274,7 +309,7 @@ export function translateObject(obj, dx, dy) {
     obj.x2 += dx; obj.y2 += dy;
   } else if (obj.kind === 'freehand') {
     obj.points.forEach((p) => { p.x += dx; p.y += dy; });
-  } else if (obj.kind === 'point' || obj.kind === 'right_angle') {
+  } else if (obj.kind === 'point' || obj.kind === 'right_angle' || obj.kind === 'text') {
     obj.x += dx;
     obj.y += dy;
   } else if (obj.kind === 'angle_arc') {
@@ -358,6 +393,16 @@ export function splitPolygon(vertices, lineStart, lineEnd) {
  * ヒット判定（ワールド座標 (wx, wy) がオブジェクト上にあるか）
  */
 export function hitTestObject(obj, wx, wy, tolerance = 14) {
+  if (obj.kind === 'text') {
+    const { w, h } = estimateTextBoxSize(obj);
+    const dx = wx - obj.x;
+    const dy = wy - obj.y;
+    const cos = Math.cos(-(obj.rotation || 0));
+    const sin = Math.sin(-(obj.rotation || 0));
+    const lx = dx * cos - dy * sin;
+    const ly = dx * sin + dy * cos;
+    return Math.abs(lx) <= w / 2 + tolerance * 0.6 && Math.abs(ly) <= h / 2 + tolerance * 0.6;
+  }
   if (obj.kind === 'angle_arc') {
     const d = Math.hypot(wx - obj.vx, wy - obj.vy);
     const maxR = (obj.radius || 26) + ((obj.arcs || 1) - 1) * 6 + Math.max(14, tolerance);

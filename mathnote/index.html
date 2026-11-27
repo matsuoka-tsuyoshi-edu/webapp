@@ -45,8 +45,8 @@
         <g id="world-root">
           <g id="bg-image-layer"></g>
           <rect id="grid-bg-rect" x="-10000" y="-10000" width="20000" height="20000" fill="url(#grid-major-pattern)" opacity="0.92"/>
-          <line x1="-10000" y1="0" x2="10000" y2="0" stroke="var(--grid-origin)" stroke-width="1" stroke-dasharray="6 6" opacity="0.5"/>
-          <line x1="0" y1="-10000" x2="0" y2="10000" stroke="var(--grid-origin)" stroke-width="1" stroke-dasharray="6 6" opacity="0.5"/>
+          <line class="grid-origin-line" x1="-10000" y1="0" x2="10000" y2="0" stroke="var(--grid-origin)" stroke-width="1" stroke-dasharray="6 6" opacity="0.5"/>
+          <line class="grid-origin-line" x1="0" y1="-10000" x2="0" y2="10000" stroke="var(--grid-origin)" stroke-width="1" stroke-dasharray="6 6" opacity="0.5"/>
           <g id="objects-layer"></g>
           <g id="preview-layer"></g>
           <g id="overlay-layer"></g>
@@ -132,6 +132,12 @@
           <span class="tool-label" data-i18n="tool_edge_mark">記号</span>
         </button>
 
+        <!-- 文字（手書き認識・タイプ字変換） -->
+        <button id="tool-btn-text" class="tool-btn" data-tool="text" type="button" title="文字（場所をタップ→手書きで自動変換）">
+          <span class="tool-icon">🔤</span>
+          <span class="tool-label" data-i18n="tool_text">文字</span>
+        </button>
+
         <!-- 消去・全消去（デフォルト消去・長押しで全消去） -->
         <button id="tool-btn-eraser" class="tool-btn has-sub eraser-btn" data-tool="eraser" data-menu="menu-eraser" type="button" title="消去（長押しで全消去）">
           <span class="tool-icon">🧹</span>
@@ -176,14 +182,28 @@
     <button id="tab-expand-main" class="rail-expand-tab" type="button" title="バーをひらく">▶<br>ﾂｰﾙ</button>
   </aside>
 
-  <!-- 左上寄せの状況表示バー（複数選択・グループ化） -->
+  <!-- 左上寄せの状況表示バー（選択中・グループ化・クリップボード） -->
   <div id="multi-bar">
     <span id="multi-count-badge" class="tf-badge">選択中</span>
-    <button id="btn-multi-add" class="ui-btn" type="button">➕ <span data-i18n="multi_add">追加選択</span></button>
-    <button id="btn-multi-group" class="ui-btn" type="button" style="display:none;">🔗 <span data-i18n="multi_group">グループ化</span></button>
-    <button id="btn-multi-ungroup" class="ui-btn" type="button" style="display:none;">🔓 <span data-i18n="multi_ungroup">グループ解除</span></button>
-    <button id="btn-multi-delete" class="ui-btn danger-text" type="button">🗑 <span data-i18n="multi_delete">まとめて消す</span></button>
+    <button id="btn-multi-add" class="ui-btn" type="button">➕ <span data-i18n="multi_add">複数</span></button>
+    <button id="btn-multi-group" class="ui-btn" type="button">🔗 <span data-i18n="multi_group">グループ化</span></button>
+    <button id="btn-multi-ungroup" class="ui-btn" type="button">🔓 <span data-i18n="multi_ungroup">グループ解除</span></button>
+    <button id="btn-multi-cut" class="ui-btn" type="button">✂ <span data-i18n="multi_cut">カット</span></button>
+    <button id="btn-multi-copy" class="ui-btn" type="button">📋 <span data-i18n="multi_copy">コピー</span></button>
+    <button id="btn-multi-paste" class="ui-btn" type="button">📌 <span data-i18n="multi_paste">貼り付け</span></button>
+    <button id="btn-multi-delete" class="ui-btn danger-text" type="button">🗑 <span data-i18n="multi_delete">削除</span></button>
     <button id="btn-multi-clear" class="ui-btn" type="button">✖ <span data-i18n="multi_clear">解除</span></button>
+  </div>
+
+  <!-- 左上寄せ：文字（手書き変換）モードバー -->
+  <div id="text-bar">
+    <span class="tf-badge" id="text-status-badge">🔤 置く場所をタップ</span>
+    <button id="btn-text-hw-mode" class="ui-btn" type="button"><span id="text-hw-mode-label" data-i18n="text_hw_all">すべて</span></button>
+    <div id="text-candidates" class="cand-row"></div>
+    <button id="btn-text-commit" class="ui-btn active" type="button" style="display:none;">✔ <span data-i18n="tf_done">確定</span></button>
+    <button id="btn-text-hw-clear" class="ui-btn" type="button" style="display:none;">↺ 書き直し</button>
+    <button id="btn-text-keyboard" class="ui-btn" type="button">⌨ <span data-i18n="text_keyboard">直接入力</span></button>
+    <button id="btn-text-done" class="ui-btn" type="button">✖ <span data-i18n="multi_clear">閉じる</span></button>
   </div>
 
   <!-- 左上寄せ：角度モードバー -->
@@ -313,6 +333,7 @@
     <div class="pop-title" data-i18n="menu_age">表示用語のレベル</div>
     <div id="age-list"></div>
     <div class="pop-sep"></div>
+    <button id="btn-toggle-grid" class="pop-item selected" type="button">📐 <span data-i18n="menu_grid">方眼紙</span>: <strong id="grid-state-text">ON</strong></button>
     <button id="btn-dark" class="pop-item" type="button">🌙 <span data-i18n="dark_mode">ダークモード</span>: <strong id="dark-state-text">OFF</strong></button>
     <div class="pop-sep"></div>
     <div class="pop-title" data-i18n="menu_loupe">虫眼鏡（ドラッグ拡大）</div>

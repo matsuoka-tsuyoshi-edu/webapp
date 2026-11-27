@@ -211,6 +211,7 @@
     els.animalParade = document.getElementById("animal-parade");
 
     els.helperBanner = document.getElementById("helper-banner");
+    els.answerBoard = document.getElementById("answer-board");
     els.bubbleTens = document.getElementById("bubble-tens");
     els.bubbleOnes = document.getElementById("bubble-ones");
     els.canvasTens = document.getElementById("canvas-tens");
@@ -1790,6 +1791,15 @@
 
   function configureInputSlots() {
     const remMode = isRemainderInputMode();
+    const activeMode = state.japanChallenge
+      ? state.japanChallenge.assignedType
+      : state.selectedMode;
+    const isPlaceColored = !remMode && (activeMode === "add" || activeMode === "sub");
+
+    if (els.answerBoard) {
+      els.answerBoard.classList.toggle("is-place-colored", isPlaceColored);
+    }
+
     if (remMode) {
       els.labelSlotLeft.textContent = "こたえ（しょう）";
       els.watermarkLeft.textContent = "こたえ";

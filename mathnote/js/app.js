@@ -1,3 +1,4 @@
+import { recognizeHandwriting } from './handwriting.js';
 import { AGE_LEVELS, applyI18nToDOM, t, tPlain } from './i18n.js';
 import {
   GRID_SIZE,
@@ -53,12 +54,20 @@ const state = {
     fillEnabled: true
   },
   snapEnabled: true,
+  gridVisible: true,
   darkMode: false,
   ageLevel: 'elem_high',
   loupeMode: 'auto', // 'auto' | 'always' | 'off'
   selectedId: null,
   selectedIds: [],
   multiSelectAddMode: false,
+  clipboard: [],
+  pasteCount: 0,
+  textCursor: null,      // { x, y }
+  hwStrokes: [],         // 手書き中のストローク配列
+  hwMode: 'all',         // 'all' | 'digit'
+  lastPlacedTextId: null,
+  lastHwCandidates: [],
   transformTargetId: null,
   transformSubMode: 'both', // 'both' | 'rotate' | 'scale' | 'vertex'
   bgImage: null // { dataUrl, bytes, mime, ext, width, height, opacity, scale, x, y }
@@ -83,6 +92,7 @@ const loupeCenterDot = document.getElementById('loupe-center-dot');
 const multiBar = document.getElementById('multi-bar');
 const angleBar = document.getElementById('angle-bar');
 const markBar = document.getElementById('mark-bar');
+const textBar = document.getElementById('text-bar');
 const transformBar = document.getElementById('transform-bar');
 const bgControls = document.getElementById('bg-controls');
 const toastEl = document.getElementById('toast');
@@ -91,6 +101,7 @@ const toastEl = document.getElementById('toast');
 const activePointers = new Map();
 let interaction = null; // 現在の単一/変形/描画セッション
 let longPressTimer = null;
+let hwCommitTimer = null;
 let compassPinnedAnchor = null; // PC/単指フォールバック用支点
 let toastTimer = null;
 let dragSnapshotDirty = false;
@@ -105,6 +116,7 @@ function init() {
   registerServiceWorker();
   pushHistory();
   applyTheme();
+  applyGridVisibility();
   applyLanguage();
   updateToolbarState();
   renderAll();
@@ -114,6 +126,8 @@ function loadPreferences() {
   try {
     const savedDark = localStorage.getItem('mathnote_dark');
     if (savedDark === '1') state.darkMode = true;
+    const savedGrid = localStorage.getItem('mathnote_grid');
+    if (savedGrid === '0') state.gridVisible = false;
     const savedAge = localStorage.getItem('mathnote_age');
     if (savedAge && AGE_LEVELS.some((a) => a.id === savedAge)) {
       state.ageLevel = savedAge;
@@ -128,6 +142,7 @@ function loadPreferences() {
 function savePreferences() {
   try {
     localStorage.setItem('mathnote_dark', state.darkMode ? '1' : '0');
+    localStorage.setItem('mathnote_grid', state.gridVisible ? '1' : '0');
     localStorage.setItem('mathnote_age', state.ageLevel);
     localStorage.setItem('mathnote_loupe', state.loupeMode);
   } catch (_) {}
@@ -531,6 +546,13 @@ function bindUIEvents() {
     setTool(state.pointerToolMode);
   });
 
+  document.getElementById('btn-toggle-grid').addEventListener('click', () => {
+    state.gridVisible = !state.gridVisible;
+    savePreferences();
+    applyGridVisibility();
+    updateToolbarState();
+  });
+
   document.getElementById('btn-dark').addEventListener('click', () => {
     state.darkMode = !state.darkMode;
     savePreferences();
@@ -539,7 +561,7 @@ function bindUIEvents() {
     renderAll();
   });
 
-  // 複数選択・グループ化バー
+  // 複数選択・グループ化・クリップボードバー
   document.getElementById('btn-multi-add').addEventListener('click', () => {
     state.multiSelectAddMode = !state.multiSelectAddMode;
     updateMultiBarUI();
@@ -572,6 +594,22 @@ function bindUIEvents() {
       showToast('グループを解除しました');
     }
   });
+  document.getElementById('btn-multi-copy').addEventListener('click', () => {
+    copySelectionToClipboard();
+  });
+  document.getElementById('btn-multi-cut').addEventListener('click', () => {
+    if (copySelectionToClipboard()) {
+      const delSet = new Set(state.selectedIds);
+      state.objects = state.objects.filter((o) => !delSet.has(o.id));
+      clearSelectionAndTransform();
+      pushHistory();
+      renderAll();
+      showToast('カットしました（貼り付けできます）');
+    }
+  });
+  document.getElementById('btn-multi-paste').addEventListener('click', () => {
+    pasteFromClipboard();
+  });
   document.getElementById('btn-multi-delete').addEventListener('click', () => {
     if (state.selectedIds.length === 0) return;
     const delSet = new Set(state.selectedIds);
@@ -581,8 +619,51 @@ function bindUIEvents() {
     renderAll();
   });
   document.getElementById('btn-multi-clear').addEventListener('click', () => {
+    if (state.selectedIds.length === 0) {
+      state.clipboard = [];
+    }
     clearSelectionAndTransform();
     renderAll();
+  });
+
+  // 文字（手書き変換）モードバー
+  document.getElementById('btn-text-hw-mode').addEventListener('click', () => {
+    state.hwMode = state.hwMode === 'all' ? 'digit' : 'all';
+    updateTextBarUI();
+  });
+  document.getElementById('btn-text-commit').addEventListener('click', () => {
+    commitHandwriting();
+  });
+  document.getElementById('btn-text-hw-clear').addEventListener('click', () => {
+    clearTimeout(hwCommitTimer);
+    state.hwStrokes = [];
+    updateTextBarUI();
+    renderPreview();
+  });
+  document.getElementById('btn-text-keyboard').addEventListener('click', () => {
+    const pos = state.textCursor || clientToWorld(window.innerWidth / 2, window.innerHeight / 2);
+    const existing = state.lastPlacedTextId ? state.objects.find((o) => o.id === state.lastPlacedTextId) : null;
+    const initial = existing ? existing.text : '';
+    const input = window.prompt('文字や式を入力してください', initial);
+    if (input === null) return;
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    if (existing && state.hwStrokes.length === 0 && Math.hypot(existing.x - pos.x, existing.y - pos.y) < 10) {
+      existing.text = trimmed;
+    } else {
+      const txtObj = createTextObject(trimmed, pos.x, pos.y);
+      state.objects.push(txtObj);
+      state.lastPlacedTextId = txtObj.id;
+    }
+    state.hwStrokes = [];
+    state.lastHwCandidates = [];
+    pushHistory();
+    updateTextBarUI();
+    renderAll();
+  });
+  document.getElementById('btn-text-done').addEventListener('click', () => {
+    if (state.hwStrokes.length > 0) commitHandwriting();
+    setTool(state.pointerToolMode);
   });
 
   document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
@@ -917,6 +998,9 @@ function toggleFullscreen() {
 }
 
 function setTool(tool) {
+  if (state.tool === 'text' && tool !== 'text' && state.hwStrokes.length > 0) {
+    commitHandwriting();
+  }
   state.tool = tool;
   if (tool !== 'select') {
     state.transformTargetId = null;
@@ -924,8 +1008,16 @@ function setTool(tool) {
   if (tool !== 'compass') {
     compassPinnedAnchor = null;
   }
+  if (tool !== 'text') {
+    clearTimeout(hwCommitTimer);
+    state.textCursor = null;
+    state.hwStrokes = [];
+    state.lastPlacedTextId = null;
+    state.lastHwCandidates = [];
+  }
   updateToolbarState();
   updateTransformBarUI();
+  updateTextBarUI();
   renderAll();
 }
 
@@ -940,6 +1032,56 @@ function clearSelectionAndTransform() {
   updateMultiBarUI();
 }
 
+function copySelectionToClipboard() {
+  if (state.selectedIds.length === 0) return false;
+  const targets = state.objects.filter((o) => state.selectedIds.includes(o.id));
+  if (targets.length === 0) return false;
+  state.clipboard = JSON.parse(JSON.stringify(targets));
+  state.pasteCount = 0;
+  updateMultiBarUI();
+  showToast(`${targets.length}個 コピーしました`);
+  return true;
+}
+
+function pasteFromClipboard() {
+  if (state.clipboard.length === 0) return;
+  state.pasteCount = (state.pasteCount || 0) + 1;
+  const offset = GRID_SIZE * Math.min(4, state.pasteCount);
+  const groupRemap = new Map();
+  const newIds = [];
+
+  for (const raw of state.clipboard) {
+    const copy = JSON.parse(JSON.stringify(raw));
+    copy.id = uid(copy.kind.slice(0, 3));
+    if (copy.groupId) {
+      if (!groupRemap.has(copy.groupId)) groupRemap.set(copy.groupId, uid('grp'));
+      copy.groupId = groupRemap.get(copy.groupId);
+    }
+    translateObject(copy, offset, offset);
+    state.objects.push(copy);
+    newIds.push(copy.id);
+  }
+
+  state.tool = state.pointerToolMode === 'pan' ? 'select' : state.pointerToolMode;
+  setSelectionIds(newIds);
+  pushHistory();
+  renderAll();
+  showToast('貼り付けました');
+}
+
+function createTextObject(text, x, y) {
+  return {
+    id: uid('txt'),
+    kind: 'text',
+    text,
+    x,
+    y,
+    fontSize: 28,
+    rotation: 0,
+    strokeColor: state.style.strokeColor
+  };
+}
+
 function getTransformTarget() {
   if (!state.transformTargetId) return null;
   return state.objects.find((o) => o.id === state.transformTargetId) || null;
@@ -947,6 +1089,10 @@ function getTransformTarget() {
 
 function applyTheme() {
   document.documentElement.classList.toggle('dark', state.darkMode);
+}
+
+function applyGridVisibility() {
+  document.body.classList.toggle('grid-hidden', !state.gridVisible);
 }
 
 function setEdgeMarkMode(mode) {
@@ -963,22 +1109,84 @@ function setEdgeMarkMode(mode) {
 
 function updateMultiBarUI() {
   const hasTransform = Boolean(getTransformTarget());
-  const isSpecialBar = state.tool === 'angle' || state.tool === 'edge_mark';
+  const isSpecialBar = state.tool === 'angle' || state.tool === 'edge_mark' || state.tool === 'text';
   const count = state.selectedIds.length;
-  const show = !hasTransform && !isSpecialBar && count > 0;
+  const hasClip = state.clipboard.length > 0;
+  const show = !hasTransform && !isSpecialBar && (count > 0 || hasClip);
   multiBar.classList.toggle('open', show);
   if (!show) return;
 
   const badge = document.getElementById('multi-count-badge');
-  badge.textContent = count > 1 ? `${count}個 選択中` : '選択中';
+  badge.textContent = count > 1 ? `${count}個 選択` : (count === 1 ? '選択中' : 'コピー済');
 
   const selectedObjs = state.objects.filter((o) => state.selectedIds.includes(o.id));
   const hasGroup = selectedObjs.some((o) => Boolean(o.groupId));
   const distinctGroups = new Set(selectedObjs.map((o) => o.groupId || o.id));
 
-  document.getElementById('btn-multi-add').classList.toggle('active', state.multiSelectAddMode);
-  document.getElementById('btn-multi-group').style.display = (count >= 2 && distinctGroups.size > 1) ? 'inline-flex' : 'none';
-  document.getElementById('btn-multi-ungroup').style.display = hasGroup ? 'inline-flex' : 'none';
+  const btnAdd = document.getElementById('btn-multi-add');
+  const btnGroup = document.getElementById('btn-multi-group');
+  const btnUngroup = document.getElementById('btn-multi-ungroup');
+  const btnCut = document.getElementById('btn-multi-cut');
+  const btnCopy = document.getElementById('btn-multi-copy');
+  const btnPaste = document.getElementById('btn-multi-paste');
+  const btnDelete = document.getElementById('btn-multi-delete');
+
+  btnAdd.classList.toggle('active', state.multiSelectAddMode);
+  btnAdd.disabled = count === 0;
+  btnGroup.disabled = !(count >= 2 && distinctGroups.size > 1);
+  btnUngroup.disabled = !hasGroup;
+  btnCut.disabled = count === 0;
+  btnCopy.disabled = count === 0;
+  btnPaste.disabled = !hasClip;
+  btnDelete.disabled = count === 0;
+}
+
+function updateTextBarUI() {
+  const active = state.tool === 'text';
+  textBar.classList.toggle('open', active);
+  if (!active) return;
+
+  const badge = document.getElementById('text-status-badge');
+  if (state.hwStrokes.length > 0) {
+    badge.textContent = '✍ 書いています...';
+  } else if (state.textCursor) {
+    badge.textContent = '✍ 空き地に手書きOK';
+  } else {
+    badge.textContent = '🔤 置く場所をタップ';
+  }
+
+  const modeBtn = document.getElementById('btn-text-hw-mode');
+  const modeLbl = document.getElementById('text-hw-mode-label');
+  modeBtn.classList.toggle('active', state.hwMode === 'digit');
+  if (modeLbl) {
+    const key = state.hwMode === 'digit' ? 'text_hw_digit' : 'text_hw_all';
+    modeLbl.setAttribute('data-i18n', key);
+    modeLbl.innerHTML = t(key, state.ageLevel);
+  }
+
+  document.getElementById('btn-text-commit').style.display = state.hwStrokes.length > 0 ? 'inline-flex' : 'none';
+  document.getElementById('btn-text-hw-clear').style.display = state.hwStrokes.length > 0 ? 'inline-flex' : 'none';
+
+  const candBox = document.getElementById('text-candidates');
+  candBox.innerHTML = '';
+  if (state.lastPlacedTextId && state.lastHwCandidates.length > 0) {
+    // 先頭文字または複数候補のうち異なるバリエーションを表示してワンタップ修正可能に
+    const targetObj = state.objects.find((o) => o.id === state.lastPlacedTextId);
+    if (targetObj && state.lastHwCandidates.length === 1) {
+      for (const c of state.lastHwCandidates[0].slice(0, 4)) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'cand-btn';
+        b.textContent = c.char;
+        b.addEventListener('click', () => {
+          targetObj.text = c.char;
+          pushHistory();
+          renderAll();
+        });
+        candBox.appendChild(b);
+      }
+    }
+  }
 }
 
 function applyLanguage() {
@@ -991,10 +1199,16 @@ function updateToolbarState() {
 
   angleBar.classList.toggle('open', state.tool === 'angle');
   markBar.classList.toggle('open', state.tool === 'edge_mark');
+  updateTextBarUI();
   const angFillBtn = document.getElementById('btn-angle-fill');
   if (angFillBtn) angFillBtn.classList.toggle('active', state.angleFillMode);
   const angFillTxt = document.getElementById('angle-fill-text');
   if (angFillTxt) angFillTxt.textContent = state.angleFillMode ? 'ON' : 'OFF';
+
+  const gridBtn = document.getElementById('btn-toggle-grid');
+  if (gridBtn) gridBtn.classList.toggle('selected', state.gridVisible);
+  const gridTxt = document.getElementById('grid-state-text');
+  if (gridTxt) gridTxt.textContent = state.gridVisible ? 'ON' : 'OFF';
 
   const darkBtn = document.getElementById('btn-dark');
   darkBtn.classList.toggle('selected', state.darkMode);
@@ -1313,51 +1527,52 @@ function onPointerDown(e) {
     return;
   }
 
-  // --- 角度ツール (タップした角に円弧1〜3本＋内側塗りを配置・循環) ---
+  // --- 角度ツール (タップで1〜3重円弧/消去、押したままドラッグで円弧サイズ拡大・縮小) ---
   if (state.tool === 'angle') {
     const tol = 18 / state.view.scale;
-    // 1. 既存の角度円弧をタップしたら 1 -> 2 -> 3 -> 削除
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const o = state.objects[i];
       if (o.kind === 'angle_arc' && hitTestObject(o, world.x, world.y, tol)) {
-        const nextArcs = (o.arcs || 1) + 1;
-        if (nextArcs > 3) {
-          state.objects = state.objects.filter((item) => item.id !== o.id);
-          showToast('角度マークを消しました');
-        } else {
-          o.arcs = nextArcs;
-          o.fillEnabled = state.angleFillMode;
-          if (state.angleFillMode) o.fillColor = state.style.strokeColor;
-        }
-        pushHistory();
-        renderAll();
+        interaction = {
+          type: 'angle_drag',
+          pointerId: e.pointerId,
+          objId: o.id,
+          isNew: false,
+          startClient: { x: e.clientX, y: e.clientY },
+          moved: false
+        };
         return;
       }
     }
 
-    // 2. 新しい角を検出して円弧を追加
     const detected = detectAngleAtTap(world.x, world.y, state.objects, 78 / state.view.scale);
     if (detected) {
-      const obj = {
-        id: uid('ang'),
-        kind: 'angle_arc',
-        vx: detected.vx,
-        vy: detected.vy,
-        startAngle: detected.startAngle,
-        deltaAngle: detected.deltaAngle,
-        arcs: 1,
-        radius: 26,
-        strokeColor: state.style.strokeColor,
-        strokeWidth: state.style.strokeWidth,
-        fillEnabled: state.angleFillMode,
-        fillColor: state.style.strokeColor
+      interaction = {
+        type: 'angle_drag',
+        pointerId: e.pointerId,
+        objId: null,
+        isNew: true,
+        detected,
+        startClient: { x: e.clientX, y: e.clientY },
+        moved: false
       };
-      state.objects.push(obj);
-      pushHistory();
-      renderAll();
     } else {
       showToast('角の近くをタップしてください');
     }
+    return;
+  }
+
+  // --- 文字（手書き認識・タイプ字変換）ツール ---
+  if (state.tool === 'text') {
+    clearTimeout(hwCommitTimer);
+    interaction = {
+      type: 'text_input',
+      pointerId: e.pointerId,
+      startClient: { x: e.clientX, y: e.clientY },
+      startWorld: { ...world },
+      points: [{ x: world.x, y: world.y }],
+      moved: false
+    };
     return;
   }
 
@@ -1410,6 +1625,26 @@ function onPointerDown(e) {
         };
         dragSnapshotDirty = false;
         return;
+      }
+    }
+  }
+
+  // 1.5 単一選択中の角度円弧のサイズ調整ハンドルチェック
+  if (!tfObj && state.selectedIds.length === 1) {
+    const selOne = state.objects.find((o) => o.id === state.selectedIds[0]);
+    if (selOne && selOne.kind === 'angle_arc') {
+      const handles = getTransformHandles(selOne);
+      const hitR = 24 / state.view.scale;
+      for (const h of handles) {
+        if (Math.hypot(world.x - h.x, world.y - h.y) <= hitR) {
+          interaction = {
+            type: 'angle_resize',
+            pointerId: e.pointerId,
+            objId: selOne.id
+          };
+          dragSnapshotDirty = false;
+          return;
+        }
       }
     }
   }
@@ -1475,8 +1710,8 @@ function onPointerDown(e) {
     };
     dragSnapshotDirty = false;
 
-    // 長押しタイマー起動（単一図形 polygon / circle / line のみ回転・拡大縮小対象）
-    if (moveIds.length === 1 && (hitObj.kind === 'polygon' || hitObj.kind === 'circle' || hitObj.kind === 'line')) {
+    // 長押しタイマー起動（単一図形 polygon / circle / line / text のみ回転・拡大縮小対象）
+    if (moveIds.length === 1 && (hitObj.kind === 'polygon' || hitObj.kind === 'circle' || hitObj.kind === 'line' || hitObj.kind === 'text')) {
       cancelLongPress();
       longPressTimer = setTimeout(() => {
         if (!interaction || interaction.type !== 'move_obj' || interaction.moved) return;
@@ -1639,6 +1874,74 @@ function onPointerMove(e) {
     return;
   }
 
+  if (interaction.type === 'angle_drag') {
+    const movePx = Math.hypot(e.clientX - interaction.startClient.x, e.clientY - interaction.startClient.y);
+    if (movePx > 8 && !interaction.moved) {
+      interaction.moved = true;
+      if (interaction.isNew && !interaction.objId && interaction.detected) {
+        const d = interaction.detected;
+        const obj = {
+          id: uid('ang'),
+          kind: 'angle_arc',
+          vx: d.vx,
+          vy: d.vy,
+          startAngle: d.startAngle,
+          deltaAngle: d.deltaAngle,
+          arcs: 1,
+          radius: 26,
+          strokeColor: state.style.strokeColor,
+          strokeWidth: state.style.strokeWidth,
+          fillEnabled: state.angleFillMode,
+          fillColor: state.style.strokeColor
+        };
+        state.objects.push(obj);
+        interaction.objId = obj.id;
+      }
+    }
+    if (interaction.moved && interaction.objId) {
+      const obj = state.objects.find((o) => o.id === interaction.objId);
+      if (obj) {
+        const dist = Math.hypot(world.x - obj.vx, world.y - obj.vy);
+        const arcOffset = ((obj.arcs || 1) - 1) * 6;
+        obj.radius = Math.max(14, Math.min(160, dist - arcOffset));
+        dragSnapshotDirty = true;
+        renderObjects();
+        showLoupeIfNeeded('angle', obj, world.x, world.y, e.clientX, e.clientY);
+      }
+    }
+    return;
+  }
+
+  if (interaction.type === 'angle_resize') {
+    const obj = state.objects.find((o) => o.id === interaction.objId);
+    if (obj) {
+      const dist = Math.hypot(world.x - obj.vx, world.y - obj.vy);
+      const arcOffset = ((obj.arcs || 1) - 1) * 6;
+      obj.radius = Math.max(14, Math.min(160, dist - arcOffset));
+      dragSnapshotDirty = true;
+      renderObjectsAndOverlay();
+      showLoupeIfNeeded('angle', obj, world.x, world.y, e.clientX, e.clientY);
+    }
+    return;
+  }
+
+  if (interaction.type === 'text_input') {
+    const movePx = Math.hypot(e.clientX - interaction.startClient.x, e.clientY - interaction.startClient.y);
+    if (movePx > 6) {
+      interaction.moved = true;
+      if (!state.textCursor) {
+        state.textCursor = snapWorldPoint(interaction.startWorld.x, interaction.startWorld.y);
+      }
+      const last = interaction.points[interaction.points.length - 1];
+      if (Math.hypot(world.x - last.x, world.y - last.y) >= 2.5 / state.view.scale) {
+        interaction.points.push({ x: world.x, y: world.y });
+      }
+      updateTextBarUI();
+      renderPreview();
+    }
+    return;
+  }
+
   if (interaction.type === 'tap_right_angle') {
     if (Math.hypot(e.clientX - interaction.startClient.x, e.clientY - interaction.startClient.y) > 10) {
       interaction.moved = true;
@@ -1763,7 +2066,64 @@ function onPointerUpOrCancel(e) {
 
   if (interaction.pointerId !== e.pointerId) return;
 
-  if (interaction.type === 'tap_right_angle') {
+  if (interaction.type === 'angle_drag') {
+    if (!interaction.moved) {
+      if (interaction.isNew && interaction.detected) {
+        const d = interaction.detected;
+        state.objects.push({
+          id: uid('ang'),
+          kind: 'angle_arc',
+          vx: d.vx,
+          vy: d.vy,
+          startAngle: d.startAngle,
+          deltaAngle: d.deltaAngle,
+          arcs: 1,
+          radius: 26,
+          strokeColor: state.style.strokeColor,
+          strokeWidth: state.style.strokeWidth,
+          fillEnabled: state.angleFillMode,
+          fillColor: state.style.strokeColor
+        });
+        pushHistory();
+      } else if (interaction.objId) {
+        const o = state.objects.find((item) => item.id === interaction.objId);
+        if (o) {
+          const nextArcs = (o.arcs || 1) + 1;
+          if (nextArcs > 3) {
+            state.objects = state.objects.filter((item) => item.id !== o.id);
+            showToast('角度マークを消しました');
+          } else {
+            o.arcs = nextArcs;
+            o.fillEnabled = state.angleFillMode;
+            if (state.angleFillMode) o.fillColor = state.style.strokeColor;
+          }
+          pushHistory();
+        }
+      }
+    } else if (dragSnapshotDirty) {
+      pushHistory();
+    }
+  } else if (interaction.type === 'angle_resize') {
+    if (dragSnapshotDirty) pushHistory();
+  } else if (interaction.type === 'text_input') {
+    if (!interaction.moved) {
+      if (state.hwStrokes.length > 0) {
+        commitHandwriting();
+      }
+      const w = clientToWorld(e.clientX, e.clientY);
+      state.textCursor = snapWorldPoint(w.x, w.y);
+      state.lastPlacedTextId = null;
+      state.lastHwCandidates = [];
+      updateTextBarUI();
+    } else if (interaction.points.length >= 2) {
+      state.hwStrokes.push(interaction.points);
+      updateTextBarUI();
+      clearTimeout(hwCommitTimer);
+      hwCommitTimer = setTimeout(() => {
+        commitHandwriting();
+      }, 850);
+    }
+  } else if (interaction.type === 'tap_right_angle') {
     if (!interaction.moved) {
       state.objects = state.objects.filter((o) => o.id !== interaction.objId);
       pushHistory();
@@ -1920,6 +2280,13 @@ function applyHandleTransform(obj, session, world) {
     return;
   }
 
+  if (obj.kind === 'angle_arc') {
+    const dist = Math.hypot(world.x - obj.vx, world.y - obj.vy);
+    const arcOffset = ((obj.arcs || 1) - 1) * 6;
+    obj.radius = Math.max(14, Math.min(160, dist - arcOffset));
+    return;
+  }
+
   const v0x = session.startHandle.x - c.x;
   const v0y = session.startHandle.y - c.y;
   const r0 = Math.max(8, Math.hypot(v0x, v0y));
@@ -1977,6 +2344,9 @@ function applyHandleTransform(obj, session, world) {
     obj.y1 = c.y + p1x * sin + p1y * cos;
     obj.x2 = c.x + p2x * cos - p2y * sin;
     obj.y2 = c.y + p2x * sin + p2y * cos;
+  } else if (obj.kind === 'text') {
+    obj.fontSize = Math.max(14, Math.min(96, Math.round((base.fontSize || 28) * scale)));
+    obj.rotation = (base.rotation || 0) + dTheta;
   }
 }
 
@@ -1990,13 +2360,38 @@ function restoreObjectFromBase(target, base) {
   } else if (target.kind === 'line') {
     target.x1 = base.x1; target.y1 = base.y1;
     target.x2 = base.x2; target.y2 = base.y2;
-  } else if (target.kind === 'point') {
+  } else if (target.kind === 'point' || target.kind === 'right_angle') {
     target.x = base.x; target.y = base.y;
+  } else if (target.kind === 'text') {
+    target.x = base.x; target.y = base.y;
+    target.fontSize = base.fontSize || 28;
+    target.rotation = base.rotation || 0;
+  } else if (target.kind === 'angle_arc') {
+    target.vx = base.vx; target.vy = base.vy;
+    target.radius = base.radius || 26;
   } else if (target.kind === 'arc') {
     target.cx = base.cx; target.cy = base.cy;
   } else if (target.kind === 'freehand') {
     target.points = base.points.map((p) => ({ ...p }));
   }
+}
+
+function commitHandwriting() {
+  clearTimeout(hwCommitTimer);
+  if (state.hwStrokes.length === 0) return;
+  const pos = state.textCursor || clientToWorld(window.innerWidth / 2, window.innerHeight / 2);
+  const res = recognizeHandwriting(state.hwStrokes, state.hwMode);
+  state.hwStrokes = [];
+  if (res.text) {
+    const txtObj = createTextObject(res.text, pos.x, pos.y);
+    state.objects.push(txtObj);
+    state.lastPlacedTextId = txtObj.id;
+    state.lastHwCandidates = res.candidatesList || [];
+    pushHistory();
+    showToast(`「${res.text}」に変換しました`);
+  }
+  updateTextBarUI();
+  renderAll();
 }
 
 function findTopObjectAt(wx, wy) {
@@ -2323,6 +2718,21 @@ function renderObjects() {
         g.appendChild(pEl);
       }
       objectsLayer.appendChild(g);
+    } else if (obj.kind === 'text') {
+      const el = createSvgEl('text');
+      el.setAttribute('x', String(obj.x));
+      el.setAttribute('y', String(obj.y));
+      el.setAttribute('fill', stroke);
+      el.setAttribute('font-size', String(obj.fontSize || 28));
+      el.setAttribute('font-weight', '700');
+      el.setAttribute('text-anchor', 'middle');
+      el.setAttribute('dominant-baseline', 'central');
+      if (obj.rotation) {
+        const deg = (obj.rotation * 180) / Math.PI;
+        el.setAttribute('transform', `rotate(${deg} ${obj.x} ${obj.y})`);
+      }
+      el.textContent = obj.text || '';
+      objectsLayer.appendChild(el);
     } else if (obj.kind === 'arc') {
       if (obj.isFullCircle) {
         applyLineStyleAndAppend(objectsLayer, 'circle', { cx: obj.cx, cy: obj.cy, r: obj.r }, stroke, sw, ls, 'none');
@@ -2347,6 +2757,49 @@ function renderPreview() {
   // PC/単指用の固定支点ピン表示
   if (state.tool === 'compass' && compassPinnedAnchor && (!interaction || interaction.type !== 'compass_two_finger')) {
     drawCompassPin(compassPinnedAnchor.x, compassPinnedAnchor.y);
+  }
+
+  // 文字ツール：カーソルピン＆手書きインク描画
+  if (state.tool === 'text') {
+    const s = 1 / state.view.scale;
+    if (state.textCursor) {
+      const tc = state.textCursor;
+      const box = createSvgEl('rect');
+      box.setAttribute('x', String(tc.x - 16 * s));
+      box.setAttribute('y', String(tc.y - 16 * s));
+      box.setAttribute('width', String(32 * s));
+      box.setAttribute('height', String(32 * s));
+      box.setAttribute('rx', String(6 * s));
+      box.setAttribute('fill', 'rgba(37, 99, 235, 0.1)');
+      box.setAttribute('stroke', '#2563eb');
+      box.setAttribute('stroke-width', String(2 * s));
+      box.setAttribute('stroke-dasharray', `${4 * s} ${3 * s}`);
+      previewLayer.appendChild(box);
+
+      const dot = createSvgEl('circle');
+      dot.setAttribute('cx', String(tc.x));
+      dot.setAttribute('cy', String(tc.y));
+      dot.setAttribute('r', String(3.5 * s));
+      dot.setAttribute('fill', '#2563eb');
+      previewLayer.appendChild(dot);
+    }
+
+    const allStrokes = [...state.hwStrokes];
+    if (interaction && interaction.type === 'text_input' && interaction.moved && interaction.points.length >= 2) {
+      allStrokes.push(interaction.points);
+    }
+    for (const st of allStrokes) {
+      if (st.length < 2) continue;
+      const d = st.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+      const path = createSvgEl('path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', '#3b82f6');
+      path.setAttribute('stroke-width', String(3.5 * s));
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-linejoin', 'round');
+      previewLayer.appendChild(path);
+    }
   }
 
   if (!interaction) return;
@@ -2545,6 +2998,22 @@ function renderOverlay() {
       cross.setAttribute('fill', sel.groupId ? '#10b981' : '#3b82f6');
       cross.setAttribute('opacity', '0.8');
       overlayLayer.appendChild(cross);
+
+      // 単一選択中の角度円弧なら、ドラッグ拡大縮小ハンドルを直接表示
+      if (selIds.length === 1 && sel.kind === 'angle_arc') {
+        const handles = getTransformHandles(sel);
+        for (const h of handles) {
+          const ring = createSvgEl('circle');
+          ring.setAttribute('cx', String(h.x));
+          ring.setAttribute('cy', String(h.y));
+          ring.setAttribute('r', String(9 * s));
+          ring.setAttribute('fill', '#ffffff');
+          ring.setAttribute('stroke', '#2563eb');
+          ring.setAttribute('stroke-width', String(2.5 * s));
+          ring.style.cursor = 'grab';
+          overlayLayer.appendChild(ring);
+        }
+      }
     }
   }
 
@@ -2605,9 +3074,10 @@ function createSvgEl(tag) {
 function shouldShowLoupe(actionKind, obj) {
   if (state.loupeMode === 'off') return false;
   if (state.loupeMode === 'always') return true;
-  // autoモード: すべての図形・点の移動、点配置、線、頂点、はさみ、コンパス時に表示
+  // autoモード: すべての図形・点の移動、点配置、線、頂点、はさみ、コンパス、角度サイズ調整時に表示
   if (actionKind === 'move_obj' || actionKind === 'place_point' || actionKind === 'draw_line' ||
-      actionKind === 'scissors' || actionKind === 'handle_drag' || actionKind === 'compass') {
+      actionKind === 'scissors' || actionKind === 'handle_drag' || actionKind === 'compass' ||
+      actionKind === 'angle') {
     return true;
   }
   return false;
@@ -2669,6 +3139,7 @@ function buildNotePayload(includeInlineImage = true) {
     savedAt: new Date().toISOString(),
     settings: {
       darkMode: state.darkMode,
+      gridVisible: state.gridVisible,
       snapEnabled: state.snapEnabled,
       ageLevel: state.ageLevel
     },
@@ -2743,6 +3214,7 @@ async function applyLoadedPayload(payload, assetBytesMap = null) {
   }
   if (payload.settings) {
     if (typeof payload.settings.darkMode === 'boolean') state.darkMode = payload.settings.darkMode;
+    if (typeof payload.settings.gridVisible === 'boolean') state.gridVisible = payload.settings.gridVisible;
     if (typeof payload.settings.snapEnabled === 'boolean') state.snapEnabled = payload.settings.snapEnabled;
   }
 
@@ -2768,6 +3240,7 @@ async function applyLoadedPayload(payload, assetBytesMap = null) {
 
   clearSelectionAndTransform();
   applyTheme();
+  applyGridVisibility();
   updateToolbarState();
   updateBgControlsUI();
   pushHistory();

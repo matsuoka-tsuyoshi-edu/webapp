@@ -381,11 +381,44 @@ body.ui-hidden #btn-fullscreen {
   opacity: 0.55;
 }
 
+body.grid-hidden #grid-bg-rect,
+body.grid-hidden .grid-origin-line {
+  display: none;
+}
+
+.ui-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+  transform: none;
+}
+
+.cand-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.cand-btn {
+  appearance: none;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.cand-btn:hover {
+  background: var(--accent);
+  color: #ffffff;
+}
+
 /* 左上寄せの状況・モード表示バー */
 #multi-bar,
 #transform-bar,
 #angle-bar,
-#mark-bar {
+#mark-bar,
+#text-bar {
   position: fixed;
   top: max(10px, env(safe-area-inset-top));
   left: 78px;
@@ -406,20 +439,23 @@ body.ui-hidden #btn-fullscreen {
 #multi-bar.open,
 #transform-bar.open,
 #angle-bar.open,
-#mark-bar.open {
+#mark-bar.open,
+#text-bar.open {
   display: flex;
 }
 body.main-collapsed #multi-bar,
 body.main-collapsed #transform-bar,
 body.main-collapsed #angle-bar,
-body.main-collapsed #mark-bar {
+body.main-collapsed #mark-bar,
+body.main-collapsed #text-bar {
   left: 44px;
   max-width: calc(100vw - 220px);
 }
 body.ui-hidden #multi-bar,
 body.ui-hidden #transform-bar,
 body.ui-hidden #angle-bar,
-body.ui-hidden #mark-bar {
+body.ui-hidden #mark-bar,
+body.ui-hidden #text-bar {
   left: 12px;
   max-width: calc(100vw - 190px);
 }
