@@ -40,10 +40,58 @@ const DICT = {
     teacher: 'スナップ'
   },
   angles: {
-    elem_low: 'かど',
-    elem_high: '<ruby>角<rt>かく</rt></ruby>',
-    junior: '角表示',
-    teacher: '角表示'
+    elem_low: 'かくど',
+    elem_high: '<ruby>角度<rt>かくど</rt></ruby>',
+    junior: '角度',
+    teacher: '角度'
+  },
+  tool_edge_mark: {
+    elem_low: 'きごう',
+    elem_high: '<ruby>記号<rt>きごう</rt></ruby>',
+    junior: '記号',
+    teacher: '記号'
+  },
+  mark_parallel: {
+    elem_low: 'へいこう',
+    elem_high: '<ruby>平行<rt>へいこう</rt></ruby>',
+    junior: '平行マーク',
+    teacher: '平行(▸)'
+  },
+  mark_equal: {
+    elem_low: 'おなじながさ',
+    elem_high: '<ruby>同<rt>おな</rt></ruby>じ<ruby>長<rt>なが</rt></ruby>さ',
+    junior: '等長マーク',
+    teacher: '等長(|)'
+  },
+  line_style_title: {
+    elem_low: 'せんの しゅるい',
+    elem_high: '<ruby>線<rt>せん</rt></ruby>の<ruby>種類<rt>しゅるい</rt></ruby>',
+    junior: '線の種類',
+    teacher: '線種'
+  },
+  line_solid: {
+    elem_low: 'じっせん',
+    elem_high: '<ruby>実線<rt>じっせん</rt></ruby>',
+    junior: '実線',
+    teacher: '実線'
+  },
+  line_dashed: {
+    elem_low: 'てんせん',
+    elem_high: '<ruby>点線<rt>てんせん</rt></ruby>',
+    junior: '点線',
+    teacher: '点線'
+  },
+  line_double: {
+    elem_low: 'にじゅうせん',
+    elem_high: '<ruby>二重線<rt>にじゅうせん</rt></ruby>',
+    junior: '二重線',
+    teacher: '二重線'
+  },
+  angle_fill: {
+    elem_low: 'うちがわを ぬる',
+    elem_high: '<ruby>内側<rt>うちがわ</rt></ruby>をぬる',
+    junior: '内側を塗る',
+    teacher: '内側塗り'
   },
   scissors: {
     elem_low: 'はさみ',

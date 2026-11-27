@@ -19,10 +19,18 @@ export const STROKE_COLORS = [
 ];
 
 export const STROKE_WIDTHS = [
+  { value: 1.5, key: 'hair', label: 'ごくほそ' },
   { value: 2, key: 'thin', label: 'ほそい' },
   { value: 4, key: 'normal', label: 'ふつう' },
-  { value: 7, key: 'thick', label: 'ふとい' },
-  { value: 11, key: 'bold', label: 'ごくぶと' }
+  { value: 6, key: 'medium', label: 'ややふとい' },
+  { value: 9, key: 'thick', label: 'ふとい' },
+  { value: 13, key: 'bold', label: 'ごくぶと' }
+];
+
+export const LINE_STYLES = [
+  { id: 'solid', label: '実線' },
+  { id: 'dashed', label: '点線' },
+  { id: 'double', label: '二重線' }
 ];
 
 export function resolveColor(colorId, isDark) {
@@ -73,6 +81,7 @@ export function createPresetShape(subType, wx, wy, style, snapEnabled = true) {
   const baseStyle = {
     strokeColor: style.strokeColor || 'default',
     strokeWidth: style.strokeWidth || 2,
+    lineStyle: style.lineStyle || 'solid',
     fillEnabled: style.fillEnabled !== false
   };
 
@@ -217,6 +226,9 @@ export function getObjectCenter(obj) {
   if (obj.kind === 'point' || obj.kind === 'right_angle') {
     return { x: obj.x, y: obj.y };
   }
+  if (obj.kind === 'angle_arc') {
+    return { x: obj.vx, y: obj.vy };
+  }
   return { x: 0, y: 0 };
 }
 
@@ -265,6 +277,9 @@ export function translateObject(obj, dx, dy) {
   } else if (obj.kind === 'point' || obj.kind === 'right_angle') {
     obj.x += dx;
     obj.y += dy;
+  } else if (obj.kind === 'angle_arc') {
+    obj.vx += dx;
+    obj.vy += dy;
   }
 }
 
@@ -343,6 +358,13 @@ export function splitPolygon(vertices, lineStart, lineEnd) {
  * ヒット判定（ワールド座標 (wx, wy) がオブジェクト上にあるか）
  */
 export function hitTestObject(obj, wx, wy, tolerance = 14) {
+  if (obj.kind === 'angle_arc') {
+    const d = Math.hypot(wx - obj.vx, wy - obj.vy);
+    const maxR = (obj.radius || 26) + ((obj.arcs || 1) - 1) * 6 + Math.max(14, tolerance);
+    if (d < 4 || d > maxR) return false;
+    const ang = Math.atan2(wy - obj.vy, wx - obj.vx);
+    return isAngleInArc(ang, obj.startAngle, obj.deltaAngle);
+  }
   if (obj.kind === 'right_angle') {
     const sz = obj.size || 16;
     const mx = obj.x + (obj.ux + obj.vx) * sz * 0.5;
@@ -642,4 +664,180 @@ export function detectRightAngleAtEndpoint(x1, y1, x2, y2, objects) {
   }
   return null;
 }
+
+/**
+ * すべての図形辺・線分からセグメントリストを抽出
+ */
+function collectAllLineSegments(objects) {
+  const segs = [];
+  for (const obj of objects) {
+    if (obj.kind === 'polygon') {
+      const n = obj.vertices.length;
+      for (let i = 0; i < n; i++) {
+        const a = obj.vertices[i];
+        const b = obj.vertices[(i + 1) % n];
+        if (Math.hypot(b.x - a.x, b.y - a.y) >= 6) {
+          segs.push({ obj, edgeIndex: i, ax: a.x, ay: a.y, bx: b.x, by: b.y });
+        }
+      }
+    } else if (obj.kind === 'line') {
+      if (Math.hypot(obj.x2 - obj.x1, obj.y2 - obj.y1) >= 6) {
+        segs.push({ obj, edgeIndex: -1, ax: obj.x1, ay: obj.y1, bx: obj.x2, by: obj.y2 });
+      }
+    }
+  }
+  return segs;
+}
+
+/**
+ * タップ点付近の「角（図形の頂点・線分の交点・接触点）」を検出し、円弧の角度範囲を返す
+ */
+export function detectAngleAtTap(wx, wy, objects, maxDist = 78) {
+  const segs = collectAllLineSegments(objects);
+  if (segs.length === 0) return null;
+
+  // タップ点近傍の線分だけをフィルタ
+  const nearSegs = segs.filter((s) => distToSegment(wx, wy, s.ax, s.ay, s.bx, s.by) <= maxDist);
+  if (nearSegs.length === 0) return null;
+
+  const candidatePts = [];
+  const addCandidate = (x, y) => {
+    for (const c of candidatePts) {
+      if (Math.hypot(c.x - x, c.y - y) < 4) return;
+    }
+    if (Math.hypot(wx - x, wy - y) <= maxDist) {
+      candidatePts.push({ x, y });
+    }
+  };
+
+  // 端点
+  for (const s of nearSegs) {
+    addCandidate(s.ax, s.ay);
+    addCandidate(s.bx, s.by);
+  }
+
+  // 線分同士の交点（および端点の他辺接触）
+  for (let i = 0; i < nearSegs.length; i++) {
+    for (let j = i + 1; j < nearSegs.length; j++) {
+      const s1 = nearSegs[i];
+      const s2 = nearSegs[j];
+      const dx1 = s1.bx - s1.ax, dy1 = s1.by - s1.ay;
+      const dx2 = s2.bx - s2.ax, dy2 = s2.by - s2.ay;
+      const denom = dx1 * dy2 - dy1 * dx2;
+      if (Math.abs(denom) < 1e-6) continue;
+      const t = ((s2.ax - s1.ax) * dy2 - (s2.ay - s1.ay) * dx2) / denom;
+      const u = ((s2.ax - s1.ax) * dy1 - (s2.ay - s1.ay) * dx1) / denom;
+      if (t >= -0.02 && t <= 1.02 && u >= -0.02 && u <= 1.02) {
+        addCandidate(s1.ax + t * dx1, s1.ay + t * dy1);
+      }
+    }
+  }
+
+  let best = null;
+  let bestScore = Infinity;
+
+  for (const V of candidatePts) {
+    const rays = [];
+    for (const s of segs) {
+      // Vが線分sの周辺（端点または途中）に乗っているか
+      const d = distToSegment(V.x, V.y, s.ax, s.ay, s.bx, s.by);
+      if (d > 5.5) continue;
+      const dA = Math.hypot(V.x - s.ax, V.y - s.ay);
+      const dB = Math.hypot(V.x - s.bx, V.y - s.by);
+      if (dA > 5.5) rays.push(normalizeAngle(Math.atan2(s.ay - V.y, s.ax - V.x)));
+      if (dB > 5.5) rays.push(normalizeAngle(Math.atan2(s.by - V.y, s.bx - V.x)));
+    }
+
+    if (rays.length < 2) continue;
+    rays.sort((a, b) => a - b);
+
+    // ほぼ同じ方向のレイをマージ
+    const uniq = [];
+    for (const r of rays) {
+      if (uniq.length === 0 || Math.abs(r - uniq[uniq.length - 1]) > 0.04) {
+        uniq.push(r);
+      }
+    }
+    if (uniq.length >= 2 && (Math.PI * 2 - uniq[uniq.length - 1] + uniq[0]) <= 0.04) {
+      uniq.pop();
+    }
+    if (uniq.length < 2) continue;
+
+    const tapAng = normalizeAngle(Math.atan2(wy - V.y, wx - V.x));
+    const tapDist = Math.hypot(wx - V.x, wy - V.y);
+    if (tapDist < 2) continue;
+
+    // tapAng を挟む隣り合うレイペアを探す
+    for (let i = 0; i < uniq.length; i++) {
+      const a1 = uniq[i];
+      const a2 = uniq[(i + 1) % uniq.length];
+      let span = a2 - a1;
+      if (span <= 0) span += Math.PI * 2;
+      if (span < 0.05 || span > Math.PI * 1.92) continue;
+
+      let rel = tapAng - a1;
+      if (rel < 0) rel += Math.PI * 2;
+      if (rel <= span) {
+        // 内角（<= 180°）を優先し、タップ点との距離が近い角を最良とする
+        const penalty = span > Math.PI * 1.03 ? 45 : 0;
+        const score = tapDist + penalty;
+        if (score < bestScore) {
+          bestScore = score;
+          best = {
+            vx: V.x,
+            vy: V.y,
+            startAngle: a1,
+            deltaAngle: span
+          };
+        }
+        break;
+      }
+    }
+  }
+
+  return best;
+}
+
+/**
+ * タップ点に最も近い辺（多角形の辺または線分）を検索
+ */
+export function findEdgeNearPoint(wx, wy, objects, tolerance = 20) {
+  const segs = collectAllLineSegments(objects);
+  let best = null;
+  let minD = tolerance;
+  for (const s of segs) {
+    const d = distToSegment(wx, wy, s.ax, s.ay, s.bx, s.by);
+    if (d < minD) {
+      minD = d;
+      best = s;
+    }
+  }
+  return best;
+}
+
+/**
+ * 角度円弧（1重〜3重）と内側塗りパスのSVGデータを構築
+ */
+export function buildAngleArcPaths(vx, vy, baseRadius, startAngle, deltaAngle, arcs = 1) {
+  const paths = [];
+  const count = Math.max(1, Math.min(3, arcs));
+  const largeArc = deltaAngle > Math.PI ? 1 : 0;
+  for (let i = 0; i < count; i++) {
+    const r = baseRadius + i * 6;
+    const x1 = vx + r * Math.cos(startAngle);
+    const y1 = vy + r * Math.sin(startAngle);
+    const x2 = vx + r * Math.cos(startAngle + deltaAngle);
+    const y2 = vy + r * Math.sin(startAngle + deltaAngle);
+    paths.push(`M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`);
+  }
+  // 内側塗り用扇形パス（一番外側の円弧まで塗る）
+  const outerR = baseRadius + (count - 1) * 6;
+  const fx1 = vx + outerR * Math.cos(startAngle);
+  const fy1 = vy + outerR * Math.sin(startAngle);
+  const fx2 = vx + outerR * Math.cos(startAngle + deltaAngle);
+  const fy2 = vy + outerR * Math.sin(startAngle + deltaAngle);
+  const fillPath = `M ${vx} ${vy} L ${fx1} ${fy1} A ${outerR} ${outerR} 0 ${largeArc} 1 ${fx2} ${fy2} Z`;
+  return { strokePaths: paths, fillPath };
+}
+
 

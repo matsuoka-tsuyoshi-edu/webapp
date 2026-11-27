@@ -3,11 +3,13 @@ import {
   GRID_SIZE,
   STROKE_COLORS,
   STROKE_WIDTHS,
+  buildAngleArcPaths,
   buildArcSvgPath,
-  buildPolygonAngleElements,
   cloneObject,
   createPresetShape,
+  detectAngleAtTap,
   detectRightAngleAtEndpoint,
+  findEdgeNearPoint,
   findPerpendicularSnap,
   flipObjectHorizontal,
   getObjectCenter,
@@ -31,22 +33,26 @@ const state = {
   history: [],
   historyIndex: -1,
   view: { x: 0, y: 0, scale: 1, minScale: 0.35, maxScale: 3.5 },
-  tool: 'select',       // 'select' | 'pan' | 'point' | 'line' | 'place' | 'compass' | 'eraser' | 'scissors'
+  tool: 'select',       // 'select' | 'pan' | 'point' | 'line' | 'place' | 'compass' | 'angle' | 'edge_mark' | 'eraser' | 'scissors'
   pointerToolMode: 'select', // 'select' | 'pan'
+  lineOrPointMode: 'line',   // 'line' | 'point'
   lineSubType: 'line_segment',
   placeSubType: 'tri_equilateral',
+  edgeMarkMode: 'parallel',  // 'parallel' | 'equal'
+  angleFillMode: false,
   defaultStyle: {
     strokeColor: 'default',
     strokeWidth: 2,
+    lineStyle: 'solid',
     fillEnabled: true
   },
   style: {
     strokeColor: 'default',
     strokeWidth: 2,
+    lineStyle: 'solid',
     fillEnabled: true
   },
   snapEnabled: true,
-  anglesVisible: false,
   darkMode: false,
   ageLevel: 'elem_high',
   loupeMode: 'auto', // 'auto' | 'always' | 'off'
@@ -75,6 +81,8 @@ const loupeCrossH = document.getElementById('loupe-cross-h');
 const loupeCrossV = document.getElementById('loupe-cross-v');
 const loupeCenterDot = document.getElementById('loupe-center-dot');
 const multiBar = document.getElementById('multi-bar');
+const angleBar = document.getElementById('angle-bar');
+const markBar = document.getElementById('mark-bar');
 const transformBar = document.getElementById('transform-bar');
 const bgControls = document.getElementById('bg-controls');
 const toastEl = document.getElementById('toast');
@@ -340,6 +348,9 @@ function applyStyleToSelection(patch) {
     const obj = state.objects.find((o) => o.id === id);
     if (!obj) continue;
     Object.assign(obj, patch);
+    if (obj.kind === 'angle_arc' && patch.strokeColor) {
+      obj.fillColor = patch.strokeColor;
+    }
     changed = true;
   }
   Object.assign(state.style, patch);
@@ -355,6 +366,7 @@ function syncStyleFromSelection() {
   if (obj) {
     state.style.strokeColor = obj.strokeColor || 'default';
     state.style.strokeWidth = obj.strokeWidth || 2;
+    state.style.lineStyle = obj.lineStyle || 'solid';
     if (typeof obj.fillEnabled === 'boolean') {
       state.style.fillEnabled = obj.fillEnabled;
     }
@@ -446,10 +458,11 @@ function bindUIEvents() {
     }
   });
 
-  // 上部バーボタン
+  // 左1列レールボタン
   document.getElementById('btn-undo').addEventListener('click', undo);
   document.getElementById('btn-redo').addEventListener('click', redo);
-  document.getElementById('btn-clear').addEventListener('click', () => {
+
+  const confirmAndClearAll = () => {
     if (state.objects.length === 0) return;
     if (window.confirm(tPlain('confirm_clear', state.ageLevel))) {
       state.objects = [];
@@ -458,7 +471,7 @@ function bindUIEvents() {
       pushHistory();
       renderAll();
     }
-  });
+  };
 
   document.getElementById('btn-color').addEventListener('click', (e) => {
     openPopoverNearButton('menu-color', e.currentTarget, 'left-dock');
@@ -470,9 +483,19 @@ function bindUIEvents() {
     openPopoverNearButton('menu-settings', e.currentTarget, 'left-dock');
   });
 
+  document.querySelectorAll('#line-style-list .pop-item[data-line-style]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const ls = btn.dataset.lineStyle;
+      state.style.lineStyle = ls;
+      applyStyleToSelection({ lineStyle: ls });
+      updateToolbarState();
+      closeAllPopovers();
+    });
+  });
+
   document.getElementById('btn-toggle-fill').addEventListener('click', () => {
     state.style.fillEnabled = !state.style.fillEnabled;
-    applyStyleToSelection({ fillEnabled: state.style.fillEnabled });
+    applyStyleToSelection({ fillEnabled: state.style.fillEnabled, fillColor: state.style.strokeColor });
     updateToolbarState();
   });
 
@@ -481,18 +504,31 @@ function bindUIEvents() {
     updateToolbarState();
   });
 
-  document.getElementById('btn-angles').addEventListener('click', () => {
-    state.anglesVisible = !state.anglesVisible;
-    updateToolbarState();
-    renderAll();
-  });
-
   document.getElementById('btn-scissors').addEventListener('click', () => {
     if (state.tool === 'scissors') {
-      setTool('select');
+      setTool(state.pointerToolMode);
     } else {
       setTool('scissors');
     }
+  });
+
+  // 角度モードバー
+  document.getElementById('btn-angle-fill').addEventListener('click', () => {
+    state.angleFillMode = !state.angleFillMode;
+    updateToolbarState();
+  });
+  document.getElementById('btn-angle-done').addEventListener('click', () => {
+    setTool(state.pointerToolMode);
+  });
+
+  // 記号モードバー
+  document.querySelectorAll('#mark-bar [data-mark-mode]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setEdgeMarkMode(btn.dataset.markMode);
+    });
+  });
+  document.getElementById('btn-mark-done').addEventListener('click', () => {
+    setTool(state.pointerToolMode);
   });
 
   document.getElementById('btn-dark').addEventListener('click', () => {
@@ -560,19 +596,12 @@ function bindUIEvents() {
     closeAllPopovers();
   });
 
-  document.getElementById('btn-collapse-menu').addEventListener('click', () => {
-    document.body.classList.add('menu-collapsed');
+  document.getElementById('btn-collapse-main').addEventListener('click', () => {
+    document.body.classList.add('main-collapsed');
     closeAllPopovers();
   });
-  document.getElementById('tab-expand-menu').addEventListener('click', () => {
-    document.body.classList.remove('menu-collapsed');
-  });
-  document.getElementById('btn-collapse-tool').addEventListener('click', () => {
-    document.body.classList.add('tool-collapsed');
-    closeAllPopovers();
-  });
-  document.getElementById('tab-expand-tool').addEventListener('click', () => {
-    document.body.classList.remove('tool-collapsed');
+  document.getElementById('tab-expand-main').addEventListener('click', () => {
+    document.body.classList.remove('main-collapsed');
   });
 
   document.querySelectorAll('#loupe-mode-list .pop-item[data-loupe]').forEach((btn) => {
@@ -584,8 +613,8 @@ function bindUIEvents() {
     });
   });
 
-  // 左縦ツールボタン（タップ＆長押しサブメニュー対応）
-  document.querySelectorAll('#tool-rail .tool-btn').forEach((btn) => {
+  // 左縦1列ツールボタン（タップ＆長押しサブメニュー対応）
+  document.querySelectorAll('#main-rail .tool-btn').forEach((btn) => {
     let pressTimer = null;
     let longPressed = false;
 
@@ -594,6 +623,10 @@ function bindUIEvents() {
       if (!menuId) return;
       if (menuId === 'menu-shapes') {
         const extra = document.getElementById('shapes-extra-group');
+        if (extra) extra.style.display = isLong ? 'block' : 'none';
+      }
+      if (menuId === 'menu-line') {
+        const extra = document.getElementById('line-point-extra');
         if (extra) extra.style.display = isLong ? 'block' : 'none';
       }
       openPopoverNearButton(menuId, btn, 'left-dock');
@@ -616,7 +649,6 @@ function bindUIEvents() {
     btn.addEventListener('pointercancel', () => clearTimeout(pressTimer));
     btn.addEventListener('pointerleave', () => clearTimeout(pressTimer));
 
-    // 右クリックでも長押しと同じフルサブメニューを開く
     btn.addEventListener('contextmenu', (e) => {
       if (!btn.dataset.menu) return;
       e.preventDefault();
@@ -624,7 +656,7 @@ function bindUIEvents() {
       openSubForBtn(true);
     });
 
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', () => {
       if (longPressed) {
         longPressed = false;
         return;
@@ -632,7 +664,7 @@ function bindUIEvents() {
       const tool = btn.dataset.tool;
       const menuId = btn.dataset.menu;
 
-      // 選択/画面移動ボタン：短押しで現在モードを選択、すでに選択中ならサブメニューを開く
+      // 選択/画面移動：短押しで現在モード、選択中再タップでサブメニュー
       if (tool === 'select') {
         if (state.tool === state.pointerToolMode) {
           openSubForBtn(true);
@@ -643,9 +675,42 @@ function bindUIEvents() {
         return;
       }
 
-      // 図形統合ボタン：短押しで三角形ピッカー（長押しで四角形・正多角形も展開）
+      // 線/点統合：短押しで現在モード、すでに選択中なら線メニュー開く（長押しで点も出る）
+      if (tool === 'line') {
+        if (state.tool === state.lineOrPointMode) {
+          openSubForBtn(true);
+        } else {
+          closeAllPopovers();
+          setTool(state.lineOrPointMode);
+        }
+        return;
+      }
+
+      // 図形統合：短押しで三角形ピッカー（長押しで四角形・正多角形も展開）
       if (tool === 'shape') {
         openSubForBtn(false);
+        return;
+      }
+
+      // 消去/全消去統合：短押しで消しゴム、すでに消去選択中ならサブメニュー
+      if (tool === 'eraser') {
+        if (state.tool === 'eraser') {
+          openSubForBtn(true);
+        } else {
+          closeAllPopovers();
+          setTool('eraser');
+        }
+        return;
+      }
+
+      // 記号：初回タップで記号モードへ（再タップや長押しで平行/等長メニュー）
+      if (tool === 'edge_mark') {
+        if (state.tool === 'edge_mark') {
+          openSubForBtn(true);
+        } else {
+          closeAllPopovers();
+          setTool('edge_mark');
+        }
         return;
       }
 
@@ -679,7 +744,29 @@ function bindUIEvents() {
     });
   });
 
-  // プルダウン項目クリック（線・図形・円）
+  // 消去・全消去サブメニュー項目
+  document.querySelectorAll('#menu-eraser .pop-item[data-eraser-mode]').forEach((item) => {
+    item.addEventListener('click', () => {
+      const em = item.dataset.eraserMode;
+      closeAllPopovers();
+      if (em === 'clear_all') {
+        confirmAndClearAll();
+      } else {
+        setTool('eraser');
+      }
+    });
+  });
+
+  // 記号サブメニュー項目
+  document.querySelectorAll('#menu-edge-mark .pop-item[data-mark-pick]').forEach((item) => {
+    item.addEventListener('click', () => {
+      setEdgeMarkMode(item.dataset.markPick);
+      closeAllPopovers();
+      setTool('edge_mark');
+    });
+  });
+
+  // プルダウン項目クリック（線・点・図形・円）
   document.querySelectorAll('.popover-menu .pop-item[data-tool]').forEach((item) => {
     item.addEventListener('click', () => {
       const tool = item.dataset.tool;
@@ -689,8 +776,26 @@ function bindUIEvents() {
       item.classList.add('selected');
 
       if (tool === 'line') {
+        state.lineOrPointMode = 'line';
         state.lineSubType = sub;
+        const iconEl = document.getElementById('line-tool-icon');
+        const lblEl = document.getElementById('line-tool-label');
+        if (iconEl) iconEl.textContent = '📏';
+        if (lblEl) {
+          lblEl.setAttribute('data-i18n', 'tool_line');
+          lblEl.innerHTML = t('tool_line', state.ageLevel);
+        }
         setTool('line');
+      } else if (tool === 'point') {
+        state.lineOrPointMode = 'point';
+        const iconEl = document.getElementById('line-tool-icon');
+        const lblEl = document.getElementById('line-tool-label');
+        if (iconEl) iconEl.textContent = '●';
+        if (lblEl) {
+          lblEl.setAttribute('data-i18n', 'tool_point');
+          lblEl.innerHTML = t('tool_point', state.ageLevel);
+        }
+        setTool('point');
       } else if (tool === 'place') {
         state.placeSubType = sub;
         if (item.dataset.icon && parentMenu.id === 'menu-shapes') {
@@ -844,10 +949,23 @@ function applyTheme() {
   document.documentElement.classList.toggle('dark', state.darkMode);
 }
 
+function setEdgeMarkMode(mode) {
+  state.edgeMarkMode = mode;
+  const iconEl = document.getElementById('mark-tool-icon');
+  if (iconEl) iconEl.textContent = mode === 'equal' ? '╂' : '∥';
+  document.querySelectorAll('#mark-bar [data-mark-mode]').forEach((b) => {
+    b.classList.toggle('active', b.dataset.markMode === mode);
+  });
+  document.querySelectorAll('#menu-edge-mark .pop-item').forEach((b) => {
+    b.classList.toggle('selected', b.dataset.markPick === mode);
+  });
+}
+
 function updateMultiBarUI() {
   const hasTransform = Boolean(getTransformTarget());
+  const isSpecialBar = state.tool === 'angle' || state.tool === 'edge_mark';
   const count = state.selectedIds.length;
-  const show = !hasTransform && count > 0;
+  const show = !hasTransform && !isSpecialBar && count > 0;
   multiBar.classList.toggle('open', show);
   if (!show) return;
 
@@ -869,8 +987,14 @@ function applyLanguage() {
 
 function updateToolbarState() {
   document.getElementById('btn-snap').classList.toggle('active', state.snapEnabled);
-  document.getElementById('btn-angles').classList.toggle('active', state.anglesVisible);
   document.getElementById('btn-scissors').classList.toggle('warn-active', state.tool === 'scissors');
+
+  angleBar.classList.toggle('open', state.tool === 'angle');
+  markBar.classList.toggle('open', state.tool === 'edge_mark');
+  const angFillBtn = document.getElementById('btn-angle-fill');
+  if (angFillBtn) angFillBtn.classList.toggle('active', state.angleFillMode);
+  const angFillTxt = document.getElementById('angle-fill-text');
+  if (angFillTxt) angFillTxt.textContent = state.angleFillMode ? 'ON' : 'OFF';
 
   const darkBtn = document.getElementById('btn-dark');
   darkBtn.classList.toggle('selected', state.darkMode);
@@ -879,10 +1003,15 @@ function updateToolbarState() {
 
   const dot = document.getElementById('current-color-dot');
   dot.style.background = resolveColor(state.style.strokeColor, state.darkMode);
-  document.getElementById('current-width-bar').style.height = `${state.style.strokeWidth}px`;
+  document.getElementById('current-width-bar').style.height = `${Math.min(10, state.style.strokeWidth)}px`;
+  const ls = state.style.lineStyle || 'solid';
+  document.getElementById('current-width-bar').style.borderTop = ls === 'double' ? '2px solid currentColor' : 'none';
 
   document.querySelectorAll('.swatch-btn').forEach((b) => {
     b.classList.toggle('selected', b.dataset.colorId === state.style.strokeColor);
+  });
+  document.querySelectorAll('#line-style-list .pop-item').forEach((b) => {
+    b.classList.toggle('selected', b.dataset.lineStyle === ls);
   });
   document.querySelectorAll('#width-list .pop-item').forEach((b) => {
     b.classList.toggle('selected', Number(b.dataset.widthVal) === state.style.strokeWidth);
@@ -899,10 +1028,13 @@ function updateToolbarState() {
   document.getElementById('fill-state-text').textContent = state.style.fillEnabled ? 'ON' : 'OFF';
 
   // ツールレールアクティブ表示
-  document.querySelectorAll('#tool-rail .tool-btn').forEach((btn) => {
+  document.querySelectorAll('#main-rail .tool-btn').forEach((btn) => {
     const tName = btn.dataset.tool;
     let isActive = state.tool === tName;
     if (tName === 'select' && (state.tool === 'select' || state.tool === 'pan')) {
+      isActive = true;
+    }
+    if (tName === 'line' && (state.tool === 'line' || state.tool === 'point')) {
       isActive = true;
     }
     if (state.tool === 'place') {
@@ -912,6 +1044,7 @@ function updateToolbarState() {
     btn.classList.toggle('active', isActive);
   });
 
+  updateMultiBarUI();
   updateZoomDisplay();
 }
 
@@ -1177,6 +1310,76 @@ function onPointerDown(e) {
       y2: start.y
     };
     renderPreview();
+    return;
+  }
+
+  // --- 角度ツール (タップした角に円弧1〜3本＋内側塗りを配置・循環) ---
+  if (state.tool === 'angle') {
+    const tol = 18 / state.view.scale;
+    // 1. 既存の角度円弧をタップしたら 1 -> 2 -> 3 -> 削除
+    for (let i = state.objects.length - 1; i >= 0; i--) {
+      const o = state.objects[i];
+      if (o.kind === 'angle_arc' && hitTestObject(o, world.x, world.y, tol)) {
+        const nextArcs = (o.arcs || 1) + 1;
+        if (nextArcs > 3) {
+          state.objects = state.objects.filter((item) => item.id !== o.id);
+          showToast('角度マークを消しました');
+        } else {
+          o.arcs = nextArcs;
+          o.fillEnabled = state.angleFillMode;
+          if (state.angleFillMode) o.fillColor = state.style.strokeColor;
+        }
+        pushHistory();
+        renderAll();
+        return;
+      }
+    }
+
+    // 2. 新しい角を検出して円弧を追加
+    const detected = detectAngleAtTap(world.x, world.y, state.objects, 78 / state.view.scale);
+    if (detected) {
+      const obj = {
+        id: uid('ang'),
+        kind: 'angle_arc',
+        vx: detected.vx,
+        vy: detected.vy,
+        startAngle: detected.startAngle,
+        deltaAngle: detected.deltaAngle,
+        arcs: 1,
+        radius: 26,
+        strokeColor: state.style.strokeColor,
+        strokeWidth: state.style.strokeWidth,
+        fillEnabled: state.angleFillMode,
+        fillColor: state.style.strokeColor
+      };
+      state.objects.push(obj);
+      pushHistory();
+      renderAll();
+    } else {
+      showToast('角の近くをタップしてください');
+    }
+    return;
+  }
+
+  // --- 辺記号ツール (平行・同じ長さマーク 1〜3本) ---
+  if (state.tool === 'edge_mark') {
+    const edge = findEdgeNearPoint(world.x, world.y, state.objects, 22 / state.view.scale);
+    if (!edge) {
+      showToast('辺や線分をタップしてください');
+      return;
+    }
+    const mode = state.edgeMarkMode; // 'parallel' | 'equal'
+    if (edge.obj.kind === 'polygon') {
+      if (!edge.obj.edgeMarks) edge.obj.edgeMarks = {};
+      const cur = edge.obj.edgeMarks[edge.edgeIndex] || { parallel: 0, equal: 0 };
+      cur[mode] = ((cur[mode] || 0) + 1) % 4;
+      edge.obj.edgeMarks[edge.edgeIndex] = cur;
+    } else if (edge.obj.kind === 'line') {
+      if (!edge.obj.edgeMark) edge.obj.edgeMark = { parallel: 0, equal: 0 };
+      edge.obj.edgeMark[mode] = ((edge.obj.edgeMark[mode] || 0) + 1) % 4;
+    }
+    pushHistory();
+    renderAll();
     return;
   }
 
@@ -1576,7 +1779,9 @@ function onPointerUpOrCancel(e) {
       strokeWidth: state.style.strokeWidth
     };
     state.objects.push(obj);
-    setSelectionIds([obj.id]);
+    state.selectedId = null;
+    state.selectedIds = [];
+    updateMultiBarUI();
     pushHistory();
   } else if (interaction.type === 'draw_line') {
     if (Math.hypot(interaction.x2 - interaction.x1, interaction.y2 - interaction.y1) >= 6) {
@@ -1589,7 +1794,8 @@ function onPointerUpOrCancel(e) {
         x2: interaction.x2,
         y2: interaction.y2,
         strokeColor: state.style.strokeColor,
-        strokeWidth: state.style.strokeWidth
+        strokeWidth: state.style.strokeWidth,
+        lineStyle: state.style.lineStyle || 'solid'
       };
       const existingBeforeLine = state.objects.slice();
       state.objects.push(obj);
@@ -1614,7 +1820,9 @@ function onPointerUpOrCancel(e) {
         }
       }
 
-      setSelectionIds([obj.id]);
+      state.selectedId = null;
+      state.selectedIds = [];
+      updateMultiBarUI();
       pushHistory();
     }
   } else if (interaction.type === 'draw_freehand') {
@@ -1624,10 +1832,13 @@ function onPointerUpOrCancel(e) {
         kind: 'freehand',
         points: interaction.points,
         strokeColor: state.style.strokeColor,
-        strokeWidth: state.style.strokeWidth
+        strokeWidth: state.style.strokeWidth,
+        lineStyle: state.style.lineStyle || 'solid'
       };
       state.objects.push(obj);
-      state.selectedId = obj.id;
+      state.selectedId = null;
+      state.selectedIds = [];
+      updateMultiBarUI();
       pushHistory();
     }
   } else if (interaction.type === 'scissors') {
@@ -1672,7 +1883,8 @@ function commitCompassArc(session) {
     deltaAngle: isFullCircle ? Math.PI * 2 : session.deltaAngle,
     isFullCircle,
     strokeColor: state.style.strokeColor,
-    strokeWidth: state.style.strokeWidth
+    strokeWidth: state.style.strokeWidth,
+    lineStyle: state.style.lineStyle || 'solid'
   };
   state.objects.push(obj);
   pushHistory();
@@ -1789,7 +2001,7 @@ function restoreObjectFromBase(target, base) {
 
 function findTopObjectAt(wx, wy) {
   const tol = 16 / state.view.scale;
-  // 線分や図形の上に置かれた点・直角マークを確実に掴めるよう優先判定
+  // 点・直角マーク・角度円弧を優先判定
   for (let i = state.objects.length - 1; i >= 0; i--) {
     if (state.objects[i].kind === 'point' && hitTestObject(state.objects[i], wx, wy, tol)) {
       return state.objects[i];
@@ -1797,6 +2009,11 @@ function findTopObjectAt(wx, wy) {
   }
   for (let i = state.objects.length - 1; i >= 0; i--) {
     if (state.objects[i].kind === 'right_angle' && hitTestObject(state.objects[i], wx, wy, tol)) {
+      return state.objects[i];
+    }
+  }
+  for (let i = state.objects.length - 1; i >= 0; i--) {
+    if (state.objects[i].kind === 'angle_arc' && hitTestObject(state.objects[i], wx, wy, tol)) {
       return state.objects[i];
     }
   }
@@ -1897,77 +2114,165 @@ function renderBgImage() {
   bgImageLayer.appendChild(img);
 }
 
+function applyLineStyleAndAppend(container, tag, attrs, stroke, sw, lineStyle, fill = 'none') {
+  const style = lineStyle || 'solid';
+  const el = createSvgEl(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    el.setAttribute(k, String(v));
+  }
+  el.setAttribute('stroke', stroke);
+  el.setAttribute('fill', fill);
+
+  if (style === 'double') {
+    const outerW = sw * 2.2 + 2.5;
+    const innerW = Math.max(1.4, sw * 0.8);
+    el.setAttribute('stroke-width', String(outerW));
+    container.appendChild(el);
+
+    const inner = createSvgEl(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'marker-end') continue;
+      inner.setAttribute(k, String(v));
+    }
+    inner.setAttribute('stroke', 'var(--bg-canvas)');
+    inner.setAttribute('stroke-width', String(innerW));
+    inner.setAttribute('fill', 'none');
+    container.appendChild(inner);
+  } else {
+    el.setAttribute('stroke-width', String(sw));
+    if (style === 'dashed') {
+      el.setAttribute('stroke-dasharray', `${Math.max(4, sw * 2.5)} ${Math.max(4, sw * 1.9)}`);
+    }
+    container.appendChild(el);
+  }
+}
+
+function appendEdgeMarks(container, ax, ay, bx, by, mark, stroke, sw) {
+  if (!mark) return;
+  const eqCount = mark.equal || 0;
+  const parCount = mark.parallel || 0;
+  if (eqCount === 0 && parCount === 0) return;
+
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len = Math.hypot(dx, dy);
+  if (len < 16) return;
+  const tx = dx / len;
+  const ty = dy / len;
+  const nx = -ty;
+  const ny = tx;
+  const mx = (ax + bx) / 2;
+  const my = (ay + by) / 2;
+
+  // 等長マーク（垂直短いバー 1〜3本）
+  if (eqCount > 0) {
+    const shiftBase = parCount > 0 ? -12 : 0;
+    const spacing = 5.5;
+    const halfH = 6 + sw * 0.4;
+    for (let i = 0; i < eqCount; i++) {
+      const off = shiftBase + (i - (eqCount - 1) / 2) * spacing;
+      const cx = mx + tx * off;
+      const cy = my + ty * off;
+      const bar = createSvgEl('line');
+      bar.setAttribute('x1', String(cx - nx * halfH));
+      bar.setAttribute('y1', String(cy - ny * halfH));
+      bar.setAttribute('x2', String(cx + nx * halfH));
+      bar.setAttribute('y2', String(cy + ny * halfH));
+      bar.setAttribute('stroke', stroke);
+      bar.setAttribute('stroke-width', String(Math.max(2, sw * 0.85)));
+      bar.setAttribute('stroke-linecap', 'round');
+      container.appendChild(bar);
+    }
+  }
+
+  // 平行マーク（矢じりシェブロン 1〜3個）
+  if (parCount > 0) {
+    const shiftBase = eqCount > 0 ? 12 : 0;
+    const spacing = 6.5;
+    const armLen = 6.5 + sw * 0.35;
+    for (let i = 0; i < parCount; i++) {
+      const off = shiftBase + (i - (parCount - 1) / 2) * spacing;
+      const cx = mx + tx * off;
+      const cy = my + ty * off;
+      const tipX = cx + tx * (armLen * 0.55);
+      const tipY = cy + ty * (armLen * 0.55);
+      const b1x = cx - tx * (armLen * 0.45) + nx * (armLen * 0.65);
+      const b1y = cy - ty * (armLen * 0.45) + ny * (armLen * 0.65);
+      const b2x = cx - tx * (armLen * 0.45) - nx * (armLen * 0.65);
+      const b2y = cy - ty * (armLen * 0.45) - ny * (armLen * 0.65);
+      const chev = createSvgEl('path');
+      chev.setAttribute('d', `M ${b1x} ${b1y} L ${tipX} ${tipY} L ${b2x} ${b2y}`);
+      chev.setAttribute('fill', 'none');
+      chev.setAttribute('stroke', stroke);
+      chev.setAttribute('stroke-width', String(Math.max(2, sw * 0.85)));
+      chev.setAttribute('stroke-linecap', 'round');
+      chev.setAttribute('stroke-linejoin', 'round');
+      container.appendChild(chev);
+    }
+  }
+}
+
 function renderObjects() {
   objectsLayer.innerHTML = '';
   for (const obj of state.objects) {
     const stroke = resolveColor(obj.strokeColor, state.darkMode);
     const sw = obj.strokeWidth || 2;
+    const ls = obj.lineStyle || 'solid';
 
     if (obj.kind === 'polygon') {
       const g = createSvgEl('g');
-      const poly = createSvgEl('polygon');
-      poly.setAttribute('points', obj.vertices.map((v) => `${v.x},${v.y}`).join(' '));
-      poly.setAttribute('stroke', stroke);
-      poly.setAttribute('stroke-width', String(sw));
-      poly.setAttribute('stroke-linejoin', 'round');
-      poly.setAttribute('fill', obj.fillEnabled ? resolveFillColor(obj.strokeColor, state.darkMode) : 'transparent');
-      g.appendChild(poly);
-
-      if (state.anglesVisible) {
-        const angles = buildPolygonAngleElements(obj.vertices);
-        for (const am of angles) {
-          const path = createSvgEl('path');
-          path.setAttribute('d', am.d);
-          if (am.isRight) {
-            path.setAttribute('fill', 'none');
-            path.setAttribute('stroke', am.stroke);
-            path.setAttribute('stroke-width', '2.5');
-          } else {
-            path.setAttribute('fill', am.fill);
-            path.setAttribute('fill-opacity', '0.55');
+      const fill = obj.fillEnabled ? resolveFillColor(obj.strokeColor, state.darkMode) : 'transparent';
+      applyLineStyleAndAppend(
+        g,
+        'polygon',
+        { points: obj.vertices.map((v) => `${v.x},${v.y}`).join(' '), 'stroke-linejoin': 'round' },
+        stroke,
+        sw,
+        ls,
+        fill
+      );
+      if (obj.edgeMarks) {
+        const n = obj.vertices.length;
+        for (let i = 0; i < n; i++) {
+          if (obj.edgeMarks[i]) {
+            const a = obj.vertices[i];
+            const b = obj.vertices[(i + 1) % n];
+            appendEdgeMarks(g, a.x, a.y, b.x, b.y, obj.edgeMarks[i], stroke, sw);
           }
-          g.appendChild(path);
         }
       }
       objectsLayer.appendChild(g);
     } else if (obj.kind === 'circle') {
-      const el = createSvgEl('ellipse');
-      el.setAttribute('cx', String(obj.cx));
-      el.setAttribute('cy', String(obj.cy));
-      el.setAttribute('rx', String(obj.rx));
-      el.setAttribute('ry', String(obj.ry));
+      const attrs = { cx: obj.cx, cy: obj.cy, rx: obj.rx, ry: obj.ry };
       if (obj.rotation) {
         const deg = (obj.rotation * 180) / Math.PI;
-        el.setAttribute('transform', `rotate(${deg} ${obj.cx} ${obj.cy})`);
+        attrs.transform = `rotate(${deg} ${obj.cx} ${obj.cy})`;
       }
-      el.setAttribute('stroke', stroke);
-      el.setAttribute('stroke-width', String(sw));
-      el.setAttribute('fill', obj.fillEnabled ? resolveFillColor(obj.strokeColor, state.darkMode) : 'transparent');
-      objectsLayer.appendChild(el);
+      const fill = obj.fillEnabled ? resolveFillColor(obj.strokeColor, state.darkMode) : 'transparent';
+      applyLineStyleAndAppend(objectsLayer, 'ellipse', attrs, stroke, sw, ls, fill);
     } else if (obj.kind === 'line') {
-      const el = createSvgEl('line');
-      el.setAttribute('x1', String(obj.x1));
-      el.setAttribute('y1', String(obj.y1));
-      el.setAttribute('x2', String(obj.x2));
-      el.setAttribute('y2', String(obj.y2));
-      el.setAttribute('stroke', stroke);
-      el.setAttribute('stroke-width', String(sw));
-      el.setAttribute('stroke-linecap', 'round');
+      const g = createSvgEl('g');
+      const attrs = { x1: obj.x1, y1: obj.y1, x2: obj.x2, y2: obj.y2, 'stroke-linecap': 'round' };
       if (obj.subType === 'line_arrow') {
-        el.setAttribute('marker-end', 'url(#arrow-head)');
+        attrs['marker-end'] = 'url(#arrow-head)';
       }
-      objectsLayer.appendChild(el);
+      applyLineStyleAndAppend(g, 'line', attrs, stroke, sw, ls, 'none');
+      if (obj.edgeMark) {
+        appendEdgeMarks(g, obj.x1, obj.y1, obj.x2, obj.y2, obj.edgeMark, stroke, sw);
+      }
+      objectsLayer.appendChild(g);
     } else if (obj.kind === 'freehand') {
       if (obj.points.length < 2) continue;
       const d = obj.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-      const el = createSvgEl('path');
-      el.setAttribute('d', d);
-      el.setAttribute('fill', 'none');
-      el.setAttribute('stroke', stroke);
-      el.setAttribute('stroke-width', String(sw));
-      el.setAttribute('stroke-linecap', 'round');
-      el.setAttribute('stroke-linejoin', 'round');
-      objectsLayer.appendChild(el);
+      applyLineStyleAndAppend(
+        objectsLayer,
+        'path',
+        { d, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
+        stroke,
+        sw,
+        ls,
+        'none'
+      );
     } else if (obj.kind === 'point') {
       const el = createSvgEl('circle');
       el.setAttribute('cx', String(obj.x));
@@ -1991,24 +2296,46 @@ function renderObjects() {
       el.setAttribute('stroke-linejoin', 'round');
       el.setAttribute('stroke-linecap', 'round');
       objectsLayer.appendChild(el);
+    } else if (obj.kind === 'angle_arc') {
+      const g = createSvgEl('g');
+      const { strokePaths, fillPath } = buildAngleArcPaths(
+        obj.vx,
+        obj.vy,
+        obj.radius || 26,
+        obj.startAngle,
+        obj.deltaAngle,
+        obj.arcs || 1
+      );
+      if (obj.fillEnabled) {
+        const fEl = createSvgEl('path');
+        fEl.setAttribute('d', fillPath);
+        fEl.setAttribute('fill', resolveFillColor(obj.fillColor || obj.strokeColor, state.darkMode));
+        fEl.setAttribute('fill-opacity', '0.85');
+        g.appendChild(fEl);
+      }
+      for (const sp of strokePaths) {
+        const pEl = createSvgEl('path');
+        pEl.setAttribute('d', sp);
+        pEl.setAttribute('fill', 'none');
+        pEl.setAttribute('stroke', stroke);
+        pEl.setAttribute('stroke-width', String(Math.max(1.8, sw)));
+        pEl.setAttribute('stroke-linecap', 'round');
+        g.appendChild(pEl);
+      }
+      objectsLayer.appendChild(g);
     } else if (obj.kind === 'arc') {
       if (obj.isFullCircle) {
-        const el = createSvgEl('circle');
-        el.setAttribute('cx', String(obj.cx));
-        el.setAttribute('cy', String(obj.cy));
-        el.setAttribute('r', String(obj.r));
-        el.setAttribute('fill', 'none');
-        el.setAttribute('stroke', stroke);
-        el.setAttribute('stroke-width', String(sw));
-        objectsLayer.appendChild(el);
+        applyLineStyleAndAppend(objectsLayer, 'circle', { cx: obj.cx, cy: obj.cy, r: obj.r }, stroke, sw, ls, 'none');
       } else {
-        const el = createSvgEl('path');
-        el.setAttribute('d', buildArcSvgPath(obj.cx, obj.cy, obj.r, obj.startAngle, obj.deltaAngle));
-        el.setAttribute('fill', 'none');
-        el.setAttribute('stroke', stroke);
-        el.setAttribute('stroke-width', String(sw));
-        el.setAttribute('stroke-linecap', 'round');
-        objectsLayer.appendChild(el);
+        applyLineStyleAndAppend(
+          objectsLayer,
+          'path',
+          { d: buildArcSvgPath(obj.cx, obj.cy, obj.r, obj.startAngle, obj.deltaAngle), 'stroke-linecap': 'round' },
+          stroke,
+          sw,
+          ls,
+          'none'
+        );
       }
     }
   }
@@ -2045,16 +2372,15 @@ function renderPreview() {
     ring.setAttribute('stroke-dasharray', `${3 / state.view.scale} ${3 / state.view.scale}`);
     previewLayer.appendChild(ring);
   } else if (interaction.type === 'draw_line') {
-    const el = createSvgEl('line');
-    el.setAttribute('x1', String(interaction.x1));
-    el.setAttribute('y1', String(interaction.y1));
-    el.setAttribute('x2', String(interaction.x2));
-    el.setAttribute('y2', String(interaction.y2));
-    el.setAttribute('stroke', stroke);
-    el.setAttribute('stroke-width', String(sw));
-    el.setAttribute('stroke-linecap', 'round');
-    if (interaction.subType === 'line_arrow') el.setAttribute('marker-end', 'url(#arrow-head)');
-    previewLayer.appendChild(el);
+    const attrs = {
+      x1: interaction.x1,
+      y1: interaction.y1,
+      x2: interaction.x2,
+      y2: interaction.y2,
+      'stroke-linecap': 'round'
+    };
+    if (interaction.subType === 'line_arrow') attrs['marker-end'] = 'url(#arrow-head)';
+    applyLineStyleAndAppend(previewLayer, 'line', attrs, stroke, sw, state.style.lineStyle || 'solid', 'none');
 
     const gridLen = (Math.hypot(interaction.x2 - interaction.x1, interaction.y2 - interaction.y1) / GRID_SIZE).toFixed(1);
     if (interaction.perpSnap) {
@@ -2085,14 +2411,16 @@ function renderPreview() {
       drawFloatingBadge((interaction.x1 + interaction.x2) / 2, (interaction.y1 + interaction.y2) / 2 - 14, `${gridLen} マス`);
     }
   } else if (interaction.type === 'draw_freehand' && interaction.points.length >= 2) {
-    const el = createSvgEl('path');
-    el.setAttribute('d', interaction.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' '));
-    el.setAttribute('fill', 'none');
-    el.setAttribute('stroke', stroke);
-    el.setAttribute('stroke-width', String(sw));
-    el.setAttribute('stroke-linecap', 'round');
-    el.setAttribute('stroke-linejoin', 'round');
-    previewLayer.appendChild(el);
+    const d = interaction.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    applyLineStyleAndAppend(
+      previewLayer,
+      'path',
+      { d, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
+      stroke,
+      sw,
+      state.style.lineStyle || 'solid',
+      'none'
+    );
   } else if (interaction.type === 'scissors') {
     const el = createSvgEl('line');
     el.setAttribute('x1', String(interaction.x1));
@@ -2342,7 +2670,6 @@ function buildNotePayload(includeInlineImage = true) {
     settings: {
       darkMode: state.darkMode,
       snapEnabled: state.snapEnabled,
-      anglesVisible: state.anglesVisible,
       ageLevel: state.ageLevel
     },
     view: { ...state.view },
@@ -2417,7 +2744,6 @@ async function applyLoadedPayload(payload, assetBytesMap = null) {
   if (payload.settings) {
     if (typeof payload.settings.darkMode === 'boolean') state.darkMode = payload.settings.darkMode;
     if (typeof payload.settings.snapEnabled === 'boolean') state.snapEnabled = payload.settings.snapEnabled;
-    if (typeof payload.settings.anglesVisible === 'boolean') state.anglesVisible = payload.settings.anglesVisible;
   }
 
   state.bgImage = null;
