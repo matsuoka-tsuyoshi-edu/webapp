@@ -72,7 +72,7 @@ export function createPresetShape(subType, wx, wy, style, snapEnabled = true) {
 
   const baseStyle = {
     strokeColor: style.strokeColor || 'default',
-    strokeWidth: style.strokeWidth || 4,
+    strokeWidth: style.strokeWidth || 2,
     fillEnabled: style.fillEnabled !== false
   };
 

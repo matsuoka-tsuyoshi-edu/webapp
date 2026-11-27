@@ -3,7 +3,7 @@
   --grid-minor: #e2e8f0;
   --grid-major: #cbd5e1;
   --grid-origin: #94a3b8;
-  --ui-bg: rgba(255, 255, 255, 0.92);
+  --ui-bg: rgba(255, 255, 255, 0.93);
   --ui-bg-solid: #ffffff;
   --ui-border: rgba(148, 163, 184, 0.35);
   --ui-text: #0f172a;
@@ -24,7 +24,7 @@ html.dark {
   --grid-minor: #1e293b;
   --grid-major: #334155;
   --grid-origin: #475569;
-  --ui-bg: rgba(30, 41, 59, 0.92);
+  --ui-bg: rgba(30, 41, 59, 0.93);
   --ui-bg-solid: #1e293b;
   --ui-border: rgba(148, 163, 184, 0.22);
   --ui-text: #f8fafc;
@@ -65,7 +65,7 @@ ruby {
   ruby-position: over;
 }
 rt {
-  font-size: 0.6em;
+  font-size: 0.58em;
   font-weight: 500;
   opacity: 0.88;
 }
@@ -88,42 +88,101 @@ rt {
   touch-action: none;
 }
 
-/* ツールバー共通（フローティング・省スペース） */
-.floating-bar {
+/* 左側縦2列統合ドック */
+#left-dock-wrap {
   position: fixed;
-  z-index: 40;
+  top: max(8px, env(safe-area-inset-top));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: max(8px, env(safe-area-inset-left));
+  z-index: 45;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.floating-rail {
+  pointer-events: auto;
+  width: 58px;
+  max-width: 58px;
+  max-height: 100%;
   background: var(--ui-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--ui-border);
+  border-radius: 16px;
   box-shadow: var(--shadow);
-  transition: transform 0.22s ease, opacity 0.22s ease;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  transform-origin: left center;
+  transition:
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    max-width 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease,
+    padding 0.26s ease,
+    margin 0.26s ease;
 }
 
-body.ui-hidden #top-bar,
-body.top-collapsed #top-bar {
-  transform: translateY(-140%);
-  opacity: 0;
-  pointer-events: none;
-}
-body.ui-hidden #bottom-bar,
-body.bottom-collapsed #bottom-bar {
-  transform: translate(-50%, 150%);
-  opacity: 0;
-  pointer-events: none;
-}
-body.ui-hidden #hint-pill,
-body.top-collapsed #hint-pill {
-  top: max(10px, env(safe-area-inset-top));
-}
-body.ui-hidden #zoom-controls {
-  opacity: 0.55;
+#tool-rail {
+  width: 60px;
+  max-width: 60px;
 }
 
-/* 折り畳み時に端に出る再表示タブ */
-.collapse-tab {
-  position: fixed;
-  z-index: 54;
+.rail-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  touch-action: pan-y;
+}
+.rail-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* シュインッと折り畳まれるアニメーション */
+body.menu-collapsed #menu-rail,
+body.ui-hidden #menu-rail,
+body.tool-collapsed #tool-rail,
+body.ui-hidden #tool-rail {
+  max-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(-18px) scaleX(0.35);
+  margin-right: -6px;
+}
+
+.rail-collapse-btn {
+  appearance: none;
+  border: none;
+  background: var(--ui-hover);
+  color: var(--ui-muted);
+  border-radius: 10px;
+  height: 22px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.14s, color 0.14s;
+}
+.rail-collapse-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.rail-expand-tab {
+  pointer-events: auto;
   appearance: none;
   border: 1px solid var(--ui-border);
   background: var(--ui-bg);
@@ -131,147 +190,190 @@ body.ui-hidden #zoom-controls {
   -webkit-backdrop-filter: blur(8px);
   color: var(--ui-text);
   box-shadow: var(--shadow-sm);
-  border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 11.5px;
-  font-weight: 700;
+  border-radius: 12px;
+  padding: 8px 4px;
+  width: 28px;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
   cursor: pointer;
   display: none;
   align-items: center;
-  gap: 4px;
-  opacity: 0.85;
+  justify-content: center;
+  opacity: 0.88;
   transition: opacity 0.15s, transform 0.15s;
 }
-.collapse-tab:hover { opacity: 1; }
-.collapse-tab-top {
-  top: max(6px, env(safe-area-inset-top));
-  left: max(10px, env(safe-area-inset-left));
+.rail-expand-tab:hover {
+  opacity: 1;
 }
-.collapse-tab-bottom {
-  bottom: max(6px, env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-}
-body.top-collapsed:not(.ui-hidden) #tab-expand-top {
-  display: inline-flex;
-}
-body.bottom-collapsed:not(.ui-hidden) #tab-expand-bottom {
-  display: inline-flex;
-}
-
-.collapse-handle {
-  padding: 5px 7px !important;
-  font-size: 11px !important;
-  opacity: 0.75;
-}
-.collapse-handle-bottom {
-  min-width: 34px !important;
-  padding: 6px 4px !important;
-  opacity: 0.75;
-}
-
-/* 上部コンパクトバー */
-#top-bar {
-  top: max(8px, env(safe-area-inset-top));
-  left: max(10px, env(safe-area-inset-left));
-  right: max(104px, calc(env(safe-area-inset-right) + 98px));
-  max-width: calc(100vw - 114px);
-  border-radius: 15px;
-  padding: 4px 7px;
+body.menu-collapsed:not(.ui-hidden) #tab-expand-menu {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 5px;
-  min-height: 42px;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
-#top-bar::-webkit-scrollbar {
-  display: none;
+body.tool-collapsed:not(.ui-hidden) #tab-expand-tool {
+  display: flex;
 }
 
-.bar-group {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  flex-wrap: nowrap;
+.rail-sep {
+  height: 1px;
+  background: var(--ui-border);
+  margin: 2px 4px;
   flex-shrink: 0;
 }
 
-.app-brand {
+.rail-btn,
+.tool-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ui-text);
+  border-radius: 11px;
+  padding: 5px 2px;
+  min-height: 44px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  font-weight: 800;
-  font-size: 13px;
-  padding: 0 3px 0 1px;
-  white-space: nowrap;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 0.14s, transform 0.1s, border-color 0.14s, color 0.14s;
 }
-.app-brand img {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+.tool-btn {
+  min-height: 50px;
+}
+.rail-btn:hover,
+.tool-btn:hover {
+  background: var(--ui-hover);
+}
+.rail-btn:active,
+.tool-btn:active {
+  transform: scale(0.94);
+}
+.rail-btn:disabled {
+  opacity: 0.36;
+  cursor: default;
+  transform: none;
+}
+.rail-btn.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+.rail-btn.warn-active {
+  background: var(--warning);
+  color: #ffffff;
+  border-color: var(--warning);
+}
+.rail-btn.danger-text {
+  color: var(--danger);
 }
 
+.tool-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+.tool-btn.compass-btn.active {
+  background: rgba(245, 158, 11, 0.22);
+  color: #d97706;
+  border-color: #f59e0b;
+}
+html.dark .tool-btn.compass-btn.active {
+  color: #fbbf24;
+}
+.tool-btn.eraser-btn.active {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.rail-icon {
+  font-size: 16px;
+  line-height: 1.1;
+}
+.tool-icon {
+  font-size: 19px;
+  line-height: 1.1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rail-label,
+.tool-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  max-width: 54px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 長押しサブメニューインジケータ */
+.has-sub::after {
+  content: '▸';
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  font-size: 9px;
+  opacity: 0.65;
+}
+
+/* 四角い色アイコン（■） */
+.icon-square {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid var(--ui-border);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.width-line-preview {
+  display: inline-block;
+  width: 30px;
+  background: currentColor;
+  border-radius: 99px;
+  margin: 4px 0;
+}
+
+/* 汎用ボタン（フローティングバー内） */
 .ui-btn {
   appearance: none;
   border: 1px solid var(--ui-border);
   background: var(--ui-bg-solid);
   color: var(--ui-text);
   border-radius: 9px;
-  padding: 4px 7px;
+  padding: 5px 8px;
   font-size: 11.5px;
   font-weight: 700;
   line-height: 1.3;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 0.14s, transform 0.1s, border-color 0.14s, color 0.14s;
+  transition: background-color 0.14s, transform 0.1s;
 }
-.ui-btn:hover {
-  background: var(--ui-hover);
-}
-.ui-btn:active {
-  transform: scale(0.95);
-}
-.ui-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-  transform: none;
-}
+.ui-btn:hover { background: var(--ui-hover); }
+.ui-btn:active { transform: scale(0.95); }
 .ui-btn.active {
   background: var(--accent);
   color: #ffffff;
   border-color: var(--accent);
 }
-.ui-btn.warn-active {
-  background: var(--warning);
-  color: #ffffff;
-  border-color: var(--warning);
-}
-.ui-btn.danger-text {
-  color: var(--danger);
-}
+.ui-btn.danger-text { color: var(--danger); }
 
-.icon-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid var(--ui-border);
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-/* UI非表示トグルボタン（右上隅常駐・発表モード） */
+/* 右上発表モード（一括折りたたみ）ボタン */
 #btn-toggle-ui {
   position: fixed;
   top: max(10px, env(safe-area-inset-top));
   right: max(10px, env(safe-area-inset-right));
   z-index: 55;
-  height: 40px;
+  height: 38px;
   padding: 0 11px;
   border-radius: 999px;
   background: var(--ui-bg);
@@ -297,167 +399,59 @@ body.ui-hidden #btn-toggle-ui {
   background: var(--accent);
   color: #ffffff;
   border-color: var(--accent);
-  opacity: 0.9;
+  opacity: 0.92;
+}
+body.ui-hidden #zoom-controls {
+  opacity: 0.55;
 }
 
-/* 下・左・右メインツールドック */
-#bottom-bar {
-  bottom: max(10px, env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: calc(100vw - 24px);
-  border-radius: 18px;
-  padding: 6px 8px;
-  display: flex;
+/* 左上寄せの状況表示バー（複数選択＆長押し変形） */
+#multi-bar,
+#transform-bar {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  left: 142px;
+  z-index: 52;
+  background: var(--ui-bg-solid);
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  padding: 5px 9px;
+  box-shadow: var(--shadow);
+  display: none;
   align-items: center;
   gap: 5px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  flex-wrap: wrap;
+  max-width: calc(100vw - 245px);
+  transition: left 0.26s cubic-bezier(0.22, 1, 0.36, 1);
 }
-#bottom-bar::-webkit-scrollbar {
-  display: none;
-}
-
-body[data-dock="left"] #bottom-bar {
-  bottom: auto;
-  top: 53%;
-  left: max(10px, env(safe-area-inset-left));
-  transform: translateY(-50%);
-  flex-direction: column;
-  max-width: 78px;
-  max-height: calc(100dvh - 115px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 7px 5px;
-}
-body[data-dock="right"] #bottom-bar {
-  bottom: auto;
-  top: 53%;
-  left: auto;
-  right: max(10px, env(safe-area-inset-right));
-  transform: translateY(-50%);
-  flex-direction: column;
-  max-width: 78px;
-  max-height: calc(100dvh - 115px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 7px 5px;
-}
-body[data-dock="left"].ui-hidden #bottom-bar,
-body[data-dock="left"].bottom-collapsed #bottom-bar {
-  transform: translate(-150%, -50%);
-}
-body[data-dock="right"].ui-hidden #bottom-bar,
-body[data-dock="right"].bottom-collapsed #bottom-bar {
-  transform: translate(150%, -50%);
-}
-body[data-dock="left"] .tool-btn,
-body[data-dock="right"] .tool-btn {
-  width: 64px;
-  min-width: 64px;
-  padding: 5px 3px;
-}
-body[data-dock="left"] .has-sub::after {
-  content: '▶';
-  top: 4px;
-  right: 4px;
-}
-body[data-dock="right"] .has-sub::after {
-  content: '◀';
-  top: 4px;
-  left: 4px;
-  right: auto;
-}
-body[data-dock="left"] .collapse-tab-bottom {
-  bottom: auto;
-  top: 50%;
-  left: max(6px, env(safe-area-inset-left));
-  transform: translateY(-50%);
-}
-body[data-dock="right"] .collapse-tab-bottom {
-  bottom: auto;
-  top: 50%;
-  left: auto;
-  right: max(6px, env(safe-area-inset-right));
-  transform: translateY(-50%);
-}
-
-.dock-pos-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  padding: 2px 4px;
-}
-.dock-pos-grid .pop-item {
-  justify-content: center;
-  padding: 6px 4px;
-  font-size: 12px;
-  gap: 3px;
-}
-
-.tool-btn {
-  appearance: none;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--ui-text);
-  border-radius: 12px;
-  padding: 6px 9px;
-  min-width: 58px;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  cursor: pointer;
-  position: relative;
-  flex-shrink: 0;
-  transition: background-color 0.14s, transform 0.1s;
-}
-.tool-btn:hover {
-  background: var(--ui-hover);
-}
-.tool-btn:active {
-  transform: scale(0.95);
-}
-.tool-btn.active {
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  border-color: var(--accent);
-}
-.tool-btn.compass-btn.active {
-  background: rgba(245, 158, 11, 0.22);
-  color: #d97706;
-  border-color: #f59e0b;
-}
-html.dark .tool-btn.compass-btn.active {
-  color: #fbbf24;
-}
-.tool-btn.eraser-btn.active {
-  background: rgba(239, 68, 68, 0.18);
-  color: #ef4444;
-  border-color: #ef4444;
-}
-
-.tool-icon {
-  font-size: 19px;
-  line-height: 1.1;
+#transform-bar { z-index: 54; }
+#multi-bar.open,
+#transform-bar.open {
   display: flex;
-  align-items: center;
-  justify-content: center;
 }
-.tool-label {
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.3;
-  white-space: nowrap;
+body.menu-collapsed:not(.tool-collapsed) #multi-bar,
+body.menu-collapsed:not(.tool-collapsed) #transform-bar,
+body.tool-collapsed:not(.menu-collapsed) #multi-bar,
+body.tool-collapsed:not(.menu-collapsed) #transform-bar {
+  left: 112px;
+  max-width: calc(100vw - 215px);
 }
-.has-sub::after {
-  content: '▲';
-  position: absolute;
-  top: 4px;
-  right: 5px;
-  font-size: 8px;
-  opacity: 0.6;
+body.menu-collapsed.tool-collapsed #multi-bar,
+body.menu-collapsed.tool-collapsed #transform-bar {
+  left: 78px;
+  max-width: calc(100vw - 180px);
+}
+body.ui-hidden #multi-bar,
+body.ui-hidden #transform-bar {
+  left: 12px;
+  max-width: calc(100vw - 115px);
+}
+
+.tf-badge {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--accent-text);
+  padding: 0 4px;
 }
 
 /* プルダウン／ポップアップメニュー */
@@ -471,7 +465,7 @@ html.dark .tool-btn.compass-btn.active {
   padding: 8px;
   display: none;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 190px;
   max-height: 78vh;
   overflow-y: auto;
@@ -487,12 +481,12 @@ html.dark .tool-btn.compass-btn.active {
   background: transparent;
   color: var(--ui-text);
   border-radius: 10px;
-  padding: 9px 12px;
-  font-size: 13.5px;
+  padding: 8px 11px;
+  font-size: 13px;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -526,7 +520,7 @@ html.dark .tool-btn.compass-btn.active {
 .swatch-btn {
   width: 34px;
   height: 34px;
-  border-radius: 50%;
+  border-radius: 8px;
   border: 2px solid var(--ui-border);
   cursor: pointer;
   position: relative;
@@ -536,97 +530,11 @@ html.dark .tool-btn.compass-btn.active {
   outline-offset: 2px;
 }
 
-.width-line-preview {
-  display: inline-block;
-  width: 38px;
-  background: currentColor;
-  border-radius: 99px;
-}
-
-/* ヒントバナー（左下配置・オプション非表示対応） */
-#hint-pill {
-  position: fixed;
-  bottom: max(12px, env(safe-area-inset-bottom));
-  left: max(12px, env(safe-area-inset-left));
-  z-index: 35;
-  background: var(--ui-bg);
-  border: 1px solid var(--ui-border);
-  color: var(--ui-text);
-  border-radius: 999px;
-  padding: 5px 12px;
-  font-size: 11.5px;
-  font-weight: 600;
-  box-shadow: var(--shadow-sm);
-  pointer-events: none;
-  max-width: min(380px, 45vw);
-  text-align: left;
-  transition: opacity 0.2s, left 0.2s, bottom 0.2s;
-}
-body[data-dock="bottom"]:not(.bottom-collapsed):not(.ui-hidden) #hint-pill {
-  bottom: max(82px, calc(env(safe-area-inset-bottom) + 74px));
-}
-body[data-dock="left"]:not(.bottom-collapsed):not(.ui-hidden) #hint-pill {
-  left: max(92px, calc(env(safe-area-inset-left) + 86px));
-}
-body.hint-hidden #hint-pill {
-  display: none !important;
-}
-
-/* 複数選択・グループ化フローティングバー */
-#multi-bar {
-  position: fixed;
-  top: max(58px, calc(env(safe-area-inset-top) + 52px));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 58;
-  background: var(--ui-bg-solid);
-  border: 2px solid var(--accent);
-  border-radius: 15px;
-  padding: 5px 9px;
-  box-shadow: var(--shadow);
-  display: none;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  max-width: 90vw;
-}
-#multi-bar.open {
-  display: flex;
-}
-
-/* 長押し変形フローティングバー */
-#transform-bar {
-  position: fixed;
-  top: max(58px, calc(env(safe-area-inset-top) + 52px));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 60;
-  background: var(--ui-bg-solid);
-  border: 2px solid var(--accent);
-  border-radius: 16px;
-  padding: 6px 10px;
-  box-shadow: var(--shadow);
-  display: none;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  max-width: 92vw;
-}
-#transform-bar.open {
-  display: flex;
-}
-.tf-badge {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: var(--accent-text);
-  padding: 0 4px;
-}
-
 /* 背景画像コントロールバー */
 #bg-controls {
   position: fixed;
-  left: max(12px, env(safe-area-inset-left));
-  bottom: max(48px, calc(env(safe-area-inset-bottom) + 42px));
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(140px, calc(env(safe-area-inset-bottom) + 130px));
   z-index: 38;
   background: var(--ui-bg);
   border: 1px solid var(--ui-border);
@@ -638,12 +546,6 @@ body.hint-hidden #hint-pill {
   gap: 6px;
   font-size: 11.5px;
   font-weight: 700;
-}
-body[data-dock="bottom"]:not(.bottom-collapsed):not(.ui-hidden) #bg-controls {
-  bottom: max(116px, calc(env(safe-area-inset-bottom) + 108px));
-}
-body[data-dock="left"]:not(.bottom-collapsed):not(.ui-hidden) #bg-controls {
-  left: max(92px, calc(env(safe-area-inset-left) + 86px));
 }
 #bg-controls.open {
   display: flex;
@@ -668,13 +570,6 @@ body[data-dock="left"]:not(.bottom-collapsed):not(.ui-hidden) #bg-controls {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: right 0.2s, bottom 0.2s;
-}
-body[data-dock="bottom"]:not(.bottom-collapsed):not(.ui-hidden) #zoom-controls {
-  bottom: max(76px, calc(env(safe-area-inset-bottom) + 68px));
-}
-body[data-dock="right"]:not(.bottom-collapsed):not(.ui-hidden) #zoom-controls {
-  right: max(94px, calc(env(safe-area-inset-right) + 88px));
 }
 .zoom-pill {
   width: 40px;
@@ -700,7 +595,7 @@ body[data-dock="right"]:not(.bottom-collapsed):not(.ui-hidden) #zoom-controls {
 /* トースト通知 */
 #toast {
   position: fixed;
-  bottom: 92px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%) translateY(14px);
   z-index: 90;
@@ -762,17 +657,11 @@ body[data-dock="right"]:not(.bottom-collapsed):not(.ui-hidden) #zoom-controls {
   }
 }
 
-/* 小画面の横向き（スマホ横など）向けコンパクト化 */
-@media (max-height: 480px) {
-  #top-bar { padding: 3px 8px; min-height: 38px; }
-  .ui-btn { padding: 4px 8px; font-size: 11.5px; }
-  #bottom-bar { padding: 4px 6px; bottom: 6px; }
-  .tool-btn { min-width: 50px; padding: 4px 6px; }
+/* 小さい画面高さ向け調整 */
+@media (max-height: 520px) {
+  .rail-btn { min-height: 36px; padding: 3px 2px; }
+  .tool-btn { min-height: 40px; padding: 3px 2px; }
+  .rail-icon { font-size: 14px; }
   .tool-icon { font-size: 16px; }
-  .tool-label { font-size: 10px; }
-  #hint-pill { top: 48px; font-size: 11px; padding: 3px 10px; }
-}
-
-@media (max-width: 1120px) {
-  .app-brand span { display: none; }
+  .rail-label, .tool-label { font-size: 8.5px; }
 }

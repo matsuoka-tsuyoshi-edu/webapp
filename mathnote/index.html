@@ -75,52 +75,109 @@
     </svg>
   </div>
 
-  <!-- 右上常駐の発表モード（UI一括折り畳み）ボタン -->
-  <button id="btn-toggle-ui" type="button" title="発表モード（ツールを隠す/表示）" aria-label="ツール表示切替">
+  <!-- 右上常駐の発表モード（左ドック一括折り畳み）ボタン -->
+  <button id="btn-toggle-ui" type="button" title="発表モード（メニュー・ツールを隠す/表示）" aria-label="ツール表示切替">
     <span class="ui-toggle-icon">📺</span>
     <span id="ui-toggle-label" data-i18n="hide_ui">かくす</span>
   </button>
 
-  <!-- 折り畳み時に端に出る再表示タブ -->
-  <button id="tab-expand-top" class="collapse-tab collapse-tab-top" type="button" aria-label="上のバーをひらく">▼ メニュー</button>
-  <button id="tab-expand-bottom" class="collapse-tab collapse-tab-bottom" type="button" aria-label="下のバーをひらく">▲ ツール</button>
-
-  <!-- 上部ミニフローティングバー -->
-  <header id="top-bar" class="floating-bar">
-    <div class="bar-group">
-      <div class="app-brand">
-        <img src="./icons/icon.svg" alt="">
-        <span data-i18n="app_title">ずけいノート</span>
+  <!-- 左側 縦2列統合ドック（メニュー列 ＋ ツール列） -->
+  <aside id="left-dock-wrap" aria-label="メニューと作図ツール">
+    <!-- 1列目: メニューバー（縦） -->
+    <div id="menu-rail" class="floating-rail">
+      <button id="btn-collapse-menu" class="rail-collapse-btn" type="button" title="メニューをたたむ" aria-label="メニューをたたむ">◀</button>
+      <div class="rail-scroll">
+        <button id="btn-undo" class="rail-btn" type="button" title="もどす">
+          <span class="rail-icon">↩</span>
+          <span class="rail-label" data-i18n="undo">もどす</span>
+        </button>
+        <button id="btn-redo" class="rail-btn" type="button" title="やりなおす">
+          <span class="rail-icon">↪</span>
+          <span class="rail-label" data-i18n="redo">やり直</span>
+        </button>
+        <button id="btn-clear" class="rail-btn danger-text" type="button" title="全消去">
+          <span class="rail-icon">🗑</span>
+          <span class="rail-label" data-i18n="clear">全消去</span>
+        </button>
+        <div class="rail-sep"></div>
+        <button id="btn-color" class="rail-btn" type="button" title="色">
+          <span id="current-color-dot" class="icon-square" style="background:#111827"></span>
+          <span class="rail-label" data-i18n="color">いろ</span>
+        </button>
+        <button id="btn-width" class="rail-btn" type="button" title="線の太さ">
+          <span id="current-width-bar" class="width-line-preview" style="height:2px"></span>
+          <span class="rail-label" data-i18n="width">ふとさ</span>
+        </button>
+        <div class="rail-sep"></div>
+        <button id="btn-snap" class="rail-btn active" type="button" title="方眼スナップ">
+          <span class="rail-icon">🧲</span>
+          <span class="rail-label" data-i18n="snap">スナップ</span>
+        </button>
+        <button id="btn-angles" class="rail-btn" type="button" title="角を表示">
+          <span class="rail-icon">📐</span>
+          <span class="rail-label" data-i18n="angles">角表示</span>
+        </button>
+        <button id="btn-scissors" class="rail-btn" type="button" title="はさみで切断">
+          <span class="rail-icon">✂️</span>
+          <span class="rail-label" data-i18n="scissors">切断</span>
+        </button>
+        <div class="rail-sep"></div>
+        <button id="btn-fullscreen" class="rail-btn" type="button" title="全画面">
+          <span class="rail-icon">⛶</span>
+          <span class="rail-label" data-i18n="fullscreen">全画面</span>
+        </button>
+        <button id="btn-menu" class="rail-btn" type="button" title="設定・保存">
+          <span class="rail-icon">⚙</span>
+          <span class="rail-label" data-i18n="menu">せってい</span>
+        </button>
       </div>
-      <button id="btn-undo" class="ui-btn" type="button">↩ <span data-i18n="undo">もどす</span></button>
-      <button id="btn-redo" class="ui-btn" type="button">↪ <span data-i18n="redo">やりなおす</span></button>
-      <button id="btn-clear" class="ui-btn danger-text" type="button">🗑 <span data-i18n="clear">ぜんぶけす</span></button>
     </div>
 
-    <div class="bar-group">
-      <button id="btn-color" class="ui-btn" type="button">
-        <span id="current-color-dot" class="icon-dot" style="background:#111827"></span>
-        <span data-i18n="color">いろ</span>
-      </button>
-      <button id="btn-width" class="ui-btn" type="button">
-        <span id="current-width-bar" class="width-line-preview" style="height:4px"></span>
-        <span data-i18n="width">ふとさ</span>
-      </button>
-      <button id="btn-snap" class="ui-btn active" type="button">🧲 <span data-i18n="snap">方眼スナップ</span></button>
-      <button id="btn-angles" class="ui-btn" type="button">📐 <span data-i18n="angles">角を表示</span></button>
-      <button id="btn-scissors" class="ui-btn" type="button">✂️ <span data-i18n="scissors">はさみ</span></button>
-      <button id="btn-fullscreen" class="ui-btn" type="button">⛶ <span data-i18n="fullscreen">全画面</span></button>
-      <button id="btn-menu" class="ui-btn" type="button">⚙ <span data-i18n="menu">設定・保存</span></button>
-      <button id="btn-collapse-top" class="ui-btn collapse-handle" type="button" title="上のバーをたたむ" aria-label="上のバーをたたむ">▲</button>
-    </div>
-  </header>
+    <!-- メニュー列折りたたみ時タブ -->
+    <button id="tab-expand-menu" class="rail-expand-tab" type="button" title="メニューをひらく">▶<br>ﾒﾆｭｰ</button>
 
-  <!-- 操作ヒントピル（左下表示・オプションで非表示可） -->
-  <div id="hint-pill"></div>
+    <!-- 2列目: ツールバー（縦・長押しサブメニュー対応） -->
+    <nav id="tool-rail" class="floating-rail" aria-label="作図ツール">
+      <button id="btn-collapse-tool" class="rail-collapse-btn" type="button" title="ツールをたたむ" aria-label="ツールをたたむ">◀</button>
+      <div class="rail-scroll">
+        <button id="tool-btn-pointer" class="tool-btn has-sub active" data-tool="select" data-menu="menu-pointer" type="button" title="選択・移動（長押しで画面移動）">
+          <span class="tool-icon" id="pointer-tool-icon">👆</span>
+          <span class="tool-label" id="pointer-tool-label" data-i18n="tool_select">選択</span>
+        </button>
+        <button class="tool-btn" data-tool="point" type="button" title="点">
+          <span class="tool-icon">●</span>
+          <span class="tool-label" data-i18n="tool_point">点</span>
+        </button>
+        <button class="tool-btn has-sub" data-tool="line" data-menu="menu-line" type="button" title="線（長押し・タップで種類）">
+          <span class="tool-icon">📏</span>
+          <span class="tool-label" data-i18n="tool_line">線</span>
+        </button>
+        <button id="tool-btn-shape" class="tool-btn has-sub" data-tool="shape" data-menu="menu-shapes" type="button" title="図形（タップで三角形 / 長押しで四角形・正多角形も選択）">
+          <span class="tool-icon" id="shape-tool-icon">△</span>
+          <span class="tool-label" data-i18n="tool_shape">図形</span>
+        </button>
+        <button class="tool-btn has-sub" data-tool="circle" data-menu="menu-circle" type="button" title="円（正円・楕円）">
+          <span class="tool-icon">◯</span>
+          <span class="tool-label" data-i18n="tool_circle">円</span>
+        </button>
+        <button class="tool-btn compass-btn" data-tool="compass" type="button" title="コンパス">
+          <span class="tool-icon">🧭</span>
+          <span class="tool-label" data-i18n="tool_compass">コンパス</span>
+        </button>
+        <button class="tool-btn eraser-btn" data-tool="eraser" type="button" title="消しゴム">
+          <span class="tool-icon">🧹</span>
+          <span class="tool-label" data-i18n="tool_eraser">消去</span>
+        </button>
+      </div>
+    </nav>
 
-  <!-- 複数選択・グループ化フローティングバー -->
+    <!-- ツール列折りたたみ時タブ -->
+    <button id="tab-expand-tool" class="rail-expand-tab" type="button" title="ツールをひらく">▶<br>ﾂｰﾙ</button>
+  </aside>
+
+  <!-- 左上寄せの状況表示バー（複数選択・グループ化） -->
   <div id="multi-bar">
-    <span id="multi-count-badge" class="tf-badge">1つ選択中</span>
+    <span id="multi-count-badge" class="tf-badge">選択中</span>
     <button id="btn-multi-add" class="ui-btn" type="button">➕ <span data-i18n="multi_add">追加選択</span></button>
     <button id="btn-multi-group" class="ui-btn" type="button" style="display:none;">🔗 <span data-i18n="multi_group">グループ化</span></button>
     <button id="btn-multi-ungroup" class="ui-btn" type="button" style="display:none;">🔓 <span data-i18n="multi_ungroup">グループ解除</span></button>
@@ -128,7 +185,7 @@
     <button id="btn-multi-clear" class="ui-btn" type="button">✖ <span data-i18n="multi_clear">解除</span></button>
   </div>
 
-  <!-- 長押し変形フローティングメニュー -->
+  <!-- 左上寄せの長押し変形フローティングメニュー -->
   <div id="transform-bar">
     <span class="tf-badge" data-i18n="tf_title">頂点をドラッグして変形</span>
     <button class="ui-btn active" data-tf="both" type="button">🔄 <span data-i18n="tf_both">回転・拡大縮小</span></button>
@@ -140,53 +197,6 @@
     <button id="btn-tf-delete" class="ui-btn danger-text" type="button">🗑 <span data-i18n="tf_delete">削除</span></button>
     <button id="btn-tf-done" class="ui-btn active" type="button">✔ <span data-i18n="tf_done">完了</span></button>
   </div>
-
-  <!-- 下部メインツールバー（プルダウン付き） -->
-  <nav id="bottom-bar" class="floating-bar" aria-label="作図ツール">
-    <button class="tool-btn active" data-tool="select" type="button">
-      <span class="tool-icon">👆</span>
-      <span class="tool-label" data-i18n="tool_select">えらぶ・うごかす</span>
-    </button>
-    <button class="tool-btn" data-tool="pan" type="button">
-      <span class="tool-icon">✋</span>
-      <span class="tool-label" data-i18n="tool_pan">がめん移動</span>
-    </button>
-    <button class="tool-btn" data-tool="point" type="button">
-      <span class="tool-icon">●</span>
-      <span class="tool-label" data-i18n="tool_point">点</span>
-    </button>
-    <button class="tool-btn has-sub" data-tool="line" data-menu="menu-line" type="button">
-      <span class="tool-icon">📏</span>
-      <span class="tool-label" data-i18n="tool_line">線</span>
-    </button>
-    <button class="tool-btn has-sub" data-tool="triangle" data-menu="menu-triangle" type="button">
-      <span class="tool-icon">△</span>
-      <span class="tool-label" data-i18n="tool_triangle">三角形</span>
-    </button>
-    <button class="tool-btn has-sub" data-tool="quad" data-menu="menu-quad" type="button">
-      <span class="tool-icon">□</span>
-      <span class="tool-label" data-i18n="tool_quad">四角形</span>
-    </button>
-    <button class="tool-btn has-sub" data-tool="poly" data-menu="menu-poly" type="button">
-      <span class="tool-icon">⬠</span>
-      <span class="tool-label" data-i18n="tool_poly">正多角形</span>
-    </button>
-    <button class="tool-btn has-sub" data-tool="circle" data-menu="menu-circle" type="button">
-      <span class="tool-icon">◯</span>
-      <span class="tool-label" data-i18n="tool_circle">円</span>
-    </button>
-    <button class="tool-btn compass-btn" data-tool="compass" type="button">
-      <span class="tool-icon">🧭</span>
-      <span class="tool-label" data-i18n="tool_compass">コンパス</span>
-    </button>
-    <button class="tool-btn eraser-btn" data-tool="eraser" type="button">
-      <span class="tool-icon">🧹</span>
-      <span class="tool-label" data-i18n="tool_eraser">消しゴム</span>
-    </button>
-    <button id="btn-collapse-bottom" class="tool-btn collapse-handle-bottom" type="button" title="下のツールバーをたたむ" aria-label="下のバーをたたむ">
-      <span class="tool-icon">▼</span>
-    </button>
-  </nav>
 
   <!-- ズームコントロール -->
   <div id="zoom-controls">
@@ -201,39 +211,49 @@
     <label><span data-i18n="bg_scale">画像サイズ</span><input id="bg-scale-range" type="range" min="25" max="300" value="100"></label>
   </div>
 
-  <!-- 各プルダウンメニュー -->
+  <!-- サブメニュー：選択・画面移動 -->
+  <div id="menu-pointer" class="popover-menu">
+    <button class="pop-item selected" data-pointer-mode="select" type="button">👆 <span data-i18n="tool_select">選択・移動</span></button>
+    <button class="pop-item" data-pointer-mode="pan" type="button">✋ <span data-i18n="tool_pan">画面移動</span></button>
+  </div>
+
+  <!-- サブメニュー：線 -->
   <div id="menu-line" class="popover-menu">
     <button class="pop-item selected" data-tool="line" data-sub="line_segment" type="button">╱ <span data-i18n="line_segment">直線</span></button>
     <button class="pop-item" data-tool="line" data-sub="line_freehand" type="button">〰 <span data-i18n="line_freehand">自由線</span></button>
     <button class="pop-item" data-tool="line" data-sub="line_arrow" type="button">↗ <span data-i18n="line_arrow">矢印</span></button>
   </div>
 
-  <div id="menu-triangle" class="popover-menu">
-    <button class="pop-item" data-tool="place" data-sub="tri_general" type="button">◹ <span data-i18n="tri_general">一般三角形</span></button>
-    <button class="pop-item" data-tool="place" data-sub="tri_isosceles" type="button">△ <span data-i18n="tri_isosceles">二等辺三角形</span></button>
-    <button class="pop-item" data-tool="place" data-sub="tri_equilateral" type="button">▲ <span data-i18n="tri_equilateral">正三角形</span></button>
-    <button class="pop-item" data-tool="place" data-sub="tri_right" type="button">⊿ <span data-i18n="tri_right">直角三角形</span></button>
+  <!-- サブメニュー：図形統合（三角形 / 長押しで四角形・正多角形も展開） -->
+  <div id="menu-shapes" class="popover-menu" style="min-width:225px;">
+    <div class="pop-title" data-i18n="tool_triangle">三角形</div>
+    <button class="pop-item" data-tool="place" data-sub="tri_general" data-icon="◹" type="button">◹ <span data-i18n="tri_general">一般三角形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="tri_isosceles" data-icon="△" type="button">△ <span data-i18n="tri_isosceles">二等辺三角形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="tri_equilateral" data-icon="▲" type="button">▲ <span data-i18n="tri_equilateral">正三角形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="tri_right" data-icon="⊿" type="button">⊿ <span data-i18n="tri_right">直角三角形</span></button>
+    <div id="shapes-extra-group">
+      <div class="pop-sep"></div>
+      <div class="pop-title" data-i18n="tool_quad">四角形</div>
+      <button class="pop-item" data-tool="place" data-sub="quad_square" data-icon="■" type="button">■ <span data-i18n="quad_square">正方形</span></button>
+      <button class="pop-item" data-tool="place" data-sub="quad_rect" data-icon="▭" type="button">▭ <span data-i18n="quad_rect">長方形</span></button>
+      <button class="pop-item" data-tool="place" data-sub="quad_para" data-icon="▱" type="button">▱ <span data-i18n="quad_para">平行四辺形</span></button>
+      <button class="pop-item" data-tool="place" data-sub="quad_trap" data-icon="⏢" type="button">⏢ <span data-i18n="quad_trap">台形</span></button>
+      <button class="pop-item" data-tool="place" data-sub="quad_rhombus" data-icon="◇" type="button">◇ <span data-i18n="quad_rhombus">ひし形</span></button>
+      <div class="pop-sep"></div>
+      <div class="pop-title" data-i18n="tool_poly">正多角形</div>
+      <button class="pop-item" data-tool="place" data-sub="poly_pentagon" data-icon="⬠" type="button">⬠ <span data-i18n="poly_pentagon">正五角形</span></button>
+      <button class="pop-item" data-tool="place" data-sub="poly_hexagon" data-icon="⬡" type="button">⬡ <span data-i18n="poly_hexagon">正六角形</span></button>
+      <button class="pop-item" data-tool="place" data-sub="poly_octagon" data-icon="🛑" type="button">🛑 <span data-i18n="poly_octagon">正八角形</span></button>
+    </div>
   </div>
 
-  <div id="menu-quad" class="popover-menu">
-    <button class="pop-item" data-tool="place" data-sub="quad_square" type="button">■ <span data-i18n="quad_square">正方形</span></button>
-    <button class="pop-item" data-tool="place" data-sub="quad_rect" type="button">▭ <span data-i18n="quad_rect">長方形</span></button>
-    <button class="pop-item" data-tool="place" data-sub="quad_para" type="button">▱ <span data-i18n="quad_para">平行四辺形</span></button>
-    <button class="pop-item" data-tool="place" data-sub="quad_trap" type="button">⏢ <span data-i18n="quad_trap">台形</span></button>
-    <button class="pop-item" data-tool="place" data-sub="quad_rhombus" type="button">◇ <span data-i18n="quad_rhombus">ひし形</span></button>
-  </div>
-
-  <div id="menu-poly" class="popover-menu">
-    <button class="pop-item" data-tool="place" data-sub="poly_pentagon" type="button">⬠ <span data-i18n="poly_pentagon">正五角形</span></button>
-    <button class="pop-item" data-tool="place" data-sub="poly_hexagon" type="button">⬡ <span data-i18n="poly_hexagon">正六角形</span></button>
-    <button class="pop-item" data-tool="place" data-sub="poly_octagon" type="button">🛑 <span data-i18n="poly_octagon">正八角形</span></button>
-  </div>
-
+  <!-- サブメニュー：円 -->
   <div id="menu-circle" class="popover-menu">
     <button class="pop-item" data-tool="place" data-sub="circle_regular" type="button">◯ <span data-i18n="circle_regular">正円</span></button>
     <button class="pop-item" data-tool="place" data-sub="circle_ellipse" type="button">⬭ <span data-i18n="circle_ellipse">楕円</span></button>
   </div>
 
+  <!-- 色メニュー -->
   <div id="menu-color" class="popover-menu">
     <div class="pop-title" data-i18n="color">色</div>
     <div id="swatch-grid" class="swatch-grid"></div>
@@ -241,24 +261,18 @@
     <button id="btn-toggle-fill" class="pop-item selected" type="button">🎨 <span data-i18n="fill_label">中をぬる</span>: <strong id="fill-state-text">ON</strong></button>
   </div>
 
+  <!-- 太さメニュー -->
   <div id="menu-width" class="popover-menu">
     <div class="pop-title" data-i18n="width">太さ</div>
     <div id="width-list"></div>
   </div>
 
+  <!-- 設定・保存メニュー -->
   <div id="menu-settings" class="popover-menu" style="min-width:255px;">
     <div class="pop-title" data-i18n="menu_age">表示用語のレベル</div>
     <div id="age-list"></div>
     <div class="pop-sep"></div>
-    <div class="pop-title" data-i18n="menu_dock">ツールバーの位置</div>
-    <div id="dock-pos-list" class="dock-pos-grid">
-      <button class="pop-item selected" data-dock="bottom" type="button">⬇ <span data-i18n="dock_bottom">下</span></button>
-      <button class="pop-item" data-dock="left" type="button">⬅ <span data-i18n="dock_left">左</span></button>
-      <button class="pop-item" data-dock="right" type="button">➡ <span data-i18n="dock_right">右</span></button>
-    </div>
-    <div class="pop-sep"></div>
     <button id="btn-dark" class="pop-item" type="button">🌙 <span data-i18n="dark_mode">ダークモード</span>: <strong id="dark-state-text">OFF</strong></button>
-    <button id="btn-toggle-hint" class="pop-item selected" type="button">💬 <span data-i18n="menu_show_hint">操作ガイド表示</span>: <strong id="hint-state-text">ON</strong></button>
     <div class="pop-sep"></div>
     <div class="pop-title" data-i18n="menu_loupe">虫眼鏡（ドラッグ拡大）</div>
     <div id="loupe-mode-list">

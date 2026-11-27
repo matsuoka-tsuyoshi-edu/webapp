@@ -32,23 +32,22 @@ const state = {
   historyIndex: -1,
   view: { x: 0, y: 0, scale: 1, minScale: 0.35, maxScale: 3.5 },
   tool: 'select',       // 'select' | 'pan' | 'point' | 'line' | 'place' | 'compass' | 'eraser' | 'scissors'
+  pointerToolMode: 'select', // 'select' | 'pan'
   lineSubType: 'line_segment',
   placeSubType: 'tri_equilateral',
   defaultStyle: {
     strokeColor: 'default',
-    strokeWidth: 4,
+    strokeWidth: 2,
     fillEnabled: true
   },
   style: {
     strokeColor: 'default',
-    strokeWidth: 4,
+    strokeWidth: 2,
     fillEnabled: true
   },
   snapEnabled: true,
   anglesVisible: false,
   darkMode: false,
-  showHint: true,
-  dockPos: 'bottom', // 'bottom' | 'left' | 'right'
   ageLevel: 'elem_high',
   loupeMode: 'auto', // 'auto' | 'always' | 'off'
   selectedId: null,
@@ -75,7 +74,6 @@ const loupeRing = document.getElementById('loupe-ring');
 const loupeCrossH = document.getElementById('loupe-cross-h');
 const loupeCrossV = document.getElementById('loupe-cross-v');
 const loupeCenterDot = document.getElementById('loupe-center-dot');
-const hintPill = document.getElementById('hint-pill');
 const multiBar = document.getElementById('multi-bar');
 const transformBar = document.getElementById('transform-bar');
 const bgControls = document.getElementById('bg-controls');
@@ -99,8 +97,6 @@ function init() {
   registerServiceWorker();
   pushHistory();
   applyTheme();
-  applyDockPosition();
-  applyHintVisibility();
   applyLanguage();
   updateToolbarState();
   renderAll();
@@ -118,12 +114,6 @@ function loadPreferences() {
     if (savedLoupe === 'auto' || savedLoupe === 'always' || savedLoupe === 'off') {
       state.loupeMode = savedLoupe;
     }
-    const savedDock = localStorage.getItem('mathnote_dock');
-    if (savedDock === 'bottom' || savedDock === 'left' || savedDock === 'right') {
-      state.dockPos = savedDock;
-    }
-    const savedHint = localStorage.getItem('mathnote_hint');
-    if (savedHint === '0') state.showHint = false;
   } catch (_) {}
 }
 
@@ -132,8 +122,6 @@ function savePreferences() {
     localStorage.setItem('mathnote_dark', state.darkMode ? '1' : '0');
     localStorage.setItem('mathnote_age', state.ageLevel);
     localStorage.setItem('mathnote_loupe', state.loupeMode);
-    localStorage.setItem('mathnote_dock', state.dockPos);
-    localStorage.setItem('mathnote_hint', state.showHint ? '1' : '0');
   } catch (_) {}
 }
 
@@ -366,7 +354,7 @@ function syncStyleFromSelection() {
   const obj = targetId ? state.objects.find((o) => o.id === targetId) : null;
   if (obj) {
     state.style.strokeColor = obj.strokeColor || 'default';
-    state.style.strokeWidth = obj.strokeWidth || 4;
+    state.style.strokeWidth = obj.strokeWidth || 2;
     if (typeof obj.fillEnabled === 'boolean') {
       state.style.fillEnabled = obj.fillEnabled;
     }
@@ -473,13 +461,13 @@ function bindUIEvents() {
   });
 
   document.getElementById('btn-color').addEventListener('click', (e) => {
-    openPopoverNearButton('menu-color', e.currentTarget, 'bottom');
+    openPopoverNearButton('menu-color', e.currentTarget, 'left-dock');
   });
   document.getElementById('btn-width').addEventListener('click', (e) => {
-    openPopoverNearButton('menu-width', e.currentTarget, 'bottom');
+    openPopoverNearButton('menu-width', e.currentTarget, 'left-dock');
   });
   document.getElementById('btn-menu').addEventListener('click', (e) => {
-    openPopoverNearButton('menu-settings', e.currentTarget, 'bottom');
+    openPopoverNearButton('menu-settings', e.currentTarget, 'left-dock');
   });
 
   document.getElementById('btn-toggle-fill').addEventListener('click', () => {
@@ -513,23 +501,6 @@ function bindUIEvents() {
     applyTheme();
     updateToolbarState();
     renderAll();
-  });
-
-  document.getElementById('btn-toggle-hint').addEventListener('click', () => {
-    state.showHint = !state.showHint;
-    savePreferences();
-    applyHintVisibility();
-    updateToolbarState();
-  });
-
-  document.querySelectorAll('#dock-pos-list .pop-item[data-dock]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      state.dockPos = btn.dataset.dock;
-      savePreferences();
-      applyDockPosition();
-      updateToolbarState();
-      closeAllPopovers();
-    });
   });
 
   // 複数選択・グループ化バー
@@ -589,19 +560,19 @@ function bindUIEvents() {
     closeAllPopovers();
   });
 
-  document.getElementById('btn-collapse-top').addEventListener('click', () => {
-    document.body.classList.add('top-collapsed');
+  document.getElementById('btn-collapse-menu').addEventListener('click', () => {
+    document.body.classList.add('menu-collapsed');
     closeAllPopovers();
   });
-  document.getElementById('tab-expand-top').addEventListener('click', () => {
-    document.body.classList.remove('top-collapsed');
+  document.getElementById('tab-expand-menu').addEventListener('click', () => {
+    document.body.classList.remove('menu-collapsed');
   });
-  document.getElementById('btn-collapse-bottom').addEventListener('click', () => {
-    document.body.classList.add('bottom-collapsed');
+  document.getElementById('btn-collapse-tool').addEventListener('click', () => {
+    document.body.classList.add('tool-collapsed');
     closeAllPopovers();
   });
-  document.getElementById('tab-expand-bottom').addEventListener('click', () => {
-    document.body.classList.remove('bottom-collapsed');
+  document.getElementById('tab-expand-tool').addEventListener('click', () => {
+    document.body.classList.remove('tool-collapsed');
   });
 
   document.querySelectorAll('#loupe-mode-list .pop-item[data-loupe]').forEach((btn) => {
@@ -613,24 +584,102 @@ function bindUIEvents() {
     });
   });
 
-  // 下部ツールボタン（配置位置に応じてポップオーバー展開方向を調整）
-  document.querySelectorAll('#bottom-bar .tool-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const tool = btn.dataset.tool;
+  // 左縦ツールボタン（タップ＆長押しサブメニュー対応）
+  document.querySelectorAll('#tool-rail .tool-btn').forEach((btn) => {
+    let pressTimer = null;
+    let longPressed = false;
+
+    const openSubForBtn = (isLong) => {
       const menuId = btn.dataset.menu;
-      if (menuId) {
-        const placement = state.dockPos === 'left'
-          ? 'left-dock'
-          : (state.dockPos === 'right' ? 'right-dock' : 'top');
-        openPopoverNearButton(menuId, btn, placement);
+      if (!menuId) return;
+      if (menuId === 'menu-shapes') {
+        const extra = document.getElementById('shapes-extra-group');
+        if (extra) extra.style.display = isLong ? 'block' : 'none';
+      }
+      openPopoverNearButton(menuId, btn, 'left-dock');
+    };
+
+    btn.addEventListener('pointerdown', (e) => {
+      if (e.button === 2) return;
+      longPressed = false;
+      clearTimeout(pressTimer);
+      if (btn.dataset.menu) {
+        pressTimer = setTimeout(() => {
+          longPressed = true;
+          if (navigator.vibrate) navigator.vibrate(20);
+          openSubForBtn(true);
+        }, 320);
+      }
+    });
+
+    btn.addEventListener('pointerup', () => clearTimeout(pressTimer));
+    btn.addEventListener('pointercancel', () => clearTimeout(pressTimer));
+    btn.addEventListener('pointerleave', () => clearTimeout(pressTimer));
+
+    // 右クリックでも長押しと同じフルサブメニューを開く
+    btn.addEventListener('contextmenu', (e) => {
+      if (!btn.dataset.menu) return;
+      e.preventDefault();
+      clearTimeout(pressTimer);
+      openSubForBtn(true);
+    });
+
+    btn.addEventListener('click', (e) => {
+      if (longPressed) {
+        longPressed = false;
         return;
       }
+      const tool = btn.dataset.tool;
+      const menuId = btn.dataset.menu;
+
+      // 選択/画面移動ボタン：短押しで現在モードを選択、すでに選択中ならサブメニューを開く
+      if (tool === 'select') {
+        if (state.tool === state.pointerToolMode) {
+          openSubForBtn(true);
+        } else {
+          closeAllPopovers();
+          setTool(state.pointerToolMode);
+        }
+        return;
+      }
+
+      // 図形統合ボタン：短押しで三角形ピッカー（長押しで四角形・正多角形も展開）
+      if (tool === 'shape') {
+        openSubForBtn(false);
+        return;
+      }
+
+      if (menuId) {
+        openSubForBtn(false);
+        return;
+      }
+
       closeAllPopovers();
       setTool(tool);
     });
   });
 
-  // プルダウン項目クリック
+  // 選択・画面移動サブメニュー項目
+  document.querySelectorAll('#menu-pointer .pop-item[data-pointer-mode]').forEach((item) => {
+    item.addEventListener('click', () => {
+      const mode = item.dataset.pointerMode;
+      state.pointerToolMode = mode;
+      document.querySelectorAll('#menu-pointer .pop-item').forEach((p) => p.classList.remove('selected'));
+      item.classList.add('selected');
+      const iconEl = document.getElementById('pointer-tool-icon');
+      const lblEl = document.getElementById('pointer-tool-label');
+      if (iconEl) iconEl.textContent = mode === 'pan' ? '✋' : '👆';
+      if (lblEl) {
+        const key = mode === 'pan' ? 'tool_pan' : 'tool_select';
+        lblEl.setAttribute('data-i18n', key);
+        lblEl.innerHTML = t(key, state.ageLevel);
+      }
+      closeAllPopovers();
+      setTool(mode);
+    });
+  });
+
+  // プルダウン項目クリック（線・図形・円）
   document.querySelectorAll('.popover-menu .pop-item[data-tool]').forEach((item) => {
     item.addEventListener('click', () => {
       const tool = item.dataset.tool;
@@ -644,6 +693,10 @@ function bindUIEvents() {
         setTool('line');
       } else if (tool === 'place') {
         state.placeSubType = sub;
+        if (item.dataset.icon && parentMenu.id === 'menu-shapes') {
+          const shapeIcon = document.getElementById('shape-tool-icon');
+          if (shapeIcon) shapeIcon.textContent = item.dataset.icon;
+        }
         setTool('place');
       }
       closeAllPopovers();
@@ -791,26 +844,6 @@ function applyTheme() {
   document.documentElement.classList.toggle('dark', state.darkMode);
 }
 
-function applyDockPosition() {
-  document.body.dataset.dock = state.dockPos;
-  const collapseIcon = document.querySelector('#btn-collapse-bottom .tool-icon');
-  const expandTab = document.getElementById('tab-expand-bottom');
-  if (state.dockPos === 'left') {
-    if (collapseIcon) collapseIcon.textContent = '◀';
-    if (expandTab) expandTab.textContent = '▶ ツール';
-  } else if (state.dockPos === 'right') {
-    if (collapseIcon) collapseIcon.textContent = '▶';
-    if (expandTab) expandTab.textContent = '◀ ツール';
-  } else {
-    if (collapseIcon) collapseIcon.textContent = '▼';
-    if (expandTab) expandTab.textContent = '▲ ツール';
-  }
-}
-
-function applyHintVisibility() {
-  document.body.classList.toggle('hint-hidden', !state.showHint);
-}
-
 function updateMultiBarUI() {
   const hasTransform = Boolean(getTransformTarget());
   const count = state.selectedIds.length;
@@ -832,7 +865,6 @@ function updateMultiBarUI() {
 
 function applyLanguage() {
   applyI18nToDOM(document, state.ageLevel);
-  updateHintText();
 }
 
 function updateToolbarState() {
@@ -844,15 +876,6 @@ function updateToolbarState() {
   darkBtn.classList.toggle('selected', state.darkMode);
   const darkTxt = document.getElementById('dark-state-text');
   if (darkTxt) darkTxt.textContent = state.darkMode ? 'ON' : 'OFF';
-
-  const hintBtn = document.getElementById('btn-toggle-hint');
-  hintBtn.classList.toggle('selected', state.showHint);
-  const hintTxt = document.getElementById('hint-state-text');
-  if (hintTxt) hintTxt.textContent = state.showHint ? 'ON' : 'OFF';
-
-  document.querySelectorAll('#dock-pos-list .pop-item').forEach((b) => {
-    b.classList.toggle('selected', b.dataset.dock === state.dockPos);
-  });
 
   const dot = document.getElementById('current-color-dot');
   dot.style.background = resolveColor(state.style.strokeColor, state.darkMode);
@@ -875,20 +898,20 @@ function updateToolbarState() {
   fillBtn.classList.toggle('selected', state.style.fillEnabled);
   document.getElementById('fill-state-text').textContent = state.style.fillEnabled ? 'ON' : 'OFF';
 
-  // 下部ツールアクティブ表示
-  document.querySelectorAll('#bottom-bar .tool-btn').forEach((btn) => {
+  // ツールレールアクティブ表示
+  document.querySelectorAll('#tool-rail .tool-btn').forEach((btn) => {
     const tName = btn.dataset.tool;
     let isActive = state.tool === tName;
+    if (tName === 'select' && (state.tool === 'select' || state.tool === 'pan')) {
+      isActive = true;
+    }
     if (state.tool === 'place') {
-      if (tName === 'triangle' && state.placeSubType.startsWith('tri_')) isActive = true;
-      if (tName === 'quad' && state.placeSubType.startsWith('quad_')) isActive = true;
-      if (tName === 'poly' && state.placeSubType.startsWith('poly_')) isActive = true;
+      if (tName === 'shape' && !state.placeSubType.startsWith('circle_')) isActive = true;
       if (tName === 'circle' && state.placeSubType.startsWith('circle_')) isActive = true;
     }
     btn.classList.toggle('active', isActive);
   });
 
-  updateHintText();
   updateZoomDisplay();
 }
 
@@ -899,18 +922,6 @@ function updateTransformBarUI() {
     btn.classList.toggle('active', btn.dataset.tf === state.transformSubMode);
   });
   updateMultiBarUI();
-}
-
-function updateHintText() {
-  let key = 'hint_select';
-  if (state.tool === 'place') key = 'hint_place';
-  else if (state.tool === 'line') key = 'hint_line';
-  else if (state.tool === 'compass') key = 'hint_compass';
-  else if (state.tool === 'scissors') key = 'hint_scissors';
-  else if (state.tool === 'pan') key = 'tool_pan';
-  else if (state.tool === 'point') key = 'tool_point';
-  else if (state.tool === 'eraser') key = 'tool_eraser';
-  hintPill.innerHTML = t(key, state.ageLevel);
 }
 
 function updateZoomDisplay() {
@@ -1154,15 +1165,16 @@ function onPointerDown(e) {
     return;
   }
 
-  // --- はさみ（切断）モード ---
+  // --- はさみ（切断）モード（スナップON時は方眼・頂点にスナップ） ---
   if (state.tool === 'scissors') {
+    const start = snapWorldPoint(world.x, world.y);
     interaction = {
       type: 'scissors',
       pointerId: e.pointerId,
-      x1: world.x,
-      y1: world.y,
-      x2: world.x,
-      y2: world.y
+      x1: start.x,
+      y1: start.y,
+      x2: start.x,
+      y2: start.y
     };
     renderPreview();
     return;
@@ -1411,10 +1423,11 @@ function onPointerMove(e) {
   }
 
   if (interaction.type === 'scissors') {
-    interaction.x2 = world.x;
-    interaction.y2 = world.y;
+    const end = snapWorldPoint(world.x, world.y);
+    interaction.x2 = end.x;
+    interaction.y2 = end.y;
     renderPreview();
-    showLoupeIfNeeded('scissors', null, world.x, world.y, e.clientX, e.clientY);
+    showLoupeIfNeeded('scissors', null, end.x, end.y, e.clientX, e.clientY);
     return;
   }
 
@@ -1888,7 +1901,7 @@ function renderObjects() {
   objectsLayer.innerHTML = '';
   for (const obj of state.objects) {
     const stroke = resolveColor(obj.strokeColor, state.darkMode);
-    const sw = obj.strokeWidth || 4;
+    const sw = obj.strokeWidth || 2;
 
     if (obj.kind === 'polygon') {
       const g = createSvgEl('g');

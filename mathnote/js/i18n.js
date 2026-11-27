@@ -18,18 +18,18 @@ const DICT = {
   undo: {
     elem_low: 'もどす',
     elem_high: 'もどす',
-    junior: '元に戻す',
-    teacher: '元に戻す'
+    junior: '戻す',
+    teacher: '戻す'
   },
   redo: {
     elem_low: 'やりなおす',
     elem_high: 'やり<ruby>直<rt>なお</rt></ruby>す',
-    junior: 'やり直す',
-    teacher: 'やり直す'
+    junior: 'やり直',
+    teacher: 'やり直'
   },
   clear: {
     elem_low: 'ぜんけし',
-    elem_high: 'ぜんぶ<ruby>消<rt>け</rt></ruby>す',
+    elem_high: 'ぜん<ruby>消<rt>け</rt></ruby>し',
     junior: '全消去',
     teacher: '全消去'
   },
@@ -90,16 +90,22 @@ const DICT = {
 
   // 下部メインツール
   tool_select: {
-    elem_low: 'えらぶ・うごかす',
-    elem_high: '<ruby>選<rt>えら</rt></ruby>ぶ・<ruby>動<rt>うご</rt></ruby>かす',
-    junior: '選択・移動',
-    teacher: '選択・移動'
+    elem_low: 'えらぶ',
+    elem_high: '<ruby>選<rt>えら</rt></ruby>ぶ',
+    junior: '選択',
+    teacher: '選択'
   },
   tool_pan: {
-    elem_low: 'がめんをうごかす',
+    elem_low: 'がめん移動',
     elem_high: '<ruby>画面<rt>がめん</rt></ruby><ruby>移動<rt>いどう</rt></ruby>',
     junior: '画面移動',
-    teacher: 'パン移動'
+    teacher: '画面移動'
+  },
+  tool_shape: {
+    elem_low: 'ずけい',
+    elem_high: '<ruby>図形<rt>ずけい</rt></ruby>',
+    junior: '図形',
+    teacher: '図形'
   },
   tool_point: {
     elem_low: 'てん',
