@@ -1801,15 +1801,15 @@
     }
 
     if (remMode) {
-      els.labelSlotLeft.textContent = "こたえ（しょう）";
+      els.labelSlotLeft.innerHTML = "<ruby>答<rt>こた</rt></ruby>え";
       els.watermarkLeft.textContent = "こたえ";
       els.labelSlotRight.textContent = "あまり";
       els.watermarkRight.textContent = "あまり";
       els.divRemSeparator.hidden = false;
     } else {
-      els.labelSlotLeft.textContent = "じゅうの くらい";
+      els.labelSlotLeft.innerHTML = "<ruby>十<rt>じゅう</rt></ruby>の<ruby>位<rt>くらい</rt></ruby>";
       els.watermarkLeft.textContent = "じゅう";
-      els.labelSlotRight.textContent = "いちの くらい";
+      els.labelSlotRight.innerHTML = "<ruby>一<rt>いち</rt></ruby>の<ruby>位<rt>くらい</rt></ruby>";
       els.watermarkRight.textContent = "いち";
       els.divRemSeparator.hidden = true;
     }

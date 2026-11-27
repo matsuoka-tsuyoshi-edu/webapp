@@ -1421,24 +1421,38 @@ body.is-portrait .portrait-lock {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
   padding: 0 2px;
 }
 
 .place-label {
-  font-size: clamp(12px, 1.4vw, 14px);
+  font-size: clamp(13px, 1.45vw, 15px);
   font-weight: 800;
   color: #475569;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+
+.place-label ruby {
+  ruby-align: center;
+}
+
+.place-label rt {
+  font-size: 0.58em;
+  font-weight: 800;
+  line-height: 1.05;
 }
 
 .btn-slot-clear {
-  padding: 6px 10px;
+  flex: 0 0 auto;
+  padding: 5px 9px;
   border-radius: 12px;
   background: #f1f5f9;
   color: #475569;
   border: 1.5px solid #cbd5e1;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .btn-slot-clear:active {
@@ -1449,8 +1463,8 @@ body.is-portrait .portrait-lock {
 /* 右側の「こたえる」「ぜんぶ けす」ボタン列 */
 .action-buttons-col {
   flex: 1 1 auto;
-  min-width: 118px;
-  max-width: 170px;
+  min-width: 132px;
+  max-width: 178px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1495,14 +1509,15 @@ body.is-portrait .portrait-lock {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 12px 10px;
+  gap: 4px;
+  padding: 11px 8px;
   border-radius: 18px;
   background: #fff1f2;
   color: #be123c;
   border: 2px solid #fda4af;
-  font-size: clamp(14px, 1.7vw, 16px);
+  font-size: clamp(12.5px, 1.45vw, 15px);
   font-weight: 800;
+  white-space: nowrap;
   box-shadow: 0 4px 0 #fecdd3;
   transition: transform 0.08s ease;
 }
