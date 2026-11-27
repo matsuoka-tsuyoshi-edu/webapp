@@ -214,7 +214,7 @@ export function getObjectCenter(obj) {
     }
     return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
   }
-  if (obj.kind === 'point') {
+  if (obj.kind === 'point' || obj.kind === 'right_angle') {
     return { x: obj.x, y: obj.y };
   }
   return { x: 0, y: 0 };
@@ -262,7 +262,7 @@ export function translateObject(obj, dx, dy) {
     obj.x2 += dx; obj.y2 += dy;
   } else if (obj.kind === 'freehand') {
     obj.points.forEach((p) => { p.x += dx; p.y += dy; });
-  } else if (obj.kind === 'point') {
+  } else if (obj.kind === 'point' || obj.kind === 'right_angle') {
     obj.x += dx;
     obj.y += dy;
   }
@@ -343,6 +343,14 @@ export function splitPolygon(vertices, lineStart, lineEnd) {
  * ヒット判定（ワールド座標 (wx, wy) がオブジェクト上にあるか）
  */
 export function hitTestObject(obj, wx, wy, tolerance = 14) {
+  if (obj.kind === 'right_angle') {
+    const sz = obj.size || 16;
+    const mx = obj.x + (obj.ux + obj.vx) * sz * 0.5;
+    const my = obj.y + (obj.uy + obj.vy) * sz * 0.5;
+    const d1 = Math.hypot(wx - obj.x, wy - obj.y);
+    const d2 = Math.hypot(wx - mx, wy - my);
+    return Math.min(d1, d2) <= Math.max(18, tolerance + 4);
+  }
   if (obj.kind === 'point') {
     return Math.hypot(wx - obj.x, wy - obj.y) <= Math.max(18, tolerance + obj.strokeWidth);
   }
@@ -533,3 +541,105 @@ export function buildPolygonAngleElements(verts) {
   }
   return items;
 }
+
+/**
+ * 始点 (x1, y1) から、図形の辺・線分（および延長線）への垂線の足を探索する
+ */
+export function findPerpendicularSnap(x1, y1, wx, wy, objects, threshold = 24) {
+  const segments = [];
+  for (const obj of objects) {
+    if (obj.kind === 'polygon') {
+      const n = obj.vertices.length;
+      for (let i = 0; i < n; i++) {
+        const a = obj.vertices[i];
+        const b = obj.vertices[(i + 1) % n];
+        segments.push({ ax: a.x, ay: a.y, bx: b.x, by: b.y });
+      }
+    } else if (obj.kind === 'line') {
+      segments.push({ ax: obj.x1, ay: obj.y1, bx: obj.x2, by: obj.y2 });
+    }
+  }
+
+  let best = null;
+  let minD = threshold;
+
+  for (const seg of segments) {
+    const abx = seg.bx - seg.ax;
+    const aby = seg.by - seg.ay;
+    const abLenSq = abx * abx + aby * aby;
+    if (abLenSq < 16) continue;
+
+    // 始点 (x1, y1) から直線 AB への正射影
+    const t = ((x1 - seg.ax) * abx + (y1 - seg.ay) * aby) / abLenSq;
+    if (t < -0.5 || t > 1.5) continue;
+
+    const hx = seg.ax + t * abx;
+    const hy = seg.ay + t * aby;
+    const perpLen = Math.hypot(x1 - hx, y1 - hy);
+    if (perpLen < 14) continue;
+
+    const d = Math.hypot(wx - hx, wy - hy);
+    if (d < minD) {
+      minD = d;
+      const abLen = Math.sqrt(abLenSq);
+      const ux = (x1 - hx) / perpLen;
+      const uy = (y1 - hy) / perpLen;
+      // 辺側方向（HがB側寄りならA方向、A側寄りならB方向へマークを出す）
+      const dir = t > 0.55 ? -1 : 1;
+      const vx = (abx / abLen) * dir;
+      const vy = (aby / abLen) * dir;
+      const extFrom = t < 0 ? { x: seg.ax, y: seg.ay } : (t > 1 ? { x: seg.bx, y: seg.by } : null);
+      best = { x: hx, y: hy, ux, uy, vx, vy, onSegment: t >= -0.02 && t <= 1.02, extFrom };
+    }
+  }
+  return best;
+}
+
+/**
+ * 確定した線分 (x1,y1)->(x2,y2) の終点が既存の辺・線分と直交しているか判定
+ */
+export function detectRightAngleAtEndpoint(x1, y1, x2, y2, objects) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy);
+  if (len < 14) return null;
+  const ux = -dx / len; // 終点から始点向き
+  const uy = -dy / len;
+
+  for (const obj of objects) {
+    const segs = [];
+    if (obj.kind === 'polygon') {
+      const n = obj.vertices.length;
+      for (let i = 0; i < n; i++) {
+        segs.push([obj.vertices[i], obj.vertices[(i + 1) % n]]);
+      }
+    } else if (obj.kind === 'line') {
+      segs.push([{ x: obj.x1, y: obj.y1 }, { x: obj.x2, y: obj.y2 }]);
+    }
+    for (const [a, b] of segs) {
+      const abx = b.x - a.x;
+      const aby = b.y - a.y;
+      const abLen = Math.hypot(abx, aby);
+      if (abLen < 8) continue;
+      const t = ((x2 - a.x) * abx + (y2 - a.y) * aby) / (abLen * abLen);
+      if (t < -0.5 || t > 1.5) continue;
+      const px = a.x + t * abx;
+      const py = a.y + t * aby;
+      if (Math.hypot(x2 - px, y2 - py) > 4.5) continue;
+      const dot = Math.abs((dx / len) * (abx / abLen) + (dy / len) * (aby / abLen));
+      if (dot <= 0.03) {
+        const dir = t > 0.55 ? -1 : 1;
+        return {
+          x: px,
+          y: py,
+          ux,
+          uy,
+          vx: (abx / abLen) * dir,
+          vy: (aby / abLen) * dir
+        };
+      }
+    }
+  }
+  return null;
+}
+

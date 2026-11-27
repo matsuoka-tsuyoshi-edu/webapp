@@ -7,6 +7,8 @@ import {
   buildPolygonAngleElements,
   cloneObject,
   createPresetShape,
+  detectRightAngleAtEndpoint,
+  findPerpendicularSnap,
   flipObjectHorizontal,
   getObjectCenter,
   getTransformHandles,
@@ -32,6 +34,11 @@ const state = {
   tool: 'select',       // 'select' | 'pan' | 'point' | 'line' | 'place' | 'compass' | 'eraser' | 'scissors'
   lineSubType: 'line_segment',
   placeSubType: 'tri_equilateral',
+  defaultStyle: {
+    strokeColor: 'default',
+    strokeWidth: 4,
+    fillEnabled: true
+  },
   style: {
     strokeColor: 'default',
     strokeWidth: 4,
@@ -40,9 +47,13 @@ const state = {
   snapEnabled: true,
   anglesVisible: false,
   darkMode: false,
+  showHint: true,
+  dockPos: 'bottom', // 'bottom' | 'left' | 'right'
   ageLevel: 'elem_high',
   loupeMode: 'auto', // 'auto' | 'always' | 'off'
   selectedId: null,
+  selectedIds: [],
+  multiSelectAddMode: false,
   transformTargetId: null,
   transformSubMode: 'both', // 'both' | 'rotate' | 'scale' | 'vertex'
   bgImage: null // { dataUrl, bytes, mime, ext, width, height, opacity, scale, x, y }
@@ -65,6 +76,7 @@ const loupeCrossH = document.getElementById('loupe-cross-h');
 const loupeCrossV = document.getElementById('loupe-cross-v');
 const loupeCenterDot = document.getElementById('loupe-center-dot');
 const hintPill = document.getElementById('hint-pill');
+const multiBar = document.getElementById('multi-bar');
 const transformBar = document.getElementById('transform-bar');
 const bgControls = document.getElementById('bg-controls');
 const toastEl = document.getElementById('toast');
@@ -87,6 +99,8 @@ function init() {
   registerServiceWorker();
   pushHistory();
   applyTheme();
+  applyDockPosition();
+  applyHintVisibility();
   applyLanguage();
   updateToolbarState();
   renderAll();
@@ -104,6 +118,12 @@ function loadPreferences() {
     if (savedLoupe === 'auto' || savedLoupe === 'always' || savedLoupe === 'off') {
       state.loupeMode = savedLoupe;
     }
+    const savedDock = localStorage.getItem('mathnote_dock');
+    if (savedDock === 'bottom' || savedDock === 'left' || savedDock === 'right') {
+      state.dockPos = savedDock;
+    }
+    const savedHint = localStorage.getItem('mathnote_hint');
+    if (savedHint === '0') state.showHint = false;
   } catch (_) {}
 }
 
@@ -112,6 +132,8 @@ function savePreferences() {
     localStorage.setItem('mathnote_dark', state.darkMode ? '1' : '0');
     localStorage.setItem('mathnote_age', state.ageLevel);
     localStorage.setItem('mathnote_loupe', state.loupeMode);
+    localStorage.setItem('mathnote_dock', state.dockPos);
+    localStorage.setItem('mathnote_hint', state.showHint ? '1' : '0');
   } catch (_) {}
 }
 
@@ -315,13 +337,65 @@ function buildStaticMenus() {
 }
 
 function applyStyleToSelection(patch) {
-  const targetId = state.transformTargetId || state.selectedId;
-  if (!targetId) return;
-  const obj = state.objects.find((o) => o.id === targetId);
-  if (!obj) return;
-  Object.assign(obj, patch);
-  pushHistory();
-  renderAll();
+  const ids = state.transformTargetId
+    ? [state.transformTargetId]
+    : (state.selectedIds.length > 0 ? state.selectedIds : (state.selectedId ? [state.selectedId] : []));
+
+  if (ids.length === 0) {
+    Object.assign(state.defaultStyle, patch);
+    Object.assign(state.style, patch);
+    return;
+  }
+
+  let changed = false;
+  for (const id of ids) {
+    const obj = state.objects.find((o) => o.id === id);
+    if (!obj) continue;
+    Object.assign(obj, patch);
+    changed = true;
+  }
+  Object.assign(state.style, patch);
+  if (changed) {
+    pushHistory();
+    renderAll();
+  }
+}
+
+function syncStyleFromSelection() {
+  const targetId = state.transformTargetId || state.selectedId || state.selectedIds[state.selectedIds.length - 1];
+  const obj = targetId ? state.objects.find((o) => o.id === targetId) : null;
+  if (obj) {
+    state.style.strokeColor = obj.strokeColor || 'default';
+    state.style.strokeWidth = obj.strokeWidth || 4;
+    if (typeof obj.fillEnabled === 'boolean') {
+      state.style.fillEnabled = obj.fillEnabled;
+    }
+  } else {
+    state.style = { ...state.defaultStyle };
+  }
+}
+
+function expandSelectionWithGroups(seedIds) {
+  const idSet = new Set(seedIds);
+  const groupIds = new Set();
+  for (const obj of state.objects) {
+    if (idSet.has(obj.id) && obj.groupId) groupIds.add(obj.groupId);
+  }
+  if (groupIds.size > 0) {
+    for (const obj of state.objects) {
+      if (obj.groupId && groupIds.has(obj.groupId)) idSet.add(obj.id);
+    }
+  }
+  return Array.from(idSet);
+}
+
+function setSelectionIds(ids) {
+  const valid = expandSelectionWithGroups(ids).filter((id) => state.objects.some((o) => o.id === id));
+  state.selectedIds = valid;
+  state.selectedId = valid.length > 0 ? valid[valid.length - 1] : null;
+  syncStyleFromSelection();
+  updateToolbarState();
+  updateMultiBarUI();
 }
 
 function closeAllPopovers() {
@@ -340,16 +414,24 @@ function openPopoverNearButton(menuId, anchorEl, placement = 'top') {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  let left = rect.left + rect.width / 2 - mRect.width / 2;
-  left = Math.max(10, Math.min(vw - mRect.width - 10, left));
-
+  let left;
   let top;
-  if (placement === 'top') {
-    top = rect.top - mRect.height - 10;
-    if (top < 10) top = rect.bottom + 8;
+  if (placement === 'left-dock') {
+    left = rect.right + 10;
+    top = Math.max(10, Math.min(vh - mRect.height - 10, rect.top + rect.height / 2 - mRect.height / 2));
+  } else if (placement === 'right-dock') {
+    left = rect.left - mRect.width - 10;
+    top = Math.max(10, Math.min(vh - mRect.height - 10, rect.top + rect.height / 2 - mRect.height / 2));
   } else {
-    top = rect.bottom + 8;
-    if (top + mRect.height > vh - 10) top = rect.top - mRect.height - 10;
+    left = rect.left + rect.width / 2 - mRect.width / 2;
+    left = Math.max(10, Math.min(vw - mRect.width - 10, left));
+    if (placement === 'top') {
+      top = rect.top - mRect.height - 10;
+      if (top < 10) top = rect.bottom + 8;
+    } else {
+      top = rect.bottom + 8;
+      if (top + mRect.height > vh - 10) top = rect.top - mRect.height - 10;
+    }
   }
 
   menu.style.left = `${Math.round(left)}px`;
@@ -433,6 +515,69 @@ function bindUIEvents() {
     renderAll();
   });
 
+  document.getElementById('btn-toggle-hint').addEventListener('click', () => {
+    state.showHint = !state.showHint;
+    savePreferences();
+    applyHintVisibility();
+    updateToolbarState();
+  });
+
+  document.querySelectorAll('#dock-pos-list .pop-item[data-dock]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.dockPos = btn.dataset.dock;
+      savePreferences();
+      applyDockPosition();
+      updateToolbarState();
+      closeAllPopovers();
+    });
+  });
+
+  // 複数選択・グループ化バー
+  document.getElementById('btn-multi-add').addEventListener('click', () => {
+    state.multiSelectAddMode = !state.multiSelectAddMode;
+    updateMultiBarUI();
+  });
+  document.getElementById('btn-multi-group').addEventListener('click', () => {
+    if (state.selectedIds.length < 2) return;
+    const gid = uid('grp');
+    for (const id of state.selectedIds) {
+      const obj = state.objects.find((o) => o.id === id);
+      if (obj) obj.groupId = gid;
+    }
+    pushHistory();
+    updateMultiBarUI();
+    renderOverlay();
+    showToast('グループにしました');
+  });
+  document.getElementById('btn-multi-ungroup').addEventListener('click', () => {
+    let changed = false;
+    for (const id of state.selectedIds) {
+      const obj = state.objects.find((o) => o.id === id);
+      if (obj && obj.groupId) {
+        delete obj.groupId;
+        changed = true;
+      }
+    }
+    if (changed) {
+      pushHistory();
+      updateMultiBarUI();
+      renderOverlay();
+      showToast('グループを解除しました');
+    }
+  });
+  document.getElementById('btn-multi-delete').addEventListener('click', () => {
+    if (state.selectedIds.length === 0) return;
+    const delSet = new Set(state.selectedIds);
+    state.objects = state.objects.filter((o) => !delSet.has(o.id));
+    clearSelectionAndTransform();
+    pushHistory();
+    renderAll();
+  });
+  document.getElementById('btn-multi-clear').addEventListener('click', () => {
+    clearSelectionAndTransform();
+    renderAll();
+  });
+
   document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
   document.getElementById('btn-toggle-ui').addEventListener('click', () => {
     const hidden = document.body.classList.toggle('ui-hidden');
@@ -468,13 +613,16 @@ function bindUIEvents() {
     });
   });
 
-  // 下部ツールボタン
+  // 下部ツールボタン（配置位置に応じてポップオーバー展開方向を調整）
   document.querySelectorAll('#bottom-bar .tool-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const tool = btn.dataset.tool;
       const menuId = btn.dataset.menu;
       if (menuId) {
-        openPopoverNearButton(menuId, btn, 'top');
+        const placement = state.dockPos === 'left'
+          ? 'left-dock'
+          : (state.dockPos === 'right' ? 'right-dock' : 'top');
+        openPopoverNearButton(menuId, btn, placement);
         return;
       }
       closeAllPopovers();
@@ -625,8 +773,13 @@ function setTool(tool) {
 
 function clearSelectionAndTransform() {
   state.selectedId = null;
+  state.selectedIds = [];
+  state.multiSelectAddMode = false;
   state.transformTargetId = null;
+  syncStyleFromSelection();
+  updateToolbarState();
   updateTransformBarUI();
+  updateMultiBarUI();
 }
 
 function getTransformTarget() {
@@ -638,6 +791,45 @@ function applyTheme() {
   document.documentElement.classList.toggle('dark', state.darkMode);
 }
 
+function applyDockPosition() {
+  document.body.dataset.dock = state.dockPos;
+  const collapseIcon = document.querySelector('#btn-collapse-bottom .tool-icon');
+  const expandTab = document.getElementById('tab-expand-bottom');
+  if (state.dockPos === 'left') {
+    if (collapseIcon) collapseIcon.textContent = '◀';
+    if (expandTab) expandTab.textContent = '▶ ツール';
+  } else if (state.dockPos === 'right') {
+    if (collapseIcon) collapseIcon.textContent = '▶';
+    if (expandTab) expandTab.textContent = '◀ ツール';
+  } else {
+    if (collapseIcon) collapseIcon.textContent = '▼';
+    if (expandTab) expandTab.textContent = '▲ ツール';
+  }
+}
+
+function applyHintVisibility() {
+  document.body.classList.toggle('hint-hidden', !state.showHint);
+}
+
+function updateMultiBarUI() {
+  const hasTransform = Boolean(getTransformTarget());
+  const count = state.selectedIds.length;
+  const show = !hasTransform && count > 0;
+  multiBar.classList.toggle('open', show);
+  if (!show) return;
+
+  const badge = document.getElementById('multi-count-badge');
+  badge.textContent = count > 1 ? `${count}個 選択中` : '選択中';
+
+  const selectedObjs = state.objects.filter((o) => state.selectedIds.includes(o.id));
+  const hasGroup = selectedObjs.some((o) => Boolean(o.groupId));
+  const distinctGroups = new Set(selectedObjs.map((o) => o.groupId || o.id));
+
+  document.getElementById('btn-multi-add').classList.toggle('active', state.multiSelectAddMode);
+  document.getElementById('btn-multi-group').style.display = (count >= 2 && distinctGroups.size > 1) ? 'inline-flex' : 'none';
+  document.getElementById('btn-multi-ungroup').style.display = hasGroup ? 'inline-flex' : 'none';
+}
+
 function applyLanguage() {
   applyI18nToDOM(document, state.ageLevel);
   updateHintText();
@@ -647,7 +839,20 @@ function updateToolbarState() {
   document.getElementById('btn-snap').classList.toggle('active', state.snapEnabled);
   document.getElementById('btn-angles').classList.toggle('active', state.anglesVisible);
   document.getElementById('btn-scissors').classList.toggle('warn-active', state.tool === 'scissors');
-  document.getElementById('btn-dark').classList.toggle('active', state.darkMode);
+
+  const darkBtn = document.getElementById('btn-dark');
+  darkBtn.classList.toggle('selected', state.darkMode);
+  const darkTxt = document.getElementById('dark-state-text');
+  if (darkTxt) darkTxt.textContent = state.darkMode ? 'ON' : 'OFF';
+
+  const hintBtn = document.getElementById('btn-toggle-hint');
+  hintBtn.classList.toggle('selected', state.showHint);
+  const hintTxt = document.getElementById('hint-state-text');
+  if (hintTxt) hintTxt.textContent = state.showHint ? 'ON' : 'OFF';
+
+  document.querySelectorAll('#dock-pos-list .pop-item').forEach((b) => {
+    b.classList.toggle('selected', b.dataset.dock === state.dockPos);
+  });
 
   const dot = document.getElementById('current-color-dot');
   dot.style.background = resolveColor(state.style.strokeColor, state.darkMode);
@@ -693,7 +898,7 @@ function updateTransformBarUI() {
   document.querySelectorAll('#transform-bar [data-tf]').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.tf === state.transformSubMode);
   });
-  hintPill.style.display = hasTarget ? 'none' : 'block';
+  updateMultiBarUI();
 }
 
 function updateHintText() {
@@ -815,6 +1020,27 @@ function onPointerDown(e) {
       return;
     }
 
+    // 2本目が図形をタップした場合（1本目が図形をホールド中の複数選択！）
+    if (state.tool === 'select' && interaction && (interaction.type === 'move_obj' || interaction.type === 'multi_select_hold') && !interaction.moved) {
+      const pts = Array.from(activePointers.values());
+      const secondPtr = pts.find((p) => p.id === e.pointerId) || pts[1];
+      const w2 = clientToWorld(secondPtr.clientX, secondPtr.clientY);
+      const hit2 = findTopObjectAt(w2.x, w2.y);
+      if (hit2 && hit2.kind !== 'right_angle') {
+        const curSet = new Set(state.selectedIds);
+        curSet.add(hit2.id);
+        setSelectionIds(Array.from(curSet));
+        interaction = {
+          type: 'multi_select_hold',
+          anchorPointerId: interaction.anchorPointerId || interaction.pointerId,
+          tapPointerId: secondPtr.id,
+          moved: false
+        };
+        renderOverlay();
+        return;
+      }
+    }
+
     // 通常モードではピンチズーム＆2本指パン
     const pts = Array.from(activePointers.values());
     const rect = svg.getBoundingClientRect();
@@ -895,9 +1121,12 @@ function onPointerDown(e) {
   if (state.tool === 'place') {
     const obj = createPresetShape(state.placeSubType, world.x, world.y, state.style, state.snapEnabled);
     state.objects.push(obj);
-    state.selectedId = obj.id;
     pushHistory();
-    setTool('select');
+    state.tool = 'select';
+    state.transformTargetId = null;
+    setSelectionIds([obj.id]);
+    updateTransformBarUI();
+    renderAll();
     return;
   }
 
@@ -973,26 +1202,66 @@ function onPointerDown(e) {
   // 2. 既存オブジェクトにヒットしたか（手前から探索）
   const hitObj = findTopObjectAt(world.x, world.y);
   if (hitObj) {
-    state.selectedId = hitObj.id;
+    // 直角マークをクリック/タップで消せるようにする
+    if (hitObj.kind === 'right_angle') {
+      interaction = {
+        type: 'tap_right_angle',
+        pointerId: e.pointerId,
+        objId: hitObj.id,
+        startClient: { x: e.clientX, y: e.clientY },
+        moved: false
+      };
+      return;
+    }
+
     if (state.transformTargetId && state.transformTargetId !== hitObj.id) {
       state.transformTargetId = null;
       updateTransformBarUI();
     }
 
-    const baseCopy = JSON.parse(JSON.stringify(hitObj));
+    // Shiftキーまたは「追加選択」モードONのときは複数選択をトグル/追加
+    if (e.shiftKey || state.multiSelectAddMode) {
+      const groupIds = expandSelectionWithGroups([hitObj.id]);
+      const curSet = new Set(state.selectedIds);
+      const allIn = groupIds.every((id) => curSet.has(id));
+      if (allIn && curSet.size > groupIds.length) {
+        groupIds.forEach((id) => curSet.delete(id));
+      } else {
+        groupIds.forEach((id) => curSet.add(id));
+      }
+      setSelectionIds(Array.from(curSet));
+    } else if (!state.selectedIds.includes(hitObj.id)) {
+      setSelectionIds([hitObj.id]);
+    } else {
+      // すでに複数選択されているうちの1つを触った場合、そのグループ選択を維持しスタイルだけ同期
+      state.selectedId = hitObj.id;
+      syncStyleFromSelection();
+      updateToolbarState();
+      updateMultiBarUI();
+    }
+
+    const moveIds = state.selectedIds.length > 0 ? state.selectedIds : [hitObj.id];
+    const baseMap = new Map();
+    for (const id of moveIds) {
+      const target = state.objects.find((o) => o.id === id);
+      if (target) baseMap.set(id, JSON.parse(JSON.stringify(target)));
+    }
+
     interaction = {
       type: 'move_obj',
       pointerId: e.pointerId,
       objId: hitObj.id,
+      moveIds,
       startWorld: { ...world },
       startClient: { x: e.clientX, y: e.clientY },
-      baseObj: baseCopy,
+      baseObj: baseMap.get(hitObj.id),
+      baseMap,
       moved: false
     };
     dragSnapshotDirty = false;
 
-    // 長押しタイマー起動（polygon / circle / line のみ回転・拡大縮小対象）
-    if (hitObj.kind === 'polygon' || hitObj.kind === 'circle' || hitObj.kind === 'line') {
+    // 長押しタイマー起動（単一図形 polygon / circle / line のみ回転・拡大縮小対象）
+    if (moveIds.length === 1 && (hitObj.kind === 'polygon' || hitObj.kind === 'circle' || hitObj.kind === 'line')) {
       cancelLongPress();
       longPressTimer = setTimeout(() => {
         if (!interaction || interaction.type !== 'move_obj' || interaction.moved) return;
@@ -1001,6 +1270,7 @@ function onPointerDown(e) {
         interaction.type = 'idle_after_longpress';
         if (navigator.vibrate) navigator.vibrate(25);
         updateTransformBarUI();
+        updateMultiBarUI();
         renderAll();
       }, 430);
     }
@@ -1009,7 +1279,7 @@ function onPointerDown(e) {
   }
 
   // 3. 空白部分をタップ/ドラッグ → 変形解除してパン
-  if (state.transformTargetId || state.selectedId) {
+  if (state.transformTargetId || state.selectedIds.length > 0 || state.selectedId) {
     clearSelectionAndTransform();
     renderOverlay();
   }
@@ -1108,9 +1378,24 @@ function onPointerMove(e) {
   }
 
   if (interaction.type === 'draw_line') {
-    const end = snapWorldPoint(world.x, world.y);
+    let end = snapWorldPoint(world.x, world.y);
+    let perpSnap = null;
+    if (interaction.subType === 'line_segment') {
+      perpSnap = findPerpendicularSnap(
+        interaction.x1,
+        interaction.y1,
+        world.x,
+        world.y,
+        state.objects,
+        24 / state.view.scale
+      );
+      if (perpSnap) {
+        end = { x: perpSnap.x, y: perpSnap.y };
+      }
+    }
     interaction.x2 = end.x;
     interaction.y2 = end.y;
+    interaction.perpSnap = perpSnap;
     renderPreview();
     showLoupeIfNeeded('draw_line', null, end.x, end.y, e.clientX, e.clientY);
     return;
@@ -1138,6 +1423,13 @@ function onPointerMove(e) {
     return;
   }
 
+  if (interaction.type === 'tap_right_angle') {
+    if (Math.hypot(e.clientX - interaction.startClient.x, e.clientY - interaction.startClient.y) > 10) {
+      interaction.moved = true;
+    }
+    return;
+  }
+
   if (interaction.type === 'move_obj') {
     const movePx = Math.hypot(e.clientX - interaction.startClient.x, e.clientY - interaction.startClient.y);
     if (movePx > 8) {
@@ -1152,8 +1444,14 @@ function onPointerMove(e) {
     const rawDy = world.y - interaction.startWorld.y;
     const { dx, dy } = computeMoveDeltaWithSnap(obj, rawDx, rawDy, interaction.baseObj);
 
-    restoreObjectFromBase(obj, interaction.baseObj);
-    translateObject(obj, dx, dy);
+    const moveIds = interaction.moveIds || [obj.id];
+    for (const id of moveIds) {
+      const target = state.objects.find((o) => o.id === id);
+      const base = interaction.baseMap?.get(id);
+      if (!target || !base) continue;
+      restoreObjectFromBase(target, base);
+      translateObject(target, dx, dy);
+    }
     dragSnapshotDirty = true;
     renderObjectsAndOverlay();
     const focusPt = obj.kind === 'point'
@@ -1238,9 +1536,24 @@ function onPointerUpOrCancel(e) {
     return;
   }
 
+  if (interaction.type === 'multi_select_hold') {
+    if (e.pointerId === interaction.anchorPointerId) {
+      interaction = null;
+    } else if (!activePointers.has(interaction.anchorPointerId)) {
+      interaction = null;
+    }
+    return;
+  }
+
   if (interaction.pointerId !== e.pointerId) return;
 
-  if (interaction.type === 'place_point') {
+  if (interaction.type === 'tap_right_angle') {
+    if (!interaction.moved) {
+      state.objects = state.objects.filter((o) => o.id !== interaction.objId);
+      pushHistory();
+      showToast('直角マークを消しました');
+    }
+  } else if (interaction.type === 'place_point') {
     const obj = {
       id: uid('pt'),
       kind: 'point',
@@ -1250,7 +1563,7 @@ function onPointerUpOrCancel(e) {
       strokeWidth: state.style.strokeWidth
     };
     state.objects.push(obj);
-    state.selectedId = obj.id;
+    setSelectionIds([obj.id]);
     pushHistory();
   } else if (interaction.type === 'draw_line') {
     if (Math.hypot(interaction.x2 - interaction.x1, interaction.y2 - interaction.y1) >= 6) {
@@ -1265,8 +1578,30 @@ function onPointerUpOrCancel(e) {
         strokeColor: state.style.strokeColor,
         strokeWidth: state.style.strokeWidth
       };
+      const existingBeforeLine = state.objects.slice();
       state.objects.push(obj);
-      state.selectedId = obj.id;
+
+      // 垂直に下ろした場合（または直交接点）は自動で直角マークを付与
+      if (interaction.subType === 'line_segment') {
+        const ra = interaction.perpSnap ||
+          detectRightAngleAtEndpoint(obj.x1, obj.y1, obj.x2, obj.y2, existingBeforeLine);
+        if (ra) {
+          state.objects.push({
+            id: uid('ra'),
+            kind: 'right_angle',
+            x: ra.x,
+            y: ra.y,
+            ux: ra.ux,
+            uy: ra.uy,
+            vx: ra.vx,
+            vy: ra.vy,
+            size: 16,
+            strokeColor: state.style.strokeColor
+          });
+        }
+      }
+
+      setSelectionIds([obj.id]);
       pushHistory();
     }
   } else if (interaction.type === 'draw_freehand') {
@@ -1441,9 +1776,14 @@ function restoreObjectFromBase(target, base) {
 
 function findTopObjectAt(wx, wy) {
   const tol = 16 / state.view.scale;
-  // 線分や図形の上に置かれた点を確実に掴めるよう point を最優先で判定
+  // 線分や図形の上に置かれた点・直角マークを確実に掴めるよう優先判定
   for (let i = state.objects.length - 1; i >= 0; i--) {
     if (state.objects[i].kind === 'point' && hitTestObject(state.objects[i], wx, wy, tol)) {
+      return state.objects[i];
+    }
+  }
+  for (let i = state.objects.length - 1; i >= 0; i--) {
+    if (state.objects[i].kind === 'right_angle' && hitTestObject(state.objects[i], wx, wy, tol)) {
       return state.objects[i];
     }
   }
@@ -1622,6 +1962,22 @@ function renderObjects() {
       el.setAttribute('r', String(Math.max(4, sw * 1.15)));
       el.setAttribute('fill', stroke);
       objectsLayer.appendChild(el);
+    } else if (obj.kind === 'right_angle') {
+      const sz = obj.size || 16;
+      const p1x = obj.x + obj.ux * sz;
+      const p1y = obj.y + obj.uy * sz;
+      const p2x = obj.x + obj.vx * sz;
+      const p2y = obj.y + obj.vy * sz;
+      const p3x = p1x + obj.vx * sz;
+      const p3y = p1y + obj.vy * sz;
+      const el = createSvgEl('path');
+      el.setAttribute('d', `M ${p1x} ${p1y} L ${p3x} ${p3y} L ${p2x} ${p2y}`);
+      el.setAttribute('fill', 'none');
+      el.setAttribute('stroke', stroke);
+      el.setAttribute('stroke-width', '2.5');
+      el.setAttribute('stroke-linejoin', 'round');
+      el.setAttribute('stroke-linecap', 'round');
+      objectsLayer.appendChild(el);
     } else if (obj.kind === 'arc') {
       if (obj.isFullCircle) {
         const el = createSvgEl('circle');
@@ -1688,7 +2044,33 @@ function renderPreview() {
     previewLayer.appendChild(el);
 
     const gridLen = (Math.hypot(interaction.x2 - interaction.x1, interaction.y2 - interaction.y1) / GRID_SIZE).toFixed(1);
-    drawFloatingBadge((interaction.x1 + interaction.x2) / 2, (interaction.y1 + interaction.y2) / 2 - 14, `${gridLen} マス`);
+    if (interaction.perpSnap) {
+      const ps = interaction.perpSnap;
+      if (ps.extFrom) {
+        const ext = createSvgEl('line');
+        ext.setAttribute('x1', String(ps.extFrom.x));
+        ext.setAttribute('y1', String(ps.extFrom.y));
+        ext.setAttribute('x2', String(ps.x));
+        ext.setAttribute('y2', String(ps.y));
+        ext.setAttribute('stroke', '#3b82f6');
+        ext.setAttribute('stroke-width', String(1.5 / state.view.scale));
+        ext.setAttribute('stroke-dasharray', `${4 / state.view.scale} ${4 / state.view.scale}`);
+        previewLayer.appendChild(ext);
+      }
+      const sz = 16;
+      const p1x = ps.x + ps.ux * sz, p1y = ps.y + ps.uy * sz;
+      const p2x = ps.x + ps.vx * sz, p2y = ps.y + ps.vy * sz;
+      const p3x = p1x + ps.vx * sz, p3y = p1y + ps.vy * sz;
+      const raPath = createSvgEl('path');
+      raPath.setAttribute('d', `M ${p1x} ${p1y} L ${p3x} ${p3y} L ${p2x} ${p2y}`);
+      raPath.setAttribute('fill', 'none');
+      raPath.setAttribute('stroke', '#ef4444');
+      raPath.setAttribute('stroke-width', String(2.5 / state.view.scale));
+      previewLayer.appendChild(raPath);
+      drawFloatingBadge((interaction.x1 + interaction.x2) / 2, (interaction.y1 + interaction.y2) / 2 - 14, `${gridLen} マス (90°)`);
+    } else {
+      drawFloatingBadge((interaction.x1 + interaction.x2) / 2, (interaction.y1 + interaction.y2) / 2 - 14, `${gridLen} マス`);
+    }
   } else if (interaction.type === 'draw_freehand' && interaction.points.length >= 2) {
     const el = createSvgEl('path');
     el.setAttribute('d', interaction.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' '));
@@ -1798,17 +2180,31 @@ function renderOverlay() {
   overlayLayer.innerHTML = '';
   const s = 1 / state.view.scale;
 
-  // 選択中のハイライト枠
-  const sel = state.objects.find((o) => o.id === state.selectedId);
-  if (sel && sel.id !== state.transformTargetId) {
-    const c = getObjectCenter(sel);
-    const cross = createSvgEl('circle');
-    cross.setAttribute('cx', String(c.x));
-    cross.setAttribute('cy', String(c.y));
-    cross.setAttribute('r', String(4 * s));
-    cross.setAttribute('fill', '#3b82f6');
-    cross.setAttribute('opacity', '0.65');
-    overlayLayer.appendChild(cross);
+  // 選択中（複数選択・グループ含む）のハイライト表示
+  const selIds = state.selectedIds.length > 0 ? state.selectedIds : (state.selectedId ? [state.selectedId] : []);
+  if (!state.transformTargetId && selIds.length > 0) {
+    for (const id of selIds) {
+      const sel = state.objects.find((o) => o.id === id);
+      if (!sel) continue;
+      if (sel.kind === 'polygon') {
+        const outline = createSvgEl('polygon');
+        outline.setAttribute('points', sel.vertices.map((v) => `${v.x},${v.y}`).join(' '));
+        outline.setAttribute('fill', 'none');
+        outline.setAttribute('stroke', sel.groupId ? '#10b981' : '#3b82f6');
+        outline.setAttribute('stroke-width', String(2 * s));
+        outline.setAttribute('stroke-dasharray', `${5 * s} ${4 * s}`);
+        outline.setAttribute('opacity', '0.75');
+        overlayLayer.appendChild(outline);
+      }
+      const c = getObjectCenter(sel);
+      const cross = createSvgEl('circle');
+      cross.setAttribute('cx', String(c.x));
+      cross.setAttribute('cy', String(c.y));
+      cross.setAttribute('r', String(4.5 * s));
+      cross.setAttribute('fill', sel.groupId ? '#10b981' : '#3b82f6');
+      cross.setAttribute('opacity', '0.8');
+      overlayLayer.appendChild(cross);
+    }
   }
 
   // 長押し変形モード中のハンドル表示
@@ -1868,13 +2264,10 @@ function createSvgEl(tag) {
 function shouldShowLoupe(actionKind, obj) {
   if (state.loupeMode === 'off') return false;
   if (state.loupeMode === 'always') return true;
-  // autoモード: 点・線・頂点・はさみ・コンパス、およびスナップOFF時の移動
-  if (actionKind === 'place_point' || actionKind === 'draw_line' ||
+  // autoモード: すべての図形・点の移動、点配置、線、頂点、はさみ、コンパス時に表示
+  if (actionKind === 'move_obj' || actionKind === 'place_point' || actionKind === 'draw_line' ||
       actionKind === 'scissors' || actionKind === 'handle_drag' || actionKind === 'compass') {
     return true;
-  }
-  if (actionKind === 'move_obj') {
-    return Boolean((obj && obj.kind === 'point') || !state.snapEnabled);
   }
   return false;
 }

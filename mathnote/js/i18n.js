@@ -454,6 +454,66 @@ const DICT = {
     elem_high: '<ruby>使<rt>つか</rt></ruby>わない',
     junior: 'オフ',
     teacher: 'オフ'
+  },
+  menu_dock: {
+    elem_low: 'ツールバーの ばしょ',
+    elem_high: 'ツールバーの<ruby>位置<rt>いち</rt></ruby>',
+    junior: 'ツールバーの位置',
+    teacher: 'ツールバー配置'
+  },
+  dock_bottom: {
+    elem_low: 'した',
+    elem_high: '<ruby>下<rt>した</rt></ruby>',
+    junior: '下',
+    teacher: '下'
+  },
+  dock_left: {
+    elem_low: 'ひだり',
+    elem_high: '<ruby>左<rt>ひだり</rt></ruby>',
+    junior: '左',
+    teacher: '左'
+  },
+  dock_right: {
+    elem_low: 'みぎ',
+    elem_high: '<ruby>右<rt>みぎ</rt></ruby>',
+    junior: '右',
+    teacher: '右'
+  },
+  menu_show_hint: {
+    elem_low: 'ガイドを ひょうじ',
+    elem_high: 'ガイドを<ruby>表示<rt>ひょうじ</rt></ruby>',
+    junior: '操作ガイド表示',
+    teacher: '操作ガイド表示'
+  },
+  multi_group: {
+    elem_low: 'グループにする',
+    elem_high: 'グループ<ruby>化<rt>か</rt></ruby>',
+    junior: 'グループ化',
+    teacher: 'グループ化'
+  },
+  multi_ungroup: {
+    elem_low: 'グループを ほどく',
+    elem_high: 'グループ<ruby>解除<rt>かいじょ</rt></ruby>',
+    junior: 'グループ解除',
+    teacher: 'グループ解除'
+  },
+  multi_add: {
+    elem_low: 'ついかで えらぶ',
+    elem_high: '<ruby>追加<rt>ついか</rt></ruby><ruby>選択<rt>せんたく</rt></ruby>',
+    junior: '追加選択',
+    teacher: '連続選択'
+  },
+  multi_delete: {
+    elem_low: 'まとめて けす',
+    elem_high: 'まとめて<ruby>消<rt>け</rt></ruby>す',
+    junior: '一括削除',
+    teacher: '一括削除'
+  },
+  multi_clear: {
+    elem_low: 'かいじょ',
+    elem_high: '<ruby>解除<rt>かいじょ</rt></ruby>',
+    junior: '解除',
+    teacher: '解除'
   }
 };
 
