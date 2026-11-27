@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <!-- PWA / 全画面対応 (Chrome / Android / iOS Safari) -->
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ずけいノート">
+
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+  <title>ずけいノート - 算数・数学ノート</title>
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <!-- 全画面方眼紙SVGキャンバス -->
+  <div id="canvas-wrap">
+    <svg id="board-svg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid-minor-pattern" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--grid-minor)" stroke-width="1"/>
+        </pattern>
+        <pattern id="grid-major-pattern" width="200" height="200" patternUnits="userSpaceOnUse">
+          <rect width="200" height="200" fill="url(#grid-minor-pattern)"/>
+          <path d="M 200 0 L 0 0 0 200" fill="none" stroke="var(--grid-major)" stroke-width="1.6"/>
+        </pattern>
+        <marker id="arrow-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="context-stroke"/>
+        </marker>
+      </defs>
+
+      <g id="viewport-group">
+        <!-- 背景画像レイヤー（方眼の下に配置） -->
+        <g id="bg-image-layer"></g>
+        <!-- 無限方眼レイヤー -->
+        <rect id="grid-bg-rect" x="-10000" y="-10000" width="20000" height="20000" fill="url(#grid-major-pattern)" opacity="0.92"/>
+        <!-- 原点軸目印 -->
+        <line x1="-10000" y1="0" x2="10000" y2="0" stroke="var(--grid-origin)" stroke-width="1" stroke-dasharray="6 6" opacity="0.5"/>
+        <line x1="0" y1="-10000" x2="0" y2="10000" stroke="var(--grid-origin)" stroke-width="1" stroke-dasharray="6 6" opacity="0.5"/>
+        <!-- 描画オブジェクトレイヤー -->
+        <g id="objects-layer"></g>
+        <!-- 操作中プレビュー・コンパス・はさみ線レイヤー -->
+        <g id="preview-layer"></g>
+        <!-- 選択・頂点ハンドル・ガイドレイヤー -->
+        <g id="overlay-layer"></g>
+      </g>
+    </svg>
+  </div>
+
+  <!-- 右上常駐のUI表示切替ボタン（全画面執筆用） -->
+  <button id="btn-toggle-ui" type="button" title="UI表示切替" aria-label="ツール表示切替">👁️</button>
+
+  <!-- 上部ミニフローティングバー -->
+  <header id="top-bar" class="floating-bar">
+    <div class="bar-group">
+      <div class="app-brand">
+        <img src="./icons/icon.svg" alt="">
+        <span data-i18n="app_title">ずけいノート</span>
+      </div>
+      <button id="btn-undo" class="ui-btn" type="button">↩ <span data-i18n="undo">もどす</span></button>
+      <button id="btn-redo" class="ui-btn" type="button">↪ <span data-i18n="redo">やりなおす</span></button>
+      <button id="btn-clear" class="ui-btn danger-text" type="button">🗑 <span data-i18n="clear">ぜんぶけす</span></button>
+    </div>
+
+    <div class="bar-group">
+      <button id="btn-color" class="ui-btn" type="button">
+        <span id="current-color-dot" class="icon-dot" style="background:#111827"></span>
+        <span data-i18n="color">いろ</span>
+      </button>
+      <button id="btn-width" class="ui-btn" type="button">
+        <span id="current-width-bar" class="width-line-preview" style="height:4px"></span>
+        <span data-i18n="width">ふとさ</span>
+      </button>
+      <button id="btn-snap" class="ui-btn active" type="button">🧲 <span data-i18n="snap">方眼スナップ</span></button>
+      <button id="btn-angles" class="ui-btn" type="button">📐 <span data-i18n="angles">角を表示</span></button>
+      <button id="btn-scissors" class="ui-btn" type="button">✂️ <span data-i18n="scissors">はさみ</span></button>
+      <button id="btn-dark" class="ui-btn" type="button">🌙 <span data-i18n="dark_mode">ダークモード</span></button>
+      <button id="btn-fullscreen" class="ui-btn" type="button">⛶ <span data-i18n="fullscreen">全画面</span></button>
+      <button id="btn-menu" class="ui-btn" type="button">⚙ <span data-i18n="menu">設定・保存</span></button>
+    </div>
+  </header>
+
+  <!-- 操作ヒントピル -->
+  <div id="hint-pill"></div>
+
+  <!-- 長押し変形フローティングメニュー -->
+  <div id="transform-bar">
+    <span class="tf-badge" data-i18n="tf_title">頂点をドラッグして変形</span>
+    <button class="ui-btn active" data-tf="both" type="button">🔄 <span data-i18n="tf_both">回転・拡大縮小</span></button>
+    <button class="ui-btn" data-tf="rotate" type="button">↻ <span data-i18n="tf_rotate">回転のみ</span></button>
+    <button class="ui-btn" data-tf="scale" type="button">⤢ <span data-i18n="tf_scale">拡大・縮小</span></button>
+    <button class="ui-btn" data-tf="vertex" type="button">✦ <span data-i18n="tf_vertex">頂点編集</span></button>
+    <button id="btn-tf-clone" class="ui-btn" type="button">📋 <span data-i18n="tf_clone">複製</span></button>
+    <button id="btn-tf-flip" class="ui-btn" type="button">⇄ <span data-i18n="tf_flip">反転</span></button>
+    <button id="btn-tf-delete" class="ui-btn danger-text" type="button">🗑 <span data-i18n="tf_delete">削除</span></button>
+    <button id="btn-tf-done" class="ui-btn active" type="button">✔ <span data-i18n="tf_done">完了</span></button>
+  </div>
+
+  <!-- 下部メインツールバー（プルダウン付き） -->
+  <nav id="bottom-bar" class="floating-bar" aria-label="作図ツール">
+    <button class="tool-btn active" data-tool="select" type="button">
+      <span class="tool-icon">👆</span>
+      <span class="tool-label" data-i18n="tool_select">えらぶ・うごかす</span>
+    </button>
+    <button class="tool-btn" data-tool="pan" type="button">
+      <span class="tool-icon">✋</span>
+      <span class="tool-label" data-i18n="tool_pan">がめん移動</span>
+    </button>
+    <button class="tool-btn" data-tool="point" type="button">
+      <span class="tool-icon">●</span>
+      <span class="tool-label" data-i18n="tool_point">点</span>
+    </button>
+    <button class="tool-btn has-sub" data-tool="line" data-menu="menu-line" type="button">
+      <span class="tool-icon">📏</span>
+      <span class="tool-label" data-i18n="tool_line">線</span>
+    </button>
+    <button class="tool-btn has-sub" data-tool="triangle" data-menu="menu-triangle" type="button">
+      <span class="tool-icon">△</span>
+      <span class="tool-label" data-i18n="tool_triangle">三角形</span>
+    </button>
+    <button class="tool-btn has-sub" data-tool="quad" data-menu="menu-quad" type="button">
+      <span class="tool-icon">□</span>
+      <span class="tool-label" data-i18n="tool_quad">四角形</span>
+    </button>
+    <button class="tool-btn has-sub" data-tool="poly" data-menu="menu-poly" type="button">
+      <span class="tool-icon">⬠</span>
+      <span class="tool-label" data-i18n="tool_poly">正多角形</span>
+    </button>
+    <button class="tool-btn has-sub" data-tool="circle" data-menu="menu-circle" type="button">
+      <span class="tool-icon">◯</span>
+      <span class="tool-label" data-i18n="tool_circle">円</span>
+    </button>
+    <button class="tool-btn compass-btn" data-tool="compass" type="button">
+      <span class="tool-icon">🧭</span>
+      <span class="tool-label" data-i18n="tool_compass">コンパス</span>
+    </button>
+    <button class="tool-btn eraser-btn" data-tool="eraser" type="button">
+      <span class="tool-icon">🧹</span>
+      <span class="tool-label" data-i18n="tool_eraser">消しゴム</span>
+    </button>
+  </nav>
+
+  <!-- ズームコントロール -->
+  <div id="zoom-controls">
+    <button id="btn-zoom-in" class="zoom-pill" type="button" aria-label="拡大">＋</button>
+    <button id="btn-zoom-reset" class="zoom-pill zoom-pct" type="button">100%</button>
+    <button id="btn-zoom-out" class="zoom-pill" type="button" aria-label="縮小">－</button>
+  </div>
+
+  <!-- 背景画像ミニ設定パネル -->
+  <div id="bg-controls">
+    <label><span data-i18n="bg_opacity">画像の濃さ</span><input id="bg-opacity-range" type="range" min="10" max="100" value="65"></label>
+    <label><span data-i18n="bg_scale">画像サイズ</span><input id="bg-scale-range" type="range" min="25" max="300" value="100"></label>
+  </div>
+
+  <!-- 各プルダウンメニュー -->
+  <div id="menu-line" class="popover-menu">
+    <button class="pop-item selected" data-tool="line" data-sub="line_segment" type="button">╱ <span data-i18n="line_segment">直線</span></button>
+    <button class="pop-item" data-tool="line" data-sub="line_freehand" type="button">〰 <span data-i18n="line_freehand">自由線</span></button>
+    <button class="pop-item" data-tool="line" data-sub="line_arrow" type="button">↗ <span data-i18n="line_arrow">矢印</span></button>
+  </div>
+
+  <div id="menu-triangle" class="popover-menu">
+    <button class="pop-item" data-tool="place" data-sub="tri_general" type="button">◹ <span data-i18n="tri_general">一般三角形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="tri_isosceles" type="button">△ <span data-i18n="tri_isosceles">二等辺三角形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="tri_equilateral" type="button">▲ <span data-i18n="tri_equilateral">正三角形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="tri_right" type="button">⊿ <span data-i18n="tri_right">直角三角形</span></button>
+  </div>
+
+  <div id="menu-quad" class="popover-menu">
+    <button class="pop-item" data-tool="place" data-sub="quad_square" type="button">■ <span data-i18n="quad_square">正方形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="quad_rect" type="button">▭ <span data-i18n="quad_rect">長方形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="quad_para" type="button">▱ <span data-i18n="quad_para">平行四辺形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="quad_trap" type="button">⏢ <span data-i18n="quad_trap">台形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="quad_rhombus" type="button">◇ <span data-i18n="quad_rhombus">ひし形</span></button>
+  </div>
+
+  <div id="menu-poly" class="popover-menu">
+    <button class="pop-item" data-tool="place" data-sub="poly_pentagon" type="button">⬠ <span data-i18n="poly_pentagon">正五角形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="poly_hexagon" type="button">⬡ <span data-i18n="poly_hexagon">正六角形</span></button>
+    <button class="pop-item" data-tool="place" data-sub="poly_octagon" type="button">🛑 <span data-i18n="poly_octagon">正八角形</span></button>
+  </div>
+
+  <div id="menu-circle" class="popover-menu">
+    <button class="pop-item" data-tool="place" data-sub="circle_regular" type="button">◯ <span data-i18n="circle_regular">正円</span></button>
+    <button class="pop-item" data-tool="place" data-sub="circle_ellipse" type="button">⬭ <span data-i18n="circle_ellipse">楕円</span></button>
+  </div>
+
+  <div id="menu-color" class="popover-menu">
+    <div class="pop-title" data-i18n="color">色</div>
+    <div id="swatch-grid" class="swatch-grid"></div>
+    <div class="pop-sep"></div>
+    <button id="btn-toggle-fill" class="pop-item selected" type="button">🎨 <span data-i18n="fill_label">中をぬる</span>: <strong id="fill-state-text">ON</strong></button>
+  </div>
+
+  <div id="menu-width" class="popover-menu">
+    <div class="pop-title" data-i18n="width">太さ</div>
+    <div id="width-list"></div>
+  </div>
+
+  <div id="menu-settings" class="popover-menu" style="min-width:240px;">
+    <div class="pop-title" data-i18n="menu_age">表示用語のレベル</div>
+    <div id="age-list"></div>
+    <div class="pop-sep"></div>
+    <button id="btn-save-json" class="pop-item" type="button">💾 <span data-i18n="menu_save_json">JSON保存</span></button>
+    <button id="btn-load-json" class="pop-item" type="button">📂 <span data-i18n="menu_load_json">JSON読込</span></button>
+    <button id="btn-save-zip" class="pop-item" type="button">🗜 <span data-i18n="menu_save_zip">ZIP保存</span></button>
+    <button id="btn-load-zip" class="pop-item" type="button">📦 <span data-i18n="menu_load_zip">ZIP読込</span></button>
+    <div class="pop-sep"></div>
+    <button id="btn-load-image" class="pop-item" type="button">🖼 <span data-i18n="menu_load_image">背景画像を重ねる</span></button>
+    <button id="btn-clear-image" class="pop-item" type="button" style="display:none;">🗑 <span data-i18n="menu_clear_image">背景画像を削除</span></button>
+    <div class="pop-sep"></div>
+    <a class="pop-item" href="./manual/index.html" target="_blank" rel="noopener" style="text-decoration:none;">📖 <span data-i18n="menu_manual">オンラインマニュアル</span></a>
+  </div>
+
+  <!-- 隠しファイル入力 -->
+  <input id="input-json" type="file" accept=".json,application/json" hidden>
+  <input id="input-zip" type="file" accept=".zip,application/zip" hidden>
+  <input id="input-image" type="file" accept="image/*" hidden>
+
+  <!-- トースト -->
+  <div id="toast"></div>
+
+  <!-- 縦向き時オーバーレイ -->
+  <div id="portrait-overlay" role="alert">
+    <div class="rotate-icon">📱</div>
+    <h2 data-i18n="portrait_title">画面を横向きにしてください</h2>
+    <p data-i18n="portrait_desc">このアプリは横向き専用です。端末を横向きにするか、ブラウザウィンドウを横長にしてご使用ください。</p>
+  </div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

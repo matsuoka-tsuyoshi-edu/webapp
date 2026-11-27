@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>ずけいノート オンラインマニュアル</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.75;
+      padding: 24px 16px 60px;
+    }
+    .container {
+      max-width: 880px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    header {
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      color: #fff;
+      border-radius: 20px;
+      padding: 28px 24px;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.2);
+    }
+    header h1 { margin: 0 0 8px; font-size: 26px; }
+    header p { margin: 0; opacity: 0.94; }
+    .back-link {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 999px;
+      font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 24px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 19px;
+      color: var(--accent);
+      border-bottom: 2px solid var(--accent-soft);
+      padding-bottom: 6px;
+    }
+    h3 { margin: 14px 0 6px; font-size: 15.5px; }
+    ul, ol { padding-left: 22px; margin: 8px 0; }
+    li { margin: 6px 0; }
+    .tip {
+      background: var(--accent-soft);
+      border-left: 4px solid var(--accent);
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin: 12px 0;
+      font-size: 14px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+    }
+    .mini-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: #fcfdff;
+    }
+    code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📐 <ruby>図形<rt>ずけい</rt></ruby>ノート オンラインマニュアル</h1>
+      <p><ruby>方眼紙<rt>ほうがんし</rt></ruby>の上で<ruby>図形<rt>ずけい</rt></ruby>やコンパスを使って<ruby>学<rt>まな</rt></ruby>べる、<ruby>算数<rt>さんすう</rt></ruby>・<ruby>数学<rt>すうがく</rt></ruby>用ノートWebアプリ</p>
+      <a class="back-link" href="../index.html">← ノートにもどる</a>
+    </header>
+
+    <section>
+      <h2>1. がめんの みかた と 基本操作</h2>
+      <ul>
+        <li><strong><ruby>横向<rt>よこむ</rt></ruby>き<ruby>専用<rt>せんよう</rt></ruby></strong>：タブレットやスマホは<ruby>横<rt>よこ</rt></ruby>にして使います。</li>
+        <li><strong>がめん<ruby>移動<rt>いどう</rt></ruby>・<ruby>拡大縮小<rt>かくだいしゅくしょう</rt></ruby></strong>：何もないところをドラッグすると<ruby>方眼紙<rt>ほうがんし</rt></ruby>を動かせます。2本のゆびでピンチイン・ピンチアウト（または右下の<code>＋</code><code>－</code>ボタン）で拡大・縮小できます。</li>
+        <li><strong>ツールバーをかくす</strong>：右上の <code>👁️</code> ボタンを押すと、上下のツールバーをかくして<ruby>全画面<rt>ぜんがめん</rt></ruby>をノートとして広く使えます。</li>
+        <li><strong>ことば（<ruby>学年<rt>がくねん</rt></ruby>・ふりがな）の<ruby>切<rt>き</rt></ruby>りかえ</strong>：右上の「⚙ 設定・保存」から「しょうがく 1〜3ねん」「小学生（4〜6年）」「中学生」「先生・一般」をえらべます。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>2. <ruby>点<rt>てん</rt></ruby>・<ruby>線<rt>せん</rt></ruby>・<ruby>図形<rt>ずけい</rt></ruby>を かく・おく</h2>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h3>● 点・📏 線</h3>
+          <p>「点」はタップした場所に点をうちます。「線」はプルダウンから <strong>直線・自由線・矢印</strong> をえらび、ドラッグして描きます。方眼スナップがONのときはマス目の交点にピタッと合います。</p>
+        </div>
+        <div class="mini-card">
+          <h3>△ 三角形・□ 四角形・⬠ 正多角形・◯ 円</h3>
+          <p>下のツールをタップするとプルダウンが開きます。えらんだ図形は方眼上の好きな場所をタップすると置けます。</p>
+          <p><strong>種類</strong>：一般三角形 / 二等辺三角形 / 正三角形 / 直角三角形 / 正方形 / 長方形 / 平行四辺形 / 台形 / ひし形 / 正五・六・八角形 / 正円 / 楕円</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. <ruby>図形<rt>ずけい</rt></ruby>をうごかす・<ruby>長押<rt>ながお</rt></ruby>しで<ruby>回転<rt>かいてん</rt></ruby>・<ruby>拡大縮小<rt>かくだいしゅくしょう</rt></ruby></h2>
+      <ol>
+        <li><strong>いどう</strong>：「えらぶ・うごかす」モードで図形の上をドラッグすると動かせます。他の図形の頂点や方眼にピタッとくっつきます。</li>
+        <li><strong><ruby>長押<rt>ながお</rt></ruby>しで<ruby>変形<rt>へんけい</rt></ruby></strong>：図形の上をそのまま<strong>約0.5秒<ruby>長押<rt>ながお</rt></ruby>し</strong>すると、頂点にまるいハンドルと変形メニューが出ます。</li>
+        <li><strong><ruby>頂点<rt>ちょうてん</rt></ruby>をドラッグ</strong>：頂点の丸ハンドルをつかんで動かすと、次の操作ができます。
+          <ul>
+            <li><strong>回転・拡大縮小</strong>：中心を軸にまわしながら大きさも変えられます。</li>
+            <li><strong>回転のみ / 拡大・縮小</strong>：向きだけ変える・大きさだけ変えることもできます。</li>
+            <li><strong>頂点編集</strong>：1つの頂点だけを動かして形を自由に変えられます。</li>
+            <li>そのほか <strong>複製・反転・削除</strong> ボタンも使えます。</li>
+          </ul>
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>4. 🧭 コンパス（<ruby>円<rt>えん</rt></ruby>・<ruby>円弧<rt>えんこ</rt></ruby>をかく）</h2>
+      <p>下の「🧭 コンパス」ボタンを押すと、実際のコンパスのように円や円弧が描けます。図形の上で長押ししても回転モードとはかぶりません。</p>
+      <ul>
+        <li><strong>タブレット・スマホ（二点タッチ）</strong>：
+          <ol>
+            <li><strong>1本目のゆび</strong>で<ruby>針<rt>はり</rt></ruby>をさす場所（<ruby>支点<rt>してん</rt></ruby>）をおさえたままにします。</li>
+            <li>1本目を離さずに、<strong>2本目のゆび</strong>で半径の位置をタッチしてくるっとドラッグすると<ruby>円弧<rt>えんこ</rt></ruby>が描けます。</li>
+            <li>1本目をおさえたまま2本目を離して描きなおせば、同じ中心でいくつでも円弧が描けます。</li>
+          </ol>
+        </li>
+        <li><strong>パソコン（マウス）</strong>：支点にしたい場所を1回クリックして針をさし、別の場所からドラッグすると円弧が描けます。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>5. その他のべんり機能（いろ・太さ・はさみ・ダークモード）</h2>
+      <ul>
+        <li><strong>いろ・ふとさ</strong>：上のバーで線の色（標準は黒）と太さ、図形の中をぬるかどうかを変更できます。図形をえらんだ状態で変えると、その図形の色や太さも変わります。</li>
+        <li><strong>✂️ はさみ</strong>：図形を横切るように線を引いて離すと、図形を2つに切り分けられます。</li>
+        <li><strong>📐 角を表示</strong>：多角形の内側の角に色つきマーク（直角は「┐」）を表示します。</li>
+        <li><strong>🌙 ダークモード</strong>：黒板のような暗い画面に切り替えられます。標準の黒線は自動的に見やすい白になります。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>6. <ruby>保存<rt>ほぞん</rt></ruby>・<ruby>読<rt>よ</rt></ruby>み<ruby>込<rt>こ</rt></ruby>み と <ruby>背景画像<rt>はいけいがぞう</rt></ruby></h2>
+      <ul>
+        <li><strong>背景画像を重ねる</strong>：「⚙ 設定・保存」→「背景画像を重ねる」で写真やプリント画像を取り込み、その上に方眼紙を重ねて作図できます。左下に濃さとサイズ調整バーが出ます。</li>
+        <li><strong>JSON保存 / 読込</strong>：ノートの内容をJSONファイル1つに保存・復元します。</li>
+        <li><strong>ZIP保存 / 読込</strong>：ノートの内容（<code>note.json</code>）と読み込んだ背景画像（<code>assets/</code>）をまとめて1つのZIPファイルとして保存・復元します。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>7. 全画面表示・アプリとしてのインストール</h2>
+      <div class="tip">
+        <strong>PC / Android Chrome</strong>：画面上部の「⛶ 全画面」ボタンで全画面表示にできます。アドレスバーのインストールアイコン（またはメニュー「アプリをインストール」）からホーム画面・デスクトップに追加できます。<br>
+        <strong>iPad / iPhone Safari</strong>：Safariの共有ボタン（四角から上矢印）→「ホーム画面に追加」を選ぶと、ツールバーなしの全画面アプリとして起動できます。
+      </div>
+    </section>
+  </div>
+</body>
+</html>
